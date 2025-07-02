@@ -208,6 +208,18 @@
                                     <label class="form-label">Platform</label>
                                     <input type="text" id="modal-platform" class="form-control">
                                 </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Method Info</label>
+                                    <input type="text" id="modal-method_info" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Active Jobs</label>
+                                    <input type="text" id="modal-active_jobs" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Inactive Jobs</label>
+                                    <input type="text" id="modal-inactive_jobs" class="form-control">
+                                </div>
                                 <div class="col-12">
                                     <label class="form-label">Required Skills</label>
                                     <textarea id="modal-required_skills" class="form-control"></textarea>
@@ -293,6 +305,9 @@
                         <th>Job Source</th>
                         <th>Source Type</th>
                         <th>Platform</th>
+                        <th>Method Info</th>
+                        <th>Active Jobs</th>
+                        <th>Inactive Jobs</th>
                     </tr>
                 </thead>
                 <tbody id="jobs-table-body"></tbody>
@@ -380,6 +395,9 @@
                 <td>${h(job.job_source)}</td>
                 <td>${h(job.source_type)}</td>
                 <td>${h(job.platform)}</td>
+                <td>${h(job.method_info)}</td>
+                <td>${h(job.active_jobs)}</td>
+                <td>${h(job.inactive_jobs)}</td>
             </tr>`;
         }
 

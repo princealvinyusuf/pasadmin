@@ -51,6 +51,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td>${job.job_source || ''}</td>
                         <td>${job.source_type || ''}</td>
                         <td>${job.platform || ''}</td>
+                        <td>${job.method_info || ''}</td>
+                        <td>${job.active_jobs || ''}</td>
+                        <td>${job.inactive_jobs || ''}</td>
                         <td>${job.employment_type || ''}</td>
                         <td>${job.experience_level || ''}</td>
                         <td>${job.salary || ''}</td>
