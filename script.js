@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td>${job.province || ''}</td>
                         <td>${job.city || ''}</td>
                         <td>${job.amount_info || ''}</td>
+                        <td>${job.posting_date || ''}</td>
                         <td>${job.employment_type || ''}</td>
                         <td>${job.experience_level || ''}</td>
                         <td>${job.salary || ''}</td>
