@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td>${job.title || ''}</td>
                         <td>${job.company_name || ''}</td>
                         <td>${job.location || ''}</td>
+                        <td>${job.province || ''}</td>
                         <td>${job.employment_type || ''}</td>
                         <td>${job.experience_level || ''}</td>
                         <td>${job.salary || ''}</td>
