@@ -185,8 +185,8 @@
                                     <input type="text" id="modal-city" class="form-control">
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Amount</label>
-                                    <input type="number" id="modal-amount" class="form-control">
+                                    <label class="form-label">Amount Info</label>
+                                    <input type="number" id="modal-amount_info" class="form-control">
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label">Required Skills</label>
@@ -267,7 +267,7 @@
                         <th>Description</th>
                         <th>Province</th>
                         <th>City</th>
-                        <th>Amount</th>
+                        <th>Amount Info</th>
                     </tr>
                 </thead>
                 <tbody id="jobs-table-body"></tbody>
@@ -349,7 +349,7 @@
                 <td>${h(job.description)}</td>
                 <td>${h(job.province)}</td>
                 <td>${h(job.city)}</td>
-                <td>${h(job.amount)}</td>
+                <td>${h(job.amount_info)}</td>
             </tr>`;
         }
 
