@@ -196,6 +196,18 @@
                                     <label class="form-label">Amount Info</label>
                                     <input type="text" id="modal-amount_info" class="form-control">
                                 </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Job Source</label>
+                                    <input type="text" id="modal-job_source" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Source Type</label>
+                                    <input type="text" id="modal-source_type" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Platform</label>
+                                    <input type="text" id="modal-platform" class="form-control">
+                                </div>
                                 <div class="col-12">
                                     <label class="form-label">Required Skills</label>
                                     <textarea id="modal-required_skills" class="form-control"></textarea>
@@ -278,6 +290,9 @@
                         <th>Province</th>
                         <th>City</th>
                         <th>Amount Info</th>
+                        <th>Job Source</th>
+                        <th>Source Type</th>
+                        <th>Platform</th>
                     </tr>
                 </thead>
                 <tbody id="jobs-table-body"></tbody>
@@ -362,6 +377,9 @@
                 <td>${h(job.province)}</td>
                 <td>${h(job.city)}</td>
                 <td>${h(job.amount_info)}</td>
+                <td>${h(job.job_source)}</td>
+                <td>${h(job.source_type)}</td>
+                <td>${h(job.platform)}</td>
             </tr>`;
         }
 
