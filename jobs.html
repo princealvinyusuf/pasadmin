@@ -220,6 +220,14 @@
                                     <label class="form-label">Inactive Jobs</label>
                                     <input type="text" id="modal-inactive_jobs" class="form-control">
                                 </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Gender</label>
+                                    <input type="text" id="modal-gender" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">People Condition</label>
+                                    <input type="text" id="modal-people_condition" class="form-control">
+                                </div>
                                 <div class="col-12">
                                     <label class="form-label">Required Skills</label>
                                     <textarea id="modal-required_skills" class="form-control"></textarea>
@@ -308,6 +316,8 @@
                         <th>Method Info</th>
                         <th>Active Jobs</th>
                         <th>Inactive Jobs</th>
+                        <th>Gender</th>
+                        <th>People Condition</th>
                     </tr>
                 </thead>
                 <tbody id="jobs-table-body"></tbody>
@@ -398,6 +408,8 @@
                 <td>${h(job.method_info)}</td>
                 <td>${h(job.active_jobs)}</td>
                 <td>${h(job.inactive_jobs)}</td>
+                <td>${h(job.gender)}</td>
+                <td>${h(job.people_condition)}</td>
             </tr>`;
         }
 
