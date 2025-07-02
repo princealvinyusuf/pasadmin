@@ -161,6 +161,10 @@
                                     <input type="date" id="modal-posting_date" class="form-control">
                                 </div>
                                 <div class="col-md-6">
+                                    <label class="form-label">Scraping Date</label>
+                                    <input type="date" id="modal-scraping_date" class="form-control">
+                                </div>
+                                <div class="col-md-6">
                                     <label class="form-label">Posted By</label>
                                     <input type="text" id="modal-posted_by" class="form-control">
                                 </div>
@@ -257,6 +261,7 @@
                         <th>Job Function</th>
                         <th>Application Deadline</th>
                         <th>Posting Date</th>
+                        <th>Scraping Date</th>
                         <th>Posted</th>
                         <th>Education Level</th>
                         <th>Company Size</th>
@@ -340,6 +345,7 @@
                 <td>${h(job.job_function)}</td>
                 <td>${h(job.application_deadline)}</td>
                 <td>${h(job.posting_date)}</td>
+                <td>${h(job.scraping_date)}</td>
                 <td>${h(job.created_at)}</td>
                 <td>${h(job.education_level)}</td>
                 <td>${h(job.company_size)}</td>
