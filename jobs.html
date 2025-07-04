@@ -239,6 +239,38 @@
                                     <label class="form-label">Insurance</label>
                                     <input type="text" id="modal-insurance" class="form-control">
                                 </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">KBLI One Code</label>
+                                    <input type="text" id="modal-kbli_One_code" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">KBLI One Desc</label>
+                                    <input type="text" id="modal-kbli_One_desc" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">KBLI Five Code</label>
+                                    <input type="text" id="modal-kbli_Five_code" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">KBLI Five Desc</label>
+                                    <input type="text" id="modal-kbli_Five_desc" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">KBJI One Code</label>
+                                    <input type="text" id="modal-kbji_One_code" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">KBJI One Desc</label>
+                                    <input type="text" id="modal-kbji_One_desc" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">KBJI Four Code</label>
+                                    <input type="text" id="modal-kbji_Four_code" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">KBJI Four Desc</label>
+                                    <input type="text" id="modal-kbji_Four_desc" class="form-control">
+                                </div>
                                 <div class="col-12">
                                     <label class="form-label">Required Skills</label>
                                     <textarea id="modal-required_skills" class="form-control"></textarea>
@@ -331,6 +363,14 @@
                         <th>People Condition</th>
                         <th>Experience Required</th>
                         <th>Insurance</th>
+                        <th>KBLI One Code</th>
+                        <th>KBLI One Desc</th>
+                        <th>KBLI Five Code</th>
+                        <th>KBLI Five Desc</th>
+                        <th>KBJI One Code</th>
+                        <th>KBJI One Desc</th>
+                        <th>KBJI Four Code</th>
+                        <th>KBJI Four Desc</th>
                     </tr>
                 </thead>
                 <tbody id="jobs-table-body"></tbody>
@@ -425,6 +465,14 @@
                 <td>${h(job.people_condition)}</td>
                 <td>${h(job.experience_required)}</td>
                 <td>${h(job.insurance)}</td>
+                <td>${h(job.kbli_One_code)}</td>
+                <td>${h(job.kbli_One_desc)}</td>
+                <td>${h(job.kbli_Five_code)}</td>
+                <td>${h(job.kbli_Five_desc)}</td>
+                <td>${h(job.kbji_One_code)}</td>
+                <td>${h(job.kbji_One_desc)}</td>
+                <td>${h(job.kbji_Four_code)}</td>
+                <td>${h(job.kbji_Four_desc)}</td>
             </tr>`;
         }
 

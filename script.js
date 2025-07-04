@@ -58,6 +58,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td>${job.people_condition || ''}</td>
                         <td>${job.experience_required || ''}</td>
                         <td>${job.insurance || ''}</td>
+                        <td>${job.kbli_One_code || ''}</td>
+                        <td>${job.kbli_One_desc || ''}</td>
+                        <td>${job.kbli_Five_code || ''}</td>
+                        <td>${job.kbli_Five_desc || ''}</td>
+                        <td>${job.kbji_One_code || ''}</td>
+                        <td>${job.kbji_One_desc || ''}</td>
+                        <td>${job.kbji_Four_code || ''}</td>
+                        <td>${job.kbji_Four_desc || ''}</td>
                         <td>${job.employment_type || ''}</td>
                         <td>${job.experience_level || ''}</td>
                         <td>${job.salary || ''}</td>
