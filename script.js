@@ -56,6 +56,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td>${job.inactive_jobs || ''}</td>
                         <td>${job.gender || ''}</td>
                         <td>${job.people_condition || ''}</td>
+                        <td>${job.experience_required || ''}</td>
+                        <td>${job.insurance || ''}</td>
                         <td>${job.employment_type || ''}</td>
                         <td>${job.experience_level || ''}</td>
                         <td>${job.salary || ''}</td>

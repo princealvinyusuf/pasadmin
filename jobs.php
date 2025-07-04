@@ -9,7 +9,7 @@ require 'auth.php';
 $method = $_SERVER['REQUEST_METHOD'];
 
 $fields = [
-    'uid', 'title', 'description', 'location', 'salary', 'company_name', 'employment_type', 'experience_level', 'industry', 'remote_option', 'job_function', 'required_skills', 'education_level', 'application_deadline', 'benefits', 'company_website', 'how_to_apply', 'company_size', 'hiring_manager_contact', 'work_schedule', 'job_duration', 'languages_required', 'posted_by', 'province', 'city', 'amount_info', 'posting_date', 'scraping_date', 'job_source', 'source_type', 'platform', 'method_info', 'active_jobs', 'inactive_jobs', 'gender', 'people_condition'
+    'uid', 'title', 'description', 'location', 'salary', 'company_name', 'employment_type', 'experience_level', 'industry', 'remote_option', 'job_function', 'required_skills', 'education_level', 'application_deadline', 'benefits', 'company_website', 'how_to_apply', 'company_size', 'hiring_manager_contact', 'work_schedule', 'job_duration', 'languages_required', 'posted_by', 'province', 'city', 'amount_info', 'posting_date', 'scraping_date', 'job_source', 'source_type', 'platform', 'method_info', 'active_jobs', 'inactive_jobs', 'gender', 'people_condition', 'experience_required', 'insurance'
 ];
 
 $bulk = isset($_GET['bulk']) && $_GET['bulk'] == '1';
