@@ -1,5 +1,5 @@
 <?php
-require 'vendor/autoload.php'; // Make sure path is correct
+require __DIR__ . '/../../vendor/autoload.php'; // Make sure path is correct
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
