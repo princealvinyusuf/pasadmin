@@ -2,142 +2,152 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-
 header('Content-Type: application/json');
-require_once 'db.php';
+require 'db.php';
+require 'auth.php';
 
-$table = 'job_seekers';
-
-function getSeekers($conn) {
-    global $table;
-    $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
-    $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
-    $search = isset($_GET['search']) ? $_GET['search'] : '';
-    $year = isset($_GET['year']) ? $_GET['year'] : '';
-    $month = isset($_GET['month']) ? $_GET['month'] : '';
-    $export = isset($_GET['export']) ? true : false;
-
-    $where = [];
-    $params = [];
-    $types = '';
-    if ($search) {
-        $where[] = "(province LIKE ? OR city LIKE ? OR subdistrict LIKE ? OR ward LIKE ? OR age LIKE ? OR age_group LIKE ? OR gender LIKE ? OR physical_condition LIKE ? OR marriage LIKE ? OR working_status LIKE ? OR education LIKE ? OR experience LIKE ? OR skill LIKE ? OR institution LIKE ? OR major LIKE ? OR school_name LIKE ? OR country_wish LIKE ? OR plan_abroad LIKE ? OR certification LIKE ? OR progpel LIKE ? OR submitted_application LIKE ? OR profile_status LIKE ? OR seeker_status LIKE ? OR experience_year LIKE ? OR month_regis LIKE ? OR created_date LIKE ? OR draft_date LIKE ? OR expired_date LIKE ? OR id LIKE ?)";
-        for ($i = 0; $i < 29; $i++) {
-            $params[] = "%$search%";
-            $types .= 's';
-        }
-    }
-    if ($year) {
-        $where[] = "YEAR(created_date) = ?";
-        $params[] = $year;
-        $types .= 's';
-    }
-    if ($month) {
-        $where[] = "MONTH(created_date) = ?";
-        $params[] = $month;
-        $types .= 's';
-    }
-    $whereSql = $where ? ("WHERE " . implode(' AND ', $where)) : '';
-
-    // COUNT
-    $countSql = "SELECT COUNT(*) FROM $table $whereSql";
-    $stmt = $conn->prepare($countSql);
-    if ($params) {
-        $stmt->bind_param($types, ...$params);
-    }
-    $stmt->execute();
-    $stmt->bind_result($total);
-    $stmt->fetch();
-    $stmt->close();
-
-    $limitSql = $export ? '' : "LIMIT $perPage OFFSET " . (($page-1)*$perPage);
-    $sql = "SELECT * FROM $table $whereSql ORDER BY id DESC $limitSql";
-    $stmt = $conn->prepare($sql);
-    if ($params) {
-        $stmt->bind_param($types, ...$params);
-    }
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $rows = $result->fetch_all(MYSQLI_ASSOC);
-    $stmt->close();
-
-    if ($export) {
-        echo json_encode($rows);
-        exit;
-    }
-    echo json_encode([
-        'seekers' => $rows,
-        'total' => intval($total),
-        'page' => $page
-    ]);
-    exit;
-}
-
-function getSeekerById($conn, $id) {
-    global $table;
-    $sql = "SELECT * FROM $table WHERE id = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $row = $result->fetch_all(MYSQLI_ASSOC);
-    $stmt->close();
-    echo json_encode(['seekers' => $row]);
-    exit;
-}
-
-function updateSeeker($conn) {
-    global $table;
-    $data = json_decode(file_get_contents('php://input'), true);
-    if (!$data || !isset($data['id'])) {
-        echo json_encode(['error' => 'Invalid data']);
-        exit;
-    }
-    $id = $data['id'];
-    unset($data['id']);
-    $fields = array_keys($data);
-    $set = implode(', ', array_map(function($f) { return "$f = ?"; }, $fields));
-    $sql = "UPDATE $table SET $set WHERE id = ?";
-    $stmt = $conn->prepare($sql);
-    $types = str_repeat('s', count($fields)) . 'i';
-    $params = array_values($data);
-    $params[] = $id;
-    $stmt->bind_param($types, ...$params);
-    $stmt->execute();
-    $stmt->close();
-    echo json_encode(['success' => true]);
-    exit;
-}
-
-function deleteSeeker($conn, $id) {
-    global $table;
-    $sql = "DELETE FROM $table WHERE id = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-    $stmt->close();
-    echo json_encode(['success' => true]);
-    exit;
-}
-
-// Routing
 $method = $_SERVER['REQUEST_METHOD'];
-if ($method === 'GET') {
-    if (isset($_GET['id'])) {
-        getSeekerById($conn, $_GET['id']);
-    } else {
-        getSeekers($conn);
-    }
-} elseif ($method === 'PUT') {
-    updateSeeker($conn);
-} elseif ($method === 'DELETE') {
-    if (isset($_GET['id'])) {
-        deleteSeeker($conn, $_GET['id']);
-    } else {
-        echo json_encode(['error' => 'Missing id']);
-        exit;
-    }
-} else {
-    echo json_encode(['error' => 'Invalid method']);
-    exit;
-} 
+
+$fields = [
+    'province', 'city', 'subdistrict'
+];
+
+$bulk = isset($_GET['bulk']) && $_GET['bulk'] == '1';
+
+switch ($method) {
+    case 'GET':
+        // If export=1, return all job seekers as a plain array (no pagination, no search)
+        if (isset($_GET['export']) && $_GET['export'] == '1') {
+            $result = $conn->query('SELECT * FROM job_seekers ORDER BY id DESC');
+            $seekers = [];
+            while ($row = $result->fetch_assoc()) {
+                $seekers[] = $row;
+            }
+            echo json_encode($seekers);
+            break;
+        }
+        // If id is set, return only that job seeker
+        if (isset($_GET['id']) && intval($_GET['id']) > 0) {
+            $id = intval($_GET['id']);
+            $stmt = $conn->prepare('SELECT * FROM job_seekers WHERE id=?');
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $seeker = $result->fetch_assoc();
+            $stmt->close();
+            echo json_encode(['seekers' => $seeker ? [$seeker] : []]);
+            break;
+        }
+        // Pagination and search
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $per_page = isset($_GET['per_page']) ? max(1, intval($_GET['per_page'])) : 50;
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+        $where = '';
+        $params = [];
+        $types = '';
+        if ($search !== '') {
+            $search_like = '%' . $search . '%';
+            $where_clauses = [];
+            foreach ($fields as $f) {
+                $where_clauses[] = "$f LIKE ?";
+                $params[] = $search_like;
+                $types .= 's';
+            }
+            $where = 'WHERE ' . implode(' OR ', $where_clauses);
+        }
+        // Count total
+        $count_sql = "SELECT COUNT(*) as total FROM job_seekers $where";
+        $count_stmt = $conn->prepare($count_sql);
+        if ($where !== '') {
+            $count_stmt->bind_param($types, ...$params);
+        }
+        $count_stmt->execute();
+        $count_result = $count_stmt->get_result();
+        $total = $count_result->fetch_assoc()['total'] ?? 0;
+        $count_stmt->close();
+        // Fetch seekers for page
+        $offset = ($page - 1) * $per_page;
+        $sql = "SELECT * FROM job_seekers $where ORDER BY id DESC LIMIT ? OFFSET ?";
+        $stmt = $conn->prepare($sql);
+        if ($where !== '') {
+            $bind_types = $types . 'ii';
+            $bind_params = array_merge($params, [$per_page, $offset]);
+            $stmt->bind_param($bind_types, ...$bind_params);
+        } else {
+            $stmt->bind_param('ii', $per_page, $offset);
+        }
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $seekers = [];
+        while ($row = $result->fetch_assoc()) {
+            $seekers[] = $row;
+        }
+        $stmt->close();
+        echo json_encode([
+            'seekers' => $seekers,
+            'total' => intval($total),
+            'page' => $page,
+            'per_page' => $per_page
+        ]);
+        break;
+    case 'POST':
+        if ($bulk) {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $seekers = $data['seekers'] ?? [];
+            $inserted = 0;
+            foreach ($seekers as $seeker) {
+                $placeholders = implode(',', array_fill(0, count($fields), '?'));
+                $columns = implode(',', $fields);
+                $types = str_repeat('s', count($fields));
+                $stmt = $conn->prepare("INSERT INTO job_seekers ($columns) VALUES ($placeholders)");
+                $values = [];
+                foreach ($fields as $f) {
+                    $values[] = $seeker[$f] ?? '';
+                }
+                $stmt->bind_param($types, ...$values);
+                $stmt->execute();
+                if ($stmt->affected_rows > 0) $inserted++;
+            }
+            echo json_encode(['success' => true, 'count' => $inserted]);
+            break;
+        }
+        $data = json_decode(file_get_contents('php://input'), true);
+        $placeholders = implode(',', array_fill(0, count($fields), '?'));
+        $columns = implode(',', $fields);
+        $types = str_repeat('s', count($fields));
+        $stmt = $conn->prepare("INSERT INTO job_seekers ($columns) VALUES ($placeholders)");
+        $values = [];
+        foreach ($fields as $f) {
+            $values[] = $data[$f] ?? '';
+        }
+        $stmt->bind_param($types, ...$values);
+        $stmt->execute();
+        echo json_encode(['success' => $stmt->affected_rows > 0]);
+        break;
+    case 'PUT':
+        $data = json_decode(file_get_contents('php://input'), true);
+        $set = implode(',', array_map(fn($f) => "$f=?", $fields));
+        $types = str_repeat('s', count($fields)) . 'i';
+        $stmt = $conn->prepare("UPDATE job_seekers SET $set WHERE id=?");
+        $values = [];
+        foreach ($fields as $f) {
+            $values[] = $data[$f] ?? '';
+        }
+        $values[] = $data['id'] ?? $data['seeker-id'];
+        $stmt->bind_param($types, ...$values);
+        $stmt->execute();
+        echo json_encode(['success' => $stmt->affected_rows > 0]);
+        break;
+    case 'DELETE':
+        $id = intval($_GET['id'] ?? 0);
+        $stmt = $conn->prepare('DELETE FROM job_seekers WHERE id=?');
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        echo json_encode(['success' => $stmt->affected_rows > 0]);
+        break;
+    default:
+        http_response_code(405);
+        echo json_encode(['error' => 'Method Not Allowed']);
+}
+$conn->close();
+?> 
