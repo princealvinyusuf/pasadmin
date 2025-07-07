@@ -142,36 +142,10 @@
             <table id="seekers-table" class="table table-hover align-middle table-bordered">
                 <thead class="table-light">
                     <tr>
-                        <th>Action</th>
                         <th>ID</th>
                         <th>Province</th>
                         <th>City</th>
                         <th>Subdistrict</th>
-                        <th>Ward</th>
-                        <th>Age</th>
-                        <th>Age Group</th>
-                        <th>Gender</th>
-                        <th>Physical Condition</th>
-                        <th>Marriage</th>
-                        <th>Working Status</th>
-                        <th>Draft Date</th>
-                        <th>Expired Date</th>
-                        <th>Profile Status</th>
-                        <th>Seeker Status</th>
-                        <th>Education</th>
-                        <th>Experience</th>
-                        <th>Experience Year</th>
-                        <th>Certification</th>
-                        <th>Institution</th>
-                        <th>Progpel</th>
-                        <th>Skill</th>
-                        <th>Plan Abroad</th>
-                        <th>Country Wish</th>
-                        <th>Submitted Application</th>
-                        <th>Major</th>
-                        <th>School Name</th>
-                        <th>Month Regis</th>
-                        <th>Created Date</th>
                     </tr>
                 </thead>
                 <tbody id="seekers-table-body"></tbody>
@@ -223,39 +197,10 @@
                 return highlight(escapeHTML(val || ''), searchTerm);
             }
             return `<tr>
-                <td>
-                    <button class="btn btn-sm btn-primary me-1 edit-btn" data-id="${seeker.id}" title="Edit"><i class="bi bi-pencil"></i></button>
-                    <button class="btn btn-sm btn-danger delete-btn" data-id="${seeker.id}" title="Delete"><i class="bi bi-trash"></i></button>
-                </td>
                 <td>${h(seeker.id)}</td>
                 <td>${h(seeker.province)}</td>
                 <td>${h(seeker.city)}</td>
                 <td>${h(seeker.subdistrict)}</td>
-                <td>${h(seeker.ward)}</td>
-                <td>${h(seeker.age)}</td>
-                <td>${h(seeker.age_group)}</td>
-                <td>${h(seeker.gender)}</td>
-                <td>${h(seeker.physical_condition)}</td>
-                <td>${h(seeker.marriage)}</td>
-                <td>${h(seeker.working_status)}</td>
-                <td>${h(seeker.draft_date)}</td>
-                <td>${h(seeker.expired_date)}</td>
-                <td>${h(seeker.profile_status)}</td>
-                <td>${h(seeker.seeker_status)}</td>
-                <td>${h(seeker.education)}</td>
-                <td>${h(seeker.experience)}</td>
-                <td>${h(seeker.experience_year)}</td>
-                <td>${h(seeker.certification)}</td>
-                <td>${h(seeker.institution)}</td>
-                <td>${h(seeker.progpel)}</td>
-                <td>${h(seeker.skill)}</td>
-                <td>${h(seeker.plan_abroad)}</td>
-                <td>${h(seeker.country_wish)}</td>
-                <td>${h(seeker.submitted_application)}</td>
-                <td>${h(seeker.major)}</td>
-                <td>${h(seeker.school_name)}</td>
-                <td>${h(seeker.month_regis)}</td>
-                <td>${h(seeker.created_date)}</td>
             </tr>`;
         }
 
@@ -278,7 +223,7 @@
         }
 
         function fetchSeekers(page = 1, search = '') {
-            seekersTableBody.innerHTML = '<tr><td colspan="30" class="text-center">Loading...</td></tr>';
+            seekersTableBody.innerHTML = '<tr><td colspan="4" class="text-center">Loading...</td></tr>';
             noSeekers.classList.add('d-none');
             seekersInfo.textContent = '';
             const year = filterYear.value;
