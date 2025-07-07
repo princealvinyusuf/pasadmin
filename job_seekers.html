@@ -179,11 +179,32 @@
         </div>
         <!-- End Job Seeker Edit Modal -->
         <div class="row mb-3">
-            <div class="col-md-6">
-                <input type="text" id="search-input" class="form-control" placeholder="Search job seekers...">
+            <div class="col-md-3">
+                <select id="filter-year" class="form-select">
+                    <option value="">All Years</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select id="filter-month" class="form-select">
+                    <option value="">All Months</option>
+                    <option value="01">January</option>
+                    <option value="02">February</option>
+                    <option value="03">March</option>
+                    <option value="04">April</option>
+                    <option value="05">May</option>
+                    <option value="06">June</option>
+                    <option value="07">July</option>
+                    <option value="08">August</option>
+                    <option value="09">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
             </div>
             <div class="col-md-6 d-flex gap-2">
+                <input type="text" id="search-input" class="form-control" placeholder="Search job seekers...">
                 <button id="export-all-btn" class="btn btn-outline-success" type="button"><i class="bi bi-file-earmark-excel"></i> Export All Data</button>
+                <button id="export-filter-btn" class="btn btn-outline-primary" type="button"><i class="bi bi-filter"></i> Export From Filter</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -246,6 +267,9 @@
         let currentSearch = '';
         const perPage = 50;
         const exportAllBtn = document.getElementById('export-all-btn');
+        const filterYear = document.getElementById('filter-year');
+        const filterMonth = document.getElementById('filter-month');
+        const exportFilterBtn = document.getElementById('export-filter-btn');
 
         function escapeHTML(str) {
             return str ? str.replace(/[&<>"']/g, function(tag) {
@@ -322,7 +346,11 @@
             seekersTableBody.innerHTML = '<tr><td colspan="4" class="text-center">Loading...</td></tr>';
             noSeekers.classList.add('d-none');
             seekersInfo.textContent = '';
+            const year = filterYear.value;
+            const month = filterMonth.value;
             let url = `job_seekers.php?page=${page}&per_page=${perPage}&search=${encodeURIComponent(search)}`;
+            if (year) url += `&year=${year}`;
+            if (month) url += `&month=${month}`;
             fetch(url)
                 .then(res => res.json())
                 .then(data => {
@@ -461,6 +489,45 @@
                 .finally(() => {
                     exportAllBtn.disabled = false;
                     exportAllBtn.innerHTML = '<i class="bi bi-file-earmark-excel"></i> Export All Data';
+                });
+        });
+
+        // Populate year dropdown (from 2015 to current year)
+        const currentYear = new Date().getFullYear();
+        for (let y = currentYear; y >= 2015; y--) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            filterYear.appendChild(opt);
+        }
+        // Filter change events
+        filterYear.addEventListener('change', function() {
+            currentPage = 1;
+            fetchSeekers(currentPage, currentSearch);
+        });
+        filterMonth.addEventListener('change', function() {
+            currentPage = 1;
+            fetchSeekers(currentPage, currentSearch);
+        });
+
+        exportFilterBtn.addEventListener('click', function() {
+            exportFilterBtn.disabled = true;
+            exportFilterBtn.textContent = 'Exporting...';
+            const year = filterYear.value;
+            const month = filterMonth.value;
+            const search = searchInput.value;
+            let url = `job_seekers.php?page=1&per_page=10000`;
+            if (year) url += `&year=${year}`;
+            if (month) url += `&month=${month}`;
+            if (search) url += `&search=${encodeURIComponent(search)}`;
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    exportToExcel(data.seekers || [], 'filtered_job_seekers.xlsx');
+                })
+                .finally(() => {
+                    exportFilterBtn.disabled = false;
+                    exportFilterBtn.innerHTML = '<i class="bi bi-filter"></i> Export From Filter';
                 });
         });
     });

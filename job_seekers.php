@@ -58,6 +58,17 @@ switch ($method) {
             }
             $where = 'WHERE ' . implode(' OR ', $where_clauses);
         }
+        // Filter by year/month if provided (on created_date)
+        if (isset($_GET['year']) && $_GET['year'] !== '') {
+            $where = $where ? $where . " AND YEAR(created_date)=?" : "WHERE YEAR(created_date)=?";
+            $params[] = $_GET['year'];
+            $types .= 'i';
+        }
+        if (isset($_GET['month']) && $_GET['month'] !== '') {
+            $where = $where ? $where . " AND MONTH(created_date)=?" : "WHERE MONTH(created_date)=?";
+            $params[] = $_GET['month'];
+            $types .= 'i';
+        }
         // Count total
         $count_sql = "SELECT COUNT(*) as total FROM job_seekers $where";
         $count_stmt = $conn->prepare($count_sql);
