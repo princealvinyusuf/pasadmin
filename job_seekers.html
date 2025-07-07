@@ -68,6 +68,22 @@
                                 <label class="form-label">Subdistrict</label>
                                 <input type="text" id="modal-subdistrict" class="form-control" required>
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label">Ward</label>
+                                <input type="text" id="modal-ward" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Age</label>
+                                <input type="text" id="modal-age" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Age Group</label>
+                                <input type="text" id="modal-age_group" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Gender</label>
+                                <input type="text" id="modal-gender" class="form-control">
+                            </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -94,6 +110,10 @@
                         <th>Province</th>
                         <th>City</th>
                         <th>Subdistrict</th>
+                        <th>Ward</th>
+                        <th>Age</th>
+                        <th>Age Group</th>
+                        <th>Gender</th>
                     </tr>
                 </thead>
                 <tbody id="seekers-table-body"></tbody>
@@ -147,6 +167,10 @@
                 <td>${h(seeker.province)}</td>
                 <td>${h(seeker.city)}</td>
                 <td>${h(seeker.subdistrict)}</td>
+                <td>${h(seeker.ward)}</td>
+                <td>${h(seeker.age)}</td>
+                <td>${h(seeker.age_group)}</td>
+                <td>${h(seeker.gender)}</td>
             </tr>`;
         }
 

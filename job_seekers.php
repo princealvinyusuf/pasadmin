@@ -9,7 +9,7 @@ require 'auth.php';
 $method = $_SERVER['REQUEST_METHOD'];
 
 $fields = [
-    'province', 'city', 'subdistrict'
+    'province', 'city', 'subdistrict', 'ward', 'age', 'age_group', 'gender'
 ];
 
 $bulk = isset($_GET['bulk']) && $_GET['bulk'] == '1';
