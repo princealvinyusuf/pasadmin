@@ -9,6 +9,7 @@ require_once 'db.php';
 $table = 'job_seekers';
 
 function getSeekers($conn) {
+    global $table;
     $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
     $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
     $search = isset($_GET['search']) ? $_GET['search'] : '';
