@@ -79,6 +79,22 @@
                 <h2 class="h5 card-title mb-3"><span class="me-2">📝</span>Add / Edit Job Seeker</h2>
                 <form id="seeker-form" aria-label="Job Seeker form">
                     <input type="hidden" id="seeker-id">
+                    <!-- Bulk Upload Section -->
+                    <div class="bulk-upload-box">
+                        <div class="mb-3">
+                            <label class="form-label">Bulk Upload Job Seekers (Excel .xlsx or .csv)</label>
+                            <div class="d-flex gap-2">
+                                <input type="file" id="bulk-upload-input" accept=".xlsx,.csv" class="form-control" style="max-width:300px;">
+                                <button type="button" id="bulk-upload-btn" class="btn btn-success">Upload Bulk Seekers</button>
+                                <a href="downloads/template_seekers.xlsx" download class="btn btn-outline-primary" id="download-template-btn">Download Template</a>
+                            </div>
+                            <div id="bulk-upload-status" class="form-text text-success"></div>
+                            <div class="progress mt-2" id="bulk-upload-progress-container" style="display:none;">
+                                <div class="progress-bar" id="bulk-upload-progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End Bulk Upload Section -->
                     <div class="row g-3">
                         <div class="col-12 col-md-6 col-lg-4">
                             <label class="form-label">Province</label>
@@ -373,6 +389,112 @@
                 .catch((err) => {
                     exportStatus.textContent = 'Export failed.';
                 });
+        });
+        // Bulk Upload Logic
+        const bulkBtn = document.getElementById('bulk-upload-btn');
+        bulkBtn.addEventListener('click', function() {
+            const fileInput = document.getElementById('bulk-upload-input');
+            const file = fileInput.files[0];
+            const progressContainer = document.getElementById('bulk-upload-progress-container');
+            const progressBar = document.getElementById('bulk-upload-progress-bar');
+            const status = document.getElementById('bulk-upload-status');
+
+            if (!file) {
+                status.textContent = 'Please select a file.';
+                return;
+            }
+
+            // Show progress bar for parsing
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '10%';
+            progressBar.textContent = 'Parsing...';
+            progressBar.setAttribute('aria-valuenow', 10);
+
+            // Determine file type
+            const ext = file.name.split('.').pop().toLowerCase();
+            let fileType = '';
+            if (ext === 'xlsx') fileType = 'xlsx';
+            else if (ext === 'csv') fileType = 'csv';
+            else {
+                status.textContent = 'Unsupported file type!';
+                progressContainer.style.display = 'none';
+                return;
+            }
+
+            // Use Web Worker for parsing (reuse excelWorker.js if available)
+            const worker = new Worker('excelWorker.js');
+            worker.onmessage = function(e) {
+                const { success, jobs, seekers, error } = e.data;
+                const dataToSend = seekers || jobs; // support both keys
+                if (success && Array.isArray(dataToSend)) {
+                    // Update progress bar for upload
+                    progressBar.style.width = '30%';
+                    progressBar.textContent = 'Uploading...';
+                    progressBar.setAttribute('aria-valuenow', 30);
+
+                    // Prepare data for upload
+                    const payload = JSON.stringify({ seekers: dataToSend });
+
+                    // Use XMLHttpRequest for upload progress
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', 'job_seekers.php?bulk=1', true);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+
+                    xhr.upload.onprogress = function(e) {
+                        if (e.lengthComputable) {
+                            // Progress from 30% to 90% for upload
+                            const percent = 30 + Math.round((e.loaded / e.total) * 60);
+                            progressBar.style.width = percent + '%';
+                            progressBar.textContent = percent + '%';
+                            progressBar.setAttribute('aria-valuenow', percent);
+                        }
+                    };
+
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            progressBar.style.width = '100%';
+                            progressBar.textContent = '100%';
+                            progressBar.setAttribute('aria-valuenow', 100);
+                            status.textContent = 'Upload complete!';
+                        } else {
+                            status.textContent = 'Upload failed!';
+                        }
+                        setTimeout(() => {
+                            progressContainer.style.display = 'none';
+                            progressBar.style.width = '0%';
+                            progressBar.textContent = '0%';
+                            progressBar.setAttribute('aria-valuenow', 0);
+                        }, 1500);
+                    };
+
+                    xhr.onerror = function() {
+                        status.textContent = 'Upload error!';
+                        progressContainer.style.display = 'none';
+                    };
+
+                    xhr.send(payload);
+                } else {
+                    status.textContent = 'Error parsing file: ' + error;
+                    progressContainer.style.display = 'none';
+                }
+                worker.terminate();
+            };
+            worker.onerror = function(e) {
+                status.textContent = 'Worker error: ' + e.message;
+                progressContainer.style.display = 'none';
+                worker.terminate();
+            };
+
+            // Read file as ArrayBuffer and send to worker
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                worker.postMessage({ fileData: e.target.result, fileType });
+            };
+            reader.onerror = function() {
+                status.textContent = 'Error reading file!';
+                progressContainer.style.display = 'none';
+            };
+            reader.readAsArrayBuffer(file);
         });
     });
     </script>
