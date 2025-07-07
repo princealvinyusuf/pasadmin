@@ -84,6 +84,50 @@
                                 <label class="form-label">Gender</label>
                                 <input type="text" id="modal-gender" class="form-control">
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label">Physical Condition</label>
+                                <input type="text" id="modal-physical_condition" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Marriage</label>
+                                <input type="text" id="modal-marriage" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Working Status</label>
+                                <input type="text" id="modal-working_status" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Draft Date</label>
+                                <input type="date" id="modal-draft_date" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Expired Date</label>
+                                <input type="date" id="modal-expired_date" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Profile Status</label>
+                                <input type="text" id="modal-profile_status" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Seeker Status</label>
+                                <input type="text" id="modal-seeker_status" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Education</label>
+                                <input type="text" id="modal-education" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Experience</label>
+                                <input type="text" id="modal-experience" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Experience Year</label>
+                                <input type="text" id="modal-experience_year" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Certification</label>
+                                <input type="text" id="modal-certification" class="form-control">
+                            </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -114,6 +158,17 @@
                         <th>Age</th>
                         <th>Age Group</th>
                         <th>Gender</th>
+                        <th>Physical Condition</th>
+                        <th>Marriage</th>
+                        <th>Working Status</th>
+                        <th>Draft Date</th>
+                        <th>Expired Date</th>
+                        <th>Profile Status</th>
+                        <th>Seeker Status</th>
+                        <th>Education</th>
+                        <th>Experience</th>
+                        <th>Experience Year</th>
+                        <th>Certification</th>
                     </tr>
                 </thead>
                 <tbody id="seekers-table-body"></tbody>
@@ -171,6 +226,17 @@
                 <td>${h(seeker.age)}</td>
                 <td>${h(seeker.age_group)}</td>
                 <td>${h(seeker.gender)}</td>
+                <td>${h(seeker.physical_condition)}</td>
+                <td>${h(seeker.marriage)}</td>
+                <td>${h(seeker.working_status)}</td>
+                <td>${h(seeker.draft_date)}</td>
+                <td>${h(seeker.expired_date)}</td>
+                <td>${h(seeker.profile_status)}</td>
+                <td>${h(seeker.seeker_status)}</td>
+                <td>${h(seeker.education)}</td>
+                <td>${h(seeker.experience)}</td>
+                <td>${h(seeker.experience_year)}</td>
+                <td>${h(seeker.certification)}</td>
             </tr>`;
         }
 
