@@ -19,30 +19,47 @@ function getSeekers($conn) {
 
     $where = [];
     $params = [];
+    $types = '';
     if ($search) {
         $where[] = "(province LIKE ? OR city LIKE ? OR subdistrict LIKE ? OR ward LIKE ? OR age LIKE ? OR age_group LIKE ? OR gender LIKE ? OR physical_condition LIKE ? OR marriage LIKE ? OR working_status LIKE ? OR education LIKE ? OR experience LIKE ? OR skill LIKE ? OR institution LIKE ? OR major LIKE ? OR school_name LIKE ? OR country_wish LIKE ? OR plan_abroad LIKE ? OR certification LIKE ? OR progpel LIKE ? OR submitted_application LIKE ? OR profile_status LIKE ? OR seeker_status LIKE ? OR experience_year LIKE ? OR month_regis LIKE ? OR created_date LIKE ? OR draft_date LIKE ? OR expired_date LIKE ? OR id LIKE ?)";
-        for ($i = 0; $i < 29; $i++) $params[] = "%$search%";
+        for ($i = 0; $i < 29; $i++) {
+            $params[] = "%$search%";
+            $types .= 's';
+        }
     }
     if ($year) {
         $where[] = "YEAR(created_date) = ?";
         $params[] = $year;
+        $types .= 's';
     }
     if ($month) {
         $where[] = "MONTH(created_date) = ?";
         $params[] = $month;
+        $types .= 's';
     }
     $whereSql = $where ? ("WHERE " . implode(' AND ', $where)) : '';
 
+    // COUNT
     $countSql = "SELECT COUNT(*) FROM $table $whereSql";
     $stmt = $conn->prepare($countSql);
-    if ($params) $stmt->execute($params); else $stmt->execute();
-    $total = $stmt->fetchColumn();
+    if ($params) {
+        $stmt->bind_param($types, ...$params);
+    }
+    $stmt->execute();
+    $stmt->bind_result($total);
+    $stmt->fetch();
+    $stmt->close();
 
     $limitSql = $export ? '' : "LIMIT $perPage OFFSET " . (($page-1)*$perPage);
     $sql = "SELECT * FROM $table $whereSql ORDER BY id DESC $limitSql";
     $stmt = $conn->prepare($sql);
-    if ($params) $stmt->execute($params); else $stmt->execute();
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if ($params) {
+        $stmt->bind_param($types, ...$params);
+    }
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $rows = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
 
     if ($export) {
         echo json_encode($rows);
@@ -58,9 +75,13 @@ function getSeekers($conn) {
 
 function getSeekerById($conn, $id) {
     global $table;
-    $stmt = $conn->prepare("SELECT * FROM $table WHERE id = ?");
-    $stmt->execute([$id]);
-    $row = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $sql = "SELECT * FROM $table WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
     echo json_encode(['seekers' => $row]);
     exit;
 }
@@ -78,17 +99,23 @@ function updateSeeker($conn) {
     $set = implode(', ', array_map(function($f) { return "$f = ?"; }, $fields));
     $sql = "UPDATE $table SET $set WHERE id = ?";
     $stmt = $conn->prepare($sql);
+    $types = str_repeat('s', count($fields)) . 'i';
     $params = array_values($data);
     $params[] = $id;
-    $stmt->execute($params);
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $stmt->close();
     echo json_encode(['success' => true]);
     exit;
 }
 
 function deleteSeeker($conn, $id) {
     global $table;
-    $stmt = $conn->prepare("DELETE FROM $table WHERE id = ?");
-    $stmt->execute([$id]);
+    $sql = "DELETE FROM $table WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $stmt->close();
     echo json_encode(['success' => true]);
     exit;
 }
