@@ -15,7 +15,7 @@ function getSeekers($conn) {
     $where = [];
     $params = [];
     if ($search) {
-        $where[] = "(province LIKE ? OR city LIKE ? OR subdistrict LIKE ? OR ward LIKE ? OR age LIKE ? OR age_group LIKE ? OR gender LIKE ? OR physical_condition LIKE ? OR marriage LIKE ? OR working_status LIKE ? OR education LIKE ? OR experience LIKE ? OR skill LIKE ? OR institution LIKE ? OR major LIKE ? OR school_name LIKE ? OR country_wish LIKE ? OR plan_abroad LIKE ? OR certification LIKE ? OR propgel LIKE ? OR submitted_app LIKE ? OR profile_status LIKE ? OR seeker_status LIKE ? OR experience_year LIKE ? OR month_regis LIKE ? OR created_date LIKE ? OR draft_date LIKE ? OR expired_date LIKE ? OR id LIKE ?)";
+        $where[] = "(province LIKE ? OR city LIKE ? OR subdistrict LIKE ? OR ward LIKE ? OR age LIKE ? OR age_group LIKE ? OR gender LIKE ? OR physical_condition LIKE ? OR marriage LIKE ? OR working_status LIKE ? OR education LIKE ? OR experience LIKE ? OR skill LIKE ? OR institution LIKE ? OR major LIKE ? OR school_name LIKE ? OR country_wish LIKE ? OR plan_abroad LIKE ? OR certification LIKE ? OR progpel LIKE ? OR submitted_app LIKE ? OR profile_status LIKE ? OR seeker_status LIKE ? OR experience_year LIKE ? OR month_regis LIKE ? OR created_date LIKE ? OR draft_date LIKE ? OR expired_date LIKE ? OR id LIKE ?)";
         for ($i = 0; $i < 28; $i++) $params[] = "%$search%";
     }
     if ($year) {
