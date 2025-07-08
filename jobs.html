@@ -503,7 +503,7 @@
             jobsInfo.textContent = '';
             const year = filterYear.value;
             const month = filterMonth.value;
-            let url = `api/jobs.php?page=${page}&per_page=${perPage}&search=${encodeURIComponent(search)}`;
+            let url = `jobs.php?page=${page}&per_page=${perPage}&search=${encodeURIComponent(search)}`;
             if (year) url += `&year=${year}`;
             if (month) url += `&month=${month}`;
             fetch(url)
@@ -587,7 +587,7 @@
             const deleteBtn = e.target.closest('.delete-btn');
             if (editBtn) {
                 const id = editBtn.getAttribute('data-id');
-                fetch(`api/jobs.php?id=${id}`)
+                fetch(`jobs.php?id=${id}`)
                     .then(res => res.json())
                     .then(data => {
                         const job = (data.jobs && data.jobs.length) ? data.jobs[0] : null;
@@ -606,7 +606,7 @@
             } else if (deleteBtn) {
                 const id = deleteBtn.getAttribute('data-id');
                 if (confirm('Delete this job?')) {
-                    fetch(`api/jobs.php?id=${id}`, { method: 'DELETE' })
+                    fetch(`jobs.php?id=${id}`, { method: 'DELETE' })
                         .then(res => res.json())
                         .then(() => {
                             // Refresh table
@@ -627,7 +627,7 @@
                 }
             });
             data['job-id'] = document.getElementById('modal-job-id').value;
-            fetch('api/jobs.php', {
+            fetch('jobs.php', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -654,7 +654,7 @@
         exportAllBtn.addEventListener('click', function() {
             exportAllBtn.disabled = true;
             exportAllBtn.textContent = 'Exporting...';
-            fetch('api/jobs.php?export=1')
+            fetch('jobs.php?export=1')
                 .then(res => res.json())
                 .then(jobs => {
                     exportToExcel(jobs, 'all_jobs.xlsx');
@@ -670,7 +670,7 @@
             const year = filterYear.value;
             const month = filterMonth.value;
             const search = searchInput.value;
-            let url = `api/jobs.php?page=1&per_page=10000`;
+            let url = `jobs.php?page=1&per_page=10000`;
             if (year) url += `&year=${year}`;
             if (month) url += `&month=${month}`;
             if (search) url += `&search=${encodeURIComponent(search)}`;
