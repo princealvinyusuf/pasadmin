@@ -202,7 +202,7 @@ if (isset($_GET['edit'])) {
 </head>
 <body class="bg-light">
       <!-- Navigation Bar -->
-      <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="index.html"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -210,11 +210,23 @@ if (isset($_GET['edit'])) {
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.html">Dashboard</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="dashboardDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Dashboard
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="dashboardDropdown">
+                            <li><a class="dropdown-item" href="index.html">Dashboard Jobs</a></li>
+                            <li><a class="dropdown-item" href="job_seeker_dashboard.html">Dashboard Job Seekers</a></li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="jobs.html">Jobs</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="masterDataDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Master Data
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
+                            <li><a class="dropdown-item" href="jobs.html">Jobs</a></li>
+                            <li><a class="dropdown-item" href="job_seekers.html">Job Seekers</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="cleansingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -238,6 +250,11 @@ if (isset($_GET['edit'])) {
                             <li><a class="dropdown-item" href="statistics_settings.php">Statistics Settings</a></li>
                             <li><a class="dropdown-item" href="testimonials_settings.php">Testimonial Settings</a></li>
                             <li><a class="dropdown-item" href="top_list_settings.php">Top List Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="agenda_settings.php">Agenda Settings</a></li>
+                            <li><a class="dropdown-item" href="job_fair_settings.php">Job Fair Settings</a></li>
+                            <li><a class="dropdown-item" href="virtual_karir_service_settings.php">Virtual Karir Service Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="cron_settings.php">Other Settings</a></li>
                         </ul>
                     </li>
