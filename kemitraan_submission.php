@@ -47,10 +47,60 @@ if (isset($_GET['delete'])) {
 // Add backend logic to handle approve action
 if (isset($_POST['approve_id'])) {
     $id = $_POST['approve_id'];
+    // Update kemitraan status
     $stmt = $conn->prepare("UPDATE kemitraan SET status='approved', updated_at=NOW() WHERE id=?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
+
+    // Fetch schedule for this kemitraan
+    $result = $conn->query("SELECT schedule FROM kemitraan WHERE id=$id");
+    $row = $result->fetch_assoc();
+    $schedule = trim($row['schedule']);
+
+    // Helper function to convert 'd F Y' (e.g. '20 Oktober 2025') to 'Y-m-d'
+    function parseIndoDate($str) {
+        $bulan = [
+            'Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04', 'Mei' => '05', 'Juni' => '06',
+            'Juli' => '07', 'Agustus' => '08', 'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'
+        ];
+        if (preg_match('/^(\d{1,2}) ([A-Za-z]+) (\d{4})$/u', trim($str), $m)) {
+            $d = str_pad($m[1], 2, '0', STR_PAD_LEFT);
+            $mth = isset($bulan[$m[2]]) ? $bulan[$m[2]] : '01';
+            $y = $m[3];
+            return "$y-$mth-$d";
+        }
+        return false;
+    }
+
+    // Parse and insert into booked_date
+    if (preg_match('/^(\d{4}-\d{2}-\d{2})\s*to\s*(\d{4}-\d{2}-\d{2})$/', $schedule, $matches)) {
+        // Range: YYYY-MM-DD to YYYY-MM-DD
+        $start = $matches[1];
+        $end = $matches[2];
+        $current = strtotime($start);
+        $end_ts = strtotime($end);
+        while ($current <= $end_ts) {
+            $date = date('Y-m-d', $current);
+            $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
+            $stmt->bind_param("is", $id, $date);
+            $stmt->execute();
+            $stmt->close();
+            $current = strtotime('+1 day', $current);
+        }
+    } elseif ($parsed = parseIndoDate($schedule)) {
+        // Single Indo date
+        $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
+        $stmt->bind_param("is", $id, $parsed);
+        $stmt->execute();
+        $stmt->close();
+    } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $schedule)) {
+        // Single ISO date
+        $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
+        $stmt->bind_param("is", $id, $schedule);
+        $stmt->execute();
+        $stmt->close();
+    }
     header("Location: kemitraan_submission.php");
     exit();
 }
