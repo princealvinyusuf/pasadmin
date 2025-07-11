@@ -76,6 +76,11 @@ if (isset($_GET['edit'])) {
 
 // Fetch all kemitraan
 $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
+
+// Fetch summary counts
+$pending_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='pending'")->fetch_row()[0];
+$approved_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='approved'")->fetch_row()[0];
+$rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rejected'")->fetch_row()[0];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -276,6 +281,35 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
     </nav>
     <!-- End Navigation Bar -->
     <div class="container">
+        <div class="row g-4 mb-4">
+            <div class="col-12 col-md-4">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <div class="fs-2 mb-2 text-warning"><i class="bi bi-hourglass-split"></i></div>
+                        <h5 class="card-title">Pending</h5>
+                        <div class="fs-4 fw-bold"><?php echo $pending_count; ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <div class="fs-2 mb-2 text-success"><i class="bi bi-check-circle"></i></div>
+                        <h5 class="card-title">Approved</h5>
+                        <div class="fs-4 fw-bold"><?php echo $approved_count; ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <div class="fs-2 mb-2 text-danger"><i class="bi bi-x-circle"></i></div>
+                        <h5 class="card-title">Rejected</h5>
+                        <div class="fs-4 fw-bold"><?php echo $rejected_count; ?></div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <h3><?php echo $edit_kemitraan ? 'Edit Mitra Kerja Submission' : 'All Mitra Kerja Submission'; ?></h3>
         <?php if ($edit_kemitraan): ?>
         <form method="post">
