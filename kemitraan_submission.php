@@ -44,6 +44,17 @@ if (isset($_GET['delete'])) {
     exit();
 }
 
+// Add backend logic to handle approve action
+if (isset($_POST['approve_id'])) {
+    $id = $_POST['approve_id'];
+    $stmt = $conn->prepare("UPDATE kemitraan SET status='approved', updated_at=NOW() WHERE id=?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $stmt->close();
+    header("Location: kemitraan_submission.php");
+    exit();
+}
+
 // Handle Edit (fetch data)
 $edit_kemitraan = null;
 if (isset($_GET['edit'])) {
@@ -319,6 +330,9 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
                     <button type="button" class="btn btn-info btn-sm detail-btn mb-1" data-id="<?php echo $row['id']; ?>">Detail</button>
                     <a href="kemitraan_submission.php?edit=<?php echo $row['id']; ?>" class="btn btn-primary btn-sm mb-1">Edit</a>
                     <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn btn-danger btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
+                    <?php if ($row['status'] === 'pending'): ?>
+                        <button type="button" class="btn btn-success btn-sm approve-btn mb-1" data-id="<?php echo $row['id']; ?>">Approved</button>
+                    <?php endif; ?>
                 </td>
                 <td><?php echo $row['id']; ?></td>
                 <td><?php echo htmlspecialchars($row['pic_name']); ?></td>
@@ -362,6 +376,27 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
             </div>
           </div>
         </div>
+        <!-- Approve Modal -->
+        <div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="approveModalLabel">Approve Submission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                Are you sure to Approve this submission?
+              </div>
+              <div class="modal-footer">
+                <form method="post" id="approveForm">
+                  <input type="hidden" name="approve_id" id="approve_id">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button type="submit" class="btn btn-success">Approve</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
           const detailButtons = document.querySelectorAll('.detail-btn');
@@ -391,6 +426,15 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
               }
               var detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
               detailModal.show();
+            });
+          });
+          // Approve button logic
+          const approveButtons = document.querySelectorAll('.approve-btn');
+          approveButtons.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              document.getElementById('approve_id').value = btn.getAttribute('data-id');
+              var approveModal = new bootstrap.Modal(document.getElementById('approveModal'));
+              approveModal.show();
             });
           });
         });
