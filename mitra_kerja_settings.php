@@ -1,5 +1,14 @@
 <?php
-include 'db.php';
+// Database connection for paskerid_db_prod
+$host = 'localhost';
+$user = 'root';
+$pass = '';
+$db = 'paskerid_db_prod';
+
+$conn = new mysqli($host, $user, $pass, $db);
+if ($conn->connect_error) {
+    die('Connection failed: ' . $conn->connect_error);
+}
 
 // Helper: sanitize input
 default_timezone_set('Asia/Jakarta');
