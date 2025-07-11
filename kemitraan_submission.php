@@ -239,6 +239,16 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
         .table-detail tr:hover td {
             background: #e0e7ef;
         }
+        .btn-detail { background: #2563eb; color: #fff; border: none; }
+        .btn-detail:hover { background: #1d4ed8; color: #fff; }
+        .btn-edit { background: #6366f1; color: #fff; border: none; }
+        .btn-edit:hover { background: #4338ca; color: #fff; }
+        .btn-delete { background: #ef4444; color: #fff; border: none; }
+        .btn-delete:hover { background: #b91c1c; color: #fff; }
+        .btn-approve { background: #22c55e; color: #fff; border: none; }
+        .btn-approve:hover { background: #15803d; color: #fff; }
+        .btn-reject { background: #f59e42; color: #fff; border: none; }
+        .btn-reject:hover { background: #d97706; color: #fff; }
     </style>
 </head>
 <body class="bg-light">
@@ -338,12 +348,12 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
             <?php while ($row = $kemitraans->fetch_assoc()): ?>
             <tr>
                 <td class="actions">
-                    <button type="button" class="btn btn-info btn-sm detail-btn mb-1" data-id="<?php echo $row['id']; ?>">Detail</button>
-                    <a href="kemitraan_submission.php?edit=<?php echo $row['id']; ?>" class="btn btn-primary btn-sm mb-1">Edit</a>
-                    <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn btn-danger btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
+                    <button type="button" class="btn btn-detail btn-sm detail-btn mb-1" data-id="<?php echo $row['id']; ?>">Detail</button>
+                    <a href="kemitraan_submission.php?edit=<?php echo $row['id']; ?>" class="btn btn-edit btn-sm mb-1">Edit</a>
+                    <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn btn-delete btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
                     <?php if ($row['status'] === 'pending'): ?>
-                        <button type="button" class="btn btn-success btn-sm approve-btn mb-1" data-id="<?php echo $row['id']; ?>">Approved</button>
-                        <button type="button" class="btn btn-warning btn-sm reject-btn mb-1" data-id="<?php echo $row['id']; ?>">Rejected</button>
+                        <button type="button" class="btn btn-approve btn-sm approve-btn mb-1" data-id="<?php echo $row['id']; ?>">Approved</button>
+                        <button type="button" class="btn btn-reject btn-sm reject-btn mb-1" data-id="<?php echo $row['id']; ?>">Rejected</button>
                     <?php endif; ?>
                 </td>
                 <td><?php echo $row['id']; ?></td>
