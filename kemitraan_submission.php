@@ -292,7 +292,7 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
             <a href="kemitraan_submission.php" class="btn cancel">Cancel</a>
         </form>
         <?php endif; ?>
-        <h3>All Mitra Kerja Submission</h3>
+    
         <div class="table-responsive">
         <table class="table table-bordered" style="min-width:1200px">
             <tr>
