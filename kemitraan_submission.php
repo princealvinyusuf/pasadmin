@@ -174,6 +174,52 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
             form { padding: 12px 6px; }
             th, td { font-size: 0.95rem; padding: 8px 4px; }
         }
+        .modal-content {
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+            border: 1px solid #e5e7eb;
+        }
+        .modal-header {
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .modal-title {
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: #2563eb;
+            letter-spacing: 0.5px;
+        }
+        .modal-body {
+            background: #f9fafb;
+            padding-top: 18px;
+            padding-bottom: 10px;
+        }
+        #downloadLetterContainer {
+            margin-top: 18px;
+            text-align: right;
+        }
+        #downloadLetterContainer .btn {
+            font-size: 1rem;
+            padding: 7px 20px;
+        }
+        .table-detail th {
+            text-align: right;
+            color: #6b7280;
+            width: 220px;
+            background: #f1f5f9;
+            font-weight: 500;
+            vertical-align: top;
+        }
+        .table-detail td {
+            background: #fff;
+            vertical-align: top;
+        }
+        .table-detail tr:nth-child(even) td {
+            background: #f9fafb;
+        }
+        .table-detail tr:hover td {
+            background: #e0e7ef;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -305,7 +351,7 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body">
-                <table class="table table-bordered">
+                <table class="table table-bordered table-detail table-striped table-hover mb-0">
                   <tbody id="detailModalBody">
                     <!-- Details will be injected here -->
                   </tbody>
