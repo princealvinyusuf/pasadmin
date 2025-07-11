@@ -289,12 +289,57 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
                 <td><?php echo $row['created_at']; ?></td>
                 <td><?php echo $row['updated_at']; ?></td>
                 <td class="actions">
+                    <button type="button" class="btn btn-info detail-btn" data-id="<?php echo $row['id']; ?>">Detail</button>
                     <a href="kemitraan_submission.php?edit=<?php echo $row['id']; ?>" class="btn">Edit</a>
                     <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn delete" onclick="return confirm('Delete this submission?');">Delete</a>
                 </td>
             </tr>
             <?php endwhile; ?>
         </table>
+        <!-- Detail Modal -->
+        <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="detailModalLabel">Mitra Kerja Submission Detail</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <table class="table table-bordered">
+                  <tbody id="detailModalBody">
+                    <!-- Details will be injected here -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          const detailButtons = document.querySelectorAll('.detail-btn');
+          detailButtons.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              const row = btn.closest('tr');
+              const cells = row.querySelectorAll('td');
+              const headers = [
+                'ID', 'PIC Name', 'PIC Position', 'PIC Email', 'PIC Whatsapp', 'Sector Category',
+                'Institution Name', 'Business Sector', 'Institution Address', 'Partnership Type',
+                'Needs', 'Schedule', 'Request Letter', 'Status', 'Created At', 'Updated At'
+              ];
+              let html = '';
+              for (let i = 0; i < headers.length; i++) {
+                html += `<tr><th>${headers[i]}</th><td>${cells[i].innerHTML}</td></tr>`;
+              }
+              document.getElementById('detailModalBody').innerHTML = html;
+              var detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+              detailModal.show();
+            });
+          });
+        });
+        </script>
     </div>
 </body>
 </html>
