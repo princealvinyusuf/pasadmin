@@ -55,6 +55,17 @@ if (isset($_POST['approve_id'])) {
     exit();
 }
 
+// Add backend logic to handle reject action
+if (isset($_POST['reject_id'])) {
+    $id = $_POST['reject_id'];
+    $stmt = $conn->prepare("UPDATE kemitraan SET status='rejected', updated_at=NOW() WHERE id=?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $stmt->close();
+    header("Location: kemitraan_submission.php");
+    exit();
+}
+
 // Handle Edit (fetch data)
 $edit_kemitraan = null;
 if (isset($_GET['edit'])) {
@@ -332,6 +343,7 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
                     <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn btn-danger btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
                     <?php if ($row['status'] === 'pending'): ?>
                         <button type="button" class="btn btn-success btn-sm approve-btn mb-1" data-id="<?php echo $row['id']; ?>">Approved</button>
+                        <button type="button" class="btn btn-warning btn-sm reject-btn mb-1" data-id="<?php echo $row['id']; ?>">Rejected</button>
                     <?php endif; ?>
                 </td>
                 <td><?php echo $row['id']; ?></td>
@@ -397,6 +409,27 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
             </div>
           </div>
         </div>
+        <!-- Reject Modal -->
+        <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="rejectModalLabel">Reject Submission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                Are you sure to Reject this submission?
+              </div>
+              <div class="modal-footer">
+                <form method="post" id="rejectForm">
+                  <input type="hidden" name="reject_id" id="reject_id">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button type="submit" class="btn btn-warning">Reject</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
           const detailButtons = document.querySelectorAll('.detail-btn');
@@ -435,6 +468,15 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
               document.getElementById('approve_id').value = btn.getAttribute('data-id');
               var approveModal = new bootstrap.Modal(document.getElementById('approveModal'));
               approveModal.show();
+            });
+          });
+          // Reject button logic
+          const rejectButtons = document.querySelectorAll('.reject-btn');
+          rejectButtons.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              document.getElementById('reject_id').value = btn.getAttribute('data-id');
+              var rejectModal = new bootstrap.Modal(document.getElementById('rejectModal'));
+              rejectModal.show();
             });
           });
         });
