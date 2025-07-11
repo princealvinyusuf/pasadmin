@@ -36,6 +36,12 @@ if (isset($_POST['update'])) {
 // Handle Delete
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
+    // Delete all booked_date rows for this kemitraan
+    $stmt = $conn->prepare("DELETE FROM booked_date WHERE kemitraan_id=?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $stmt->close();
+    // Now delete the kemitraan row
     $stmt = $conn->prepare("DELETE FROM kemitraan WHERE id=?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
