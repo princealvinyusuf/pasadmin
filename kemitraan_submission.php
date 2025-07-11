@@ -167,6 +167,9 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
             .container { padding: 8px; }
             form { padding: 12px 6px; }
             th, td { font-size: 0.95rem; padding: 8px 4px; }
+            .table-responsive { overflow-x: auto; }
+            .btn, .btn-sm { width: 100%; margin-bottom: 6px; }
+            .actions { min-width: 110px; }
         }
         .modal-content {
             border-radius: 12px;
@@ -290,7 +293,8 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
         </form>
         <?php endif; ?>
         <h3>All Mitra Kerja Submission</h3>
-        <table>
+        <div class="table-responsive">
+        <table class="table table-bordered" style="min-width:1200px">
             <tr>
                 <th>ID</th>
                 <th>PIC Name</th>
@@ -329,13 +333,14 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
                 <td><?php echo $row['created_at']; ?></td>
                 <td><?php echo $row['updated_at']; ?></td>
                 <td class="actions">
-                    <button type="button" class="btn btn-info detail-btn" data-id="<?php echo $row['id']; ?>">Detail</button>
-                    <a href="kemitraan_submission.php?edit=<?php echo $row['id']; ?>" class="btn">Edit</a>
-                    <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn delete" onclick="return confirm('Delete this submission?');">Delete</a>
+                    <button type="button" class="btn btn-info btn-sm detail-btn mb-1" data-id="<?php echo $row['id']; ?>">Detail</button>
+                    <a href="kemitraan_submission.php?edit=<?php echo $row['id']; ?>" class="btn btn-primary btn-sm mb-1">Edit</a>
+                    <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn btn-danger btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
                 </td>
             </tr>
             <?php endwhile; ?>
         </table>
+        </div>
         <!-- Detail Modal -->
         <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
           <div class="modal-dialog modal-lg">
