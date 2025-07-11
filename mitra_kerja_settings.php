@@ -1,148 +1,335 @@
 <?php
-// Database connection for paskerid_db_prod
+// Use the same DB connection method as db.php, but connect to 'paskerid_db'
 $host = 'localhost';
 $user = 'root';
 $pass = '';
-$db = 'paskerid_db_prod';
+$db = 'paskerid_db';
 
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
-// Helper: sanitize input
-default_timezone_set('Asia/Jakarta');
-function esc($str) {
-    return htmlspecialchars(trim($str), ENT_QUOTES, 'UTF-8');
-}
-
 // Handle Create
 if (isset($_POST['add'])) {
+    $name = $_POST['name'];
+    $wilayah = $_POST['wilayah'];
+    $divider = $_POST['divider'];
+    $address = $_POST['address'];
+    $contact = $_POST['contact'];
+    $email = $_POST['email'];
+    $website_url = $_POST['website_url'];
+    $pic = $_POST['pic'];
     $stmt = $conn->prepare("INSERT INTO mitra_kerja (name, wilayah, divider, address, contact, email, website_url, pic, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
-    $stmt->bind_param('ssssssss', $_POST['name'], $_POST['wilayah'], $_POST['divider'], $_POST['address'], $_POST['contact'], $_POST['email'], $_POST['website_url'], $_POST['pic']);
-    if ($stmt->execute()) {
-        $msg = 'Added successfully!';
-    } else {
-        $err = 'Add failed: ' . $stmt->error;
-    }
+    $stmt->bind_param("ssssssss", $name, $wilayah, $divider, $address, $contact, $email, $website_url, $pic);
+    $stmt->execute();
     $stmt->close();
+    header("Location: mitra_kerja_settings.php");
+    exit();
 }
 
 // Handle Update
-if (isset($_POST['edit'])) {
+if (isset($_POST['update'])) {
+    $id = $_POST['id'];
+    $name = $_POST['name'];
+    $wilayah = $_POST['wilayah'];
+    $divider = $_POST['divider'];
+    $address = $_POST['address'];
+    $contact = $_POST['contact'];
+    $email = $_POST['email'];
+    $website_url = $_POST['website_url'];
+    $pic = $_POST['pic'];
     $stmt = $conn->prepare("UPDATE mitra_kerja SET name=?, wilayah=?, divider=?, address=?, contact=?, email=?, website_url=?, pic=?, updated_at=NOW() WHERE id=?");
-    $stmt->bind_param('ssssssssi', $_POST['name'], $_POST['wilayah'], $_POST['divider'], $_POST['address'], $_POST['contact'], $_POST['email'], $_POST['website_url'], $_POST['pic'], $_POST['id']);
-    if ($stmt->execute()) {
-        $msg = 'Updated successfully!';
-    } else {
-        $err = 'Update failed: ' . $stmt->error;
-    }
+    $stmt->bind_param("ssssssssi", $name, $wilayah, $divider, $address, $contact, $email, $website_url, $pic, $id);
+    $stmt->execute();
     $stmt->close();
+    header("Location: mitra_kerja_settings.php");
+    exit();
 }
 
 // Handle Delete
-if (isset($_POST['delete'])) {
+if (isset($_GET['delete'])) {
+    $id = $_GET['delete'];
     $stmt = $conn->prepare("DELETE FROM mitra_kerja WHERE id=?");
-    $stmt->bind_param('i', $_POST['id']);
-    if ($stmt->execute()) {
-        $msg = 'Deleted successfully!';
-    } else {
-        $err = 'Delete failed: ' . $stmt->error;
-    }
-    $stmt->close();
-}
-
-// Fetch all records
-$result = $conn->query("SELECT * FROM mitra_kerja ORDER BY id DESC");
-$rows = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
-
-// If editing, fetch the record
-$edit_row = null;
-if (isset($_GET['edit_id'])) {
-    $stmt = $conn->prepare("SELECT * FROM mitra_kerja WHERE id=?");
-    $stmt->bind_param('i', $_GET['edit_id']);
+    $stmt->bind_param("i", $id);
     $stmt->execute();
-    $res = $stmt->get_result();
-    $edit_row = $res->fetch_assoc();
     $stmt->close();
+    header("Location: mitra_kerja_settings.php");
+    exit();
 }
+
+// Handle Edit (fetch data)
+$edit_mitra = null;
+if (isset($_GET['edit'])) {
+    $id = $_GET['edit'];
+    $result = $conn->query("SELECT * FROM mitra_kerja WHERE id=$id");
+    $edit_mitra = $result->fetch_assoc();
+}
+
+// Fetch all mitra kerja
+$mitras = $conn->query("SELECT * FROM mitra_kerja ORDER BY id DESC");
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mitra Kerja Settings</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 30px; }
-        table { border-collapse: collapse; width: 100%; margin-bottom: 30px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-        th { background: #f0f0f0; }
-        .msg { color: green; }
-        .err { color: red; }
-        form { margin-bottom: 20px; }
-        input[type=text], input[type=email] { width: 100%; padding: 6px; margin: 2px 0; }
-        input[type=submit], button { padding: 6px 16px; }
+        .navbar-brand { font-weight: bold; letter-spacing: 1px; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f6f8fa;
+            margin: 0;
+            padding: 0;
+        }
+        h2, h3 {
+            text-align: center;
+            color: #222;
+        }
+        form {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 24px 20px 16px 20px;
+            margin-bottom: 32px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        label {
+            display: block;
+            margin-bottom: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 1rem;
+            margin-top: 4px;
+            background: #fff;
+            transition: border 0.2s;
+        }
+        input[type="text"]:focus, textarea:focus {
+            border: 1.5px solid #2563eb;
+            outline: none;
+        }
+        textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+        .btn {
+            display: inline-block;
+            padding: 8px 22px;
+            border: none;
+            border-radius: 6px;
+            background: #2563eb;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-top: 8px;
+            transition: background 0.2s;
+            text-decoration: none;
+        }
+        .btn:hover {
+            background: #1d4ed8;
+        }
+        .btn.cancel {
+            background: #e5e7eb;
+            color: #222;
+        }
+        .btn.cancel:hover {
+            background: #d1d5db;
+        }
+        .btn.delete {
+            background: #ef4444;
+        }
+        .btn.delete:hover {
+            background: #b91c1c;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        }
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+        }
+        th {
+            background: #f1f5f9;
+            color: #222;
+            font-weight: 600;
+        }
+        tr:nth-child(even) {
+            background: #f9fafb;
+        }
+        tr:hover {
+            background: #e0e7ef;
+        }
+        td {
+            vertical-align: top;
+        }
+        .actions a {
+            margin-right: 8px;
+        }
+        @media (max-width: 700px) {
+            .container { padding: 8px; }
+            form { padding: 12px 6px; }
+            th, td { font-size: 0.95rem; padding: 8px 4px; }
+        }
     </style>
 </head>
-<body>
-    <h2>Mitra Kerja Settings</h2>
-    <p><a href="navbar.html">Back to Menu</a></p>
-    <?php if (!empty($msg)) echo "<div class='msg'>$msg</div>"; ?>
-    <?php if (!empty($err)) echo "<div class='err'>$err</div>"; ?>
-
-    <!-- Add/Edit Form -->
-    <h3><?= $edit_row ? 'Edit' : 'Add New' ?> Mitra Kerja</h3>
-    <form method="post">
-        <?php if ($edit_row): ?>
-            <input type="hidden" name="id" value="<?= esc($edit_row['id']) ?>">
-        <?php endif; ?>
-        <label>Name:<br><input type="text" name="name" required value="<?= esc($edit_row['name'] ?? '') ?>"></label><br>
-        <label>Wilayah:<br><input type="text" name="wilayah" value="<?= esc($edit_row['wilayah'] ?? '') ?>"></label><br>
-        <label>Divider:<br><input type="text" name="divider" value="<?= esc($edit_row['divider'] ?? '') ?>"></label><br>
-        <label>Address:<br><input type="text" name="address" value="<?= esc($edit_row['address'] ?? '') ?>"></label><br>
-        <label>Contact:<br><input type="text" name="contact" value="<?= esc($edit_row['contact'] ?? '') ?>"></label><br>
-        <label>Email:<br><input type="email" name="email" value="<?= esc($edit_row['email'] ?? '') ?>"></label><br>
-        <label>Website URL:<br><input type="text" name="website_url" value="<?= esc($edit_row['website_url'] ?? '') ?>"></label><br>
-        <label>PIC:<br><input type="text" name="pic" value="<?= esc($edit_row['pic'] ?? '') ?>"></label><br>
-        <label>Created At:<br><input type="text" value="<?= esc($edit_row['created_at'] ?? '-') ?>" readonly></label><br>
-        <label>Updated At:<br><input type="text" value="<?= esc($edit_row['updated_at'] ?? '-') ?>" readonly></label><br>
-        <input type="submit" name="<?= $edit_row ? 'edit' : 'add' ?>" value="<?= $edit_row ? 'Update' : 'Add' ?>">
-        <?php if ($edit_row): ?>
-            <a href="mitra_kerja_settings.php">Cancel</a>
-        <?php endif; ?>
-    </form>
-
-    <!-- Data Table -->
-    <h3>All Mitra Kerja</h3>
-    <table>
-        <tr>
-            <th>ID</th><th>Name</th><th>Wilayah</th><th>Divider</th><th>Address</th><th>Contact</th><th>Email</th><th>Website URL</th><th>PIC</th><th>Created At</th><th>Updated At</th><th>Actions</th>
-        </tr>
-        <?php foreach ($rows as $row): ?>
-        <tr>
-            <td><?= esc($row['id']) ?></td>
-            <td><?= esc($row['name']) ?></td>
-            <td><?= esc($row['wilayah']) ?></td>
-            <td><?= esc($row['divider']) ?></td>
-            <td><?= esc($row['address']) ?></td>
-            <td><?= esc($row['contact']) ?></td>
-            <td><?= esc($row['email']) ?></td>
-            <td><?= esc($row['website_url']) ?></td>
-            <td><?= esc($row['pic']) ?></td>
-            <td><?= esc($row['created_at']) ?></td>
-            <td><?= esc($row['updated_at']) ?></td>
-            <td>
-                <form method="get" style="display:inline">
-                    <input type="hidden" name="edit_id" value="<?= esc($row['id']) ?>">
-                    <button type="submit">Edit</button>
-                </form>
-                <form method="post" style="display:inline" onsubmit="return confirm('Delete this entry?');">
-                    <input type="hidden" name="id" value="<?= esc($row['id']) ?>">
-                    <input type="submit" name="delete" value="Delete">
-                </form>
-            </td>
-        </tr>
-        <?php endforeach; ?>
-    </table>
+<body class="bg-light">
+    <!-- Navigation Bar -->
+     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="index.html"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="dashboardDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Dashboard
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="dashboardDropdown">
+                            <li><a class="dropdown-item" href="index.html">Dashboard Jobs</a></li>
+                            <li><a class="dropdown-item" href="job_seeker_dashboard.html">Dashboard Job Seekers</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="masterDataDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Master Data
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
+                            <li><a class="dropdown-item" href="jobs.html">Jobs</a></li>
+                            <li><a class="dropdown-item" href="job_seekers.html">Job Seekers</a></li>
+                            <li><a class="dropdown-item" href="mitra_kerja_settings.php">Mitra Kerja Settings</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="cleansingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Cleansing
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="cleansingDropdown">
+                            <li><a class="dropdown-item" href="cleansing_snaphunt.php">Snaphunt</a></li>
+                            <li><a class="dropdown-item" href="cleansing_makaryo.php">Makaryo</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Settings
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="settingsDropdown">
+                            <li><a class="dropdown-item" href="chart_settings.php">Chart Settings</a></li>
+                            <li><a class="dropdown-item" href="contribution_settings.php">Contribution Settings</a></li>
+                            <li><a class="dropdown-item" href="information_settings.php">Information Settings</a></li>
+                            <li><a class="dropdown-item" href="news_settings.php">News Settings</a></li>
+                            <li><a class="dropdown-item" href="services_settings.php">Services Settings</a></li>
+                            <li><a class="dropdown-item" href="statistics_settings.php">Statistics Settings</a></li>
+                            <li><a class="dropdown-item" href="testimonials_settings.php">Testimonial Settings</a></li>
+                            <li><a class="dropdown-item" href="top_list_settings.php">Top List Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="agenda_settings.php">Agenda Settings</a></li>
+                            <li><a class="dropdown-item" href="job_fair_settings.php">Job Fair Settings</a></li>
+                            <li><a class="dropdown-item" href="virtual_karir_service_settings.php">Virtual Karir Service Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="cron_settings.php">Other Settings</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="extensions.html">Extensions</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <!-- End Navigation Bar -->
+    <div class="container">
+        <h2>Mitra Kerja Settings</h2>
+        <h3><?php echo $edit_mitra ? 'Edit Mitra Kerja' : 'Add Mitra Kerja'; ?></h3>
+        <form method="post">
+            <?php if ($edit_mitra): ?>
+                <input type="hidden" name="id" value="<?php echo $edit_mitra['id']; ?>">
+            <?php endif; ?>
+            <label>Name:
+                <input type="text" name="name" required value="<?php echo $edit_mitra['name'] ?? ''; ?>">
+            </label>
+            <label>Wilayah:
+                <input type="text" name="wilayah" value="<?php echo $edit_mitra['wilayah'] ?? ''; ?>">
+            </label>
+            <label>Divider:
+                <input type="text" name="divider" value="<?php echo $edit_mitra['divider'] ?? ''; ?>">
+            </label>
+            <label>Address:
+                <input type="text" name="address" value="<?php echo $edit_mitra['address'] ?? ''; ?>">
+            </label>
+            <label>Contact:
+                <input type="text" name="contact" value="<?php echo $edit_mitra['contact'] ?? ''; ?>">
+            </label>
+            <label>Email:
+                <input type="text" name="email" value="<?php echo $edit_mitra['email'] ?? ''; ?>">
+            </label>
+            <label>Website URL:
+                <input type="text" name="website_url" value="<?php echo $edit_mitra['website_url'] ?? ''; ?>">
+            </label>
+            <label>PIC (Person in Charge):
+                <input type="text" name="pic" value="<?php echo $edit_mitra['pic'] ?? ''; ?>">
+            </label>
+            <button type="submit" class="btn" name="<?php echo $edit_mitra ? 'update' : 'add'; ?>"><?php echo $edit_mitra ? 'Update' : 'Add'; ?></button>
+            <?php if ($edit_mitra): ?>
+                <a href="mitra_kerja_settings.php" class="btn cancel">Cancel</a>
+            <?php endif; ?>
+        </form>
+        <h3>All Mitra Kerja</h3>
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Wilayah</th>
+                <th>Divider</th>
+                <th>Address</th>
+                <th>Contact</th>
+                <th>Email</th>
+                <th>Website URL</th>
+                <th>PIC</th>
+                <th>Created At</th>
+                <th>Updated At</th>
+                <th>Actions</th>
+            </tr>
+            <?php while ($row = $mitras->fetch_assoc()): ?>
+            <tr>
+                <td><?php echo $row['id']; ?></td>
+                <td><?php echo htmlspecialchars($row['name']); ?></td>
+                <td><?php echo htmlspecialchars($row['wilayah']); ?></td>
+                <td><?php echo htmlspecialchars($row['divider']); ?></td>
+                <td><?php echo htmlspecialchars($row['address']); ?></td>
+                <td><?php echo htmlspecialchars($row['contact']); ?></td>
+                <td><?php echo htmlspecialchars($row['email']); ?></td>
+                <td><?php echo htmlspecialchars($row['website_url']); ?></td>
+                <td><?php echo htmlspecialchars($row['pic']); ?></td>
+                <td><?php echo $row['created_at']; ?></td>
+                <td><?php echo $row['updated_at']; ?></td>
+                <td class="actions">
+                    <a href="mitra_kerja_settings.php?edit=<?php echo $row['id']; ?>" class="btn">Edit</a>
+                    <a href="mitra_kerja_settings.php?delete=<?php echo $row['id']; ?>" class="btn delete" onclick="return confirm('Delete this mitra kerja?');">Delete</a>
+                </td>
+            </tr>
+            <?php endwhile; ?>
+        </table>
+    </div>
 </body>
-</html> 
+</html>
+<?php $conn->close(); ?> 
