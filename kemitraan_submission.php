@@ -280,7 +280,8 @@ $rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rej
         </div>
     </nav>
     <!-- End Navigation Bar -->
-    <div class="container">
+    <div class="container mt-4">
+        <h2 class="mb-3" style="font-size:1.4rem; font-weight:600; color:#222; letter-spacing:0.5px;">Activity Summary</h2>
         <div class="row g-4 mb-4">
             <div class="col-12 col-md-4">
                 <div class="card text-center shadow-sm">
