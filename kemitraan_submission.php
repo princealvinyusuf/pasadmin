@@ -310,6 +310,7 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
                     <!-- Details will be injected here -->
                   </tbody>
                 </table>
+                <div id="downloadLetterContainer" class="mb-2"></div>
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -334,6 +335,15 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
                 html += `<tr><th>${headers[i]}</th><td>${cells[i].innerHTML}</td></tr>`;
               }
               document.getElementById('detailModalBody').innerHTML = html;
+              // Download Letter button logic
+              const requestLetter = cells[12].innerText.trim();
+              const downloadContainer = document.getElementById('downloadLetterContainer');
+              if (requestLetter && requestLetter !== '-') {
+                const url = 'https://www.psid.run.place/paskerid/storage/app/public/' + requestLetter;
+                downloadContainer.innerHTML = `<a href="${url}" class="btn btn-success" target="_blank" download>Download Letter</a>`;
+              } else {
+                downloadContainer.innerHTML = '';
+              }
               var detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
               detailModal.show();
             });
