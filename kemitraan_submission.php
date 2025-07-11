@@ -244,7 +244,6 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
     </nav>
     <!-- End Navigation Bar -->
     <div class="container">
-        <h2>Mitra Kerja Submission</h2>
         <h3><?php echo $edit_kemitraan ? 'Edit Mitra Kerja Submission' : 'All Mitra Kerja Submission'; ?></h3>
         <?php if ($edit_kemitraan): ?>
         <form method="post">
@@ -296,6 +295,7 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
         <div class="table-responsive">
         <table class="table table-bordered" style="min-width:1200px">
             <tr>
+                <th>Actions</th>
                 <th>ID</th>
                 <th>PIC Name</th>
                 <th>PIC Position</th>
@@ -312,10 +312,14 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
                 <th>Status</th>
                 <th>Created At</th>
                 <th>Updated At</th>
-                <th>Actions</th>
             </tr>
             <?php while ($row = $kemitraans->fetch_assoc()): ?>
             <tr>
+                <td class="actions">
+                    <button type="button" class="btn btn-info btn-sm detail-btn mb-1" data-id="<?php echo $row['id']; ?>">Detail</button>
+                    <a href="kemitraan_submission.php?edit=<?php echo $row['id']; ?>" class="btn btn-primary btn-sm mb-1">Edit</a>
+                    <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn btn-danger btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
+                </td>
                 <td><?php echo $row['id']; ?></td>
                 <td><?php echo htmlspecialchars($row['pic_name']); ?></td>
                 <td><?php echo htmlspecialchars($row['pic_position']); ?></td>
@@ -332,11 +336,6 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
                 <td><?php echo htmlspecialchars($row['status']); ?></td>
                 <td><?php echo $row['created_at']; ?></td>
                 <td><?php echo $row['updated_at']; ?></td>
-                <td class="actions">
-                    <button type="button" class="btn btn-info btn-sm detail-btn mb-1" data-id="<?php echo $row['id']; ?>">Detail</button>
-                    <a href="kemitraan_submission.php?edit=<?php echo $row['id']; ?>" class="btn btn-primary btn-sm mb-1">Edit</a>
-                    <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn btn-danger btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
-                </td>
             </tr>
             <?php endwhile; ?>
         </table>
@@ -370,18 +369,19 @@ $kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
             btn.addEventListener('click', function() {
               const row = btn.closest('tr');
               const cells = row.querySelectorAll('td');
+              // skip the first cell (actions)
               const headers = [
                 'ID', 'PIC Name', 'PIC Position', 'PIC Email', 'PIC Whatsapp', 'Sector Category',
                 'Institution Name', 'Business Sector', 'Institution Address', 'Partnership Type',
                 'Needs', 'Schedule', 'Request Letter', 'Status', 'Created At', 'Updated At'
               ];
               let html = '';
-              for (let i = 0; i < headers.length; i++) {
-                html += `<tr><th>${headers[i]}</th><td>${cells[i].innerHTML}</td></tr>`;
+              for (let i = 1; i < headers.length + 1; i++) {
+                html += `<tr><th>${headers[i-1]}</th><td>${cells[i].innerHTML}</td></tr>`;
               }
               document.getElementById('detailModalBody').innerHTML = html;
               // Download Letter button logic
-              const requestLetter = cells[12].innerText.trim();
+              const requestLetter = cells[13].innerText.trim();
               const downloadContainer = document.getElementById('downloadLetterContainer');
               if (requestLetter && requestLetter !== '-') {
                 const url = 'https://www.psid.run.place/paskerid/storage/app/public/' + requestLetter;
