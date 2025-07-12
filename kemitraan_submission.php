@@ -71,7 +71,7 @@ if (isset($_POST['approve_id'])) {
         'Pendidikan Pasar Kerja' => 5,
         'Talenta Muda' => 8,
         'Job Fair' => 7,
-        'Konsultasi Pasar Kerja' => 3,
+        'Konsultasi Informasi Pasar Kerja' => 3,
     ];
     $max_bookings = isset($type_limits[$partnership_type]) ? $type_limits[$partnership_type] : 10;
 
