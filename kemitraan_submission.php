@@ -59,10 +59,21 @@ if (isset($_POST['approve_id'])) {
     $stmt->execute();
     $stmt->close();
 
-    // Fetch schedule for this kemitraan
-    $result = $conn->query("SELECT schedule FROM kemitraan WHERE id=$id");
+    // Fetch schedule and partnership_type for this kemitraan
+    $result = $conn->query("SELECT schedule, partnership_type FROM kemitraan WHERE id=$id");
     $row = $result->fetch_assoc();
     $schedule = trim($row['schedule']);
+    $partnership_type = trim($row['partnership_type']);
+
+    // Partnership type limits
+    $type_limits = [
+        'Walk-in Interview' => 10,
+        'Pendidikan Pasar Kerja' => 5,
+        'Talenta Muda' => 8,
+        'Job Fair' => 7,
+        'Konsultasi Pasar Kerja' => 3,
+    ];
+    $max_bookings = isset($type_limits[$partnership_type]) ? $type_limits[$partnership_type] : 10;
 
     // Helper function to convert 'd F Y' (e.g. '20 Oktober 2025') to 'Y-m-d'
     function parseIndoDate($str) {
@@ -88,22 +99,22 @@ if (isset($_POST['approve_id'])) {
         $end_ts = strtotime($end);
         while ($current <= $end_ts) {
             $date = date('Y-m-d', $current);
-            $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
-            $stmt->bind_param("is", $id, $date);
+            $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, partnership_type, max_bookings, booked_date, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
+            $stmt->bind_param("isis", $id, $partnership_type, $max_bookings, $date);
             $stmt->execute();
             $stmt->close();
             $current = strtotime('+1 day', $current);
         }
     } elseif ($parsed = parseIndoDate($schedule)) {
         // Single Indo date
-        $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
-        $stmt->bind_param("is", $id, $parsed);
+        $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, partnership_type, max_bookings, booked_date, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
+        $stmt->bind_param("isis", $id, $partnership_type, $max_bookings, $parsed);
         $stmt->execute();
         $stmt->close();
     } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $schedule)) {
         // Single ISO date
-        $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
-        $stmt->bind_param("is", $id, $schedule);
+        $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, partnership_type, max_bookings, booked_date, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
+        $stmt->bind_param("isis", $id, $partnership_type, $max_bookings, $schedule);
         $stmt->execute();
         $stmt->close();
     }
