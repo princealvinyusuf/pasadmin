@@ -92,7 +92,7 @@ if (isset($_POST['approve_id'])) {
         return false;
     }
 
-    // Helper to check if date is fully booked
+    // Helper to check if date is fully booked, with debug output
     function is_fully_booked($conn, $date, $partnership_type, $max_bookings) {
         $stmt = $conn->prepare("SELECT COUNT(*) FROM booked_date WHERE booked_date=? AND partnership_type=?");
         $stmt->bind_param("ss", $date, $partnership_type);
@@ -101,9 +101,13 @@ if (isset($_POST['approve_id'])) {
         $stmt->bind_result($current_count);
         $stmt->fetch();
         $stmt->close();
+        // Debug output
+        error_log("DEBUG: date=$date, partnership_type=$partnership_type, current_count=$current_count, max_bookings=$max_bookings");
         return $current_count >= $max_bookings;
     }
 
+    $success = true;
+    $error_date = '';
     // Parse and insert into booked_date
     if (preg_match('/^(\d{4}-\d{2}-\d{2})\s*to\s*(\d{4}-\d{2}-\d{2})$/', $schedule, $matches)) {
         // Range: YYYY-MM-DD to YYYY-MM-DD
@@ -115,37 +119,51 @@ if (isset($_POST['approve_id'])) {
             $date = date('Y-m-d', $current);
             if (is_fully_booked($conn, $date, $partnership_type, $max_bookings)) {
                 $_SESSION['error'] = "Tanggal $date untuk $partnership_type sudah penuh.";
-                header("Location: kemitraan_submission.php");
-                exit();
+                $success = false;
+                $error_date = $date;
+                break;
             }
-            $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, partnership_type, max_bookings, booked_date, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
-            $stmt->bind_param("isis", $id, $partnership_type, $max_bookings, $date);
-            $stmt->execute();
-            $stmt->close();
             $current = strtotime('+1 day', $current);
+        }
+        // Only insert if all dates are available
+        if ($success) {
+            $current = strtotime($start);
+            while ($current <= $end_ts) {
+                $date = date('Y-m-d', $current);
+                $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, partnership_type, max_bookings, booked_date, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
+                $stmt->bind_param("isis", $id, $partnership_type, $max_bookings, $date);
+                $stmt->execute();
+                $stmt->close();
+                $current = strtotime('+1 day', $current);
+            }
         }
     } elseif ($parsed = parseIndoDate($schedule)) {
         // Single Indo date
         if (is_fully_booked($conn, $parsed, $partnership_type, $max_bookings)) {
             $_SESSION['error'] = "Tanggal $parsed untuk $partnership_type sudah penuh.";
-            header("Location: kemitraan_submission.php");
-            exit();
+            $success = false;
+            $error_date = $parsed;
+        } else {
+            $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, partnership_type, max_bookings, booked_date, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
+            $stmt->bind_param("isis", $id, $partnership_type, $max_bookings, $parsed);
+            $stmt->execute();
+            $stmt->close();
         }
-        $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, partnership_type, max_bookings, booked_date, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
-        $stmt->bind_param("isis", $id, $partnership_type, $max_bookings, $parsed);
-        $stmt->execute();
-        $stmt->close();
     } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $schedule)) {
         // Single ISO date
         if (is_fully_booked($conn, $schedule, $partnership_type, $max_bookings)) {
             $_SESSION['error'] = "Tanggal $schedule untuk $partnership_type sudah penuh.";
-            header("Location: kemitraan_submission.php");
-            exit();
+            $success = false;
+            $error_date = $schedule;
+        } else {
+            $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, partnership_type, max_bookings, booked_date, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
+            $stmt->bind_param("isis", $id, $partnership_type, $max_bookings, $schedule);
+            $stmt->execute();
+            $stmt->close();
         }
-        $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, partnership_type, max_bookings, booked_date, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
-        $stmt->bind_param("isis", $id, $partnership_type, $max_bookings, $schedule);
-        $stmt->execute();
-        $stmt->close();
+    }
+    if ($success) {
+        $_SESSION['success'] = 'Pengajuan berhasil di-approve!';
     }
     header("Location: kemitraan_submission.php");
     exit();
@@ -624,6 +642,12 @@ $rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rej
         </script>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <?php if (isset($_SESSION['error'])): ?>
+<script>alert("<?= addslashes($_SESSION['error']) ?>");</script>
+<?php unset($_SESSION['error']); endif; ?>
+<?php if (isset($_SESSION['success'])): ?>
+<script>alert("<?= addslashes($_SESSION['success']) ?>");</script>
+<?php unset($_SESSION['success']); endif; ?>
 </body>
 </html>
 <?php $conn->close(); ?> 
