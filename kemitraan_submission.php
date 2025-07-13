@@ -117,6 +117,21 @@ if (isset($_POST['approve_id'])) {
         $dates_to_check[] = $schedule;
     }
 
+    // Check if any date is in the past
+    $today = date('Y-m-d');
+    $past_date = '';
+    foreach ($dates_to_check as $date) {
+        if ($date < $today) {
+            $past_date = $date;
+            break;
+        }
+    }
+    if ($past_date) {
+        $_SESSION['error'] = "Tanggal $past_date sudah lewat. Tidak dapat approve.";
+        header("Location: kemitraan_submission.php");
+        exit();
+    }
+
     $fully_booked_date = '';
     foreach ($dates_to_check as $date) {
         if (is_fully_booked($conn, $date, $partnership_type, $max_bookings)) {
