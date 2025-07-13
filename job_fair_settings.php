@@ -315,6 +315,7 @@ $job_fairs = $conn->query("SELECT * FROM virtual_karir_job_fairs ORDER BY id DES
             <?php endwhile; ?>
         </table>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 <?php $conn->close(); ?> 
