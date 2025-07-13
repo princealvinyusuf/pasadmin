@@ -322,6 +322,7 @@ $agendas = $conn->query("SELECT * FROM virtual_karir_agendas ORDER BY id DESC");
             <?php endwhile; ?>
         </table>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 <?php $conn->close(); ?> 
