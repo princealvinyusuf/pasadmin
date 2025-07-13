@@ -189,7 +189,7 @@ $agendas = $conn->query("SELECT * FROM virtual_karir_agendas ORDER BY id DESC");
     </style>
 </head>
 <body class="bg-light">
-    <!-- Navigation Bar -->
+     <!-- Navigation Bar -->
      <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="index.html"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
@@ -242,6 +242,10 @@ $agendas = $conn->query("SELECT * FROM virtual_karir_agendas ORDER BY id DESC");
                             <li><a class="dropdown-item" href="agenda_settings.php">Agenda Settings</a></li>
                             <li><a class="dropdown-item" href="job_fair_settings.php">Job Fair Settings</a></li>
                             <li><a class="dropdown-item" href="virtual_karir_service_settings.php">Virtual Karir Service Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="mitra_kerja_settings.php">Mitra Kerja Settings</a></li>
+                            <li><a class="dropdown-item" href="kemitraan_submission.php">Mitra Kerja Submission</a></li>
+                            <li><a class="dropdown-item" href="kemitraan_booked.php">Kemitraan Booked</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="cron_settings.php">Other Settings</a></li>
                         </ul>

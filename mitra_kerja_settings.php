@@ -192,7 +192,7 @@ $mitras = $conn->query("SELECT * FROM mitra_kerja ORDER BY id DESC");
 </head>
 <body class="bg-light">
     <!-- Navigation Bar -->
-     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="index.html"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -216,7 +216,6 @@ $mitras = $conn->query("SELECT * FROM mitra_kerja ORDER BY id DESC");
                         <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
                             <li><a class="dropdown-item" href="jobs.html">Jobs</a></li>
                             <li><a class="dropdown-item" href="job_seekers.html">Job Seekers</a></li>
-                            <li><a class="dropdown-item" href="mitra_kerja_settings.php">Mitra Kerja Settings</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -245,6 +244,10 @@ $mitras = $conn->query("SELECT * FROM mitra_kerja ORDER BY id DESC");
                             <li><a class="dropdown-item" href="agenda_settings.php">Agenda Settings</a></li>
                             <li><a class="dropdown-item" href="job_fair_settings.php">Job Fair Settings</a></li>
                             <li><a class="dropdown-item" href="virtual_karir_service_settings.php">Virtual Karir Service Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="mitra_kerja_settings.php">Mitra Kerja Settings</a></li>
+                            <li><a class="dropdown-item" href="kemitraan_submission.php">Mitra Kerja Submission</a></li>
+                            <li><a class="dropdown-item" href="kemitraan_booked.php">Kemitraan Booked</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="cron_settings.php">Other Settings</a></li>
                         </ul>
