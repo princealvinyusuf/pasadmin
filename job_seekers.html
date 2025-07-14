@@ -103,6 +103,14 @@
                         <div class="modal-body">
                             <input type="hidden" id="modal-seeker-id">
                             <div class="mb-3">
+                                <label class="form-label">Identifier</label>
+                                <input type="text" id="modal-identifier" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Disability Type</label>
+                                <input type="text" id="modal-disability_type" class="form-control">
+                            </div>
+                            <div class="mb-3">
                                 <label class="form-label">Province</label>
                                 <input type="text" id="modal-province" class="form-control" required>
                             </div>
@@ -258,6 +266,8 @@
                 <thead class="table-light">
                     <tr>
                         <th>Action</th>
+                        <th>Identifier</th>
+                        <th>Disability Type</th>
                         <th>Province</th>
                         <th>City</th>
                         <th>Subdistrict</th>
@@ -339,6 +349,8 @@
                     <button class="btn btn-sm btn-primary me-1 edit-btn" data-id="${seeker.id}" title="Edit"><i class="bi bi-pencil"></i></button>
                     <button class="btn btn-sm btn-danger delete-btn" data-id="${seeker.id}" title="Delete"><i class="bi bi-trash"></i></button>
                 </td>
+                <td>${h(seeker.identifier)}</td>
+                <td>${h(seeker.disability_type)}</td>
                 <td>${h(seeker.province)}</td>
                 <td>${h(seeker.city)}</td>
                 <td>${h(seeker.subdistrict)}</td>
