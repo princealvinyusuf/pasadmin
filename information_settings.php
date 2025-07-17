@@ -87,25 +87,42 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         .navbar-brand { font-weight: bold; letter-spacing: 1px; }
-        .header {
-            background: #2d3e50;
-            color: #fff;
-            padding: 24px 0 16px 0;
-            text-align: center;
-            font-size: 2.2rem;
-            letter-spacing: 1px;
-            box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f6f8fa;
+            margin: 0;
+            padding: 0;
         }
-        .card {
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 32px;
+            justify-content: center;
+            align-items: flex-start;
+            margin-top: 40px;
+        }
+        .modern-card {
             background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 2px 12px rgba(44,62,80,0.10);
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(44,62,80,0.10);
             padding: 32px 28px 24px 28px;
             margin-bottom: 32px;
+            width: 100%;
+            max-width: 480px;
+        }
+        .modern-table-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(44,62,80,0.10);
+            padding: 24px 18px 18px 18px;
+            margin-bottom: 32px;
+            width: 100%;
+            max-width: 1200px;
+            overflow-x: auto;
         }
         form label {
             display: block;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             font-weight: 500;
         }
         form input[type="text"],
@@ -113,25 +130,25 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
         form input[type="datetime-local"],
         form textarea {
             width: 100%;
-            padding: 8px 10px;
+            padding: 10px 12px;
             margin-top: 4px;
             margin-bottom: 18px;
             border: 1px solid #d1d5db;
-            border-radius: 5px;
+            border-radius: 8px;
             font-size: 1rem;
             background: #f9fafb;
             transition: border 0.2s;
         }
         form input:focus, form textarea:focus {
-            border: 1.5px solid #2d3e50;
+            border: 1.5px solid #1976d2;
             outline: none;
             background: #fff;
         }
         form button, .btn {
-            background: #2d3e50;
+            background: linear-gradient(90deg, #1976d2 0%, #1565c0 100%);
             color: #fff;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             padding: 10px 22px;
             font-size: 1rem;
             font-weight: 500;
@@ -141,7 +158,7 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
             box-shadow: 0 1px 4px rgba(44,62,80,0.08);
         }
         form button:hover, .btn:hover {
-            background: #1a2533;
+            background: linear-gradient(90deg, #1565c0 0%, #1976d2 100%);
         }
         .btn-cancel {
             background: #e0e5ea;
@@ -157,6 +174,7 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 2px 12px rgba(44,62,80,0.10);
+            margin-bottom: 0;
         }
         th, td {
             border-bottom: 1px solid #e5e7eb;
@@ -176,7 +194,7 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
         .actions a {
             text-decoration: none;
             padding: 6px 14px;
-            border-radius: 5px;
+            border-radius: 6px;
             font-size: 0.97rem;
             margin-right: 6px;
             transition: background 0.2s, color 0.2s;
@@ -197,14 +215,31 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
             background: #ffcdd2;
             color: #b71c1c;
         }
+        @media (min-width: 1000px) {
+            .main-content {
+                flex-wrap: nowrap;
+                align-items: flex-start;
+            }
+            .modern-card {
+                flex: 1 1 350px;
+                max-width: 400px;
+            }
+            .modern-table-card {
+                flex: 2 1 700px;
+                max-width: 900px;
+            }
+        }
         @media (max-width: 900px) {
-            .container { max-width: 98vw; }
-            .card, table { font-size: 0.97rem; }
+            .main-content { gap: 16px; }
+            .modern-card, .modern-table-card { max-width: 100vw; }
+            .modern-card { padding: 18px 8px 16px 8px; }
+            .modern-table-card { padding: 10px 2px 8px 2px; }
+            table { font-size: 0.97rem; }
         }
         @media (max-width: 600px) {
-            .card, table { padding: 10px; }
+            .main-content { flex-direction: column; gap: 8px; }
+            .modern-card, .modern-table-card { padding: 8px 2px; }
             th, td { padding: 7px 4px; }
-            .header { font-size: 1.3rem; padding: 16px 0 10px 0; }
         }
     </style>
 </head>
@@ -280,90 +315,94 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
     <!-- End Navigation Bar -->
     <!-- <div class="header">Information Settings</div> -->
     <div class="container">
-        <div class="card">
-            <form method="post">
-                <?php if ($edit_mode): ?>
-                    <input type="hidden" name="id" value="<?php echo htmlspecialchars($id); ?>">
-                <?php endif; ?>
-                <label>Title:
-                    <input type="text" name="title" value="<?php echo htmlspecialchars($title); ?>" required>
-                </label>
-                <label>Description:
-                    <textarea name="description" rows="3" required><?php echo htmlspecialchars($description); ?></textarea>
-                </label>
-                <label>Date:
-                    <input type="date" name="date" value="<?php echo htmlspecialchars($date); ?>" required>
-                </label>
-                <label>Type:
-                    <input type="text" name="type" value="<?php echo htmlspecialchars($type); ?>" required>
-                </label>
-                <label>Subject:
-                    <input type="text" name="subject" value="<?php echo htmlspecialchars($subject); ?>" required>
-                </label>
-                <label>Status:
-                    <input type="text" name="status" value="<?php echo htmlspecialchars($status); ?>" required>
-                </label>
-                <label>File URL:
-                    <input type="text" name="file_url" value="<?php echo htmlspecialchars($file_url); ?>">
-                </label>
-                <label>Iframe URL:
-                    <input type="text" name="iframe_url" value="<?php echo htmlspecialchars($iframe_url); ?>">
-                </label>
-                <?php if ($edit_mode): ?>
-                    <label>Created At:
-                        <input type="text" value="<?php echo htmlspecialchars($created_at); ?>" readonly>
+        <div class="main-content">
+            <div class="modern-card">
+                <form method="post">
+                    <?php if ($edit_mode): ?>
+                        <input type="hidden" name="id" value="<?php echo htmlspecialchars($id); ?>">
+                    <?php endif; ?>
+                    <label>Title:
+                        <input type="text" name="title" value="<?php echo htmlspecialchars($title); ?>" required>
                     </label>
-                    <label>Updated At:
-                        <input type="text" value="<?php echo htmlspecialchars($updated_at); ?>" readonly>
+                    <label>Description:
+                        <textarea name="description" rows="3" required><?php echo htmlspecialchars($description); ?></textarea>
                     </label>
-                <?php endif; ?>
-                <?php if ($edit_mode): ?>
-                    <button type="submit" name="update">Update</button>
-                    <a href="information_settings.php" class="btn btn-cancel">Cancel</a>
-                <?php else: ?>
-                    <button type="submit" name="save">Add</button>
-                <?php endif; ?>
-            </form>
-        </div>
-        <table>
-            <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Description</th>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Subject</th>
-                <th>Status</th>
-                <th>File URL</th>
-                <th>Iframe URL</th>
-                <th>Created At</th>
-                <th>Updated At</th>
-                <th>Actions</th>
-            </tr>
-            <?php if ($records && $records->num_rows > 0): ?>
-                <?php while ($row = $records->fetch_assoc()): ?>
+                    <label>Date:
+                        <input type="date" name="date" value="<?php echo htmlspecialchars($date); ?>" required>
+                    </label>
+                    <label>Type:
+                        <input type="text" name="type" value="<?php echo htmlspecialchars($type); ?>" required>
+                    </label>
+                    <label>Subject:
+                        <input type="text" name="subject" value="<?php echo htmlspecialchars($subject); ?>" required>
+                    </label>
+                    <label>Status:
+                        <input type="text" name="status" value="<?php echo htmlspecialchars($status); ?>" required>
+                    </label>
+                    <label>File URL:
+                        <input type="text" name="file_url" value="<?php echo htmlspecialchars($file_url); ?>">
+                    </label>
+                    <label>Iframe URL:
+                        <input type="text" name="iframe_url" value="<?php echo htmlspecialchars($iframe_url); ?>">
+                    </label>
+                    <?php if ($edit_mode): ?>
+                        <label>Created At:
+                            <input type="text" value="<?php echo htmlspecialchars($created_at); ?>" readonly>
+                        </label>
+                        <label>Updated At:
+                            <input type="text" value="<?php echo htmlspecialchars($updated_at); ?>" readonly>
+                        </label>
+                    <?php endif; ?>
+                    <?php if ($edit_mode): ?>
+                        <button type="submit" name="update">Update</button>
+                        <a href="information_settings.php" class="btn btn-cancel">Cancel</a>
+                    <?php else: ?>
+                        <button type="submit" name="save">Add</button>
+                    <?php endif; ?>
+                </form>
+            </div>
+            <div class="modern-table-card">
+                <table>
                     <tr>
-                        <td><?php echo $row['id']; ?></td>
-                        <td><?php echo htmlspecialchars($row['title']); ?></td>
-                        <td><?php echo nl2br(htmlspecialchars($row['description'])); ?></td>
-                        <td><?php echo $row['date']; ?></td>
-                        <td><?php echo htmlspecialchars($row['type']); ?></td>
-                        <td><?php echo htmlspecialchars($row['subject']); ?></td>
-                        <td><?php echo htmlspecialchars($row['status']); ?></td>
-                        <td><?php echo htmlspecialchars($row['file_url']); ?></td>
-                        <td><?php echo htmlspecialchars($row['iframe_url']); ?></td>
-                        <td><?php echo $row['created_at']; ?></td>
-                        <td><?php echo $row['updated_at']; ?></td>
-                        <td class="actions">
-                            <a href="information_settings.php?edit=<?php echo $row['id']; ?>">Edit</a>
-                            <a href="information_settings.php?delete=<?php echo $row['id']; ?>" onclick="return confirm('Are you sure you want to delete this record?');">Delete</a>
-                        </td>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>File URL</th>
+                        <th>Iframe URL</th>
+                        <th>Created At</th>
+                        <th>Updated At</th>
+                        <th>Actions</th>
                     </tr>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <tr><td colspan="11">No records found.</td></tr>
-            <?php endif; ?>
-        </table>
+                    <?php if ($records && $records->num_rows > 0): ?>
+                        <?php while ($row = $records->fetch_assoc()): ?>
+                            <tr>
+                                <td><?php echo $row['id']; ?></td>
+                                <td><?php echo htmlspecialchars($row['title']); ?></td>
+                                <td><?php echo nl2br(htmlspecialchars($row['description'])); ?></td>
+                                <td><?php echo $row['date']; ?></td>
+                                <td><?php echo htmlspecialchars($row['type']); ?></td>
+                                <td><?php echo htmlspecialchars($row['subject']); ?></td>
+                                <td><?php echo htmlspecialchars($row['status']); ?></td>
+                                <td><?php echo htmlspecialchars($row['file_url']); ?></td>
+                                <td><?php echo htmlspecialchars($row['iframe_url']); ?></td>
+                                <td><?php echo $row['created_at']; ?></td>
+                                <td><?php echo $row['updated_at']; ?></td>
+                                <td class="actions">
+                                    <a href="information_settings.php?edit=<?php echo $row['id']; ?>">Edit</a>
+                                    <a href="information_settings.php?delete=<?php echo $row['id']; ?>" onclick="return confirm('Are you sure you want to delete this record?');">Delete</a>
+                                </td>
+                            </tr>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <tr><td colspan="12">No records found.</td></tr>
+                    <?php endif; ?>
+                </table>
+            </div>
+        </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
