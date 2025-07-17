@@ -87,12 +87,6 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         .navbar-brand { font-weight: bold; letter-spacing: 1px; }
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: #f6f8fa;
-            margin: 0;
-            padding: 0;
-        }
         .header {
             background: #2d3e50;
             color: #fff;
