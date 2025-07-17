@@ -12,6 +12,7 @@ if ($conn->connect_error) {
 
 // Initialize variables
 $id = $title = $description = $date = $type = $subject = $file_url = $iframe_url = '';
+$status = '';
 $created_at = $updated_at = '';
 $edit_mode = false;
 
@@ -25,19 +26,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $subject = $_POST['subject'];
     $file_url = $_POST['file_url'];
     $iframe_url = $_POST['iframe_url'];
+    $status = isset($_POST['status']) ? $_POST['status'] : '';
 
     if (isset($_POST['save'])) {
         // Add new record, set created_at and updated_at to NOW()
-        $stmt = $conn->prepare("INSERT INTO information (title, description, date, type, subject, file_url, iframe_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
-        $stmt->bind_param('sssssss', $title, $description, $date, $type, $subject, $file_url, $iframe_url);
+        $stmt = $conn->prepare("INSERT INTO information (title, description, date, type, subject, file_url, iframe_url, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
+        $stmt->bind_param('ssssssss', $title, $description, $date, $type, $subject, $file_url, $iframe_url, $status);
         $stmt->execute();
         $stmt->close();
         header('Location: information_settings.php');
         exit();
     } elseif (isset($_POST['update'])) {
         // Update record, set updated_at to NOW()
-        $stmt = $conn->prepare("UPDATE information SET title=?, description=?, date=?, type=?, subject=?, file_url=?, iframe_url=?, updated_at=NOW() WHERE id=?");
-        $stmt->bind_param('sssssssi', $title, $description, $date, $type, $subject, $file_url, $iframe_url, $id);
+        $stmt = $conn->prepare("UPDATE information SET title=?, description=?, date=?, type=?, subject=?, file_url=?, iframe_url=?, status=?, updated_at=NOW() WHERE id=?");
+        $stmt->bind_param('ssssssssi', $title, $description, $date, $type, $subject, $file_url, $iframe_url, $status, $id);
         $stmt->execute();
         $stmt->close();
         header('Location: information_settings.php');
@@ -65,6 +67,7 @@ if (isset($_GET['edit'])) {
         $subject = $row['subject'];
         $file_url = $row['file_url'];
         $iframe_url = $row['iframe_url'];
+        $status = $row['status'];
         $created_at = $row['created_at'];
         $updated_at = $row['updated_at'];
         $edit_mode = true;
@@ -308,6 +311,9 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                 <label>Subject:
                     <input type="text" name="subject" value="<?php echo htmlspecialchars($subject); ?>" required>
                 </label>
+                <label>Status:
+                    <input type="text" name="status" value="<?php echo htmlspecialchars($status); ?>" required>
+                </label>
                 <label>File URL:
                     <input type="text" name="file_url" value="<?php echo htmlspecialchars($file_url); ?>">
                 </label>
@@ -338,6 +344,7 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                 <th>Date</th>
                 <th>Type</th>
                 <th>Subject</th>
+                <th>Status</th>
                 <th>File URL</th>
                 <th>Iframe URL</th>
                 <th>Created At</th>
@@ -353,6 +360,7 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                         <td><?php echo $row['date']; ?></td>
                         <td><?php echo htmlspecialchars($row['type']); ?></td>
                         <td><?php echo htmlspecialchars($row['subject']); ?></td>
+                        <td><?php echo htmlspecialchars($row['status']); ?></td>
                         <td><?php echo htmlspecialchars($row['file_url']); ?></td>
                         <td><?php echo htmlspecialchars($row['iframe_url']); ?></td>
                         <td><?php echo $row['created_at']; ?></td>
