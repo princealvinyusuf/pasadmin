@@ -96,11 +96,6 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
             letter-spacing: 1px;
             box-shadow: 0 2px 8px rgba(44,62,80,0.08);
         }
-        .container {
-            max-width: 1100px;
-            margin: 32px auto;
-            padding: 0 16px;
-        }
         .card {
             background: #fff;
             border-radius: 10px;
