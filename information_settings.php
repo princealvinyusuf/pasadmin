@@ -392,6 +392,9 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                                 <td><?php echo $row['created_at']; ?></td>
                                 <td><?php echo $row['updated_at']; ?></td>
                                 <td class="actions">
+                                    <?php if (!empty($row['file_url'])): ?>
+                                        <a href="<?php echo htmlspecialchars($row['file_url']); ?>" target="_blank" class="btn" style="background:#e8f5e9;color:#388e3c;margin-bottom:4px;">See Document</a>
+                                    <?php endif; ?>
                                     <a href="information_settings.php?edit=<?php echo $row['id']; ?>">Edit</a>
                                     <a href="information_settings.php?delete=<?php echo $row['id']; ?>" onclick="return confirm('Are you sure you want to delete this record?');">Delete</a>
                                 </td>
