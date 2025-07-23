@@ -12,8 +12,14 @@ if ($conn->connect_error) {
 // Handle Add
 if (isset($_POST['add'])) {
     $room_name = $conn->real_escape_string($_POST['room_name']);
-    $image_base64 = $conn->real_escape_string($_POST['image_base64']);
-    $mime_type = $conn->real_escape_string($_POST['mime_type']);
+    $image_base64 = '';
+    $mime_type = '';
+    if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
+        $file_tmp = $_FILES['image_file']['tmp_name'];
+        $mime_type = mime_content_type($file_tmp);
+        $image_data = file_get_contents($file_tmp);
+        $image_base64 = base64_encode($image_data);
+    }
     $now = date('Y-m-d H:i:s');
     $sql = "INSERT INTO pasker_room (room_name, image_base64, mime_type, created_at, updated_at) VALUES ('$room_name', '$image_base64', '$mime_type', '$now', '$now')";
     $conn->query($sql);
@@ -31,10 +37,22 @@ if (isset($_GET['edit'])) {
 if (isset($_POST['update'])) {
     $id = intval($_POST['id']);
     $room_name = $conn->real_escape_string($_POST['room_name']);
-    $image_base64 = $conn->real_escape_string($_POST['image_base64']);
-    $mime_type = $conn->real_escape_string($_POST['mime_type']);
+    $image_base64 = '';
+    $mime_type = '';
+    $update_image = false;
+    if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
+        $file_tmp = $_FILES['image_file']['tmp_name'];
+        $mime_type = mime_content_type($file_tmp);
+        $image_data = file_get_contents($file_tmp);
+        $image_base64 = base64_encode($image_data);
+        $update_image = true;
+    }
     $now = date('Y-m-d H:i:s');
-    $sql = "UPDATE pasker_room SET room_name='$room_name', image_base64='$image_base64', mime_type='$mime_type', updated_at='$now' WHERE id=$id";
+    if ($update_image) {
+        $sql = "UPDATE pasker_room SET room_name='$room_name', image_base64='$image_base64', mime_type='$mime_type', updated_at='$now' WHERE id=$id";
+    } else {
+        $sql = "UPDATE pasker_room SET room_name='$room_name', updated_at='$now' WHERE id=$id";
+    }
     $conn->query($sql);
     header('Location: pasker_room_settings.php');
     exit();
@@ -75,18 +93,23 @@ $rooms = $conn->query("SELECT * FROM pasker_room ORDER BY id DESC");
 <div class="container">
     <h2>Pasker Room Settings</h2>
     <h3><?php echo $edit_room ? 'Edit Room' : 'Add Room'; ?></h3>
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
         <?php if ($edit_room): ?>
             <input type="hidden" name="id" value="<?php echo $edit_room['id']; ?>">
         <?php endif; ?>
         <label>Room Name:
             <input type="text" name="room_name" required value="<?php echo htmlspecialchars($edit_room['room_name'] ?? ''); ?>">
         </label>
-        <label>Image (Base64):
-            <textarea name="image_base64" placeholder="Paste base64 image string here..."><?php echo htmlspecialchars($edit_room['image_base64'] ?? ''); ?></textarea>
+        <label>Image Upload:
+            <input type="file" name="image_file" accept="image/*">
         </label>
+        <?php if ($edit_room && $edit_room['image_base64'] && $edit_room['mime_type']): ?>
+            <div>Current Image Preview:<br>
+                <img class="img-preview" src="data:<?php echo htmlspecialchars($edit_room['mime_type']); ?>;base64,<?php echo $edit_room['image_base64']; ?>" alt="Room Image" />
+            </div>
+        <?php endif; ?>
         <label>MIME Type:
-            <input type="text" name="mime_type" value="<?php echo htmlspecialchars($edit_room['mime_type'] ?? ''); ?>" placeholder="e.g. image/png">
+            <input type="text" name="mime_type" value="<?php echo htmlspecialchars($edit_room['mime_type'] ?? ''); ?>" placeholder="e.g. image/png" readonly>
         </label>
         <?php if ($edit_room): ?>
             <button class="btn" type="submit" name="update">Update</button>
