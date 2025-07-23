@@ -17,8 +17,8 @@
     </style>
 </head>
 <body class="bg-light">
-     <!-- Navigation Bar -->
-     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <!-- Navigation Bar -->
+      <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="index.html"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,6 +70,10 @@
                             <li><a class="dropdown-item" href="agenda_settings.php">Agenda Settings</a></li>
                             <li><a class="dropdown-item" href="job_fair_settings.php">Job Fair Settings</a></li>
                             <li><a class="dropdown-item" href="virtual_karir_service_settings.php">Virtual Karir Service Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="mitra_kerja_settings.php">Mitra Kerja Settings</a></li>
+                            <li><a class="dropdown-item" href="kemitraan_submission.php">Mitra Kerja Submission</a></li>
+                            <li><a class="dropdown-item" href="kemitraan_booked.php">Kemitraan Booked</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="cron_settings.php">Other Settings</a></li>
                         </ul>
@@ -141,6 +145,14 @@
                     </div>
                     <!-- End Bulk Upload Section -->
                     <div class="row g-3">
+                        <div class="col-12 col-md-6 col-lg-4">
+                            <label class="form-label">Identifier</label>
+                            <input type="text" id="identifier" class="form-control">
+                        </div>
+                        <div class="col-12 col-md-6 col-lg-4">
+                            <label class="form-label">Disability Type</label>
+                            <input type="text" id="disability_type" class="form-control">
+                        </div>
                         <div class="col-12 col-md-6 col-lg-4">
                             <label class="form-label">Province</label>
                             <input type="text" id="province" class="form-control">
@@ -268,6 +280,8 @@
                     <table id="seekers-table" class="table table-hover align-middle" aria-label="Seekers list">
                         <thead class="table-light">
                             <tr>
+                                <th>Identifier</th>
+                                <th>Disability Type</th>
                                 <th>Province</th>
                                 <th>City</th>
                                 <th>Subdistrict</th>
@@ -315,12 +329,14 @@
                 const tbody = document.querySelector('#seekers-table tbody');
                 tbody.innerHTML = '';
                 if (!Array.isArray(seekers) || seekers.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No seekers found.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No seekers found.</td></tr>';
                     return;
                 }
                 seekers.forEach(seeker => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
+                        <td>${seeker.identifier || ''}</td>
+                        <td>${seeker.disability_type || ''}</td>
                         <td>${seeker.province || ''}</td>
                         <td>${seeker.city || ''}</td>
                         <td>${seeker.subdistrict || ''}</td>
