@@ -1,9 +1,9 @@
 <?php
+// Standalone DB connection for paskerid_db_prod
 $host = 'localhost';
 $user = 'root';
 $pass = '';
-$db = 'paskerid_db';
-
+$db = 'paskerid_db_prod';
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
@@ -246,7 +246,7 @@ $rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rej
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
                             <li><a class="dropdown-item" href="jobs.html">Jobs</a></li>
-                            <li><a class="dropdown-item" href="job_seekers.html">Job Seekers</a></li>
+                            <li><a class="dropdown-item" href="job_seeker_dashboard.html">Dashboard Job Seekers</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">

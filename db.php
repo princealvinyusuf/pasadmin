@@ -2,7 +2,7 @@
 $host = 'localhost';
 $user = 'root';
 $pass = '';
-$db = 'job_admin';
+$db = 'job_admin_prod';
  
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
