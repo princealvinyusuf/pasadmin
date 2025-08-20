@@ -34,10 +34,13 @@ $last_day = date('Y-m-t', strtotime($first_day));
 
 // Detect schema for booked_date table
 $has_range = column_exists($conn, 'booked_date', 'booked_date_start');
-$date_select = $has_range ? 'bd.booked_date_start AS booked_date' : 'bd.booked_date AS booked_date';
+$date_select = $has_range
+    ? 'bd.booked_date_start, bd.booked_date_finish'
+    : 'bd.booked_date AS booked_date_start, bd.booked_date AS booked_date_finish';
 $date_where = $has_range
     ? "(bd.booked_date_start <= '$last_day' AND bd.booked_date_finish >= '$first_day')"
     : "bd.booked_date BETWEEN '$first_day' AND '$last_day'";
+$order_by = $has_range ? 'bd.booked_date_start' : 'bd.booked_date';
 
 // Fetch all booked dates and activities for this month using detected schema
 $sql = "
@@ -52,7 +55,7 @@ $sql = "
     LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id
     LEFT JOIN pasker_facility pf ON pf.id = k.pasker_facility_id
     WHERE $date_where
-    ORDER BY booked_date
+    ORDER BY $order_by
 ";
 $result = $conn->query($sql);
 
@@ -62,8 +65,18 @@ if ($result === false) {
     $query_error = $conn->error;
 } else {
     while ($row = $result->fetch_assoc()) {
-        $date = $row['booked_date'];
-        $activities[$date][] = $row;
+        $start = $row['booked_date_start'];
+        $finish = $row['booked_date_finish'];
+        if (!$start) { continue; }
+        if (!$finish) { $finish = $start; }
+        $cur = strtotime($start);
+        $end = strtotime($finish);
+        if ($cur === false || $end === false) { continue; }
+        while ($cur <= $end) {
+            $date = date('Y-m-d', $cur);
+            $activities[$date][] = $row;
+            $cur = strtotime('+1 day', $cur);
+        }
     }
 }
 
@@ -150,15 +163,6 @@ $today = date('Y-m-d');
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="dashboardDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Dashboard
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="dashboardDropdown">
-                            <li><a class="dropdown-item" href="index.html">Dashboard Jobs</a></li>
-                            <li><a class="dropdown-item" href="job_seeker_dashboard.html">Dashboard Job Seekers</a></li>
-                        </ul>
-                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="masterDataDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Master Data
