@@ -27,16 +27,13 @@ function safe_count(mysqli $conn, string $sql): int {
     return $row ? intval($row[0]) : 0;
 }
 
-// Helper: check if a column exists in a table
+// Helper: check if a column exists in a table (no get_result, mysqlnd-safe)
 function column_exists(mysqli $conn, string $table, string $column): bool {
-    $stmt = $conn->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
-    if (!$stmt) return false;
-    $stmt->bind_param('s', $column);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $exists = $res && $res->num_rows > 0;
-    $stmt->close();
-    return $exists;
+    $t = $conn->real_escape_string($table);
+    $c = $conn->real_escape_string($column);
+    $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='$t' AND COLUMN_NAME='$c' LIMIT 1";
+    $res = $conn->query($sql);
+    return $res && $res->num_rows > 0;
 }
 
 // Handle Delete
