@@ -587,9 +587,9 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               const requestLetter = cells[16].innerText.trim();
               const downloadContainer = document.getElementById('downloadLetterContainer');
               if (requestLetter && requestLetter !== '-') {
-                // Adjust this base URL to your Laravel public base
-                const baseUrl = window.LARAVEL_PUBLIC_BASE || '';
-                const url = (baseUrl ? baseUrl.replace(/\/$/, '') : '') + '/storage/' + requestLetter;
+                // Base path: set window.LARAVEL_PUBLIC_BASE to override, default to '/paskerid/public'
+                const basePath = (window.LARAVEL_PUBLIC_BASE || '/paskerid/public');
+                const url = basePath.replace(/\/$/, '') + '/storage/' + requestLetter;
                 downloadContainer.innerHTML = `<a href="${url}" class="btn btn-success" target="_blank" download>Download Letter</a>`;
               } else {
                 downloadContainer.innerHTML = '';
