@@ -279,7 +279,15 @@ if (isset($_POST['reject_id'])) {
 
 // Fetch all kemitraan with joins for names
 $kemitraans = $conn->query(
-    "SELECT k.*, cs.sector_name, top.name AS partnership_type_name, pr.room_name, pf.facility_name
+    "SELECT k.*, cs.sector_name, top.name AS partnership_type_name, pr.room_name, pf.facility_name,
+    (SELECT GROUP_CONCAT(DISTINCT pr2.room_name ORDER BY pr2.room_name SEPARATOR ', ')
+       FROM kemitraan_pasker_room kpr2
+       LEFT JOIN pasker_room pr2 ON pr2.id = kpr2.pasker_room_id
+      WHERE kpr2.kemitraan_id = k.id) AS rooms_concat,
+    (SELECT GROUP_CONCAT(DISTINCT pf2.facility_name ORDER BY pf2.facility_name SEPARATOR ', ')
+       FROM kemitraan_pasker_facility kpf2
+       LEFT JOIN pasker_facility pf2 ON pf2.id = kpf2.pasker_facility_id
+      WHERE kpf2.kemitraan_id = k.id) AS facilities_concat
      FROM kemitraan k
      LEFT JOIN company_sectors cs ON cs.id = k.company_sectors_id
      LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id
@@ -513,9 +521,9 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 <td><?php echo htmlspecialchars($row['business_sector']); ?></td>
                 <td><?php echo htmlspecialchars($row['institution_address']); ?></td>
                 <td><?php echo htmlspecialchars($row['partnership_type_name'] ?? ''); ?></td>
-                <td><?php echo htmlspecialchars($row['room_name'] ?? ''); ?></td>
+                <td><?php echo htmlspecialchars(($row['rooms_concat'] ?? '') !== '' ? $row['rooms_concat'] : ($row['room_name'] ?? '')); ?></td>
                 <td><?php echo htmlspecialchars($row['other_pasker_room'] ?? ''); ?></td>
-                <td><?php echo htmlspecialchars($row['facility_name'] ?? ''); ?></td>
+                <td><?php echo htmlspecialchars(($row['facilities_concat'] ?? '') !== '' ? $row['facilities_concat'] : ($row['facility_name'] ?? '')); ?></td>
                 <td><?php echo htmlspecialchars($row['other_pasker_facility'] ?? ''); ?></td>
                 <td><?php echo htmlspecialchars($row['schedule']); ?></td>
                 <td><?php echo htmlspecialchars($row['request_letter'] ?: '-'); ?></td>
