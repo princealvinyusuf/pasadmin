@@ -51,7 +51,15 @@ $sql = "
         pf.facility_name,
         k.other_pasker_facility,
         pr.room_name,
-        k.other_pasker_room
+        k.other_pasker_room,
+        (SELECT GROUP_CONCAT(DISTINCT pr2.room_name ORDER BY pr2.room_name SEPARATOR ', ')
+           FROM kemitraan_pasker_room kpr2
+           LEFT JOIN pasker_room pr2 ON pr2.id = kpr2.pasker_room_id
+          WHERE kpr2.kemitraan_id = k.id) AS rooms_concat,
+        (SELECT GROUP_CONCAT(DISTINCT pf2.facility_name ORDER BY pf2.facility_name SEPARATOR ', ')
+           FROM kemitraan_pasker_facility kpf2
+           LEFT JOIN pasker_facility pf2 ON pf2.id = kpf2.pasker_facility_id
+          WHERE kpf2.kemitraan_id = k.id) AS facilities_concat
     FROM booked_date bd
     JOIN kemitraan k ON bd.kemitraan_id = k.id
     LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id
@@ -237,8 +245,10 @@ $today = date('Y-m-d');
                         <?php foreach ($activities[$date] as $act): ?>
                             <?php $ptype = $act['partnership_type_name'] ?: 'Kegiatan'; ?>
                             <?php 
-                                $roomLabel = htmlspecialchars($act['room_name'] ?: $act['other_pasker_room'] ?: '-');
-                                $facilityLabel = htmlspecialchars($act['facility_name'] ?: $act['other_pasker_facility'] ?: '-');
+                                $roomLabelRaw = (($act['rooms_concat'] ?? '') !== '' ? $act['rooms_concat'] : ($act['room_name'] ?: $act['other_pasker_room'] ?: '-'));
+                                $facilityLabelRaw = (($act['facilities_concat'] ?? '') !== '' ? $act['facilities_concat'] : ($act['facility_name'] ?: $act['other_pasker_facility'] ?: '-'));
+                                $roomLabel = htmlspecialchars($roomLabelRaw);
+                                $facilityLabel = htmlspecialchars($facilityLabelRaw);
                                 $tooltip = "Instansi: ".htmlspecialchars($act['institution_name'])."\nRuangan: ".$roomLabel."\nFasilitas: ".$facilityLabel;
                             ?>
                             <div class="activity <?php echo str_replace(' ', '\\ ', $ptype); ?>"
