@@ -11,19 +11,33 @@ if ($conn->connect_error) {
 
 session_start();
 
+// Helper for safe COUNT queries
+function safe_count(mysqli $conn, string $sql): int {
+    $res = $conn->query($sql);
+    if ($res === false) {
+        return 0;
+    }
+    $row = $res->fetch_row();
+    return $row ? intval($row[0]) : 0;
+}
+
 // Handle Delete
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
     // Delete all booked_date rows for this kemitraan
     $stmt = $conn->prepare("DELETE FROM booked_date WHERE kemitraan_id=?");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $stmt->close();
+    if ($stmt) {
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $stmt->close();
+    }
     // Now delete the kemitraan row
     $stmt = $conn->prepare("DELETE FROM kemitraan WHERE id=?");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $stmt->close();
+    if ($stmt) {
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $stmt->close();
+    }
     header("Location: kemitraan_submission.php");
     exit();
 }
@@ -33,6 +47,11 @@ if (isset($_POST['approve_id'])) {
     $id = intval($_POST['approve_id']);
     // Fetch schedule and partnership type info from new schema
     $stmt = $conn->prepare("SELECT k.schedule, k.type_of_partnership_id, top.name AS type_name FROM kemitraan k LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id WHERE k.id = ?");
+    if (!$stmt) {
+        $_SESSION['error'] = 'DB prepare failed: ' . $conn->error;
+        header("Location: kemitraan_submission.php");
+        exit();
+    }
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->bind_result($scheduleRes, $typeIdRes, $typeNameRes);
@@ -88,6 +107,11 @@ if (isset($_POST['approve_id'])) {
     // Check fully booked by joining kemitraan type on booked_date
     $fully_booked_date = '';
     $checkStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM booked_date bd JOIN kemitraan k ON k.id = bd.kemitraan_id WHERE bd.booked_date = ? AND k.type_of_partnership_id = ?");
+    if (!$checkStmt) {
+        $_SESSION['error'] = 'DB prepare failed: ' . $conn->error;
+        header("Location: kemitraan_submission.php");
+        exit();
+    }
     foreach ($dates_to_check as $date) {
         $checkStmt->bind_param("si", $date, $type_id);
         $checkStmt->execute();
@@ -109,16 +133,20 @@ if (isset($_POST['approve_id'])) {
 
     // Approve and insert booked dates
     $stmt = $conn->prepare("UPDATE kemitraan SET status='approved', updated_at=NOW() WHERE id=?");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $stmt->close();
+    if ($stmt) {
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $stmt->close();
+    }
 
     $ins = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
-    foreach ($dates_to_check as $date) {
-        $ins->bind_param("is", $id, $date);
-        $ins->execute();
+    if ($ins) {
+        foreach ($dates_to_check as $date) {
+            $ins->bind_param("is", $id, $date);
+            $ins->execute();
+        }
+        $ins->close();
     }
-    $ins->close();
 
     $_SESSION['success'] = 'Pengajuan berhasil di-approve!';
     header("Location: kemitraan_submission.php");
@@ -129,9 +157,11 @@ if (isset($_POST['approve_id'])) {
 if (isset($_POST['reject_id'])) {
     $id = intval($_POST['reject_id']);
     $stmt = $conn->prepare("UPDATE kemitraan SET status='rejected', updated_at=NOW() WHERE id=?");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $stmt->close();
+    if ($stmt) {
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $stmt->close();
+    }
     header("Location: kemitraan_submission.php");
     exit();
 }
@@ -146,11 +176,14 @@ $kemitraans = $conn->query(
      LEFT JOIN pasker_facility pf ON pf.id = k.pasker_facility_id
      ORDER BY k.id DESC"
 );
+if ($kemitraans === false) {
+    $_SESSION['error'] = 'Query error: ' . $conn->error;
+}
 
-// Fetch summary counts
-$pending_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='pending'")->fetch_row()[0];
-$approved_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='approved'")->fetch_row()[0];
-$rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rejected'")->fetch_row()[0];
+// Fetch summary counts safely
+$pending_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status='pending'");
+$approved_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status='approved'");
+$rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status='rejected'");
 ?>
 <!DOCTYPE html>
 <html lang="en">
