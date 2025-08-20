@@ -41,9 +41,14 @@ $sql = "
 $result = $conn->query($sql);
 
 $activities = [];
-while ($row = $result->fetch_assoc()) {
-    $date = $row['booked_date'];
-    $activities[$date][] = $row;
+$query_error = null;
+if ($result === false) {
+    $query_error = $conn->error;
+} else {
+    while ($row = $result->fetch_assoc()) {
+        $date = $row['booked_date'];
+        $activities[$date][] = $row;
+    }
 }
 
 // Build calendar grid
@@ -181,6 +186,11 @@ $today = date('Y-m-d');
     </nav>
     <!-- End Navigation Bar -->
 <div class="calendar-container">
+    <?php if ($query_error): ?>
+        <div class="alert alert-danger" role="alert">
+            Query failed: <?php echo htmlspecialchars($query_error); ?>
+        </div>
+    <?php endif; ?>
     <div class="calendar-nav">
         <a href="?month=<?php echo $prev_month; ?>&year=<?php echo $prev_year; ?>">&laquo; Prev</a>
         <span><?php echo date('F Y', strtotime($first_day)); ?></span>
