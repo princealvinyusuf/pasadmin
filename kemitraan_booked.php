@@ -15,16 +15,13 @@ if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
-// Helper: check if a column exists
+// Helper: check if a column exists (mysqlnd-safe)
 function column_exists(mysqli $conn, string $table, string $column): bool {
-    $stmt = $conn->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
-    if (!$stmt) return false;
-    $stmt->bind_param('s', $column);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $exists = $res && $res->num_rows > 0;
-    $stmt->close();
-    return $exists;
+    $t = $conn->real_escape_string($table);
+    $c = $conn->real_escape_string($column);
+    $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='$t' AND COLUMN_NAME='$c' LIMIT 1";
+    $res = $conn->query($sql);
+    return $res && $res->num_rows > 0;
 }
 
 // Get current month and year
