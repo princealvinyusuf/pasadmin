@@ -11,30 +11,6 @@ if ($conn->connect_error) {
 
 session_start();
 
-// Handle Update
-if (isset($_POST['update'])) {
-    $id = $_POST['id'];
-    $pic_name = $_POST['pic_name'];
-    $pic_position = $_POST['pic_position'];
-    $pic_email = $_POST['pic_email'];
-    $pic_whatsapp = $_POST['pic_whatsapp'];
-    $sector_category = $_POST['sector_category'];
-    $institution_name = $_POST['institution_name'];
-    $business_sector = $_POST['business_sector'];
-    $institution_addre = $_POST['institution_addre'];
-    $partnership_type = $_POST['partnership_type'];
-    $needs = $_POST['needs'];
-    $schedule = $_POST['schedule'];
-    $request_letter = $_POST['request_letter'];
-    $status = $_POST['status'];
-    $stmt = $conn->prepare("UPDATE kemitraan SET pic_name=?, pic_position=?, pic_email=?, pic_whatsapp=?, sector_category=?, institution_name=?, business_sector=?, institution_addre=?, partnership_type=?, needs=?, schedule=?, request_letter=?, status=?, updated_at=NOW() WHERE id=?");
-    $stmt->bind_param("ssssssssssssssi", $pic_name, $pic_position, $pic_email, $pic_whatsapp, $sector_category, $institution_name, $business_sector, $institution_addre, $partnership_type, $needs, $schedule, $request_letter, $status, $id);
-    $stmt->execute();
-    $stmt->close();
-    header("Location: kemitraan_submission.php");
-    exit();
-}
-
 // Handle Delete
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
@@ -52,57 +28,41 @@ if (isset($_GET['delete'])) {
     exit();
 }
 
-// Add backend logic to handle approve action
+// Handle Approve
 if (isset($_POST['approve_id'])) {
-    $id = $_POST['approve_id'];
-    // Fetch schedule and partnership_type for this kemitraan
-    $result = $conn->query("SELECT schedule, partnership_type FROM kemitraan WHERE id=$id");
-    $row = $result->fetch_assoc();
-    $schedule = trim($row['schedule']);
-    $partnership_type = trim($row['partnership_type']);
+    $id = intval($_POST['approve_id']);
+    // Fetch schedule and partnership type info from new schema
+    $stmt = $conn->prepare("SELECT k.schedule, k.type_of_partnership_id, top.name AS type_name FROM kemitraan k LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id WHERE k.id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res->fetch_assoc();
+    $stmt->close();
 
-    // Partnership type limits
+    if (!$row) {
+        $_SESSION['error'] = "Data kemitraan tidak ditemukan.";
+        header("Location: kemitraan_submission.php");
+        exit();
+    }
+
+    $schedule = trim($row['schedule'] ?? '');
+    $type_id = intval($row['type_of_partnership_id']);
+    $type_name = trim($row['type_name'] ?? '');
+
+    // Partnership type limits (by name)
     $type_limits = [
         'Walk-in Interview' => 10,
         'Pendidikan Pasar Kerja' => 5,
         'Talenta Muda' => 8,
         'Job Fair' => 7,
         'Konsultasi Informasi Pasar Kerja' => 3,
+        'Konsultasi Pasar Kerja' => 3,
     ];
-    $max_bookings = isset($type_limits[$partnership_type]) ? $type_limits[$partnership_type] : 10;
+    $max_bookings = isset($type_limits[$type_name]) ? $type_limits[$type_name] : 10;
 
-    // Helper function to convert 'd F Y' (e.g. '20 Oktober 2025') to 'Y-m-d'
-    function parseIndoDate($str) {
-        $bulan = [
-            'Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04', 'Mei' => '05', 'Juni' => '06',
-            'Juli' => '07', 'Agustus' => '08', 'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'
-        ];
-        if (preg_match('/^(\d{1,2}) ([A-Za-z]+) (\d{4})$/u', trim($str), $m)) {
-            $d = str_pad($m[1], 2, '0', STR_PAD_LEFT);
-            $mth = isset($bulan[$m[2]]) ? $bulan[$m[2]] : '01';
-            $y = $m[3];
-            return "$y-$mth-$d";
-        }
-        return false;
-    }
-
-    // Helper to check if date is fully booked, with debug output
-    function is_fully_booked($conn, $date, $partnership_type, $max_bookings) {
-        $stmt = $conn->prepare("SELECT COUNT(*) FROM booked_date WHERE booked_date=? AND partnership_type=?");
-        $stmt->bind_param("ss", $date, $partnership_type);
-        $stmt->execute();
-        $current_count = 0;
-        $stmt->bind_result($current_count);
-        $stmt->fetch();
-        $stmt->close();
-        // Debug output
-        echo "<div style='color:blue;'>DEBUG: date=$date, partnership_type=$partnership_type, current_count=$current_count, max_bookings=$max_bookings</div>";
-        return $current_count >= $max_bookings;
-    }
-
+    // Parse schedule into dates
     $dates_to_check = [];
     if (preg_match('/^(\d{4}-\d{2}-\d{2})\s*to\s*(\d{4}-\d{2}-\d{2})$/', $schedule, $matches)) {
-        // Range: YYYY-MM-DD to YYYY-MM-DD
         $start = $matches[1];
         $end = $matches[2];
         $current = strtotime($start);
@@ -111,60 +71,63 @@ if (isset($_POST['approve_id'])) {
             $dates_to_check[] = date('Y-m-d', $current);
             $current = strtotime('+1 day', $current);
         }
-    } elseif ($parsed = parseIndoDate($schedule)) {
-        $dates_to_check[] = $parsed;
     } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $schedule)) {
         $dates_to_check[] = $schedule;
     }
 
-    // Check if any date is in the past
+    // Past date guard
     $today = date('Y-m-d');
-    $past_date = '';
     foreach ($dates_to_check as $date) {
         if ($date < $today) {
-            $past_date = $date;
-            break;
+            $_SESSION['error'] = "Tanggal $date sudah lewat. Tidak dapat approve.";
+            header("Location: kemitraan_submission.php");
+            exit();
         }
     }
-    if ($past_date) {
-        $_SESSION['error'] = "Tanggal $past_date sudah lewat. Tidak dapat approve.";
-        header("Location: kemitraan_submission.php");
-        exit();
-    }
 
+    // Check fully booked by joining kemitraan type on booked_date
     $fully_booked_date = '';
+    $checkStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM booked_date bd JOIN kemitraan k ON k.id = bd.kemitraan_id WHERE bd.booked_date = ? AND k.type_of_partnership_id = ?");
     foreach ($dates_to_check as $date) {
-        if (is_fully_booked($conn, $date, $partnership_type, $max_bookings)) {
+        $checkStmt->bind_param("si", $date, $type_id);
+        $checkStmt->execute();
+        $checkRes = $checkStmt->get_result();
+        $countRow = $checkRes->fetch_assoc();
+        $current_count = intval($countRow['cnt'] ?? 0);
+        if ($current_count >= $max_bookings) {
             $fully_booked_date = $date;
             break;
         }
     }
+    $checkStmt->close();
 
     if ($fully_booked_date) {
-        $_SESSION['error'] = "Tanggal $fully_booked_date untuk $partnership_type sudah penuh. Tidak dapat approve.";
-        header("Location: kemitraan_submission.php");
-        exit();
-    } else {
-        // All dates are available, proceed to approve and insert
-        $stmt = $conn->prepare("UPDATE kemitraan SET status='approved', updated_at=NOW() WHERE id=?");
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-        $stmt->close();
-        foreach ($dates_to_check as $date) {
-            $stmt = $conn->prepare("INSERT INTO booked_date (kemitraan_id, partnership_type, max_bookings, booked_date, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
-            $stmt->bind_param("isis", $id, $partnership_type, $max_bookings, $date);
-            $stmt->execute();
-            $stmt->close();
-        }
-        $_SESSION['success'] = 'Pengajuan berhasil di-approve!';
+        $_SESSION['error'] = "Tanggal $fully_booked_date untuk $type_name sudah penuh. Tidak dapat approve.";
         header("Location: kemitraan_submission.php");
         exit();
     }
+
+    // Approve and insert booked dates
+    $stmt = $conn->prepare("UPDATE kemitraan SET status='approved', updated_at=NOW() WHERE id=?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $stmt->close();
+
+    $ins = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
+    foreach ($dates_to_check as $date) {
+        $ins->bind_param("is", $id, $date);
+        $ins->execute();
+    }
+    $ins->close();
+
+    $_SESSION['success'] = 'Pengajuan berhasil di-approve!';
+    header("Location: kemitraan_submission.php");
+    exit();
 }
 
-// Add backend logic to handle reject action
+// Handle Reject
 if (isset($_POST['reject_id'])) {
-    $id = $_POST['reject_id'];
+    $id = intval($_POST['reject_id']);
     $stmt = $conn->prepare("UPDATE kemitraan SET status='rejected', updated_at=NOW() WHERE id=?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
@@ -173,16 +136,16 @@ if (isset($_POST['reject_id'])) {
     exit();
 }
 
-// Handle Edit (fetch data)
-$edit_kemitraan = null;
-if (isset($_GET['edit'])) {
-    $id = $_GET['edit'];
-    $result = $conn->query("SELECT * FROM kemitraan WHERE id=$id");
-    $edit_kemitraan = $result->fetch_assoc();
-}
-
-// Fetch all kemitraan
-$kemitraans = $conn->query("SELECT * FROM kemitraan ORDER BY id DESC");
+// Fetch all kemitraan with joins for names
+$kemitraans = $conn->query(
+    "SELECT k.*, cs.sector_name, top.name AS partnership_type_name, pr.room_name, pf.facility_name
+     FROM kemitraan k
+     LEFT JOIN company_sectors cs ON cs.id = k.company_sectors_id
+     LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id
+     LEFT JOIN pasker_room pr ON pr.id = k.pasker_room_id
+     LEFT JOIN pasker_facility pf ON pf.id = k.pasker_facility_id
+     ORDER BY k.id DESC"
+);
 
 // Fetch summary counts
 $pending_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='pending'")->fetch_row()[0];
@@ -213,90 +176,23 @@ $rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rej
             margin-left: auto;
             margin-right: auto;
         }
-        label {
-            display: block;
-            margin-bottom: 14px;
-            color: #333;
-            font-weight: 500;
-        }
-        input[type="text"], input[type="email"], textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 1rem;
-            margin-top: 4px;
-            background: #fff;
-            transition: border 0.2s;
-        }
-        input[type="text"]:focus, input[type="email"]:focus, textarea:focus {
-            border: 1.5px solid #2563eb;
-            outline: none;
-        }
-        textarea {
-            min-height: 60px;
-            resize: vertical;
-        }
-        .btn {
-            display: inline-block;
-            padding: 8px 22px;
-            border: none;
-            border-radius: 6px;
-            background: #2563eb;
-            color: #fff;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            margin-right: 8px;
-            margin-top: 8px;
-            transition: background 0.2s;
-            text-decoration: none;
-        }
-        .btn:hover {
-            background: #1d4ed8;
-        }
-        .btn.cancel {
-            background: #e5e7eb;
-            color: #222;
-        }
-        .btn.cancel:hover {
-            background: #d1d5db;
-        }
-        .btn.delete {
-            background: #ef4444;
-        }
-        .btn.delete:hover {
-            background: #b91c1c;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-        }
-        th, td {
-            padding: 12px 10px;
-            text-align: left;
-        }
-        th {
-            background: #f1f5f9;
-            color: #222;
-            font-weight: 600;
-        }
-        tr:nth-child(even) {
-            background: #f9fafb;
-        }
-        tr:hover {
-            background: #e0e7ef;
-        }
-        td {
-            vertical-align: top;
-        }
-        .actions a {
-            margin-right: 8px;
-        }
+        label { display: block; margin-bottom: 14px; color: #333; font-weight: 500; }
+        input[type="text"], input[type="email"], textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; margin-top: 4px; background: #fff; transition: border 0.2s; }
+        input[type="text"]:focus, input[type="email"]:focus, textarea:focus { border: 1.5px solid #2563eb; outline: none; }
+        textarea { min-height: 60px; resize: vertical; }
+        .btn { display: inline-block; padding: 8px 22px; border: none; border-radius: 6px; background: #2563eb; color: #fff; font-size: 1rem; font-weight: 500; cursor: pointer; margin-right: 8px; margin-top: 8px; transition: background 0.2s; text-decoration: none; }
+        .btn:hover { background: #1d4ed8; }
+        .btn.cancel { background: #e5e7eb; color: #222; }
+        .btn.cancel:hover { background: #d1d5db; }
+        .btn.delete { background: #ef4444; }
+        .btn.delete:hover { background: #b91c1c; }
+        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+        th, td { padding: 12px 10px; text-align: left; }
+        th { background: #f1f5f9; color: #222; font-weight: 600; }
+        tr:nth-child(even) { background: #f9fafb; }
+        tr:hover { background: #e0e7ef; }
+        td { vertical-align: top; }
+        .actions a, .actions button { margin-right: 8px; }
         @media (max-width: 900px) {
             .container { padding: 8px; }
             form { padding: 12px 6px; }
@@ -305,56 +201,18 @@ $rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rej
             .btn, .btn-sm { width: 100%; margin-bottom: 6px; }
             .actions { min-width: 110px; }
         }
-        .modal-content {
-            border-radius: 12px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-            border: 1px solid #e5e7eb;
-        }
-        .modal-header {
-            background: #f8fafc;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .modal-title {
-            font-size: 1.35rem;
-            font-weight: 600;
-            color: #2563eb;
-            letter-spacing: 0.5px;
-        }
-        .modal-body {
-            background: #f9fafb;
-            padding-top: 18px;
-            padding-bottom: 10px;
-        }
-        #downloadLetterContainer {
-            margin-top: 18px;
-            text-align: right;
-        }
-        #downloadLetterContainer .btn {
-            font-size: 1rem;
-            padding: 7px 20px;
-        }
-        .table-detail th {
-            text-align: right;
-            color: #6b7280;
-            width: 220px;
-            background: #f1f5f9;
-            font-weight: 500;
-            vertical-align: top;
-        }
-        .table-detail td {
-            background: #fff;
-            vertical-align: top;
-        }
-        .table-detail tr:nth-child(even) td {
-            background: #f9fafb;
-        }
-        .table-detail tr:hover td {
-            background: #e0e7ef;
-        }
+        .modal-content { border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.10); border: 1px solid #e5e7eb; }
+        .modal-header { background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+        .modal-title { font-size: 1.35rem; font-weight: 600; color: #2563eb; letter-spacing: 0.5px; }
+        .modal-body { background: #f9fafb; padding-top: 18px; padding-bottom: 10px; }
+        #downloadLetterContainer { margin-top: 18px; text-align: right; }
+        #downloadLetterContainer .btn { font-size: 1rem; padding: 7px 20px; }
+        .table-detail th { text-align: right; color: #6b7280; width: 220px; background: #f1f5f9; font-weight: 500; vertical-align: top; }
+        .table-detail td { background: #fff; vertical-align: top; }
+        .table-detail tr:nth-child(even) td { background: #f9fafb; }
+        .table-detail tr:hover td { background: #e0e7ef; }
         .btn-detail { background: #2563eb; color: #fff; border: none; }
         .btn-detail:hover { background: #1d4ed8; color: #fff; }
-        .btn-edit { background: #6366f1; color: #fff; border: none; }
-        .btn-edit:hover { background: #4338ca; color: #fff; }
         .btn-delete { background: #ef4444; color: #fff; border: none; }
         .btn-delete:hover { background: #b91c1c; color: #fff; }
         .btn-approve { background: #22c55e; color: #fff; border: none; }
@@ -464,53 +322,7 @@ $rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rej
                 </div>
             </div>
         </div>
-        <h3><?php echo $edit_kemitraan ? 'Edit Mitra Kerja Submission' : 'All Mitra Kerja Submission'; ?></h3>
-        <?php if ($edit_kemitraan): ?>
-        <form method="post">
-            <input type="hidden" name="id" value="<?php echo $edit_kemitraan['id']; ?>">
-            <label>PIC Name:
-                <input type="text" name="pic_name" required value="<?php echo htmlspecialchars($edit_kemitraan['pic_name']); ?>">
-            </label>
-            <label>PIC Position:
-                <input type="text" name="pic_position" value="<?php echo htmlspecialchars($edit_kemitraan['pic_position']); ?>">
-            </label>
-            <label>PIC Email:
-                <input type="email" name="pic_email" value="<?php echo htmlspecialchars($edit_kemitraan['pic_email']); ?>">
-            </label>
-            <label>PIC Whatsapp:
-                <input type="text" name="pic_whatsapp" value="<?php echo htmlspecialchars($edit_kemitraan['pic_whatsapp']); ?>">
-            </label>
-            <label>Sector Category:
-                <input type="text" name="sector_category" value="<?php echo htmlspecialchars($edit_kemitraan['sector_category']); ?>">
-            </label>
-            <label>Institution Name:
-                <input type="text" name="institution_name" value="<?php echo htmlspecialchars($edit_kemitraan['institution_name']); ?>">
-            </label>
-            <label>Business Sector:
-                <input type="text" name="business_sector" value="<?php echo htmlspecialchars($edit_kemitraan['business_sector']); ?>">
-            </label>
-            <label>Institution Address:
-                <input type="text" name="institution_addre" value="<?php echo htmlspecialchars($edit_kemitraan['institution_addre']); ?>">
-            </label>
-            <label>Partnership Type:
-                <input type="text" name="partnership_type" value="<?php echo htmlspecialchars($edit_kemitraan['partnership_type']); ?>">
-            </label>
-            <label>Needs:
-                <textarea name="needs"><?php echo htmlspecialchars($edit_kemitraan['needs']); ?></textarea>
-            </label>
-            <label>Schedule:
-                <input type="text" name="schedule" value="<?php echo htmlspecialchars($edit_kemitraan['schedule']); ?>">
-            </label>
-            <label>Request Letter:
-                <input type="text" name="request_letter" value="<?php echo htmlspecialchars($edit_kemitraan['request_letter']); ?>">
-            </label>
-            <label>Status:
-                <input type="text" name="status" value="<?php echo htmlspecialchars($edit_kemitraan['status']); ?>">
-            </label>
-            <button type="submit" class="btn" name="update">Update</button>
-            <a href="kemitraan_submission.php" class="btn cancel">Cancel</a>
-        </form>
-        <?php endif; ?>
+        <h3>All Mitra Kerja Submission</h3>
     
         <div class="table-responsive">
         <table class="table table-bordered" style="min-width:1200px">
@@ -521,12 +333,15 @@ $rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rej
                 <th>PIC Position</th>
                 <th>PIC Email</th>
                 <th>PIC Whatsapp</th>
-                <th>Sector Category</th>
+                <th>Company Sector</th>
                 <th>Institution Name</th>
                 <th>Business Sector</th>
                 <th>Institution Address</th>
                 <th>Partnership Type</th>
-                <th>Needs</th>
+                <th>Room</th>
+                <th>Other Room</th>
+                <th>Facility</th>
+                <th>Other Facility</th>
                 <th>Schedule</th>
                 <th>Request Letter</th>
                 <th>Status</th>
@@ -537,7 +352,6 @@ $rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rej
             <tr>
                 <td class="actions">
                     <button type="button" class="btn btn-detail btn-sm detail-btn mb-1" data-id="<?php echo $row['id']; ?>">Detail</button>
-                    <a href="kemitraan_submission.php?edit=<?php echo $row['id']; ?>" class="btn btn-edit btn-sm mb-1">Edit</a>
                     <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn btn-delete btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
                     <?php if ($row['status'] === 'pending'): ?>
                         <button type="button" class="btn btn-approve btn-sm approve-btn mb-1" data-id="<?php echo $row['id']; ?>">Approved</button>
@@ -549,14 +363,17 @@ $rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rej
                 <td><?php echo htmlspecialchars($row['pic_position']); ?></td>
                 <td><?php echo htmlspecialchars($row['pic_email']); ?></td>
                 <td><?php echo htmlspecialchars($row['pic_whatsapp']); ?></td>
-                <td><?php echo htmlspecialchars($row['sector_category']); ?></td>
+                <td><?php echo htmlspecialchars($row['sector_name'] ?? ''); ?></td>
                 <td><?php echo htmlspecialchars($row['institution_name']); ?></td>
                 <td><?php echo htmlspecialchars($row['business_sector']); ?></td>
-                <td><?php echo htmlspecialchars($row['institution_addre']); ?></td>
-                <td><?php echo htmlspecialchars($row['partnership_type']); ?></td>
-                <td><?php echo nl2br(htmlspecialchars($row['needs'])); ?></td>
+                <td><?php echo htmlspecialchars($row['institution_address']); ?></td>
+                <td><?php echo htmlspecialchars($row['partnership_type_name'] ?? ''); ?></td>
+                <td><?php echo htmlspecialchars($row['room_name'] ?? ''); ?></td>
+                <td><?php echo htmlspecialchars($row['other_pasker_room'] ?? ''); ?></td>
+                <td><?php echo htmlspecialchars($row['facility_name'] ?? ''); ?></td>
+                <td><?php echo htmlspecialchars($row['other_pasker_facility'] ?? ''); ?></td>
                 <td><?php echo htmlspecialchars($row['schedule']); ?></td>
-                <td><?php echo htmlspecialchars($row['request_letter']); ?></td>
+                <td><?php echo htmlspecialchars($row['request_letter'] ?: '-'); ?></td>
                 <td><?php echo htmlspecialchars($row['status']); ?></td>
                 <td><?php echo $row['created_at']; ?></td>
                 <td><?php echo $row['updated_at']; ?></td>
@@ -637,9 +454,9 @@ $rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rej
               const cells = row.querySelectorAll('td');
               // skip the first cell (actions)
               const headers = [
-                'ID', 'PIC Name', 'PIC Position', 'PIC Email', 'PIC Whatsapp', 'Sector Category',
+                'ID', 'PIC Name', 'PIC Position', 'PIC Email', 'PIC Whatsapp', 'Company Sector',
                 'Institution Name', 'Business Sector', 'Institution Address', 'Partnership Type',
-                'Needs', 'Schedule', 'Request Letter', 'Status', 'Created At', 'Updated At'
+                'Room', 'Other Room', 'Facility', 'Other Facility', 'Schedule', 'Request Letter', 'Status', 'Created At', 'Updated At'
               ];
               let html = '';
               for (let i = 1; i < headers.length + 1; i++) {
@@ -647,10 +464,12 @@ $rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rej
               }
               document.getElementById('detailModalBody').innerHTML = html;
               // Download Letter button logic
-              const requestLetter = cells[13].innerText.trim();
+              const requestLetter = cells[16].innerText.trim();
               const downloadContainer = document.getElementById('downloadLetterContainer');
               if (requestLetter && requestLetter !== '-') {
-                const url = 'https://www.psid.run.place/paskerid/storage/app/public/' + requestLetter;
+                // Adjust this base URL to your Laravel public base
+                const baseUrl = window.LARAVEL_PUBLIC_BASE || '';
+                const url = (baseUrl ? baseUrl.replace(/\/$/, '') : '') + '/storage/' + requestLetter;
                 downloadContainer.innerHTML = `<a href="${url}" class="btn btn-success" target="_blank" download>Download Letter</a>`;
               } else {
                 downloadContainer.innerHTML = '';

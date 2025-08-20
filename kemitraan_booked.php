@@ -17,15 +17,18 @@ $year = isset($_GET['year']) ? intval($_GET['year']) : date('Y');
 $first_day = date('Y-m-01', strtotime("$year-$month-01"));
 $last_day = date('Y-m-t', strtotime($first_day));
 
-// Fetch all booked dates and activities for this month
+// Fetch all booked dates and activities for this month using new schema
 $sql = "
     SELECT 
         bd.booked_date, 
         k.institution_name, 
-        k.partnership_type, 
-        k.needs
+        top.name AS partnership_type_name,
+        pf.facility_name,
+        k.other_pasker_facility
     FROM booked_date bd
     JOIN kemitraan k ON bd.kemitraan_id = k.id
+    LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id
+    LEFT JOIN pasker_facility pf ON pf.id = k.pasker_facility_id
     WHERE bd.booked_date BETWEEN '$first_day' AND '$last_day'
     ORDER BY bd.booked_date
 ";
@@ -87,7 +90,7 @@ $today = date('Y-m-d');
         table.calendar th { background: #8bc34a; color: #fff; font-size: 1.1em; }
         table.calendar td { background: #fafbfc; position: relative; }
         .today { background: #e3f2fd !important; border: 2px solid #1976d2 !important; }
-        .activity { margin: 6px 0; padding: 6px 8px; border-radius: 6px; font-size: 0.98em; background: #f1f8e9; box-shadow: 0 1px 2px rgba(0,0,0,0.03);}
+        .activity { margin: 6px 0; padding: 6px 8px; border-radius: 6px; font-size: 0.98em; background: #f1f8e9; box-shadow: 0 1px 2px rgba(0,0,0,0.03);}        
         .activity.Walk-in\ Interview { background: #e3f2fd; color: #1976d2; }
         .activity.Pendidikan\ Pasar\ Kerja { background: #ffebee; color: #c62828; }
         .activity.Talenta\ Muda { background: #e8f5e9; color: #388e3c; }
@@ -135,16 +138,7 @@ $today = date('Y-m-d');
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
                             <li><a class="dropdown-item" href="jobs.html">Jobs</a></li>
-                            <li><a class="dropdown-item" href="job_seekers.html">Job Seekers</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="cleansingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Cleansing
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="cleansingDropdown">
-                            <li><a class="dropdown-item" href="cleansing_snaphunt.php">Snaphunt</a></li>
-                            <li><a class="dropdown-item" href="cleansing_makaryo.php">Makaryo</a></li>
+                            <li><a class="dropdown-item" href="job_seeker_dashboard.html">Dashboard Job Seekers</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -202,9 +196,11 @@ $today = date('Y-m-d');
                     <span class="date-num"><?php echo date('j', strtotime($date)); ?></span>
                     <?php if (!empty($activities[$date])): ?>
                         <?php foreach ($activities[$date] as $act): ?>
-                            <div class="activity <?php echo str_replace(' ', '\\ ', $act['partnership_type']); ?>"
-                                 title="Instansi: <?php echo htmlspecialchars($act['institution_name']); ?>&#10;Kebutuhan: <?php echo htmlspecialchars($act['needs']); ?>">
-                                <strong><?php echo htmlspecialchars($act['partnership_type']); ?></strong><br>
+                            <?php $ptype = $act['partnership_type_name'] ?: 'Kegiatan'; ?>
+                            <?php $tooltip = "Instansi: ".htmlspecialchars($act['institution_name'])."\nFasilitas: ".htmlspecialchars($act['facility_name'] ?: $act['other_pasker_facility'] ?: '-'); ?>
+                            <div class="activity <?php echo str_replace(' ', '\\ ', $ptype); ?>"
+                                 title="<?php echo $tooltip; ?>">
+                                <strong><?php echo htmlspecialchars($ptype); ?></strong><br>
                                 <?php echo htmlspecialchars($act['institution_name']); ?>
                             </div>
                         <?php endforeach; ?>
