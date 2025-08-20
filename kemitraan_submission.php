@@ -39,6 +39,19 @@ function column_exists(mysqli $conn, string $table, string $column): bool {
 // Handle Delete
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
+
+    // Fetch request_letter path to remove file from storage
+    $filePath = null;
+    if ($stmt = $conn->prepare("SELECT request_letter FROM kemitraan WHERE id=?")) {
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $stmt->bind_result($request_letter);
+        if ($stmt->fetch()) {
+            $filePath = $request_letter;
+        }
+        $stmt->close();
+    }
+
     // Delete all booked_date rows for this kemitraan
     $stmt = $conn->prepare("DELETE FROM booked_date WHERE kemitraan_id=?");
     if ($stmt) {
@@ -46,6 +59,20 @@ if (isset($_GET['delete'])) {
         $stmt->execute();
         $stmt->close();
     }
+
+    // Remove the uploaded letter file from storage if present
+    if (!empty($filePath)) {
+        $publicDir = dirname(__DIR__); // .../public
+        $laravelRoot = dirname($publicDir); // project root
+        $absStoragePath = $laravelRoot . '/storage/app/public/' . ltrim($filePath, '/');
+        $absPublicStoragePath = $publicDir . '/storage/' . ltrim($filePath, '/');
+        if (is_file($absStoragePath)) {
+            @unlink($absStoragePath);
+        } elseif (is_file($absPublicStoragePath)) {
+            @unlink($absPublicStoragePath);
+        }
+    }
+
     // Now delete the kemitraan row
     $stmt = $conn->prepare("DELETE FROM kemitraan WHERE id=?");
     if ($stmt) {
@@ -53,6 +80,7 @@ if (isset($_GET['delete'])) {
         $stmt->execute();
         $stmt->close();
     }
+
     header("Location: kemitraan_submission.php");
     exit();
 }
