@@ -15,6 +15,18 @@ if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
+// Helper: check if a column exists
+function column_exists(mysqli $conn, string $table, string $column): bool {
+    $stmt = $conn->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
+    if (!$stmt) return false;
+    $stmt->bind_param('s', $column);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $exists = $res && $res->num_rows > 0;
+    $stmt->close();
+    return $exists;
+}
+
 // Get current month and year
 $month = isset($_GET['month']) ? intval($_GET['month']) : date('n');
 $year = isset($_GET['year']) ? intval($_GET['year']) : date('Y');
@@ -23,10 +35,17 @@ $year = isset($_GET['year']) ? intval($_GET['year']) : date('Y');
 $first_day = date('Y-m-01', strtotime("$year-$month-01"));
 $last_day = date('Y-m-t', strtotime($first_day));
 
-// Fetch all booked dates and activities for this month using new schema
+// Detect schema for booked_date table
+$has_range = column_exists($conn, 'booked_date', 'booked_date_start');
+$date_select = $has_range ? 'bd.booked_date_start AS booked_date' : 'bd.booked_date AS booked_date';
+$date_where = $has_range
+    ? "(bd.booked_date_start <= '$last_day' AND bd.booked_date_finish >= '$first_day')"
+    : "bd.booked_date BETWEEN '$first_day' AND '$last_day'";
+
+// Fetch all booked dates and activities for this month using detected schema
 $sql = "
     SELECT 
-        bd.booked_date, 
+        $date_select,
         k.institution_name, 
         top.name AS partnership_type_name,
         pf.facility_name,
@@ -35,8 +54,8 @@ $sql = "
     JOIN kemitraan k ON bd.kemitraan_id = k.id
     LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id
     LEFT JOIN pasker_facility pf ON pf.id = k.pasker_facility_id
-    WHERE bd.booked_date BETWEEN '$first_day' AND '$last_day'
-    ORDER BY bd.booked_date
+    WHERE $date_where
+    ORDER BY booked_date
 ";
 $result = $conn->query($sql);
 
