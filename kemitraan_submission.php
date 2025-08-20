@@ -393,7 +393,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 <td class="actions">
                     <button type="button" class="btn btn-detail btn-sm detail-btn mb-1" data-id="<?php echo $row['id']; ?>">Detail</button>
                     <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn btn-delete btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
-                    <?php if ($row['status'] === 'pending'): ?>
+                    <?php if (isset($row['status']) && $row['status'] === 'pending'): ?>
                         <button type="button" class="btn btn-approve btn-sm approve-btn mb-1" data-id="<?php echo $row['id']; ?>">Approved</button>
                         <button type="button" class="btn btn-reject btn-sm reject-btn mb-1" data-id="<?php echo $row['id']; ?>">Rejected</button>
                     <?php endif; ?>
@@ -414,7 +414,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 <td><?php echo htmlspecialchars($row['other_pasker_facility'] ?? ''); ?></td>
                 <td><?php echo htmlspecialchars($row['schedule']); ?></td>
                 <td><?php echo htmlspecialchars($row['request_letter'] ?: '-'); ?></td>
-                <td><?php echo htmlspecialchars($row['status']); ?></td>
+                <td><?php echo htmlspecialchars($row['status'] ?? ''); ?></td>
                 <td><?php echo $row['created_at']; ?></td>
                 <td><?php echo $row['updated_at']; ?></td>
             </tr>
