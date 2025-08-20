@@ -49,11 +49,14 @@ $sql = "
         k.institution_name, 
         top.name AS partnership_type_name,
         pf.facility_name,
-        k.other_pasker_facility
+        k.other_pasker_facility,
+        pr.room_name,
+        k.other_pasker_room
     FROM booked_date bd
     JOIN kemitraan k ON bd.kemitraan_id = k.id
     LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id
     LEFT JOIN pasker_facility pf ON pf.id = k.pasker_facility_id
+    LEFT JOIN pasker_room pr ON pr.id = k.pasker_room_id
     WHERE $date_where
     ORDER BY $order_by
 ";
@@ -233,7 +236,11 @@ $today = date('Y-m-d');
                     <?php if (!empty($activities[$date])): ?>
                         <?php foreach ($activities[$date] as $act): ?>
                             <?php $ptype = $act['partnership_type_name'] ?: 'Kegiatan'; ?>
-                            <?php $tooltip = "Instansi: ".htmlspecialchars($act['institution_name'])."\nFasilitas: ".htmlspecialchars($act['facility_name'] ?: $act['other_pasker_facility'] ?: '-'); ?>
+                            <?php 
+                                $roomLabel = htmlspecialchars($act['room_name'] ?: $act['other_pasker_room'] ?: '-');
+                                $facilityLabel = htmlspecialchars($act['facility_name'] ?: $act['other_pasker_facility'] ?: '-');
+                                $tooltip = "Instansi: ".htmlspecialchars($act['institution_name'])."\nRuangan: ".$roomLabel."\nFasilitas: ".$facilityLabel;
+                            ?>
                             <div class="activity <?php echo str_replace(' ', '\\ ', $ptype); ?>"
                                  title="<?php echo $tooltip; ?>">
                                 <strong><?php echo htmlspecialchars($ptype); ?></strong><br>
