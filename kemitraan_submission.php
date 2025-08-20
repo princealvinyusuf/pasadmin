@@ -35,19 +35,19 @@ if (isset($_POST['approve_id'])) {
     $stmt = $conn->prepare("SELECT k.schedule, k.type_of_partnership_id, top.name AS type_name FROM kemitraan k LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id WHERE k.id = ?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
-    $res = $stmt->get_result();
-    $row = $res->fetch_assoc();
+    $stmt->bind_result($scheduleRes, $typeIdRes, $typeNameRes);
+    $found = $stmt->fetch();
     $stmt->close();
 
-    if (!$row) {
+    if (!$found) {
         $_SESSION['error'] = "Data kemitraan tidak ditemukan.";
         header("Location: kemitraan_submission.php");
         exit();
     }
 
-    $schedule = trim($row['schedule'] ?? '');
-    $type_id = intval($row['type_of_partnership_id']);
-    $type_name = trim($row['type_name'] ?? '');
+    $schedule = trim($scheduleRes ?? '');
+    $type_id = intval($typeIdRes);
+    $type_name = trim($typeNameRes ?? '');
 
     // Partnership type limits (by name)
     $type_limits = [
@@ -91,9 +91,9 @@ if (isset($_POST['approve_id'])) {
     foreach ($dates_to_check as $date) {
         $checkStmt->bind_param("si", $date, $type_id);
         $checkStmt->execute();
-        $checkRes = $checkStmt->get_result();
-        $countRow = $checkRes->fetch_assoc();
-        $current_count = intval($countRow['cnt'] ?? 0);
+        $checkStmt->bind_result($cnt);
+        $checkStmt->fetch();
+        $current_count = intval($cnt ?? 0);
         if ($current_count >= $max_bookings) {
             $fully_booked_date = $date;
             break;
@@ -348,6 +348,7 @@ $rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rej
                 <th>Created At</th>
                 <th>Updated At</th>
             </tr>
+            <?php if ($kemitraans && $kemitraans->num_rows > 0): ?>
             <?php while ($row = $kemitraans->fetch_assoc()): ?>
             <tr>
                 <td class="actions">
@@ -379,6 +380,9 @@ $rejected_count = $conn->query("SELECT COUNT(*) FROM kemitraan WHERE status='rej
                 <td><?php echo $row['updated_at']; ?></td>
             </tr>
             <?php endwhile; ?>
+            <?php else: ?>
+            <tr><td colspan="20" class="text-center">No submissions found or query failed.</td></tr>
+            <?php endif; ?>
         </table>
         </div>
         <!-- Detail Modal -->
