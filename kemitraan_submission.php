@@ -27,6 +27,18 @@ function safe_count(mysqli $conn, string $sql): int {
     return $row ? intval($row[0]) : 0;
 }
 
+// Helper: check if a column exists in a table
+function column_exists(mysqli $conn, string $table, string $column): bool {
+    $stmt = $conn->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
+    if (!$stmt) return false;
+    $stmt->bind_param('s', $column);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $exists = $res && $res->num_rows > 0;
+    $stmt->close();
+    return $exists;
+}
+
 // Handle Delete
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
@@ -110,26 +122,59 @@ if (isset($_POST['approve_id'])) {
         }
     }
 
-    // Check fully booked by joining kemitraan type on booked_date
+    // Detect booked_date schema
+    $has_range = column_exists($conn, 'booked_date', 'booked_date_start');
+
+    // Check fully booked: for each date in the range, count overlapping bookings by type
     $fully_booked_date = '';
-    $checkStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM booked_date bd JOIN kemitraan k ON k.id = bd.kemitraan_id WHERE bd.booked_date = ? AND k.type_of_partnership_id = ?");
-    if (!$checkStmt) {
-        $_SESSION['error'] = 'DB prepare failed: ' . $conn->error;
-        header("Location: kemitraan_submission.php");
-        exit();
-    }
-    foreach ($dates_to_check as $date) {
-        $checkStmt->bind_param("si", $date, $type_id);
-        $checkStmt->execute();
-        $checkStmt->bind_result($cnt);
-        $checkStmt->fetch();
-        $current_count = intval($cnt ?? 0);
-        if ($current_count >= $max_bookings) {
-            $fully_booked_date = $date;
-            break;
+    if ($has_range) {
+        $checkStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM booked_date bd WHERE ? BETWEEN bd.booked_date_start AND bd.booked_date_finish AND bd.type_of_partnership_id = ?");
+        if (!$checkStmt) {
+            $_SESSION['error'] = 'DB prepare failed: ' . $conn->error;
+            header("Location: kemitraan_submission.php");
+            exit();
         }
+        foreach ($dates_to_check as $date) {
+            $checkStmt->bind_param("si", $date, $type_id);
+            $checkStmt->execute();
+            $checkStmt->bind_result($cnt);
+            $checkStmt->fetch();
+            $current_count = intval($cnt ?? 0);
+            if ($current_count >= $max_bookings) {
+                $fully_booked_date = $date;
+                break;
+            }
+        }
+        $checkStmt->close();
+    } else {
+        // Fallback schema: single booked_date (and possibly no type column)
+        $has_type_col = column_exists($conn, 'booked_date', 'type_of_partnership_id');
+        $sql = $has_type_col
+            ? "SELECT COUNT(*) AS cnt FROM booked_date bd WHERE bd.booked_date = ? AND bd.type_of_partnership_id = ?"
+            : "SELECT COUNT(*) AS cnt FROM booked_date bd WHERE bd.booked_date = ?";
+        $checkStmt = $conn->prepare($sql);
+        if (!$checkStmt) {
+            $_SESSION['error'] = 'DB prepare failed: ' . $conn->error;
+            header("Location: kemitraan_submission.php");
+            exit();
+        }
+        foreach ($dates_to_check as $date) {
+            if ($has_type_col) {
+                $checkStmt->bind_param("si", $date, $type_id);
+            } else {
+                $checkStmt->bind_param("s", $date);
+            }
+            $checkStmt->execute();
+            $checkStmt->bind_result($cnt);
+            $checkStmt->fetch();
+            $current_count = intval($cnt ?? 0);
+            if ($current_count >= $max_bookings) {
+                $fully_booked_date = $date;
+                break;
+            }
+        }
+        $checkStmt->close();
     }
-    $checkStmt->close();
 
     if ($fully_booked_date) {
         $_SESSION['error'] = "Tanggal $fully_booked_date untuk $type_name sudah penuh. Tidak dapat approve.";
@@ -137,7 +182,7 @@ if (isset($_POST['approve_id'])) {
         exit();
     }
 
-    // Approve and insert booked dates
+    // Approve
     $stmt = $conn->prepare("UPDATE kemitraan SET status='approved', updated_at=NOW() WHERE id=?");
     if ($stmt) {
         $stmt->bind_param("i", $id);
@@ -145,13 +190,48 @@ if (isset($_POST['approve_id'])) {
         $stmt->close();
     }
 
-    $ins = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
-    if ($ins) {
-        foreach ($dates_to_check as $date) {
-            $ins->bind_param("is", $id, $date);
+    // Insert booking rows based on schema
+    if ($has_range) {
+        // Insert a single row with start/finish (use full-day times by default)
+        $start_date = $dates_to_check[0];
+        $end_date = $dates_to_check[count($dates_to_check) - 1];
+        $ins = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date_start, booked_time_start, booked_date_finish, booked_time_finish, type_of_partnership_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())");
+        if ($ins) {
+            $time_start = '00:00:00';
+            $time_finish = '23:59:59';
+            $ins->bind_param("issssi", $id, $start_date, $time_start, $end_date, $time_finish, $type_id);
             $ins->execute();
+            $ins->close();
         }
-        $ins->close();
+    } else {
+        // Insert per-day rows with booked_date and booked_time (default times)
+        $has_time_col = column_exists($conn, 'booked_date', 'booked_time');
+        $has_type_col = column_exists($conn, 'booked_date', 'type_of_partnership_id');
+        if ($has_time_col && $has_type_col) {
+            $ins = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date, booked_time, type_of_partnership_id, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
+            $time_default = '00:00:00';
+            foreach ($dates_to_check as $date) {
+                $ins->bind_param("issi", $id, $date, $time_default, $type_id);
+                $ins->execute();
+            }
+            $ins->close();
+        } elseif ($has_time_col) {
+            $ins = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date, booked_time, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())");
+            $time_default = '00:00:00';
+            foreach ($dates_to_check as $date) {
+                $ins->bind_param("iss", $id, $date, $time_default);
+                $ins->execute();
+            }
+            $ins->close();
+        } else {
+            // Last resort: if only booked_date exists
+            $ins = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
+            foreach ($dates_to_check as $date) {
+                $ins->bind_param("is", $id, $date);
+                $ins->execute();
+            }
+            $ins->close();
+        }
     }
 
     $_SESSION['success'] = 'Pengajuan berhasil di-approve!';
