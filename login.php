@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 <input type="password" id="password" name="password" required>
                 <button type="submit">Login</button>
             </form>
-            <a class="register-link" href="register.html">Don't have an account? Register</a>
+            <a class="register-link" href="register.php">Don't have an account? Register</a>
         </div>
     </body>
     </html>
