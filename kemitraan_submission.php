@@ -88,8 +88,8 @@ if (isset($_GET['delete'])) {
 // Handle Approve
 if (isset($_POST['approve_id'])) {
     $id = intval($_POST['approve_id']);
-    // Fetch schedule and partnership type info from new schema
-    $stmt = $conn->prepare("SELECT k.schedule, k.type_of_partnership_id, top.name AS type_name FROM kemitraan k LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id WHERE k.id = ?");
+    // Fetch schedule, time start/finish, and partnership type info from new schema
+    $stmt = $conn->prepare("SELECT k.schedule, k.scheduletimestart, k.scheduletimefinish, k.type_of_partnership_id, top.name AS type_name FROM kemitraan k LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id WHERE k.id = ?");
     if (!$stmt) {
         $_SESSION['error'] = 'DB prepare failed: ' . $conn->error;
         header("Location: kemitraan_submission.php");
@@ -97,7 +97,7 @@ if (isset($_POST['approve_id'])) {
     }
     $stmt->bind_param("i", $id);
     $stmt->execute();
-    $stmt->bind_result($scheduleRes, $typeIdRes, $typeNameRes);
+    $stmt->bind_result($scheduleRes, $timeStartRes, $timeFinishRes, $typeIdRes, $typeNameRes);
     $found = $stmt->fetch();
     $stmt->close();
 
@@ -108,6 +108,8 @@ if (isset($_POST['approve_id'])) {
     }
 
     $schedule = trim($scheduleRes ?? '');
+    $scheduletimestart = $timeStartRes ? trim($timeStartRes) : null; // expected HH:MM:SS
+    $scheduletimefinish = $timeFinishRes ? trim($timeFinishRes) : null; // expected HH:MM:SS
     $type_id = intval($typeIdRes);
     $type_name = trim($typeNameRes ?? '');
 
@@ -217,24 +219,24 @@ if (isset($_POST['approve_id'])) {
 
     // Insert booking rows based on schema
     if ($has_range) {
-        // Insert a single row with start/finish (use full-day times by default)
+        // Insert a single row with start/finish (use provided times if present)
         $start_date = $dates_to_check[0];
         $end_date = $dates_to_check[count($dates_to_check) - 1];
         $ins = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date_start, booked_time_start, booked_date_finish, booked_time_finish, type_of_partnership_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())");
         if ($ins) {
-            $time_start = '00:00:00';
-            $time_finish = '23:59:59';
+            $time_start = $scheduletimestart ?: '00:00:00';
+            $time_finish = $scheduletimefinish ?: '23:59:59';
             $ins->bind_param("issssi", $id, $start_date, $time_start, $end_date, $time_finish, $type_id);
             $ins->execute();
             $ins->close();
         }
     } else {
-        // Insert per-day rows with booked_date and booked_time (default times)
+        // Insert per-day rows with booked_date and booked_time (use provided start time if present)
         $has_time_col = column_exists($conn, 'booked_date', 'booked_time');
         $has_type_col = column_exists($conn, 'booked_date', 'type_of_partnership_id');
         if ($has_time_col && $has_type_col) {
             $ins = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date, booked_time, type_of_partnership_id, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
-            $time_default = '00:00:00';
+            $time_default = $scheduletimestart ?: '00:00:00';
             foreach ($dates_to_check as $date) {
                 $ins->bind_param("issi", $id, $date, $time_default, $type_id);
                 $ins->execute();
@@ -242,7 +244,7 @@ if (isset($_POST['approve_id'])) {
             $ins->close();
         } elseif ($has_time_col) {
             $ins = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date, booked_time, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())");
-            $time_default = '00:00:00';
+            $time_default = $scheduletimestart ?: '00:00:00';
             foreach ($dates_to_check as $date) {
                 $ins->bind_param("iss", $id, $date, $time_default);
                 $ins->execute();

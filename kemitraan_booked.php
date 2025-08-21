@@ -42,16 +42,26 @@ $date_where = $has_range
     : "bd.booked_date BETWEEN '$first_day' AND '$last_day'";
 $order_by = $has_range ? 'bd.booked_date_start' : 'bd.booked_date';
 
+// Detect time columns
+$has_time_range = column_exists($conn, 'booked_date', 'booked_time_start');
+$has_time_single = column_exists($conn, 'booked_date', 'booked_time');
+$time_select = $has_range
+    ? ($has_time_range ? 'bd.booked_time_start, bd.booked_time_finish' : 'NULL AS booked_time_start, NULL AS booked_time_finish')
+    : ($has_time_single ? 'bd.booked_time AS booked_time_start, NULL AS booked_time_finish' : 'NULL AS booked_time_start, NULL AS booked_time_finish');
+
 // Fetch all booked dates and activities for this month using detected schema
 $sql = "
     SELECT 
         $date_select,
+        $time_select,
         k.institution_name, 
         top.name AS partnership_type_name,
         pf.facility_name,
         k.other_pasker_facility,
         pr.room_name,
         k.other_pasker_room,
+        k.scheduletimestart,
+        k.scheduletimefinish,
         (SELECT GROUP_CONCAT(DISTINCT pr2.room_name ORDER BY pr2.room_name SEPARATOR ', ')
            FROM kemitraan_pasker_room kpr2
            LEFT JOIN pasker_room pr2 ON pr2.id = kpr2.pasker_room_id
@@ -249,11 +259,26 @@ $today = date('Y-m-d');
                                 $facilityLabelRaw = (($act['facilities_concat'] ?? '') !== '' ? $act['facilities_concat'] : ($act['facility_name'] ?: $act['other_pasker_facility'] ?: '-'));
                                 $roomLabel = htmlspecialchars($roomLabelRaw);
                                 $facilityLabel = htmlspecialchars($facilityLabelRaw);
+                                // Determine time label from booked_date if present, else fallback to kemitraan times
+                                $tStart = $act['booked_time_start'] ?? '';
+                                $tFinish = $act['booked_time_finish'] ?? '';
+                                if ($tStart === '' && isset($act['scheduletimestart'])) { $tStart = $act['scheduletimestart']; }
+                                if ($tFinish === '' && isset($act['scheduletimefinish'])) { $tFinish = $act['scheduletimefinish']; }
+                                // Normalize to HH:MM
+                                $fmt = function($t) { return $t ? substr($t, 0, 5) : ''; };
+                                $tStartFmt = $fmt($tStart);
+                                $tFinishFmt = $fmt($tFinish);
+                                $timeLabel = '';
+                                if ($tStartFmt && $tFinishFmt) { $timeLabel = $tStartFmt . ' - ' . $tFinishFmt; }
+                                elseif ($tStartFmt) { $timeLabel = $tStartFmt; }
                                 $tooltip = "Instansi: ".htmlspecialchars($act['institution_name'])."\nRuangan: ".$roomLabel."\nFasilitas: ".$facilityLabel;
                             ?>
                             <div class="activity <?php echo str_replace(' ', '\\ ', $ptype); ?>"
                                  title="<?php echo $tooltip; ?>">
                                 <strong><?php echo htmlspecialchars($ptype); ?></strong><br>
+                                <?php if ($timeLabel !== ''): ?>
+                                    <span class="text-muted" style="font-size: 0.95em; "><?php echo htmlspecialchars($timeLabel); ?></span><br>
+                                <?php endif; ?>
                                 <?php echo htmlspecialchars($act['institution_name']); ?>
                             </div>
                         <?php endforeach; ?>
