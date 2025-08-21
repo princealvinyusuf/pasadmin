@@ -78,7 +78,6 @@ $rooms = $conn->query("SELECT * FROM pasker_room ORDER BY id DESC");
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         body { font-family: Arial, sans-serif; }
-        .container { max-width: 900px; margin: 30px auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px #eee; }
         h2 { margin-top: 0; }
         form label { display: block; margin: 12px 0 6px; }
         form input[type="text"], form textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
