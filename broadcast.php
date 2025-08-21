@@ -80,12 +80,12 @@ if (!isset($messageBody)) $messageBody = $defaultMessage;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        body {
+        /* body {
             font-family: 'Roboto', Arial, sans-serif;
             background: #f4f6fb;
             margin: 0;
             padding: 0;
-        }
+        } */
         .container {
             max-width: 800px;
             margin: 40px auto;
