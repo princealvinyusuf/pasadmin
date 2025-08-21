@@ -12,7 +12,7 @@
 						Dashboard
 						</a>
 					<ul class="dropdown-menu" aria-labelledby="dashboardDropdown">
-						<li><a class="dropdown-item" href="index.php">Dashboard Jobs</a></li>
+						<li><a class="dropdown-item" href="dashboard_jobs.php">Dashboard Jobs</a></li>
 						<li><a class="dropdown-item" href="dashboard_job_seekers.php">Dashboard Job Seekers</a></li>
 					</ul>
 				</li>
