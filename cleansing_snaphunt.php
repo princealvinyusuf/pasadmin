@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/auth_guard.php';
 function detect_delimiter($filePath) {
     $handle = fopen($filePath, 'r');
     $line = fgets($handle);

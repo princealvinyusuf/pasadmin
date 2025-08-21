@@ -5,6 +5,8 @@ ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 mysqli_report(MYSQLI_REPORT_OFF);
 
+require_once __DIR__ . '/auth_guard.php';
+
 // Standalone DB connection for paskerid_db_prod
 $host = 'localhost';
 $user = 'root';

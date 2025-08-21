@@ -4,6 +4,7 @@ $host = 'localhost';
 $user = 'root';
 $pass = '';
 $db = 'paskerid_db_prod';
+require_once __DIR__ . '/auth_guard.php';
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);

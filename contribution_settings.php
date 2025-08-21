@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/auth_guard.php';
 // Contribution Settings - CRUD for 'contributions' table in paskerid_db
 // Connect to paskerid_db (reuse db.php logic, but override db name)
 $host = 'localhost';

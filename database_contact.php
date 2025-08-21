@@ -3,6 +3,8 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
+require_once __DIR__ . '/auth_guard.php';
+
 // API block: same file serves JSON for CRUD via ?api=1
 if (isset($_GET['api']) && $_GET['api'] === '1') {
     header('Content-Type: application/json; charset=utf-8');

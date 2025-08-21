@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/auth_guard.php';
 // Top List Settings - CRUD for 'top_lists' table in paskerid_db
 $host = 'localhost';
 $user = 'root';

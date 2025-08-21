@@ -1,5 +1,6 @@
 <?php
 // Placeholder for future Makaryo filter logic
+require_once __DIR__ . '/auth_guard.php';
 function filter_csv_makaryo($inputPath, $outputPath, &$debug = null, $uppercase = false, $remove_duplicate = false, $add_posting_date = false, $add_provinsi = false) {
     $debug = $debug ?? [];
     $rows = [];
