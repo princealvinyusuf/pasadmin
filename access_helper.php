@@ -107,5 +107,18 @@ function current_user_can(string $code): bool {
 	return ac_user_has_permission($ac_conn, intval($_SESSION['user_id']), $code);
 }
 
+function current_user_is_super_admin(): bool {
+	if (empty($_SESSION['user_id'])) { return false; }
+	global $ac_conn;
+	$userId = intval($_SESSION['user_id']);
+	$q = $ac_conn->prepare('SELECT LOWER(g.name) FROM user_access ua JOIN access_groups g ON g.id=ua.group_id WHERE ua.user_id=?');
+	$q->bind_param('i', $userId);
+	$q->execute();
+	$q->bind_result($gname);
+	$q->fetch();
+	$q->close();
+	return $gname === 'super admin';
+}
+
 // Bootstrap RBAC store
 ac_bootstrap_for_current_user($ac_conn); 

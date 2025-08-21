@@ -20,6 +20,13 @@ if (!current_user_can('manage_access_control')) {
 $tab = $_GET['tab'] ?? 'users';
 $action = $_POST['action'] ?? '';
 
+// Super admin guard for destructive actions
+if (isset($_POST['action']) && $_POST['action'] === 'delete_user' && !current_user_is_super_admin()) {
+	http_response_code(403);
+	echo 'Forbidden';
+	exit;
+}
+
 // Handle actions
 if ($action === 'save_group') {
 	$groupId = isset($_POST['group_id']) && $_POST['group_id'] !== '' ? intval($_POST['group_id']) : null;
@@ -71,6 +78,23 @@ if ($action === 'save_user_access') {
 	$stmt->bind_param('isi', $userId, $accountType, $groupId);
 	$stmt->execute();
 	$stmt->close();
+	header('Location: access_control.php?tab=users');
+	exit;
+}
+
+if ($action === 'delete_user') {
+	$userId = intval($_POST['user_id'] ?? 0);
+	if ($userId > 0) {
+		// Remove RBAC mapping
+		$stmt = $conn->prepare('DELETE FROM user_access WHERE user_id=?');
+		$stmt->bind_param('i', $userId);
+		$stmt->execute();
+		$stmt->close();
+		// Optionally, delete from users table in job_admin_prod if exists
+		try {
+			$conn->query('DELETE FROM users WHERE id=' . $userId);
+		} catch (Throwable $e) {}
+	}
 	header('Location: access_control.php?tab=users');
 	exit;
 }
@@ -170,6 +194,7 @@ while ($r = $res->fetch_assoc()) { $userAccessRows[] = $r; }
 						<th>User ID</th>
 						<th>Account Type</th>
 						<th>Group</th>
+						<?php if (current_user_is_super_admin()): ?><th>Actions</th><?php endif; ?>
 					</tr>
 				</thead>
 				<tbody>
@@ -178,6 +203,15 @@ while ($r = $res->fetch_assoc()) { $userAccessRows[] = $r; }
 						<td><?php echo intval($row['user_id']); ?></td>
 						<td><?php echo htmlspecialchars($row['account_type']); ?></td>
 						<td><?php echo htmlspecialchars($row['group_name']); ?></td>
+						<?php if (current_user_is_super_admin()): ?>
+						<td>
+							<form method="post" class="d-inline" onsubmit="return confirm('Delete this user account and its access mapping?');">
+								<input type="hidden" name="action" value="delete_user">
+								<input type="hidden" name="user_id" value="<?php echo intval($row['user_id']); ?>">
+								<button type="submit" class="btn btn-sm btn-outline-danger">Delete User</button>
+							</form>
+						</td>
+						<?php endif; ?>
 					</tr>
 					<?php endforeach; ?>
 				</tbody>
