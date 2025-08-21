@@ -3,6 +3,31 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
+// Verbose error/exception output for easier debugging
+set_error_handler(function ($severity, $message, $file, $line) {
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
+set_exception_handler(function ($e) {
+    http_response_code(500);
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<pre style="white-space:pre-wrap;word-break:break-word;background:#fff3f3;border:1px solid #f5c2c7;padding:12px;border-radius:6px;">';
+    echo 'Exception: ' . htmlspecialchars($e->getMessage()) . "\n";
+    echo htmlspecialchars($e->getFile()) . ':' . $e->getLine() . "\n\n";
+    echo htmlspecialchars($e->getTraceAsString());
+    echo '</pre>';
+});
+register_shutdown_function(function () {
+    $e = error_get_last();
+    if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        http_response_code(500);
+        header('Content-Type: text/html; charset=utf-8');
+        echo '<pre style="white-space:pre-wrap;word-break:break-word;background:#fff3f3;border:1px solid #f5c2c7;padding:12px;border-radius:6px;">';
+        echo 'Fatal error: ' . htmlspecialchars($e['message']) . "\n";
+        echo htmlspecialchars($e['file']) . ':' . $e['line'];
+        echo '</pre>';
+    }
+});
+
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/db.php';
 
