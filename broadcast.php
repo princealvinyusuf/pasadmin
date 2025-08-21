@@ -77,6 +77,8 @@ if (!isset($messageBody)) $messageBody = $defaultMessage;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WhatsApp Broadcast Sender</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         body {
             font-family: 'Roboto', Arial, sans-serif;
@@ -182,6 +184,8 @@ if (!isset($messageBody)) $messageBody = $defaultMessage;
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
+<?php include 'navbar.php'; ?>
+<!-- End Navigation Bar -->
 <div class="container">
     <h1>WhatsApp Broadcast Sender</h1>
     <form method="post" enctype="multipart/form-data" id="broadcastForm">
@@ -327,5 +331,6 @@ csvFileInput.addEventListener('change', function(e) {
     }
 });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
