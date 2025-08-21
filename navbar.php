@@ -21,7 +21,7 @@
 						Master Data
 					</a>
 					<ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
-						<li><a class="dropdown-item" href="index.php">Jobs</a></li>
+						<li><a class="dropdown-item" href="jobs.php">Jobs</a></li>
 						<li><a class="dropdown-item" href="job_seekers.php">Job Seekers</a></li>
 					</ul>
 				</li>
