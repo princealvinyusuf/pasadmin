@@ -38,7 +38,7 @@ $columns = [
 	'created_date' => ['label' => 'Created Date', 'type' => 'datetime-local'],
 	'id_pencaker' => ['label' => 'ID Pencaker', 'type' => 'text'],
 	'jenis_disabilitas' => ['label' => 'Jenis Disabilitas', 'type' => 'text'],
-	'tahun_input' => ['label' => 'Tahun Input', 'type' => 'number'],
+	'tahun_input' => ['label' => 'Tahun Input', 'type' => 'text'],
 	'pengalaman_kerja' => ['label' => 'Pengalaman Kerja', 'type' => 'text'],
 ];
 
@@ -148,7 +148,8 @@ $totalPages = max(1, (int)ceil($total / $perPage));
 $sql = 'SELECT id, ' . implode(', ', array_keys($columns)) . ' FROM job_seekers ' . $where . ' ORDER BY id DESC LIMIT ? OFFSET ?';
 $stmt = $conn->prepare($sql);
 if ($where !== '') {
-	$stmt->bind_param($types . 'ii', ...$params, $perPage, $offset);
+	$bindParams = array_merge($params, [$perPage, $offset]);
+	$stmt->bind_param($types . 'ii', ...$bindParams);
 } else {
 	$stmt->bind_param('ii', $perPage, $offset);
 }
