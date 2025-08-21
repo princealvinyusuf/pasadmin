@@ -40,8 +40,8 @@
                             Master Data
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
-                            <li><a class="dropdown-item" href="jobs.html">Jobs</a></li>
-                            <li><a class="dropdown-item" href="job_seekers.html">Job Seekers</a></li>
+                            <li><a class="dropdown-item" href="job_dashboard.html">Jobs</a></li>
+                            <li><a class="dropdown-item" href="job_seeker_dashboard.html">Job Seekers</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -315,7 +315,7 @@
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Fetch summary counts
-        fetch('job_seekers.php?summary=1')
+        fetch('api/job_seekers.php?summary=1')
             .then(res => res.json())
             .then(summary => {
                 document.getElementById('total-seekers').textContent = summary.total || 0;
@@ -323,7 +323,7 @@
                 document.getElementById('month-seekers').textContent = summary.month || 0;
             });
         // Overwrite seekers table to show only top 5 latest seekers
-        fetch('job_seekers.php?top=5')
+        fetch('api/job_seekers.php?top=5')
             .then(res => res.json())
             .then(seekers => {
                 const tbody = document.querySelector('#seekers-table tbody');
@@ -359,7 +359,7 @@
             const deleteBtn = e.target.closest('.delete-btn');
             if (editBtn) {
                 const id = editBtn.getAttribute('data-id');
-                fetch(`job_seekers.php?id=${id}`)
+                fetch(`api/job_seekers.php?id=${id}`)
                     .then(res => res.json())
                     .then(data => {
                         const seeker = (data.seekers && data.seekers.length) ? data.seekers[0] : null;
@@ -376,7 +376,7 @@
             } else if (deleteBtn) {
                 const id = deleteBtn.getAttribute('data-id');
                 if (confirm('Delete this seeker?')) {
-                    fetch(`job_seekers.php?id=${id}`, { method: 'DELETE' })
+                    fetch(`api/job_seekers.php?id=${id}`, { method: 'DELETE' })
                         .then(res => res.json())
                         .then(() => {
                             // Refresh table
@@ -397,7 +397,7 @@
             });
             if (document.getElementById('seeker-id').value) {
                 data['id'] = document.getElementById('seeker-id').value;
-                fetch('job_seekers.php', {
+                fetch('api/job_seekers.php', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -409,7 +409,7 @@
                     location.reload();
                 });
             } else {
-                fetch('job_seekers.php', {
+                fetch('api/job_seekers.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -433,7 +433,7 @@
                 exportStatus.textContent = 'Export failed: XLSX library not loaded.';
                 return;
             }
-            fetch('job_seekers.php?export=1')
+            fetch('api/job_seekers.php?export=1')
                 .then(res => res.json())
                 .then(seekers => {
                     if (!Array.isArray(seekers) || seekers.length === 0) {
@@ -498,7 +498,7 @@
 
                     // Use XMLHttpRequest for upload progress
                     const xhr = new XMLHttpRequest();
-                    xhr.open('POST', 'job_seekers.php?bulk=1', true);
+                    xhr.open('POST', 'api/job_seekers.php?bulk=1', true);
                     xhr.setRequestHeader('Content-Type', 'application/json');
 
                     xhr.upload.onprogress = function(e) {

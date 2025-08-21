@@ -1,6 +1,7 @@
 <?php
 // Simple admin welcome landing page
-?><!DOCTYPE html>
+?>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -33,8 +34,8 @@
 							Master Data
 						</a>
 						<ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
-							<li><a class="dropdown-item" href="jobs.html">Jobs</a></li>
-							<li><a class="dropdown-item" href="job_seekers.html">Job Seekers</a></li>
+							<li><a class="dropdown-item" href="job_dashboard.html">Jobs</a></li>
+							<li><a class="dropdown-item" href="job_seeker_dashboard.html">Job Seekers</a></li>
 						</ul>
 					</li>
 					<li class="nav-item dropdown">
@@ -95,7 +96,7 @@
 							Open Job Dashboard
 						</a>
 						<div class="mt-3">
-							<a class="text-decoration-none" href="jobs.html">Go to Jobs</a>
+							<a class="text-decoration-none" href="job_dashboard.html">Go to Jobs</a>
 						</div>
 					</div>
 				</div>

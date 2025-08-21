@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (uidInput && uidInput.value.trim() !== '') {
             searchParam += '&uid=' + encodeURIComponent(uidInput.value.trim());
         }
-        fetch('jobs.php?' + searchParam.replace(/^&/, ''))
+        fetch('api/jobs.php?' + searchParam.replace(/^&/, ''))
             .then(res => res.json())
             .then(data => {
                 const jobs = Array.isArray(data) ? data : (data.jobs || []);
@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function fetchJobCounts() {
-        fetch('jobs.php?counts=1')
+        fetch('api/jobs.php?counts=1')
             .then(res => res.json())
             .then(counts => {
                 const totalJobsEl = document.getElementById('total-jobs');
@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.deleteJob = function(id) {
         if (confirm('Delete this job?')) {
-            fetch('jobs.php?id=' + id, { method: 'DELETE' })
+            fetch('api/jobs.php?id=' + id, { method: 'DELETE' })
                 .then(res => res.json())
                 .then(() => fetchJobs());
         }
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         if (editing) {
-            fetch('jobs.php', {
+            fetch('api/jobs.php', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 fetchJobs();
             });
         } else {
-            fetch('jobs.php', {
+            fetch('api/jobs.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Use XMLHttpRequest for upload progress
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', 'jobs.php?bulk=1', true);
+                xhr.open('POST', 'api/jobs.php?bulk=1', true);
                 xhr.setRequestHeader('Content-Type', 'application/json');
 
                 xhr.upload.onprogress = function(e) {
@@ -345,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('XLSX is not defined. Make sure xlsx.full.min.js is loaded before script.js');
                 return;
             }
-            fetch('jobs.php?export=1')
+            fetch('api/jobs.php?export=1')
                 .then(res => res.json())
                 .then(jobs => {
                     if (!Array.isArray(jobs) || jobs.length === 0) {

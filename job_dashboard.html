@@ -41,8 +41,8 @@
                             Master Data
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
-                            <li><a class="dropdown-item" href="jobs.html">Jobs</a></li>
-                            <li><a class="dropdown-item" href="job_seekers.html">Job Seekers</a></li>
+                            <li><a class="dropdown-item" href="job_dashboard.html">Jobs</a></li>
+                            <li><a class="dropdown-item" href="job_seeker_dashboard.html">Job Seekers</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -545,7 +545,7 @@
         function firstNonEmpty() { for (let i = 0; i < arguments.length; i++) { const v = arguments[i]; if (v !== undefined && v !== null && String(v).trim() !== '') return v; } return ''; }
 
         // Overwrite jobs table to show only top 5 latest jobs
-        fetch('jobs.php?top=5')
+        fetch('api/jobs.php?top=5')
             .then(res => res.json())
             .then(jobs => {
                 const tbody = document.querySelector('#jobs-table tbody');
@@ -581,7 +581,7 @@
             const deleteBtn = e.target.closest('.delete-btn');
             if (editBtn) {
                 const id = editBtn.getAttribute('data-id');
-                fetch(`jobs.php?id=${id}`)
+                fetch(`api/jobs.php?id=${id}`)
                     .then(res => res.json())
                     .then(data => {
                         const job = (data.jobs && data.jobs.length) ? data.jobs[0] : null;
@@ -601,7 +601,7 @@
             } else if (deleteBtn) {
                 const id = deleteBtn.getAttribute('data-id');
                 if (confirm('Delete this job?')) {
-                    fetch(`jobs.php?id=${id}`, { method: 'DELETE' })
+                    fetch(`api/jobs.php?id=${id}`, { method: 'DELETE' })
                         .then(res => res.json())
                         .then(() => {
                             // Refresh table
@@ -623,7 +623,7 @@
                 }
             });
             data['job-id'] = document.getElementById('modal-job-id').value;
-            fetch('jobs.php', {
+            fetch('api/jobs.php', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)

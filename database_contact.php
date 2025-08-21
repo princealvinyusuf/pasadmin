@@ -184,7 +184,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"><a class="nav-link" href="job_dashboard.html">Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="jobs.html">Jobs</a></li>
+                    <li class="nav-item"><a class="nav-link" href="job_dashboard.html">Jobs</a></li>
                     <li class="nav-item"><a class="nav-link active" href="#">Database Contact</a></li>
                 </ul>
             </div>

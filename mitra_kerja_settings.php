@@ -214,8 +214,8 @@ $mitras = $conn->query("SELECT * FROM mitra_kerja ORDER BY id DESC");
                             Master Data
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
-                            <li><a class="dropdown-item" href="jobs.html">Jobs</a></li>
-                            <li><a class="dropdown-item" href="job_seekers.html">Job Seekers</a></li>
+                            <li><a class="dropdown-item" href="job_dashboard.html">Jobs</a></li>
+                            <li><a class="dropdown-item" href="job_seeker_dashboard.html">Job Seekers</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
