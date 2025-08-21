@@ -86,14 +86,14 @@ if (!isset($messageBody)) $messageBody = $defaultMessage;
             margin: 0;
             padding: 0;
         } */
-        .container {
+        /* .container {
             max-width: 800px;
             margin: 40px auto;
             background: #fff;
             border-radius: 16px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.08);
             padding: 32px 40px 40px 40px;
-        }
+        } */
         h1 {
             text-align: center;
             font-weight: 700;
