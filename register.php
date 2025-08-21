@@ -92,7 +92,7 @@ try {
     $stmt->close();
 
     header('Content-Type: text/html; charset=utf-8');
-    echo "User registered successfully. <a href='login.html'>Login here</a>";
+    echo "User registered successfully. <a href='login.php'>Login here</a>";
 } catch (Throwable $e) {
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
