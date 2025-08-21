@@ -368,7 +368,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     fetchJobCounts();
-    if (!window.location.pathname.endsWith('index.html')) {
+    if (!window.location.pathname.endsWith('job_dashboard.html')) {
         fetchJobs();
     }
 
@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Set active class
                     if (activePage) {
                         const navId = {
-                            'index.html': 'nav-dashboard',
+                            'job_dashboard.html': 'nav-dashboard',
                             'jobs.html': 'nav-jobs',
                             'cron_settings.php': 'nav-settings'
                         }[activePage];

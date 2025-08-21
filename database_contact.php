@@ -14,6 +14,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
         'CREATE TABLE IF NOT EXISTS contacts (
             id INT AUTO_INCREMENT PRIMARY KEY,
             name VARCHAR(150) NOT NULL,
+            job_title VARCHAR(150) NULL,
             email VARCHAR(190) NULL,
             phone VARCHAR(60) NULL,
             company VARCHAR(190) NULL,
@@ -22,10 +23,19 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             INDEX idx_name (name),
             INDEX idx_email (email),
+            INDEX idx_job_title (job_title),
             INDEX idx_phone (phone),
             INDEX idx_company (company)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
     );
+
+    // Ensure job_title exists for older installs
+    try {
+        $checkCol = $conn->query("SHOW COLUMNS FROM contacts LIKE 'job_title'");
+        if ($checkCol && $checkCol->num_rows === 0) {
+            $conn->query('ALTER TABLE contacts ADD COLUMN job_title VARCHAR(150) NULL AFTER name');
+        }
+    } catch (Throwable $e) { /* ignore */ }
 
     set_error_handler(function ($severity, $message, $file, $line) {
         throw new ErrorException($message, 0, $severity, $file, $line);
@@ -49,7 +59,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             $search = trim($_GET['search'] ?? '');
             $sort = $_GET['sort'] ?? 'name';
             $order = strtolower($_GET['order'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
-            $allowedSort = ['name', 'email', 'phone', 'company', 'created_at'];
+            $allowedSort = ['name', 'job_title', 'email', 'phone', 'company', 'created_at'];
             if (!in_array($sort, $allowedSort, true)) $sort = 'name';
 
             $where = '';
@@ -57,9 +67,9 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             $types = '';
             if ($search !== '') {
                 $searchLike = '%' . $search . '%';
-                $where = 'WHERE name LIKE ? OR email LIKE ? OR phone LIKE ? OR company LIKE ?';
-                $params = [$searchLike, $searchLike, $searchLike, $searchLike];
-                $types = 'ssss';
+                $where = 'WHERE name LIKE ? OR job_title LIKE ? OR email LIKE ? OR phone LIKE ? OR company LIKE ?';
+                $params = [$searchLike, $searchLike, $searchLike, $searchLike, $searchLike];
+                $types = 'sssss';
             }
 
             $sql = "SELECT * FROM contacts $where ORDER BY $sort $order";
@@ -84,14 +94,15 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
         if (!is_array($data)) { $data = $_POST; }
 
         if ($method === 'POST') {
-            $stmt = $conn->prepare('INSERT INTO contacts (name, email, phone, company, notes) VALUES (?,?,?,?,?)');
+            $stmt = $conn->prepare('INSERT INTO contacts (name, job_title, email, phone, company, notes) VALUES (?,?,?,?,?,?)');
             $name = trim($data['name'] ?? '');
             if ($name === '') { http_response_code(422); echo json_encode(['error' => 'Name is required']); exit; }
+            $jobTitle = trim($data['job_title'] ?? '');
             $email = trim($data['email'] ?? '');
             $phone = trim($data['phone'] ?? '');
             $company = trim($data['company'] ?? '');
             $notes = trim($data['notes'] ?? '');
-            $stmt->bind_param('sssss', $name, $email, $phone, $company, $notes);
+            $stmt->bind_param('ssssss', $name, $jobTitle, $email, $phone, $company, $notes);
             $stmt->execute();
             echo json_encode(['success' => $stmt->affected_rows > 0, 'id' => $stmt->insert_id]);
             $stmt->close();
@@ -101,14 +112,15 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
         if ($method === 'PUT') {
             $id = intval($data['id'] ?? 0);
             if ($id <= 0) { http_response_code(400); echo json_encode(['error' => 'Invalid ID']); exit; }
-            $stmt = $conn->prepare('UPDATE contacts SET name=?, email=?, phone=?, company=?, notes=? WHERE id=?');
+            $stmt = $conn->prepare('UPDATE contacts SET name=?, job_title=?, email=?, phone=?, company=?, notes=? WHERE id=?');
             $name = trim($data['name'] ?? '');
             if ($name === '') { http_response_code(422); echo json_encode(['error' => 'Name is required']); exit; }
+            $jobTitle = trim($data['job_title'] ?? '');
             $email = trim($data['email'] ?? '');
             $phone = trim($data['phone'] ?? '');
             $company = trim($data['company'] ?? '');
             $notes = trim($data['notes'] ?? '');
-            $stmt->bind_param('sssssi', $name, $email, $phone, $company, $notes, $id);
+            $stmt->bind_param('ssssssi', $name, $jobTitle, $email, $phone, $company, $notes, $id);
             $stmt->execute();
             echo json_encode(['success' => $stmt->affected_rows >= 0]);
             $stmt->close();
@@ -165,13 +177,13 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
 <body class="bg-light">
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="index.html"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
+            <a class="navbar-brand" href="job_dashboard.html"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="job_dashboard.html">Dashboard</a></li>
                     <li class="nav-item"><a class="nav-link" href="jobs.html">Jobs</a></li>
                     <li class="nav-item"><a class="nav-link active" href="#">Database Contact</a></li>
                 </ul>
@@ -232,21 +244,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
                     <button id="btn-add-contact-empty" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Add Your First Contact</button>
                 </div>
 
-                <div class="table-responsive">
-                    <table id="contacts-table" class="table table-hover align-middle" aria-label="Contacts list">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Phone</th>
-                                <th>Company</th>
-                                <th>Created</th>
-                                <th style="width:140px;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
+                <div id="cards-container" class="row g-3"></div>
             </div>
         </div>
     </main>
@@ -269,6 +267,10 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
                         <div class="mb-3">
                             <label class="form-label">Name</label>
                             <input type="text" id="contact-name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Job Title</label>
+                            <input type="text" id="contact-job-title" class="form-control" placeholder="IT Engineer, HR Manager, ...">
                         </div>
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -301,7 +303,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     (function() {
-        const tbody = document.querySelector('#contacts-table tbody');
+        const cardsContainer = document.getElementById('cards-container');
         const emptyState = document.getElementById('empty-state');
         const searchInput = document.getElementById('search');
         const sortSelect = document.getElementById('sort');
@@ -313,27 +315,45 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
         function fmtDate(s) { if (!s) return ''; const d = new Date(s); if (isNaN(d)) return s; return d.toLocaleDateString(); }
 
         function renderRows(contacts) {
-            tbody.innerHTML = '';
+            cardsContainer.innerHTML = '';
             if (!contacts || contacts.length === 0) {
                 emptyState.style.display = 'block';
-                document.getElementById('contacts-table').style.display = 'none';
                 return;
             }
             emptyState.style.display = 'none';
-            document.getElementById('contacts-table').style.display = '';
             contacts.forEach(c => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${escapeHtml(c.name || '')}</td>
-                    <td>${escapeHtml(c.email || '')}</td>
-                    <td>${escapeHtml(c.phone || '')}</td>
-                    <td>${escapeHtml(c.company || '')}</td>
-                    <td>${fmtDate(c.created_at)}</td>
-                    <td>
-                        <button class="btn btn-outline-primary btn-sm me-1" data-action="edit" data-id="${c.id}"><i class="bi bi-pencil"></i> Edit</button>
-                        <button class="btn btn-outline-danger btn-sm" data-action="delete" data-id="${c.id}"><i class="bi bi-trash"></i> Delete</button>
-                    </td>`;
-                tbody.appendChild(tr);
+                const col = document.createElement('div');
+                col.className = 'col-12 col-md-6 col-lg-4';
+                const initials = (c.name || '?')
+                    .split(' ')
+                    .filter(Boolean)
+                    .map(s => s[0].toUpperCase())
+                    .slice(0,2)
+                    .join('');
+                col.innerHTML = `
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start justify-content-between">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width:42px;height:42px; font-weight:600;">${initials}</div>
+                                    <div>
+                                        <div class="fw-semibold">${escapeHtml(c.name || '')}</div>
+                                        <div class="text-muted small">${escapeHtml(c.job_title || '')}</div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <button class="btn btn-light border btn-sm me-1" data-action="edit" data-id="${c.id}"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-light border btn-sm text-danger" data-action="delete" data-id="${c.id}"><i class="bi bi-trash"></i></button>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="small mb-1"><i class="bi bi-envelope me-2 text-muted"></i>${escapeHtml(c.email || '')}</div>
+                            <div class="small mb-1"><i class="bi bi-telephone me-2 text-muted"></i>${escapeHtml(c.phone || '')}</div>
+                            <div class="small mb-2"><i class="bi bi-building me-2 text-muted"></i>${escapeHtml(c.company || '')}</div>
+                            <div class="small text-muted"><i class="bi bi-calendar2-plus me-2"></i>Added ${fmtDate(c.created_at)}</div>
+                        </div>
+                    </div>`;
+                cardsContainer.appendChild(col);
             });
         }
 
@@ -371,7 +391,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
         sortSelect.addEventListener('change', loadContacts);
         orderSelect.addEventListener('change', loadContacts);
 
-        tbody.addEventListener('click', async (e) => {
+        cardsContainer.addEventListener('click', async (e) => {
             const btn = e.target.closest('button[data-action]');
             if (!btn) return;
             const id = btn.getAttribute('data-id');
@@ -383,6 +403,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
                 const c = data.contact || {};
                 document.getElementById('contact-id').value = c.id || '';
                 document.getElementById('contact-name').value = c.name || '';
+                document.getElementById('contact-job-title').value = c.job_title || '';
                 document.getElementById('contact-email').value = c.email || '';
                 document.getElementById('contact-phone').value = c.phone || '';
                 document.getElementById('contact-company').value = c.company || '';
@@ -402,6 +423,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             const payload = {
                 id: parseInt(document.getElementById('contact-id').value || '0', 10) || undefined,
                 name: document.getElementById('contact-name').value.trim(),
+                job_title: document.getElementById('contact-job-title').value.trim(),
                 email: document.getElementById('contact-email').value.trim(),
                 phone: document.getElementById('contact-phone').value.trim(),
                 company: document.getElementById('contact-company').value.trim(),

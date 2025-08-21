@@ -43,7 +43,7 @@ try {
         if (isset($user['password']) && password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
-            header('Location: index.html');
+            header('Location: job_dashboard.html');
             exit();
         }
     }
