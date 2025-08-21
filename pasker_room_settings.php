@@ -4,6 +4,7 @@ $host = 'localhost';
 $user = 'root';
 $pass = '';
 $db = 'paskerid_db';
+require_once __DIR__ . '/auth_guard.php';
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
@@ -71,7 +72,10 @@ $rooms = $conn->query("SELECT * FROM pasker_room ORDER BY id DESC");
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pasker Room Settings</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         body { font-family: Arial, sans-serif; }
         .container { max-width: 900px; margin: 30px auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px #eee; }
@@ -90,6 +94,8 @@ $rooms = $conn->query("SELECT * FROM pasker_room ORDER BY id DESC");
     </style>
 </head>
 <body>
+<?php include 'navbar.php'; ?>
+<!-- End Navigation Bar -->
 <div class="container">
     <h2>Pasker Room Settings</h2>
     <h3><?php echo $edit_room ? 'Edit Room' : 'Add Room'; ?></h3>
@@ -151,6 +157,7 @@ $rooms = $conn->query("SELECT * FROM pasker_room ORDER BY id DESC");
         <?php endwhile; ?>
     </table>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 <?php $conn->close(); ?> 
