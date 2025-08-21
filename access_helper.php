@@ -1,6 +1,12 @@
 <?php
 if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
-require_once __DIR__ . '/db.php';
+
+// Independent RBAC connection (job_admin_prod)
+$ac_host = 'localhost';
+$ac_user = 'root';
+$ac_pass = '';
+$ac_db = 'job_admin_prod';
+$ac_conn = new mysqli($ac_host, $ac_user, $ac_pass, $ac_db);
 
 function ac_ensure_tables(mysqli $conn): void {
 	$conn->query("CREATE TABLE IF NOT EXISTS access_groups (
@@ -63,7 +69,6 @@ function ac_bootstrap_for_current_user(mysqli $conn): void {
 	ac_seed_permissions($conn);
 	if (empty($_SESSION['user_id'])) { return; }
 	$userId = intval($_SESSION['user_id']);
-	// If no mapping for current user, assign Super Admin by default
 	$stmt = $conn->prepare('SELECT id FROM user_access WHERE user_id=?');
 	$stmt->bind_param('i', $userId);
 	$stmt->execute();
@@ -80,7 +85,6 @@ function ac_bootstrap_for_current_user(mysqli $conn): void {
 }
 
 function ac_user_has_permission(mysqli $conn, int $userId, string $code): bool {
-	// Super Admin shortcut
 	$q = $conn->prepare('SELECT g.name FROM user_access ua JOIN access_groups g ON g.id=ua.group_id WHERE ua.user_id=?');
 	$q->bind_param('i', $userId);
 	$q->execute();
@@ -97,12 +101,11 @@ function ac_user_has_permission(mysqli $conn, int $userId, string $code): bool {
 	return $ok;
 }
 
-// Convenience wrapper for current session user
 function current_user_can(string $code): bool {
 	if (empty($_SESSION['user_id'])) { return false; }
-	global $conn;
-	return ac_user_has_permission($conn, intval($_SESSION['user_id']), $code);
+	global $ac_conn;
+	return ac_user_has_permission($ac_conn, intval($_SESSION['user_id']), $code);
 }
 
-// Run bootstrap on include
-ac_bootstrap_for_current_user($conn); 
+// Bootstrap RBAC store
+ac_bootstrap_for_current_user($ac_conn); 
