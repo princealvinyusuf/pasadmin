@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 const mm = String(now.getMonth() + 1).padStart(2, '0');
                 const yyyy = String(now.getFullYear());
                 const expected = dd + mm + yyyy;
-                const userPin = window.prompt('Enter PIN (current date in ddmmyyyy)');
+                const userPin = window.prompt('Enter PIN');
                 if (!userPin) {
                     e.preventDefault();
                     alert('PIN is required to register.');
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 }
                 if (userPin !== expected) {
                     e.preventDefault();
-                    alert('Invalid PIN. Please enter today\'s date in ddmmyyyy format.');
+                    alert('Invalid PIN.');
                     return false;
                 }
                 document.getElementById('pin').value = userPin;
