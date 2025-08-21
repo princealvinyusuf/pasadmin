@@ -77,11 +77,8 @@ $services = $conn->query("SELECT * FROM services ORDER BY id DESC");
             margin: 0;
             padding: 0;
         }
-
-        h2, h3 {
-            text-align: center;
-            color: #222;
-        }
+        
+        h2, h3 { text-align: center; color: #222; }
         form {
             background: #f9fafb;
             border-radius: 8px;
@@ -92,166 +89,29 @@ $services = $conn->query("SELECT * FROM services ORDER BY id DESC");
             margin-left: auto;
             margin-right: auto;
         }
-        label {
-            display: block;
-            margin-bottom: 14px;
-            color: #333;
-            font-weight: 500;
-        }
+        label { display: block; margin-bottom: 14px; color: #333; font-weight: 500; }
         input[type="text"], textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 1rem;
-            margin-top: 4px;
-            background: #fff;
-            transition: border 0.2s;
+            width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; margin-top: 4px; background: #fff; transition: border 0.2s;
         }
-        input[type="text"]:focus, textarea:focus {
-            border: 1.5px solid #2563eb;
-            outline: none;
-        }
-        textarea {
-            min-height: 80px;
-            resize: vertical;
-        }
-        .btn {
-            display: inline-block;
-            padding: 8px 22px;
-            border: none;
-            border-radius: 6px;
-            background: #2563eb;
-            color: #fff;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            margin-right: 8px;
-            margin-top: 8px;
-            transition: background 0.2s;
-            text-decoration: none;
-        }
-        .btn:hover {
-            background: #1d4ed8;
-        }
-        .btn.cancel {
-            background: #e5e7eb;
-            color: #222;
-        }
-        .btn.cancel:hover {
-            background: #d1d5db;
-        }
-        .btn.delete {
-            background: #ef4444;
-        }
-        .btn.delete:hover {
-            background: #b91c1c;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-        }
-        th, td {
-            padding: 12px 10px;
-            text-align: left;
-        }
-        th {
-            background: #f1f5f9;
-            color: #222;
-            font-weight: 600;
-        }
-        tr:nth-child(even) {
-            background: #f9fafb;
-        }
-        tr:hover {
-            background: #e0e7ef;
-        }
-        td {
-            vertical-align: top;
-        }
-        .actions a {
-            margin-right: 8px;
-        }
-        @media (max-width: 700px) {
-            .container { padding: 8px; }
-            form { padding: 12px 6px; }
-            th, td { font-size: 0.95rem; padding: 8px 4px; }
-        }
+        input[type="text"]:focus, textarea:focus { border: 1.5px solid #2563eb; outline: none; }
+        .btn { display: inline-block; padding: 8px 22px; border: none; border-radius: 6px; background: #2563eb; color: #fff; font-size: 1rem; font-weight: 500; cursor: pointer; margin-right: 8px; margin-top: 8px; transition: background 0.2s; text-decoration: none; }
+        .btn:hover { background: #1d4ed8; }
+        .btn.cancel { background: #e5e7eb; color: #222; }
+        .btn.cancel:hover { background: #d1d5db; }
+        .btn.delete { background: #ef4444; }
+        .btn.delete:hover { background: #b91c1c; }
+        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+        th, td { padding: 12px 10px; text-align: left; }
+        th { background: #f1f5f9; color: #222; font-weight: 600; }
+        tr:nth-child(even) { background: #f9fafb; }
+        tr:hover { background: #e0e7ef; }
+        td { vertical-align: top; }
+        .actions a { margin-right: 8px; }
+        @media (max-width: 700px) { .container { padding: 8px; } form { padding: 12px 6px; } th, td { font-size: 0.95rem; padding: 8px 4px; } }
     </style>
 </head>
 <body class="bg-light">
-      <!-- Navigation Bar -->
-      <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="index.php"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="dashboardDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Dashboard
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="dashboardDropdown">
-                            <li><a class="dropdown-item" href="index.php">Dashboard Jobs</a></li>
-                            <li><a class="dropdown-item" href="index.php">Dashboard Job Seekers</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="masterDataDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Master Data
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
-                            <li><a class="dropdown-item" href="index.php">Jobs</a></li>
-                            <li><a class="dropdown-item" href="index.php">Job Seekers</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="cleansingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Cleansing
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="cleansingDropdown">
-                            <li><a class="dropdown-item" href="cleansing_snaphunt.php">Snaphunt</a></li>
-                            <li><a class="dropdown-item" href="cleansing_makaryo.php">Makaryo</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Settings
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="settingsDropdown">
-                            <li><a class="dropdown-item" href="chart_settings.php">Chart Settings</a></li>
-                            <li><a class="dropdown-item" href="contribution_settings.php">Contribution Settings</a></li>
-                            <li><a class="dropdown-item" href="information_settings.php">Information Settings</a></li>
-                            <li><a class="dropdown-item" href="news_settings.php">News Settings</a></li>
-                            <li><a class="dropdown-item" href="services_settings.php">Services Settings</a></li>
-                            <li><a class="dropdown-item" href="statistics_settings.php">Statistics Settings</a></li>
-                            <li><a class="dropdown-item" href="testimonials_settings.php">Testimonial Settings</a></li>
-                            <li><a class="dropdown-item" href="top_list_settings.php">Top List Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="agenda_settings.php">Agenda Settings</a></li>
-                            <li><a class="dropdown-item" href="job_fair_settings.php">Job Fair Settings</a></li>
-                            <li><a class="dropdown-item" href="virtual_karir_service_settings.php">Virtual Karir Service Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="mitra_kerja_settings.php">Mitra Kerja Settings</a></li>
-                            <li><a class="dropdown-item" href="kemitraan_submission.php">Mitra Kerja Submission</a></li>
-                            <li><a class="dropdown-item" href="kemitraan_booked.php">Kemitraan Booked</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="cron_settings.php">Other Settings</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="extensions.php">Extensions</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <?php include 'navbar.php'; ?>
     <!-- End Navigation Bar -->
     <div class="container">
         <h2>Services Settings</h2>
