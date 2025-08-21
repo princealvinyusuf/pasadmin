@@ -9,7 +9,53 @@ require 'auth.php';
 $method = $_SERVER['REQUEST_METHOD'];
 
 $fields = [
-    'uid', 'title', 'description', 'location', 'salary', 'company_name', 'employment_type', 'experience_level', 'industry', 'remote_option', 'job_function', 'required_skills', 'education_level', 'application_deadline', 'benefits', 'company_website', 'how_to_apply', 'company_size', 'hiring_manager_contact', 'work_schedule', 'job_duration', 'languages_required', 'posted_by', 'province', 'city', 'amount_info', 'posting_date', 'scraping_date', 'job_source', 'source_type', 'platform', 'method_info', 'active_jobs', 'inactive_jobs', 'gender', 'people_condition', 'experience_required', 'insurance', 'kbli_One_code', 'kbli_One_desc', 'kbli_Five_code', 'kbli_Five_desc', 'kbji_One_code', 'kbji_One_desc', 'kbji_Four_code', 'kbji_Four_desc'
+    'job_id',
+    'nama_jabatan',
+    'deskripsi_pekerjaan',
+    'gaji',
+    'created_date',
+    'nama_perusahaan',
+    'tipe_pekerjaan',
+    'experience_level',
+    'bidang_industri',
+    'model_kerja',
+    'min_pendidikan',
+    'tanggal_expired_lowongan',
+    'benefit',
+    'nama_narahubung',
+    'bahasa_dibutuhkan',
+    'provinsi',
+    'kab_kota',
+    'kuota_lowongan',
+    'tanggal_posting_lowongan',
+    'tanggal_scraping',
+    'url_lowongan',
+    'platform_lowongan',
+    'jenis_kelamin',
+    'kondisi_fisik',
+    'pengalaman_dibutuhkan',
+    'asuransi',
+    'kbli_1_kode',
+    'kbli_1_des',
+    'kbli_5_kode',
+    'kbli_5_des',
+    'kbji_1_kode',
+    'kbji_1_des',
+    'kbji_4_kode',
+    'kbji_4_des',
+    'kecamatan',
+    'kelurahan',
+    'vacancy_id',
+    'tahun_posting',
+    'gaji_minimum',
+    'gaji_maksimum',
+    'usia',
+    'usia_minimum',
+    'usia_maksimum',
+    'kontak_telepon',
+    'kontak_email',
+    'bidang_pekerjaan',
+    'status_pernikahan'
 ];
 
 $bulk = isset($_GET['bulk']) && $_GET['bulk'] == '1';
@@ -18,7 +64,7 @@ switch ($method) {
     case 'GET':
         // If export=1, return all jobs as a plain array (no pagination, no search)
         if (isset($_GET['export']) && $_GET['export'] == '1') {
-            $result = $conn->query('SELECT * FROM jobs ORDER BY created_at DESC');
+            $result = $conn->query('SELECT * FROM jobs ORDER BY created_date DESC');
             $jobs = [];
             while ($row = $result->fetch_assoc()) {
                 $jobs[] = $row;
@@ -32,10 +78,10 @@ switch ($method) {
             $open = 0;
             $closed = 0;
             $today = date('Y-m-d');
-            $result = $conn->query('SELECT application_deadline FROM jobs');
+            $result = $conn->query('SELECT tanggal_expired_lowongan FROM jobs');
             while ($row = $result->fetch_assoc()) {
                 $total++;
-                $deadline = $row['application_deadline'];
+                $deadline = $row['tanggal_expired_lowongan'];
                 if ($deadline && $deadline >= $today) {
                     $open++;
                 } else {
@@ -52,7 +98,7 @@ switch ($method) {
         // If top=5, return the latest 5 jobs as a plain array (no pagination, no search)
         if (isset($_GET['top']) && intval($_GET['top']) > 0) {
             $limit = intval($_GET['top']);
-            $result = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC LIMIT $limit");
+            $result = $conn->query("SELECT * FROM jobs ORDER BY created_date DESC LIMIT $limit");
             $jobs = [];
             while ($row = $result->fetch_assoc()) {
                 $jobs[] = $row;
@@ -89,14 +135,14 @@ switch ($method) {
             }
             $where = 'WHERE ' . implode(' OR ', $where_clauses);
         }
-        // Filter by uid if provided
+        // Filter by uid/job_id if provided (compatibility with older clients)
         if (isset($_GET['uid']) && $_GET['uid'] !== '') {
-            $where = $where ? $where . ' AND uid=?' : 'WHERE uid=?';
+            $where = $where ? $where . ' AND job_id=?' : 'WHERE job_id=?';
             $params[] = $_GET['uid'];
             $types .= 's';
         }
-        // Filter by year/month if provided (on application_deadline or created_at)
-        $dateField = 'application_deadline';
+        // Filter by year/month if provided (on tanggal_expired_lowongan)
+        $dateField = 'tanggal_expired_lowongan';
         if (isset($_GET['year']) && $_GET['year'] !== '') {
             $where = $where ? $where . " AND YEAR($dateField)=?" : "WHERE YEAR($dateField)=?";
             $params[] = $_GET['year'];
@@ -119,7 +165,7 @@ switch ($method) {
         $count_stmt->close();
         // Fetch jobs for page
         $offset = ($page - 1) * $per_page;
-        $sql = "SELECT * FROM jobs $where ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        $sql = "SELECT * FROM jobs $where ORDER BY created_date DESC LIMIT ? OFFSET ?";
         $stmt = $conn->prepare($sql);
         if ($where !== '') {
             $bind_types = $types . 'ii';

@@ -1,4 +1,63 @@
 document.addEventListener('DOMContentLoaded', function() {
+    const uiToDb = {
+        uid: 'job_id',
+        title: 'nama_jabatan',
+        company_name: 'nama_perusahaan',
+        location: null,
+        salary: 'gaji',
+        employment_type: 'tipe_pekerjaan',
+        experience_level: 'experience_level',
+        industry: 'bidang_industri',
+        remote_option: 'model_kerja',
+        job_function: null,
+        required_skills: 'bidang_pekerjaan',
+        education_level: 'min_pendidikan',
+        application_deadline: 'tanggal_expired_lowongan',
+        benefits: 'benefit',
+        company_website: null,
+        how_to_apply: null,
+        company_size: null,
+        hiring_manager_contact: null,
+        work_schedule: null,
+        job_duration: null,
+        languages_required: null,
+        posted_by: null,
+        province: 'provinsi',
+        city: 'kab_kota',
+        amount_info: 'kuota_lowongan',
+        posting_date: 'tanggal_posting_lowongan',
+        scraping_date: 'tanggal_scraping',
+        job_source: 'platform_lowongan',
+        source_type: 'platform_lowongan',
+        platform: 'platform_lowongan',
+        method_info: null,
+        active_jobs: null,
+        inactive_jobs: null,
+        gender: 'jenis_kelamin',
+        people_condition: 'kondisi_fisik',
+        experience_required: 'pengalaman_dibutuhkan',
+        insurance: 'asuransi',
+        kbli_One_code: 'kbli_1_kode',
+        kbli_One_desc: 'kbli_1_des',
+        kbli_Five_code: 'kbli_5_kode',
+        kbli_Five_desc: 'kbli_5_des',
+        kbji_One_code: 'kbji_1_kode',
+        kbji_One_desc: 'kbji_1_des',
+        kbji_Four_code: 'kbji_4_kode',
+        kbji_Four_desc: 'kbji_4_des'
+    };
+
+    const backendToUi = Object.entries(uiToDb).reduce((acc, [ui, db]) => {
+        if (db) acc[db] = ui;
+        return acc;
+    }, {});
+
+    function firstNonEmpty(...vals) {
+        for (const v of vals) {
+            if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+        }
+        return '';
+    }
     const jobForm = document.getElementById('job-form');
     const jobsTableBody = document.querySelector('#jobs-table tbody');
     const cancelEditBtn = document.getElementById('cancel-edit');
@@ -39,43 +98,44 @@ document.addEventListener('DOMContentLoaded', function() {
                             <button class="btn btn-outline-primary btn-sm me-1" onclick='editJob(${JSON.stringify(job)})'><i class="bi bi-pencil"></i> Edit</button>
                             <button class="btn btn-outline-danger btn-sm" onclick="deleteJob(${job.id})"><i class="bi bi-trash"></i> Delete</button>
                         </td>
-                        <td>${job.uid || ''}</td>
-                        <td>${job.title || ''}</td>
-                        <td>${job.company_name || ''}</td>
-                        <td>${job.location || ''}</td>
-                        <td>${job.province || ''}</td>
-                        <td>${job.city || ''}</td>
-                        <td>${job.amount_info || ''}</td>
-                        <td>${job.posting_date || ''}</td>
-                        <td>${job.scraping_date || ''}</td>
-                        <td>${job.job_source || ''}</td>
-                        <td>${job.source_type || ''}</td>
-                        <td>${job.platform || ''}</td>
-                        <td>${job.method_info || ''}</td>
-                        <td>${job.active_jobs || ''}</td>
-                        <td>${job.inactive_jobs || ''}</td>
-                        <td>${job.gender || ''}</td>
-                        <td>${job.people_condition || ''}</td>
-                        <td>${job.experience_required || ''}</td>
-                        <td>${job.insurance || ''}</td>
-                        <td>${job.kbli_One_code || ''}</td>
-                        <td>${job.kbli_One_desc || ''}</td>
-                        <td>${job.kbli_Five_code || ''}</td>
-                        <td>${job.kbli_Five_desc || ''}</td>
-                        <td>${job.kbji_One_code || ''}</td>
-                        <td>${job.kbji_One_desc || ''}</td>
-                        <td>${job.kbji_Four_code || ''}</td>
-                        <td>${job.kbji_Four_desc || ''}</td>
-                        <td>${job.employment_type || ''}</td>
-                        <td>${job.experience_level || ''}</td>
-                        <td>${job.salary || ''}</td>
-                        <td>${job.application_deadline || ''}</td>
-                        <td>${job.created_at || ''}</td>
+                        <td>${firstNonEmpty(job.uid, job.job_id)}</td>
+                        <td>${firstNonEmpty(job.title, job.nama_jabatan)}</td>
+                        <td>${firstNonEmpty(job.company_name, job.nama_perusahaan)}</td>
+                        <td>${firstNonEmpty(job.location, [job.provinsi, job.kab_kota].filter(Boolean).join(', '))}</td>
+                        <td>${firstNonEmpty(job.province, job.provinsi)}</td>
+                        <td>${firstNonEmpty(job.city, job.kab_kota)}</td>
+                        <td>${firstNonEmpty(job.amount_info, job.kuota_lowongan)}</td>
+                        <td>${firstNonEmpty(job.posting_date, job.tanggal_posting_lowongan)}</td>
+                        <td>${firstNonEmpty(job.scraping_date, job.tanggal_scraping)}</td>
+                        <td>${firstNonEmpty(job.job_source, job.platform_lowongan)}</td>
+                        <td>${firstNonEmpty(job.source_type, job.platform_lowongan)}</td>
+                        <td>${firstNonEmpty(job.platform, job.platform_lowongan)}</td>
+                        <td>${firstNonEmpty(job.method_info, '')}</td>
+                        <td>${firstNonEmpty(job.active_jobs, '')}</td>
+                        <td>${firstNonEmpty(job.inactive_jobs, '')}</td>
+                        <td>${firstNonEmpty(job.gender, job.jenis_kelamin)}</td>
+                        <td>${firstNonEmpty(job.people_condition, job.kondisi_fisik)}</td>
+                        <td>${firstNonEmpty(job.experience_required, job.pengalaman_dibutuhkan)}</td>
+                        <td>${firstNonEmpty(job.insurance, job.asuransi)}</td>
+                        <td>${firstNonEmpty(job.kbli_One_code, job.kbli_1_kode)}</td>
+                        <td>${firstNonEmpty(job.kbli_One_desc, job.kbli_1_des)}</td>
+                        <td>${firstNonEmpty(job.kbli_Five_code, job.kbli_5_kode)}</td>
+                        <td>${firstNonEmpty(job.kbli_Five_desc, job.kbli_5_des)}</td>
+                        <td>${firstNonEmpty(job.kbji_One_code, job.kbji_1_kode)}</td>
+                        <td>${firstNonEmpty(job.kbji_One_desc, job.kbji_1_des)}</td>
+                        <td>${firstNonEmpty(job.kbji_Four_code, job.kbji_4_kode)}</td>
+                        <td>${firstNonEmpty(job.kbji_Four_desc, job.kbji_4_des)}</td>
+                        <td>${firstNonEmpty(job.employment_type, job.tipe_pekerjaan)}</td>
+                        <td>${firstNonEmpty(job.experience_level, job.experience_level)}</td>
+                        <td>${firstNonEmpty(job.salary, job.gaji)}</td>
+                        <td>${firstNonEmpty(job.application_deadline, job.tanggal_expired_lowongan)}</td>
+                        <td>${firstNonEmpty(job.created_at, job.created_date)}</td>
                     `;
                     jobsTableBody.appendChild(tr);
                     // Count open/closed
-                    if (job.application_deadline) {
-                        const deadline = new Date(job.application_deadline);
+                    const appDeadline = firstNonEmpty(job.application_deadline, job.tanggal_expired_lowongan);
+                    if (appDeadline) {
+                        const deadline = new Date(appDeadline);
                         // Set time to end of day for deadline
                         deadline.setHours(23,59,59,999);
                         if (deadline >= today) {
@@ -108,8 +168,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     window.editJob = function(job) {
+        // Map backend field names to UI input IDs
         Object.keys(job).forEach(key => {
-            const el = document.getElementById(key);
+            const uiId = backendToUi[key] || key;
+            const el = document.getElementById(uiId);
             if (el) el.value = job[key] || '';
         });
         // Explicitly set the job-id hidden field
@@ -131,7 +193,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const data = {};
         Array.from(jobForm.elements).forEach(el => {
             if (el.id && el.type !== 'submit' && el.type !== 'button') {
-                data[el.id] = el.value;
+                const backendKey = uiToDb[el.id];
+                if (backendKey) {
+                    data[backendKey] = el.value;
+                }
             }
         });
         if (editing) {

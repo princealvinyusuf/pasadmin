@@ -584,6 +584,21 @@
     <!-- End Job Edit Modal -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const uiToDb = {
+            title: 'nama_jabatan',
+            company_name: 'nama_perusahaan',
+            location: null,
+            salary: 'gaji',
+            employment_type: 'tipe_pekerjaan',
+            experience_level: 'experience_level',
+            application_deadline: 'tanggal_expired_lowongan',
+            province: 'provinsi',
+            city: 'kab_kota',
+            platform: 'platform_lowongan'
+        };
+        const backendToUi = Object.entries(uiToDb).reduce((acc, [ui, db]) => { if (db) acc[db] = ui; return acc; }, {});
+        function firstNonEmpty() { for (let i = 0; i < arguments.length; i++) { const v = arguments[i]; if (v !== undefined && v !== null && String(v).trim() !== '') return v; } return ''; }
+
         // Overwrite jobs table to show only top 5 latest jobs
         fetch('jobs.php?top=5')
             .then(res => res.json())
@@ -597,14 +612,14 @@
                 jobs.forEach(job => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>${job.title || ''}</td>
-                        <td>${job.company_name || ''}</td>
-                        <td>${job.location || ''}</td>
-                        <td>${job.employment_type || ''}</td>
-                        <td>${job.experience_level || ''}</td>
-                        <td>${job.salary || ''}</td>
-                        <td>${job.application_deadline || ''}</td>
-                        <td>${job.created_at || ''}</td>
+                        <td>${firstNonEmpty(job.title, job.nama_jabatan)}</td>
+                        <td>${firstNonEmpty(job.company_name, job.nama_perusahaan)}</td>
+                        <td>${firstNonEmpty(job.location, [job.provinsi, job.kab_kota].filter(Boolean).join(', '))}</td>
+                        <td>${firstNonEmpty(job.employment_type, job.tipe_pekerjaan)}</td>
+                        <td>${firstNonEmpty(job.experience_level, job.experience_level)}</td>
+                        <td>${firstNonEmpty(job.salary, job.gaji)}</td>
+                        <td>${firstNonEmpty(job.application_deadline, job.tanggal_expired_lowongan)}</td>
+                        <td>${firstNonEmpty(job.created_at, job.created_date)}</td>
                         <td>
                             <button class="btn btn-outline-primary btn-sm me-1 edit-btn" data-id="${job.id}"><i class="bi bi-pencil"></i> Edit</button>
                             <button class="btn btn-outline-danger btn-sm delete-btn" data-id="${job.id}"><i class="bi bi-trash"></i> Delete</button>
@@ -626,9 +641,10 @@
                     .then(data => {
                         const job = (data.jobs && data.jobs.length) ? data.jobs[0] : null;
                         if (job) {
-                            // Fill modal form fields
+                            // Fill modal form fields with DB->UI mapping
                             Object.keys(job).forEach(key => {
-                                const el = document.getElementById('modal-' + key);
+                                const uiId = backendToUi[key] || key;
+                                const el = document.getElementById('modal-' + uiId);
                                 if (el) el.value = job[key] || '';
                             });
                             document.getElementById('modal-job-id').value = job.id;
@@ -656,7 +672,9 @@
             const data = {};
             Array.from(modalJobForm.elements).forEach(el => {
                 if (el.id && el.type !== 'submit' && el.type !== 'button') {
-                    data[el.id.replace('modal-', '')] = el.value;
+                    const uiId = el.id.replace('modal-', '');
+                    const backendKey = uiToDb[uiId];
+                    if (backendKey) data[backendKey] = el.value;
                 }
             });
             data['job-id'] = document.getElementById('modal-job-id').value;
