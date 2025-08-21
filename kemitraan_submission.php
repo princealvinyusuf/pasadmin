@@ -497,6 +497,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 <th>Facility</th>
                 <th>Other Facility</th>
                 <th>Schedule</th>
+                <th>Time</th>
                 <th>Request Letter</th>
                 <th>Status</th>
                 <th>Created At</th>
@@ -528,6 +529,16 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 <td><?php echo htmlspecialchars(($row['facilities_concat'] ?? '') !== '' ? $row['facilities_concat'] : ($row['facility_name'] ?? '')); ?></td>
                 <td><?php echo htmlspecialchars($row['other_pasker_facility'] ?? ''); ?></td>
                 <td><?php echo htmlspecialchars($row['schedule']); ?></td>
+                <td>
+                    <?php
+                        $ts = isset($row['scheduletimestart']) && $row['scheduletimestart'] ? substr($row['scheduletimestart'], 0, 5) : '';
+                        $tf = isset($row['scheduletimefinish']) && $row['scheduletimefinish'] ? substr($row['scheduletimefinish'], 0, 5) : '';
+                        $timeLabel = '';
+                        if ($ts && $tf) { $timeLabel = $ts . ' - ' . $tf; }
+                        elseif ($ts) { $timeLabel = $ts; }
+                        echo htmlspecialchars($timeLabel);
+                    ?>
+                </td>
                 <td><?php echo htmlspecialchars($row['request_letter'] ?: '-'); ?></td>
                 <td><?php echo htmlspecialchars($row['status'] ?? ''); ?></td>
                 <td><?php echo $row['created_at']; ?></td>
@@ -614,7 +625,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               const headers = [
                 'ID', 'PIC Name', 'PIC Position', 'PIC Email', 'PIC Whatsapp', 'Company Sector',
                 'Institution Name', 'Business Sector', 'Institution Address', 'Partnership Type',
-                'Room', 'Other Room', 'Facility', 'Other Facility', 'Schedule', 'Request Letter', 'Status', 'Created At', 'Updated At'
+                'Room', 'Other Room', 'Facility', 'Other Facility', 'Schedule', 'Time', 'Request Letter', 'Status', 'Created At', 'Updated At'
               ];
               let html = '';
               for (let i = 1; i < headers.length + 1; i++) {
@@ -622,7 +633,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               }
               document.getElementById('detailModalBody').innerHTML = html;
               // Download Letter button logic
-              const requestLetter = cells[16].innerText.trim();
+              const requestLetter = cells[17].innerText.trim();
               const downloadContainer = document.getElementById('downloadLetterContainer');
               if (requestLetter && requestLetter !== '-') {
                 // Base path: set window.LARAVEL_PUBLIC_BASE to override, default to '/paskerid/public'
