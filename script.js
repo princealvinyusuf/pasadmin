@@ -193,10 +193,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const data = {};
         Array.from(jobForm.elements).forEach(el => {
             if (el.id && el.type !== 'submit' && el.type !== 'button') {
-                const backendKey = uiToDb[el.id];
-                if (backendKey) {
-                    data[backendKey] = el.value;
-                }
+                const backendKey = uiToDb[el.id] || el.id;
+                data[backendKey] = el.value;
             }
         });
         if (editing) {

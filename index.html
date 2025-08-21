@@ -148,188 +148,132 @@
                     <hr class="my-4">
                     <div class="row g-3">
                         <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">UID</label>
-                            <input type="text" id="uid" class="form-control" placeholder="e.g. 12345 or custom UID">
+                            <label class="form-label">Job ID</label>
+                            <input type="text" id="job_id" class="form-control" placeholder="cth. 12345 atau custom ID">
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Title</label>
-                            <input type="text" id="title" class="form-control" required placeholder="e.g. Senior Web Developer">
+                            <label class="form-label">Nama Jabatan</label>
+                            <input type="text" id="nama_jabatan" class="form-control" required placeholder="cth. Senior Web Developer">
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Company Name</label>
-                            <input type="text" id="company_name" class="form-control" placeholder="e.g. Tech Solutions Inc.">
+                            <label class="form-label">Nama Perusahaan</label>
+                            <input type="text" id="nama_perusahaan" class="form-control" placeholder="cth. Tech Solutions Inc.">
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Location</label>
-                            <input type="text" id="location" class="form-control" required placeholder="e.g. New York, Remote">
+                            <label class="form-label">Gaji</label>
+                            <input type="text" id="gaji" class="form-control" placeholder="cth. 5.000.000-7.000.000">
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Salary</label>
-                            <input type="text" id="salary" class="form-control" required placeholder="e.g. 50000-70000">
+                            <label class="form-label">Tipe Pekerjaan</label>
+                            <input type="text" id="tipe_pekerjaan" class="form-control" placeholder="cth. Full-time, Part-time">
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Employment Type</label>
-                            <input type="text" id="employment_type" class="form-control" placeholder="e.g. Full-time, Part-time">
+                            <label class="form-label">Tingkat Pengalaman</label>
+                            <input type="text" id="experience_level" class="form-control" placeholder="cth. Mid, Senior, Entry">
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Experience Level</label>
-                            <input type="text" id="experience_level" class="form-control" placeholder="e.g. Mid, Senior, Entry">
+                            <label class="form-label">Bidang Industri</label>
+                            <input type="text" id="bidang_industri" class="form-control" placeholder="cth. Software, Finance">
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Industry</label>
-                            <input type="text" id="industry" class="form-control" placeholder="e.g. Software, Finance">
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Remote Option</label>
-                            <input type="text" id="remote_option" class="form-control" placeholder="e.g. Yes, No, Hybrid">
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Job Function</label>
-                            <input type="text" id="job_function" class="form-control" placeholder="e.g. Development, Marketing">
+                            <label class="form-label">Model Kerja</label>
+                            <input type="text" id="model_kerja" class="form-control" placeholder="cth. WFO, WFH, Hybrid">
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Description</label>
-                            <textarea id="description" class="form-control" required placeholder="Describe the job role, responsibilities, etc."></textarea>
+                            <label class="form-label">Deskripsi Pekerjaan</label>
+                            <textarea id="deskripsi_pekerjaan" class="form-control" placeholder="Jelaskan peran, tanggung jawab, dsb."></textarea>
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Required Skills</label>
-                            <textarea id="required_skills" class="form-control" placeholder="e.g. JavaScript, PHP, Teamwork"></textarea>
+                            <label class="form-label">Keahlian Dibutuhkan</label>
+                            <textarea id="bidang_pekerjaan" class="form-control" placeholder="cth. JavaScript, PHP, Teamwork"></textarea>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Education Level</label>
-                            <input type="text" id="education_level" class="form-control" placeholder="e.g. Bachelor, Master">
+                            <label class="form-label">Pendidikan Minimum</label>
+                            <input type="text" id="min_pendidikan" class="form-control" placeholder="cth. S1, S2">
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Application Deadline</label>
-                            <input type="date" id="application_deadline" class="form-control" placeholder="e.g. 2024-12-31">
+                            <label class="form-label">Tanggal Expired Lowongan</label>
+                            <input type="date" id="tanggal_expired_lowongan" class="form-control" placeholder="cth. 2025-12-31">
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Benefits</label>
-                            <textarea id="benefits" class="form-control" placeholder="e.g. Health insurance, Remote work"></textarea>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Company Website</label>
-                            <input type="text" id="company_website" class="form-control" placeholder="e.g. https://company.com">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">How to Apply</label>
-                            <textarea id="how_to_apply" class="form-control" placeholder="e.g. Send your CV to jobs@company.com"></textarea>
+                            <label class="form-label">Benefit</label>
+                            <textarea id="benefit" class="form-control" placeholder="cth. Asuransi kesehatan, Remote work"></textarea>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Company Size</label>
-                            <input type="text" id="company_size" class="form-control" placeholder="e.g. 50-200">
+                            <label class="form-label">Provinsi</label>
+                            <input type="text" id="provinsi" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Kab/Kota</label>
+                            <input type="text" id="kab_kota" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Kuota Lowongan</label>
+                            <input type="number" id="kuota_lowongan" class="form-control">
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Hiring Manager Contact</label>
-                            <input type="text" id="hiring_manager_contact" class="form-control" placeholder="e.g. John Doe, john@company.com">
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Work Schedule</label>
-                            <input type="text" id="work_schedule" class="form-control" placeholder="e.g. Monday-Friday, 9am-5pm">
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Job Duration</label>
-                            <input type="text" id="job_duration" class="form-control" placeholder="e.g. Permanent, 6 months">
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Languages Required</label>
-                            <input type="text" id="languages_required" class="form-control" placeholder="e.g. English, Spanish">
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Posted By</label>
-                            <input type="text" id="posted_by" class="form-control" placeholder="e.g. HR Department">
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Province</label>
-                            <input type="text" id="province" class="form-control">
+                            <label class="form-label">Tanggal Posting</label>
+                            <input type="date" id="tanggal_posting_lowongan" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">City</label>
-                            <input type="text" id="city" class="form-control">
+                            <label class="form-label">Tanggal Scraping</label>
+                            <input type="date" id="tanggal_scraping" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Amount Info</label>
-                            <input type="text" id="amount_info" class="form-control">
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-4">
-                            <label class="form-label">Posting Date</label>
-                            <input type="date" id="posting_date" class="form-control">
+                            <label class="form-label">URL Lowongan</label>
+                            <input type="text" id="url_lowongan" class="form-control" placeholder="https://...">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Scraping Date</label>
-                            <input type="date" id="scraping_date" class="form-control">
+                            <label class="form-label">Platform Lowongan</label>
+                            <input type="text" id="platform_lowongan" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Job Source</label>
-                            <input type="text" id="job_source" class="form-control">
+                            <label class="form-label">Jenis Kelamin</label>
+                            <input type="text" id="jenis_kelamin" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Source Type</label>
-                            <input type="text" id="source_type" class="form-control">
+                            <label class="form-label">Kondisi Fisik</label>
+                            <input type="text" id="kondisi_fisik" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Platform</label>
-                            <input type="text" id="platform" class="form-control">
+                            <label class="form-label">Pengalaman Dibutuhkan</label>
+                            <input type="text" id="pengalaman_dibutuhkan" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Method Info</label>
-                            <input type="text" id="method_info" class="form-control">
+                            <label class="form-label">Asuransi</label>
+                            <input type="text" id="asuransi" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Active Jobs</label>
-                            <input type="text" id="active_jobs" class="form-control">
+                            <label class="form-label">KBLI 1 Kode</label>
+                            <input type="text" id="kbli_1_kode" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Inactive Jobs</label>
-                            <input type="text" id="inactive_jobs" class="form-control">
+                            <label class="form-label">KBLI 1 Des</label>
+                            <input type="text" id="kbli_1_des" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Gender</label>
-                            <input type="text" id="gender" class="form-control">
+                            <label class="form-label">KBLI 5 Kode</label>
+                            <input type="text" id="kbli_5_kode" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">People Condition</label>
-                            <input type="text" id="people_condition" class="form-control">
+                            <label class="form-label">KBLI 5 Des</label>
+                            <input type="text" id="kbli_5_des" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Experience Required</label>
-                            <input type="text" id="experience_required" class="form-control">
+                            <label class="form-label">KBJI 1 Kode</label>
+                            <input type="text" id="kbji_1_kode" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Insurance</label>
-                            <input type="text" id="insurance" class="form-control">
+                            <label class="form-label">KBJI 1 Des</label>
+                            <input type="text" id="kbji_1_des" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">KBLI One Code</label>
-                            <input type="text" id="kbli_One_code" class="form-control">
+                            <label class="form-label">KBJI 4 Kode</label>
+                            <input type="text" id="kbji_4_kode" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">KBLI One Desc</label>
-                            <input type="text" id="kbli_One_desc" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">KBLI Five Code</label>
-                            <input type="text" id="kbli_Five_code" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">KBLI Five Desc</label>
-                            <input type="text" id="kbli_Five_desc" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">KBJI One Code</label>
-                            <input type="text" id="kbji_One_code" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">KBJI One Desc</label>
-                            <input type="text" id="kbji_One_desc" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">KBJI Four Code</label>
-                            <input type="text" id="kbji_Four_code" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">KBJI Four Desc</label>
-                            <input type="text" id="kbji_Four_desc" class="form-control">
+                            <label class="form-label">KBJI 4 Des</label>
+                            <input type="text" id="kbji_4_des" class="form-control">
                         </div>
                         <div class="col-12 d-flex gap-2 mt-3">
                             <button type="submit" class="btn btn-primary">Save Job</button>
