@@ -73,7 +73,7 @@
 						</ul>
 					</li>
 					<li class="nav-item">
-						<a class="nav-link" href="extensions.html">Extensions</a>
+						<a class="nav-link" href="extensions.php">Extensions</a>
 					</li>
 				</ul>
 			</div>

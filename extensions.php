@@ -135,7 +135,7 @@
                         </ul>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="extensions.html">Extensions</a>
+                        <a class="nav-link" href="extensions.php">Extensions</a>
                     </li>
                 </ul>
             </div>
@@ -169,4 +169,5 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html> 
+</html>
+

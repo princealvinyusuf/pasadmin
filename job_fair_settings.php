@@ -249,7 +249,7 @@ $job_fairs = $conn->query("SELECT * FROM virtual_karir_job_fairs ORDER BY id DES
                         </ul>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="extensions.html">Extensions</a>
+                        <a class="nav-link" href="extensions.php">Extensions</a>
                     </li>
                 </ul>
             </div>
