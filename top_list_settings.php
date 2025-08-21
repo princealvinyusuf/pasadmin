@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
-if (!current_user_can('manage_settings')) { http_response_code(403); echo 'Forbidden'; exit; }
+if (!(current_user_can('settings_top_list_manage') || current_user_can('manage_settings'))) { http_response_code(403); echo 'Forbidden'; exit; }
 // Top List Settings - CRUD for 'top_lists' table in paskerid_db
 $host = 'localhost';
 $user = 'root';

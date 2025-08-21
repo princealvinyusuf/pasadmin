@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/auth_guard.php';
+require_once __DIR__ . '/access_helper.php';
+if (!(current_user_can('settings_contribution_manage') || current_user_can('manage_settings'))) { http_response_code(403); echo 'Forbidden'; exit; }
 // Contribution Settings - CRUD for 'contributions' table in paskerid_db
 // Connect to paskerid_db (reuse db.php logic, but override db name)
 $host = 'localhost';
