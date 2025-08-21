@@ -29,16 +29,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     <body>
         <div class="register-container">
             <h2>Register User</h2>
-            <form action="register.php" method="post">
+            <form id="register-form" action="register.php" method="post">
                 <label for="username">Username:</label>
                 <input type="text" id="username" name="username" required>
                 <label for="email">Email:</label>
                 <input type="email" id="email" name="email" required>
                 <label for="password">Password:</label>
                 <input type="password" id="password" name="password" required>
+                <input type="hidden" id="pin" name="pin" value="">
                 <button type="submit">Register</button>
             </form>
         </div>
+        <script>
+        (function(){
+            const form = document.getElementById('register-form');
+            form.addEventListener('submit', function(e){
+                // Build expected PIN as ddmmyyyy
+                const now = new Date();
+                const dd = String(now.getDate()).padStart(2, '0');
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const yyyy = String(now.getFullYear());
+                const expected = dd + mm + yyyy;
+                const userPin = window.prompt('Enter PIN (current date in ddmmyyyy)');
+                if (!userPin) {
+                    e.preventDefault();
+                    alert('PIN is required to register.');
+                    return false;
+                }
+                if (userPin !== expected) {
+                    e.preventDefault();
+                    alert('Invalid PIN. Please enter today\'s date in ddmmyyyy format.');
+                    return false;
+                }
+                document.getElementById('pin').value = userPin;
+                // allow submit
+                return true;
+            });
+        })();
+        </script>
     </body>
     </html>
     <?php
@@ -54,6 +82,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $usernameInput = isset($_POST['username']) ? trim($_POST['username']) : '';
 $emailInput = isset($_POST['email']) ? trim($_POST['email']) : '';
 $passwordInput = isset($_POST['password']) ? (string)$_POST['password'] : '';
+$pinInput = isset($_POST['pin']) ? trim($_POST['pin']) : '';
+
+// Server-side PIN validation (ddmmyyyy)
+$expectedPin = date('dmY');
+if ($pinInput !== $expectedPin) {
+    http_response_code(403);
+    echo 'Invalid registration PIN';
+    exit;
+}
 
 if ($usernameInput === '' || $emailInput === '' || $passwordInput === '') {
     http_response_code(400);
