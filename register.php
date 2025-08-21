@@ -1,24 +1,101 @@
 <?php
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
 require 'db.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $conn->real_escape_string($_POST['username']);
-    $email = $conn->real_escape_string($_POST['email']);
-    $password = $_POST['password'];
-    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+header('X-Content-Type-Options: nosniff');
 
-    // Check if username already exists
-    $check = $conn->query("SELECT id FROM users WHERE username='$username'");
-    if ($check && $check->num_rows > 0) {
-        echo "Username already exists.";
-        exit();
-    }
-
-    $sql = "INSERT INTO users (username, password, email, created_at) VALUES ('$username', '$hashed_password', '$email', NOW())";
-    if ($conn->query($sql) === TRUE) {
-        echo "User registered successfully. <a href='login.html'>Login here</a>";
-    } else {
-        echo "Error: " . $conn->error;
-    }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo 'Method Not Allowed';
+    exit;
 }
-?> 
+
+$usernameInput = isset($_POST['username']) ? trim($_POST['username']) : '';
+$emailInput = isset($_POST['email']) ? trim($_POST['email']) : '';
+$passwordInput = isset($_POST['password']) ? (string)$_POST['password'] : '';
+
+if ($usernameInput === '' || $emailInput === '' || $passwordInput === '') {
+    http_response_code(400);
+    echo 'Missing required fields: username, email, password';
+    exit;
+}
+
+if (!filter_var($emailInput, FILTER_VALIDATE_EMAIL)) {
+    http_response_code(400);
+    echo 'Invalid email format';
+    exit;
+}
+
+if (strlen($passwordInput) < 6) {
+    http_response_code(400);
+    echo 'Password must be at least 6 characters';
+    exit;
+}
+
+try {
+    $columns = [];
+    $res = $conn->query('SHOW COLUMNS FROM users');
+    while ($row = $res->fetch_assoc()) {
+        $columns[] = $row['Field'];
+    }
+
+    $usernameField = in_array('username', $columns, true) ? 'username' : (in_array('name', $columns, true) ? 'name' : null);
+    $emailField = in_array('email', $columns, true) ? 'email' : null;
+    $passwordField = in_array('password', $columns, true) ? 'password' : null;
+    $hasCreatedAt = in_array('created_at', $columns, true);
+    $hasUpdatedAt = in_array('updated_at', $columns, true);
+
+    if ($usernameField === null || $emailField === null || $passwordField === null) {
+        http_response_code(500);
+        echo 'users table does not have required columns. Needed one of [username|name], and email, password';
+        exit;
+    }
+
+    $hashedPassword = password_hash($passwordInput, PASSWORD_DEFAULT);
+
+    // Uniqueness checks
+    $checkSql = "SELECT id FROM users WHERE $usernameField = ? OR $emailField = ? LIMIT 1";
+    $checkStmt = $conn->prepare($checkSql);
+    $checkStmt->bind_param('ss', $usernameInput, $emailInput);
+    $checkStmt->execute();
+    $checkStmt->store_result();
+    if ($checkStmt->num_rows > 0) {
+        http_response_code(409);
+        echo 'Username or email already exists';
+        $checkStmt->close();
+        exit;
+    }
+    $checkStmt->close();
+
+    // Build dynamic insert
+    $fields = [$usernameField, $passwordField, $emailField];
+    $placeholders = ['?', '?', '?'];
+    $types = 'sss';
+    $values = [$usernameInput, $hashedPassword, $emailInput];
+
+    if ($hasCreatedAt) {
+        $fields[] = 'created_at';
+        $placeholders[] = 'NOW()';
+    }
+    if ($hasUpdatedAt) {
+        $fields[] = 'updated_at';
+        $placeholders[] = 'NOW()';
+    }
+
+    $sql = 'INSERT INTO users (' . implode(', ', $fields) . ') VALUES (' . implode(', ', $placeholders) . ')';
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param($types, ...$values);
+    $stmt->execute();
+    $stmt->close();
+
+    header('Content-Type: text/html; charset=utf-8');
+    echo "User registered successfully. <a href='login.html'>Login here</a>";
+} catch (Throwable $e) {
+    http_response_code(500);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo 'Registration error: ' . $e->getMessage();
+}
+?>
