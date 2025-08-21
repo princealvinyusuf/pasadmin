@@ -14,7 +14,7 @@
 	<!-- Navigation Bar -->
 	<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
 		<div class="container">
-			<a class="navbar-brand" href="job_dashboard.html"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
+			<a class="navbar-brand" href="index.php"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
 			<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
 				<span class="navbar-toggler-icon"></span>
 			</button>
@@ -25,8 +25,8 @@
 							Dashboard
 						</a>
 						<ul class="dropdown-menu" aria-labelledby="dashboardDropdown">
-							<li><a class="dropdown-item" href="job_dashboard.html">Dashboard Jobs</a></li>
-							<li><a class="dropdown-item" href="job_seeker_dashboard.html">Dashboard Job Seekers</a></li>
+							<li><a class="dropdown-item" href="index.php">Dashboard Jobs</a></li>
+							<li><a class="dropdown-item" href="index.php">Dashboard Job Seekers</a></li>
 						</ul>
 					</li>
 					<li class="nav-item dropdown">
@@ -34,8 +34,8 @@
 							Master Data
 						</a>
 						<ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
-							<li><a class="dropdown-item" href="job_dashboard.html">Jobs</a></li>
-							<li><a class="dropdown-item" href="job_seeker_dashboard.html">Job Seekers</a></li>
+							<li><a class="dropdown-item" href="index.php">Jobs</a></li>
+							<li><a class="dropdown-item" href="index.php">Job Seekers</a></li>
 						</ul>
 					</li>
 					<li class="nav-item dropdown">
@@ -91,12 +91,12 @@
 						<div class="display-4 mb-3">🎉</div>
 						<h1 class="h3 mb-2">Welcome, Admin!</h1>
 						<p class="text-muted mb-4">Use the button below to open your job dashboard.</p>
-						<a href="job_dashboard.html" class="btn btn-primary btn-lg">
+						<a href="index.php" class="btn btn-primary btn-lg">
 							<i class="bi bi-speedometer2 me-1"></i>
 							Open Job Dashboard
 						</a>
 						<div class="mt-3">
-							<a class="text-decoration-none" href="job_dashboard.html">Go to Jobs</a>
+							<a class="text-decoration-none" href="index.php">Go to Jobs</a>
 						</div>
 					</div>
 				</div>

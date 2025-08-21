@@ -177,14 +177,14 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
 <body class="bg-light">
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="job_dashboard.html"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
+            <a class="navbar-brand" href="index.php"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="job_dashboard.html">Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="job_dashboard.html">Jobs</a></li>
+                    <li class="nav-item"><a class="nav-link" href="index.php">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="index.php">Jobs</a></li>
                     <li class="nav-item"><a class="nav-link active" href="#">Database Contact</a></li>
                 </ul>
             </div>

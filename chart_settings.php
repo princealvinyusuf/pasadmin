@@ -204,7 +204,7 @@ if (isset($_GET['edit'])) {
        <!-- Navigation Bar -->
      <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="job_dashboard.html"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
+            <a class="navbar-brand" href="index.php"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -215,8 +215,8 @@ if (isset($_GET['edit'])) {
                             Dashboard
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="dashboardDropdown">
-                            <li><a class="dropdown-item" href="job_dashboard.html">Dashboard Jobs</a></li>
-                            <li><a class="dropdown-item" href="job_seeker_dashboard.html">Dashboard Job Seekers</a></li>
+                            <li><a class="dropdown-item" href="index.php">Dashboard Jobs</a></li>
+                            <li><a class="dropdown-item" href="index.php">Dashboard Job Seekers</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -224,8 +224,8 @@ if (isset($_GET['edit'])) {
                             Master Data
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
-                            <li><a class="dropdown-item" href="job_dashboard.html">Jobs</a></li>
-                            <li><a class="dropdown-item" href="job_seeker_dashboard.html">Job Seekers</a></li>
+                            <li><a class="dropdown-item" href="index.php">Jobs</a></li>
+                            <li><a class="dropdown-item" href="index.php">Job Seekers</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
