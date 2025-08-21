@@ -2,11 +2,16 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 require 'db.php';
 require 'auth.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
+
+// Convert PHP warnings/notices into exceptions so we can return valid JSON errors
+set_error_handler(function ($severity, $message, $file, $line) {
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
 
 $fields = [
     'job_id',
@@ -60,6 +65,7 @@ $fields = [
 
 $bulk = isset($_GET['bulk']) && $_GET['bulk'] == '1';
 
+try {
 switch ($method) {
     case 'GET':
         // If export=1, return all jobs as a plain array (no pagination, no search)
@@ -255,5 +261,17 @@ switch ($method) {
         http_response_code(405);
         echo json_encode(['error' => 'Method Not Allowed']);
 }
-$conn->close();
-?> 
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'Server error',
+        'message' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
+    ]);
+} finally {
+    if (isset($conn) && $conn instanceof mysqli) {
+        $conn->close();
+    }
+}
+?>
