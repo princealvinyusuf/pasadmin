@@ -1,31 +1,45 @@
 <?php
 ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
+ini_set('log_errors', '1');
+ini_set('error_log', __DIR__ . '/job_seekers_error.log');
 error_reporting(E_ALL);
+
+// Start output buffering so we can flush a clean error even if partial output happened
+if (!headers_sent()) { ob_start(); }
 
 // Verbose error/exception output for easier debugging
 set_error_handler(function ($severity, $message, $file, $line) {
-    throw new ErrorException($message, 0, $severity, $file, $line);
+	throw new ErrorException($message, 0, $severity, $file, $line);
 });
 set_exception_handler(function ($e) {
-    http_response_code(500);
-    header('Content-Type: text/html; charset=utf-8');
-    echo '<pre style="white-space:pre-wrap;word-break:break-word;background:#fff3f3;border:1px solid #f5c2c7;padding:12px;border-radius:6px;">';
-    echo 'Exception: ' . htmlspecialchars($e->getMessage()) . "\n";
-    echo htmlspecialchars($e->getFile()) . ':' . $e->getLine() . "\n\n";
-    echo htmlspecialchars($e->getTraceAsString());
-    echo '</pre>';
+	// Log
+	error_log('[job_seekers.php] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+	// Clear any existing buffers
+	while (ob_get_level() > 0) { ob_end_clean(); }
+	http_response_code(500);
+	header('Content-Type: text/html; charset=utf-8');
+	echo '<pre style="white-space:pre-wrap;word-break:break-word;background:#fff3f3;border:1px solid #f5c2c7;padding:12px;border-radius:6px;">';
+	echo 'Exception: ' . htmlspecialchars($e->getMessage()) . "\n";
+	echo htmlspecialchars($e->getFile()) . ':' . $e->getLine() . "\n\n";
+	echo htmlspecialchars($e->getTraceAsString());
+	echo '</pre>';
+	exit;
 });
 register_shutdown_function(function () {
-    $e = error_get_last();
-    if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
-        http_response_code(500);
-        header('Content-Type: text/html; charset=utf-8');
-        echo '<pre style="white-space:pre-wrap;word-break:break-word;background:#fff3f3;border:1px solid #f5c2c7;padding:12px;border-radius:6px;">';
-        echo 'Fatal error: ' . htmlspecialchars($e['message']) . "\n";
-        echo htmlspecialchars($e['file']) . ':' . $e['line'];
-        echo '</pre>';
-    }
+	$e = error_get_last();
+	if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+		// Log
+		error_log('[job_seekers.php:fatal] ' . $e['message'] . ' in ' . $e['file'] . ':' . $e['line']);
+		while (ob_get_level() > 0) { ob_end_clean(); }
+		http_response_code(500);
+		header('Content-Type: text/html; charset=utf-8');
+		echo '<pre style="white-space:pre-wrap;word-break:break-word;background:#fff3f3;border:1px solid #f5c2c7;padding:12px;border-radius:6px;">';
+		echo 'Fatal error: ' . htmlspecialchars($e['message']) . "\n";
+		echo htmlspecialchars($e['file']) . ':' . $e['line'];
+		echo '</pre>';
+		exit;
+	}
 });
 
 require_once __DIR__ . '/auth_guard.php';
@@ -33,38 +47,38 @@ require_once __DIR__ . '/db.php';
 
 // Column schema based on provided table structure
 $columns = [
-    'provinsi' => ['label' => 'Provinsi', 'type' => 'text'],
-    'kab_kota' => ['label' => 'Kab/Kota', 'type' => 'text'],
-    'kecamatan' => ['label' => 'Kecamatan', 'type' => 'text'],
-    'kelurahan' => ['label' => 'Kelurahan', 'type' => 'text'],
-    'umur' => ['label' => 'Umur', 'type' => 'text'],
-    'kelompok_umur' => ['label' => 'Kelompok Umur', 'type' => 'text'],
-    'jenis_kelamin' => ['label' => 'Jenis Kelamin', 'type' => 'text'],
-    'kondisi_fisik' => ['label' => 'Kondisi Fisik', 'type' => 'text'],
-    'marital' => ['label' => 'Marital', 'type' => 'text'],
-    'status_bekerja' => ['label' => 'Status Bekerja', 'type' => 'text'],
-    'tanggal_daftar' => ['label' => 'Tanggal Daftar', 'type' => 'date'],
-    'tanggal_kedaluwarsa' => ['label' => 'Tanggal Kedaluwarsa', 'type' => 'date'],
-    'status_profil' => ['label' => 'Status Profil', 'type' => 'text'],
-    'status_pencaker' => ['label' => 'Status Pencaker', 'type' => 'text'],
-    'pendidikan' => ['label' => 'Pendidikan', 'type' => 'text'],
-    'pengalaman' => ['label' => 'Pengalaman', 'type' => 'text'],
-    'pengalaman_tahun' => ['label' => 'Pengalaman (Tahun)', 'type' => 'text'],
-    'sertifikasi' => ['label' => 'Sertifikasi', 'type' => 'textarea'],
-    'lembaga' => ['label' => 'Lembaga', 'type' => 'text'],
-    'progpel' => ['label' => 'Progpel', 'type' => 'text'],
-    'keahlian' => ['label' => 'Keahlian', 'type' => 'textarea'],
-    'rencana_kerja_luar_negeri' => ['label' => 'Rencana Kerja LN', 'type' => 'text'],
-    'negara_tujuan' => ['label' => 'Negara Tujuan', 'type' => 'text'],
-    'lamaran_diajukan' => ['label' => 'Lamaran Diajukan', 'type' => 'text'],
-    'jurusan' => ['label' => 'Jurusan', 'type' => 'text'],
-    'lembaga_pendidikan' => ['label' => 'Lembaga Pendidikan', 'type' => 'text'],
-    'bulan_daftar' => ['label' => 'Bulan Daftar', 'type' => 'text'],
-    'created_date' => ['label' => 'Created Date', 'type' => 'datetime-local'],
-    'id_pencaker' => ['label' => 'ID Pencaker', 'type' => 'text'],
-    'jenis_disabilitas' => ['label' => 'Jenis Disabilitas', 'type' => 'text'],
-    'tahun_input' => ['label' => 'Tahun Input', 'type' => 'number'],
-    'pengalaman_kerja' => ['label' => 'Pengalaman Kerja', 'type' => 'text'],
+	'provinsi' => ['label' => 'Provinsi', 'type' => 'text'],
+	'kab_kota' => ['label' => 'Kab/Kota', 'type' => 'text'],
+	'kecamatan' => ['label' => 'Kecamatan', 'type' => 'text'],
+	'kelurahan' => ['label' => 'Kelurahan', 'type' => 'text'],
+	'umur' => ['label' => 'Umur', 'type' => 'text'],
+	'kelompok_umur' => ['label' => 'Kelompok Umur', 'type' => 'text'],
+	'jenis_kelamin' => ['label' => 'Jenis Kelamin', 'type' => 'text'],
+	'kondisi_fisik' => ['label' => 'Kondisi Fisik', 'type' => 'text'],
+	'marital' => ['label' => 'Marital', 'type' => 'text'],
+	'status_bekerja' => ['label' => 'Status Bekerja', 'type' => 'text'],
+	'tanggal_daftar' => ['label' => 'Tanggal Daftar', 'type' => 'date'],
+	'tanggal_kedaluwarsa' => ['label' => 'Tanggal Kedaluwarsa', 'type' => 'date'],
+	'status_profil' => ['label' => 'Status Profil', 'type' => 'text'],
+	'status_pencaker' => ['label' => 'Status Pencaker', 'type' => 'text'],
+	'pendidikan' => ['label' => 'Pendidikan', 'type' => 'text'],
+	'pengalaman' => ['label' => 'Pengalaman', 'type' => 'text'],
+	'pengalaman_tahun' => ['label' => 'Pengalaman (Tahun)', 'type' => 'text'],
+	'sertifikasi' => ['label' => 'Sertifikasi', 'type' => 'textarea'],
+	'lembaga' => ['label' => 'Lembaga', 'type' => 'text'],
+	'progpel' => ['label' => 'Progpel', 'type' => 'text'],
+	'keahlian' => ['label' => 'Keahlian', 'type' => 'textarea'],
+	'rencana_kerja_luar_negeri' => ['label' => 'Rencana Kerja LN', 'type' => 'text'],
+	'negara_tujuan' => ['label' => 'Negara Tujuan', 'type' => 'text'],
+	'lamaran_diajukan' => ['label' => 'Lamaran Diajukan', 'type' => 'text'],
+	'jurusan' => ['label' => 'Jurusan', 'type' => 'text'],
+	'lembaga_pendidikan' => ['label' => 'Lembaga Pendidikan', 'type' => 'text'],
+	'bulan_daftar' => ['label' => 'Bulan Daftar', 'type' => 'text'],
+	'created_date' => ['label' => 'Created Date', 'type' => 'datetime-local'],
+	'id_pencaker' => ['label' => 'ID Pencaker', 'type' => 'text'],
+	'jenis_disabilitas' => ['label' => 'Jenis Disabilitas', 'type' => 'text'],
+	'tahun_input' => ['label' => 'Tahun Input', 'type' => 'number'],
+	'pengalaman_kerja' => ['label' => 'Pengalaman Kerja', 'type' => 'text'],
 ];
 
 // Helpers
@@ -74,80 +88,80 @@ function sanitize_like($s) { return '%' . str_replace(['%', '_'], ['\\%', '\\_']
 $action = $_GET['action'] ?? '';
 
 if ($action === 'delete' && isset($_GET['id'])) {
-    $id = intval($_GET['id']);
-    $stmt = $conn->prepare('DELETE FROM job_seekers WHERE id = ?');
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-    header('Location: job_seekers.php');
-    exit;
+	$id = intval($_GET['id']);
+	$stmt = $conn->prepare('DELETE FROM job_seekers WHERE id = ?');
+	$stmt->bind_param('i', $id);
+	$stmt->execute();
+	header('Location: job_seekers.php');
+	exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Build dynamic insert/update from $columns
-    $fields = array_keys($columns);
-    if (isset($_POST['id']) && $_POST['id'] !== '') {
-        // Update
-        $id = intval($_POST['id']);
-        $setParts = [];
-        $types = '';
-        $values = [];
-        foreach ($fields as $f) {
-            $setParts[] = "$f = ?";
-            $types .= 's';
-            $values[] = $_POST[$f] ?? null;
-        }
-        $types .= 'i';
-        $values[] = $id;
-        $sql = 'UPDATE job_seekers SET ' . implode(', ', $setParts) . ' WHERE id = ?';
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param($types, ...$values);
-        $stmt->execute();
-    } else {
-        // Insert
-        $placeholders = implode(', ', array_fill(0, count($fields), '?'));
-        $types = str_repeat('s', count($fields));
-        $values = [];
-        foreach ($fields as $f) { $values[] = $_POST[$f] ?? null; }
-        $sql = 'INSERT INTO job_seekers (' . implode(', ', $fields) . ") VALUES ($placeholders)";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param($types, ...$values);
-        $stmt->execute();
-    }
-    header('Location: job_seekers.php');
-    exit;
+	// Build dynamic insert/update from $columns
+	$fields = array_keys($columns);
+	if (isset($_POST['id']) && $_POST['id'] !== '') {
+		// Update
+		$id = intval($_POST['id']);
+		$setParts = [];
+		$types = '';
+		$values = [];
+		foreach ($fields as $f) {
+			$setParts[] = "$f = ?";
+			$types .= 's';
+			$values[] = $_POST[$f] ?? null;
+		}
+		$types .= 'i';
+		$values[] = $id;
+		$sql = 'UPDATE job_seekers SET ' . implode(', ', $setParts) . ' WHERE id = ?';
+		$stmt = $conn->prepare($sql);
+		$stmt->bind_param($types, ...$values);
+		$stmt->execute();
+	} else {
+		// Insert
+		$placeholders = implode(', ', array_fill(0, count($fields), '?'));
+		$types = str_repeat('s', count($fields));
+		$values = [];
+		foreach ($fields as $f) { $values[] = $_POST[$f] ?? null; }
+		$sql = 'INSERT INTO job_seekers (' . implode(', ', $fields) . ") VALUES ($placeholders)";
+		$stmt = $conn->prepare($sql);
+		$stmt->bind_param($types, ...$values);
+		$stmt->execute();
+	}
+	header('Location: job_seekers.php');
+	exit;
 }
 
 // Export CSV
 if (isset($_GET['export']) && $_GET['export'] === '1') {
-    $search = trim($_GET['search'] ?? '');
-    $where = '';
-    $params = [];
-    $types = '';
-    if ($search !== '') {
-        $like = sanitize_like($search);
-        $where = 'WHERE provinsi LIKE ? OR kab_kota LIKE ? OR jenis_kelamin LIKE ? OR pendidikan LIKE ? OR id_pencaker LIKE ?';
-        $params = [$like, $like, $like, $like, $like];
-        $types = 'sssss';
-    }
-    $sql = 'SELECT id, ' . implode(', ', array_keys($columns)) . ' FROM job_seekers ' . $where . ' ORDER BY id DESC';
-    $stmt = $conn->prepare($sql);
-    if ($where !== '') { $stmt->bind_param($types, ...$params); }
-    $stmt->execute();
-    $res = $stmt->get_result();
+	$search = trim($_GET['search'] ?? '');
+	$where = '';
+	$params = [];
+	$types = '';
+	if ($search !== '') {
+		$like = sanitize_like($search);
+		$where = 'WHERE provinsi LIKE ? OR kab_kota LIKE ? OR jenis_kelamin LIKE ? OR pendidikan LIKE ? OR id_pencaker LIKE ?';
+		$params = [$like, $like, $like, $like, $like];
+		$types = 'sssss';
+	}
+	$sql = 'SELECT id, ' . implode(', ', array_keys($columns)) . ' FROM job_seekers ' . $where . ' ORDER BY id DESC';
+	$stmt = $conn->prepare($sql);
+	if ($where !== '') { $stmt->bind_param($types, ...$params); }
+	$stmt->execute();
+	$res = $stmt->get_result();
 
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="job_seekers_export_' . date('Ymd_His') . '.csv"');
-    $out = fopen('php://output', 'w');
-    $header = array_merge(['id'], array_map(function($k) use($columns){ return $columns[$k]['label']; }, array_keys($columns)) );
-    fputcsv($out, $header);
-    while ($row = $res->fetch_assoc()) {
-        $line = [];
-        $line[] = $row['id'];
-        foreach ($columns as $name => $_) { $line[] = $row[$name] ?? ''; }
-        fputcsv($out, $line);
-    }
-    fclose($out);
-    exit;
+	header('Content-Type: text/csv; charset=utf-8');
+	header('Content-Disposition: attachment; filename="job_seekers_export_' . date('Ymd_His') . '.csv"');
+	$out = fopen('php://output', 'w');
+	$header = array_merge(['id'], array_map(function($k) use($columns){ return $columns[$k]['label']; }, array_keys($columns)) );
+	fputcsv($out, $header);
+	while ($row = $res->fetch_assoc()) {
+		$line = [];
+		$line[] = $row['id'];
+		foreach ($columns as $name => $_) { $line[] = $row[$name] ?? ''; }
+		fputcsv($out, $line);
+	}
+	fclose($out);
+	exit;
 }
 
 // List view with pagination
@@ -159,10 +173,10 @@ $where = '';
 $params = [];
 $types = '';
 if ($search !== '') {
-    $like = sanitize_like($search);
-    $where = 'WHERE provinsi LIKE ? OR kab_kota LIKE ? OR jenis_kelamin LIKE ? OR pendidikan LIKE ? OR id_pencaker LIKE ?';
-    $params = [$like, $like, $like, $like, $like];
-    $types = 'sssss';
+	$like = sanitize_like($search);
+	$where = 'WHERE provinsi LIKE ? OR kab_kota LIKE ? OR jenis_kelamin LIKE ? OR pendidikan LIKE ? OR id_pencaker LIKE ?';
+	$params = [$like, $like, $like, $like, $like];
+	$types = 'sssss';
 }
 
 // Count
@@ -180,9 +194,9 @@ $totalPages = max(1, intval(ceil($total / $perPage)));
 $sqlList = 'SELECT id, ' . implode(', ', array_keys($columns)) . ' FROM job_seekers ' . $where . ' ORDER BY id DESC LIMIT ? OFFSET ?';
 $stmt = $conn->prepare($sqlList);
 if ($where !== '') {
-    $stmt->bind_param($types . 'ii', ...$params, $perPage, $offset);
+	$stmt->bind_param($types . 'ii', ...$params, $perPage, $offset);
 } else {
-    $stmt->bind_param('ii', $perPage, $offset);
+	$stmt->bind_param('ii', $perPage, $offset);
 }
 $stmt->execute();
 $res = $stmt->get_result();
