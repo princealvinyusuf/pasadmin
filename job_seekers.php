@@ -5,6 +5,8 @@ error_reporting(E_ALL);
 
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/access_helper.php';
+if (!current_user_can('manage_job_seekers')) { http_response_code(403); echo 'Forbidden'; exit; }
 
 // Column schema mapping for rendering and CRUD
 $columns = [

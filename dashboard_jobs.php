@@ -5,6 +5,8 @@ error_reporting(E_ALL);
 
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/access_helper.php';
+if (!current_user_can('view_dashboard_jobs')) { http_response_code(403); echo 'Forbidden'; exit; }
 
 // Date filter (optional) applied to posting/created date
 $start = isset($_GET['start']) && $_GET['start'] !== '' ? $_GET['start'] : null; // YYYY-MM-DD

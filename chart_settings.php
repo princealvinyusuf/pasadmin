@@ -5,6 +5,9 @@ $user = 'root';
 $pass = '';
 $db = 'paskerid_db_prod';
 require_once __DIR__ . '/auth_guard.php';
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/access_helper.php';
+if (!current_user_can('manage_settings')) { http_response_code(403); echo 'Forbidden'; exit; }
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
