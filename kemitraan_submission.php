@@ -17,7 +17,7 @@ if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
-session_start();
+if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
 // Helper for safe COUNT queries
 function safe_count(mysqli $conn, string $sql): int {
