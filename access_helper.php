@@ -1,0 +1,108 @@
+<?php
+if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
+require_once __DIR__ . '/db.php';
+
+function ac_ensure_tables(mysqli $conn): void {
+	$conn->query("CREATE TABLE IF NOT EXISTS access_groups (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		name VARCHAR(100) NOT NULL UNIQUE,
+		description VARCHAR(255) DEFAULT NULL
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+	$conn->query("CREATE TABLE IF NOT EXISTS access_permissions (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		code VARCHAR(100) NOT NULL UNIQUE,
+		label VARCHAR(255) NOT NULL,
+		category VARCHAR(100) DEFAULT NULL
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+	$conn->query("CREATE TABLE IF NOT EXISTS group_permissions (
+		group_id INT NOT NULL,
+		permission_id INT NOT NULL,
+		PRIMARY KEY (group_id, permission_id),
+		FOREIGN KEY (group_id) REFERENCES access_groups(id) ON DELETE CASCADE,
+		FOREIGN KEY (permission_id) REFERENCES access_permissions(id) ON DELETE CASCADE
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+	$conn->query("CREATE TABLE IF NOT EXISTS user_access (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		user_id INT NOT NULL UNIQUE,
+		account_type VARCHAR(50) DEFAULT 'staff',
+		group_id INT NOT NULL,
+		FOREIGN KEY (group_id) REFERENCES access_groups(id) ON DELETE CASCADE
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function ac_seed_permissions(mysqli $conn): void {
+	$perms = [
+		['manage_access_control','Manage Access Control','Admin'],
+		['view_dashboard_jobs','View Dashboard Jobs','Dashboard'],
+		['view_dashboard_job_seekers','View Dashboard Job Seekers','Dashboard'],
+		['manage_jobs','Manage Jobs','Data'],
+		['manage_job_seekers','Manage Job Seekers','Data'],
+		['view_cleansing','View Cleansing Pages','Tools'],
+		['manage_settings','Manage Settings','Admin'],
+		['use_broadcast','Use Broadcast','Tools'],
+		['view_extensions','View Extensions','Tools']
+	];
+	$stmt = $conn->prepare('INSERT IGNORE INTO access_permissions (code,label,category) VALUES (?,?,?)');
+	foreach ($perms as [$c,$l,$cat]) { $stmt->bind_param('sss',$c,$l,$cat); $stmt->execute(); }
+	$stmt->close();
+
+	// Ensure Super Admin group exists with all permissions
+	$conn->query("INSERT IGNORE INTO access_groups (id, name, description) VALUES (1,'Super Admin','Full access to everything')");
+	$res = $conn->query('SELECT id FROM access_permissions');
+	$permIds = [];
+	while ($r = $res->fetch_assoc()) { $permIds[] = intval($r['id']); }
+	if (!empty($permIds)) {
+		$ins = $conn->prepare('INSERT IGNORE INTO group_permissions (group_id, permission_id) VALUES (1, ?)');
+		foreach ($permIds as $pid) { $ins->bind_param('i', $pid); $ins->execute(); }
+		$ins->close();
+	}
+}
+
+function ac_bootstrap_for_current_user(mysqli $conn): void {
+	ac_ensure_tables($conn);
+	ac_seed_permissions($conn);
+	if (empty($_SESSION['user_id'])) { return; }
+	$userId = intval($_SESSION['user_id']);
+	// If no mapping for current user, assign Super Admin by default
+	$stmt = $conn->prepare('SELECT id FROM user_access WHERE user_id=?');
+	$stmt->bind_param('i', $userId);
+	$stmt->execute();
+	$stmt->store_result();
+	if ($stmt->num_rows === 0) {
+		$stmt->close();
+		$ins = $conn->prepare("INSERT INTO user_access (user_id, account_type, group_id) VALUES (?, 'super_admin', 1)");
+		$ins->bind_param('i', $userId);
+		$ins->execute();
+		$ins->close();
+	} else {
+		$stmt->close();
+	}
+}
+
+function ac_user_has_permission(mysqli $conn, int $userId, string $code): bool {
+	// Super Admin shortcut
+	$q = $conn->prepare('SELECT g.name FROM user_access ua JOIN access_groups g ON g.id=ua.group_id WHERE ua.user_id=?');
+	$q->bind_param('i', $userId);
+	$q->execute();
+	$res = $q->get_result();
+	$row = $res->fetch_assoc();
+	$q->close();
+	if ($row && strtolower($row['name']) === 'super admin') { return true; }
+	$p = $conn->prepare('SELECT 1 FROM user_access ua JOIN group_permissions gp ON gp.group_id=ua.group_id JOIN access_permissions p ON p.id=gp.permission_id WHERE ua.user_id=? AND p.code=? LIMIT 1');
+	$p->bind_param('is', $userId, $code);
+	$p->execute();
+	$p->store_result();
+	$ok = $p->num_rows > 0;
+	$p->close();
+	return $ok;
+}
+
+// Convenience wrapper for current session user
+function current_user_can(string $code): bool {
+	if (empty($_SESSION['user_id'])) { return false; }
+	global $conn;
+	return ac_user_has_permission($conn, intval($_SESSION['user_id']), $code);
+}
+
+// Run bootstrap on include
+ac_bootstrap_for_current_user($conn); 
