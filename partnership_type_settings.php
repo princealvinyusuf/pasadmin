@@ -21,6 +21,17 @@ if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 function sanitize_string($conn, $val) { return trim($conn->real_escape_string($val)); }
 function sanitize_int($val) { return max(0, intval($val)); }
 
+// Helper: check if a column exists (mysqlnd-safe)
+function column_exists(mysqli $conn, string $table, string $column): bool {
+    $t = $conn->real_escape_string($table);
+    $c = $conn->real_escape_string($column);
+    $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='$t' AND COLUMN_NAME='$c' LIMIT 1";
+    $res = $conn->query($sql);
+    return $res && $res->num_rows > 0;
+}
+
+$has_max_col = column_exists($conn, 'type_of_partnership', 'max_bookings');
+
 // Handle create/update
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -32,20 +43,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
     if ($id > 0) {
-        $stmt = $conn->prepare("UPDATE type_of_partnership SET name = ?, max_bookings = ?, updated_at = NOW() WHERE id = ?");
-        if ($stmt) {
-            $stmt->bind_param('sii', $name, $max, $id);
-            $stmt->execute();
-            $stmt->close();
-            $_SESSION['success'] = 'Updated successfully';
+        if ($has_max_col) {
+            $stmt = $conn->prepare("UPDATE type_of_partnership SET name = ?, max_bookings = ?, updated_at = NOW() WHERE id = ?");
+            if ($stmt) {
+                $stmt->bind_param('sii', $name, $max, $id);
+                $stmt->execute();
+                $stmt->close();
+                $_SESSION['success'] = 'Updated successfully';
+            } else {
+                $_SESSION['error'] = 'DB prepare failed: ' . $conn->error;
+            }
+        } else {
+            $stmt = $conn->prepare("UPDATE type_of_partnership SET name = ?, updated_at = NOW() WHERE id = ?");
+            if ($stmt) {
+                $stmt->bind_param('si', $name, $id);
+                $stmt->execute();
+                $stmt->close();
+                $_SESSION['success'] = 'Updated successfully (without max_bookings)';
+            } else {
+                $_SESSION['error'] = 'DB prepare failed: ' . $conn->error;
+            }
         }
     } else {
-        $stmt = $conn->prepare("INSERT INTO type_of_partnership (name, max_bookings, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
-        if ($stmt) {
-            $stmt->bind_param('si', $name, $max);
-            $stmt->execute();
-            $stmt->close();
-            $_SESSION['success'] = 'Created successfully';
+        if ($has_max_col) {
+            $stmt = $conn->prepare("INSERT INTO type_of_partnership (name, max_bookings, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
+            if ($stmt) {
+                $stmt->bind_param('si', $name, $max);
+                $stmt->execute();
+                $stmt->close();
+                $_SESSION['success'] = 'Created successfully';
+            } else {
+                $_SESSION['error'] = 'DB prepare failed: ' . $conn->error;
+            }
+        } else {
+            $stmt = $conn->prepare("INSERT INTO type_of_partnership (name, created_at, updated_at) VALUES (?, NOW(), NOW())");
+            if ($stmt) {
+                $stmt->bind_param('s', $name);
+                $stmt->execute();
+                $stmt->close();
+                $_SESSION['success'] = 'Created successfully (without max_bookings)';
+            } else {
+                $_SESSION['error'] = 'DB prepare failed: ' . $conn->error;
+            }
         }
     }
     header('Location: partnership_type_settings.php');
@@ -80,7 +119,10 @@ if (isset($_GET['delete'])) {
 
 // Fetch list
 $rows = [];
-$res = $conn->query("SELECT id, name, COALESCE(max_bookings, 10) AS max_bookings, created_at, updated_at FROM type_of_partnership ORDER BY id ASC");
+$select = $has_max_col
+    ? "SELECT id, name, COALESCE(max_bookings, 10) AS max_bookings, created_at, updated_at FROM type_of_partnership ORDER BY id ASC"
+    : "SELECT id, name, 10 AS max_bookings, created_at, updated_at FROM type_of_partnership ORDER BY id ASC";
+$res = $conn->query($select);
 if ($res) {
     while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 }
@@ -146,7 +188,7 @@ if ($res) {
                             <td><?php echo (int) $r['max_bookings']; ?></td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary" onclick='editRow(<?php echo json_encode($r); ?>)'><i class="bi bi-pencil-square"></i></button>
-                                <a class="btn btn-sm btn-outline-danger" href="?delete=<?php echo $r['id']; }?>" onclick="return confirm('Delete this type?');"><i class="bi bi-trash"></i></a>
+                                <a class="btn btn-sm btn-outline-danger" href="?delete=<?php echo $r['id']; ?>" onclick="return confirm('Delete this type?');"><i class="bi bi-trash"></i></a>
                             </td>
                         </tr>
                     <?php endforeach; endif; ?>
