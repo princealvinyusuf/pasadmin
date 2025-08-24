@@ -53,6 +53,7 @@
 						<li><a class="dropdown-item" href="virtual_karir_service_settings.php">Virtual Karir Service Settings</a></li>
 						<li><hr class="dropdown-divider"></li>
 						<li><a class="dropdown-item" href="mitra_kerja_settings.php">Mitra Kerja Settings</a></li>
+						<li><a class="dropdown-item" href="partnership_type_settings.php">Partnership Type Settings</a></li>
 						<li><a class="dropdown-item" href="kemitraan_submission.php">Mitra Kerja Submission</a></li>
 						<li><a class="dropdown-item" href="kemitraan_booked.php">Kemitraan Booked</a></li>
 						<li><a class="dropdown-item" href="pasker_room_settings.php">Pasker Room Settings</a></li>
