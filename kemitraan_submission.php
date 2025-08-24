@@ -115,16 +115,17 @@ if (isset($_POST['approve_id'])) {
     $type_id = intval($typeIdRes);
     $type_name = trim($typeNameRes ?? '');
 
-    // Partnership type limits (by name)
-    $type_limits = [
-        'Walk-in Interview' => 10,
-        'Pendidikan Pasar Kerja' => 5,
-        'Talenta Muda' => 8,
-        'Job Fair' => 7,
-        'Konsultasi Informasi Pasar Kerja' => 3,
-        'Konsultasi Pasar Kerja' => 3,
-    ];
-    $max_bookings = isset($type_limits[$type_name]) ? $type_limits[$type_name] : 10;
+    // Dynamic limit: read from type_of_partnership.max_bookings if available
+    $max_bookings = 10;
+    if ($stmt = $conn->prepare("SELECT max_bookings FROM type_of_partnership WHERE id = ?")) {
+        $stmt->bind_param("i", $type_id);
+        $stmt->execute();
+        $stmt->bind_result($maxFromDb);
+        if ($stmt->fetch()) {
+            $max_bookings = intval($maxFromDb);
+        }
+        $stmt->close();
+    }
 
     // Parse schedule into dates
     $dates_to_check = [];
