@@ -204,6 +204,111 @@ try {
                     echo "       - " . trim($heading->textContent) . "\n";
                 }
             }
+            
+            // Try to extract job data using the same logic as the worker
+            echo "     Extracting job data:\n";
+            $job = [];
+            
+            // Extract job title
+            $titleSelectors = [
+                './/h1', './/h2', './/h3', './/h4',
+                './/div[contains(@class, "title")]',
+                './/span[contains(@class, "title")]',
+                './/a[contains(@class, "title")]',
+                './/div[contains(@class, "job-title")]',
+                './/div[contains(@class, "position")]',
+                './/div[contains(@class, "role")]'
+            ];
+            
+            foreach ($titleSelectors as $selector) {
+                $titleNodes = $xpath->query($selector, $node);
+                if ($titleNodes->length > 0) {
+                    $job['nama_jabatan'] = trim($titleNodes->item(0)->textContent);
+                    echo "       Title: " . $job['nama_jabatan'] . "\n";
+                    break;
+                }
+            }
+            
+            // Extract company name
+            $companySelectors = [
+                './/div[contains(@class, "company")]',
+                './/span[contains(@class, "company")]',
+                './/a[contains(@class, "company")]',
+                './/div[contains(@class, "employer")]',
+                './/div[contains(@class, "organization")]',
+                './/div[contains(@class, "firm")]'
+            ];
+            
+            foreach ($companySelectors as $selector) {
+                $companyNodes = $xpath->query($selector, $node);
+                if ($companyNodes->length > 0) {
+                    $job['nama_perusahaan'] = trim($companyNodes->item(0)->textContent);
+                    echo "       Company: " . $job['nama_perusahaan'] . "\n";
+                    break;
+                }
+            }
+            
+            // Extract location
+            $locationSelectors = [
+                './/div[contains(@class, "location")]',
+                './/span[contains(@class, "location")]',
+                './/div[contains(@class, "area")]',
+                './/div[contains(@class, "region")]',
+                './/div[contains(@class, "city")]',
+                './/div[contains(@class, "place")]'
+            ];
+            
+            foreach ($locationSelectors as $selector) {
+                $locationNodes = $xpath->query($selector, $node);
+                if ($locationNodes->length > 0) {
+                    $location = trim($locationNodes->item(0)->textContent);
+                    echo "       Location: " . $location . "\n";
+                    break;
+                }
+            }
+            
+            // Check if we have enough data for a valid job
+            if (!empty($job['nama_jabatan'])) {
+                echo "       ✅ Valid job data found\n";
+            } else {
+                echo "       ❌ Missing job title\n";
+            }
+            
+            echo "\n";
+        }
+        
+        // Test the actual import function
+        echo "   Testing import function...\n";
+        require_once __DIR__ . '/scripts/jobstreet_worker.php';
+        
+        // Try to import the first job
+        if ($jobNodes->length > 0) {
+            $firstNode = $jobNodes->item(0);
+            $testJob = [];
+            
+            // Extract basic data for testing
+            $titleNodes = $xpath->query('.//h1 | .//h2 | .//h3 | .//h4', $firstNode);
+            if ($titleNodes->length > 0) {
+                $testJob['nama_jabatan'] = trim($titleNodes->item(0)->textContent);
+            }
+            
+            $companyNodes = $xpath->query('.//div[contains(@class, "company")] | .//span[contains(@class, "company")]', $firstNode);
+            if ($companyNodes->length > 0) {
+                $testJob['nama_perusahaan'] = trim($companyNodes->item(0)->textContent);
+            }
+            
+            if (!empty($testJob['nama_jabatan'])) {
+                $testJob['platform_lowongan'] = 'Jobstreet';
+                echo "     Attempting to import test job: " . $testJob['nama_jabatan'] . "\n";
+                
+                if (importJobToDatabase($conn, $testJob)) {
+                    echo "     ✅ Test job imported successfully!\n";
+                } else {
+                    echo "     ❌ Test job import failed (might be duplicate)\n";
+                }
+            } else {
+                echo "     ❌ Could not extract job title for import test\n";
+            }
         }
     }
     
