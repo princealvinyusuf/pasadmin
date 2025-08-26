@@ -88,7 +88,7 @@ try {
     
     // Try different selectors - updated for modern Jobstreet structure
     $selectors = [
-        // Modern Jobstreet selectors
+        // More specific Jobstreet selectors
         '//div[contains(@class, "job-card")]',
         '//div[contains(@class, "job-item")]',
         '//div[contains(@class, "listing-item")]',
@@ -111,11 +111,60 @@ try {
     ];
     
     $jobNodes = null;
+    $usedSelector = '';
     foreach ($selectors as $selector) {
         $jobNodes = $xpath->query($selector);
         if ($jobNodes->length > 0) {
+            $usedSelector = $selector;
             echo "   Found jobs using selector: $selector\n";
             break;
+        }
+    }
+    
+    // If we found nodes but they seem like ads, try more specific selectors
+    if ($jobNodes && $jobNodes->length > 0) {
+        // Check if the first few nodes contain job-related content
+        $hasRealJobs = false;
+        for ($i = 0; $i < min(3, $jobNodes->length); $i++) {
+            $node = $jobNodes->item($i);
+            $text = trim($node->textContent);
+            
+            // Look for job-related keywords in the text
+            if (preg_match('/(job|pekerjaan|lowongan|position|posisi|career|karir|vacancy|lowongan kerja)/i', $text)) {
+                $hasRealJobs = true;
+                break;
+            }
+        }
+        
+        if (!$hasRealJobs) {
+            echo "   WARNING: Found nodes but they appear to be advertisements, not job listings\n";
+            echo "   Trying more specific selectors...\n";
+            
+            // Try more specific selectors for actual job content
+            $specificSelectors = [
+                '//div[contains(@class, "job-listing")]',
+                '//div[contains(@class, "job-post")]',
+                '//div[contains(@class, "job-ad")]',
+                '//div[contains(@class, "position")]',
+                '//div[contains(@class, "vacancy")]',
+                '//div[contains(@class, "career-opportunity")]',
+                '//div[contains(@class, "employment")]',
+                '//div[contains(@class, "work-opportunity")]',
+                // Look for divs that contain both job and company info
+                '//div[.//*[contains(text(), "job")] and .//*[contains(text(), "company")]]',
+                '//div[.//*[contains(text(), "pekerjaan")] and .//*[contains(text(), "perusahaan")]]',
+                '//div[.//*[contains(text(), "lowongan")] and .//*[contains(text(), "perusahaan")]]'
+            ];
+            
+            foreach ($specificSelectors as $specificSelector) {
+                $specificNodes = $xpath->query($specificSelector);
+                if ($specificNodes->length > 0) {
+                    echo "   Found " . $specificNodes->length . " nodes using specific selector: $specificSelector\n";
+                    $jobNodes = $specificNodes;
+                    $usedSelector = $specificSelector;
+                    break;
+                }
+            }
         }
     }
     
@@ -170,6 +219,21 @@ try {
                     }
                 }
             }
+            
+            // Try to find divs that contain job-related content
+            echo "   Searching for divs with job content...\n";
+            $jobContentDivs = $xpath->query("//div[contains(text(), 'job') or contains(text(), 'position') or contains(text(), 'career') or contains(text(), 'pekerjaan') or contains(text(), 'lowongan')]");
+            if ($jobContentDivs->length > 0) {
+                echo "     Found " . $jobContentDivs->length . " divs with job content\n";
+                for ($j = 0; $j < min(3, $jobContentDivs->length); $j++) {
+                    $div = $jobContentDivs->item($j);
+                    $text = trim($div->textContent);
+                    if (strlen($text) > 100) {
+                        $text = substr($text, 0, 100) . "...";
+                    }
+                    echo "       - " . $text . "\n";
+                }
+            }
         }
         
     } else {
@@ -178,10 +242,20 @@ try {
         // Try to extract some basic info from first few nodes
         $sampleCount = min(3, $jobNodes->length);
         echo "   Analyzing first $sampleCount nodes:\n";
+        echo "   Using selector: $usedSelector\n\n";
         
         for ($i = 0; $i < $sampleCount; $i++) {
             $node = $jobNodes->item($i);
             echo "   Node " . ($i + 1) . ":\n";
+            
+            // Show the HTML structure
+            echo "     HTML Structure:\n";
+            $html = $dom->saveHTML($node);
+            $html = preg_replace('/\s+/', ' ', $html); // Clean up whitespace
+            if (strlen($html) > 300) {
+                $html = substr($html, 0, 300) . "...";
+            }
+            echo "       " . $html . "\n\n";
             
             // Look for text content
             $text = trim($node->textContent);
@@ -194,6 +268,14 @@ try {
             $links = $xpath->query('.//a', $node);
             if ($links->length > 0) {
                 echo "     Links: " . $links->length . "\n";
+                foreach ($links as $link) {
+                    $href = $link->getAttribute('href');
+                    $linkText = trim($link->textContent);
+                    if (strlen($linkText) > 50) {
+                        $linkText = substr($linkText, 0, 50) . "...";
+                    }
+                    echo "       - " . $linkText . " -> " . $href . "\n";
+                }
             }
             
             // Look for headings
