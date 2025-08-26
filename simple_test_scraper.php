@@ -4,6 +4,9 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
+// Set timeout to prevent hanging
+set_time_limit(60);
+
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/access_helper.php';
@@ -63,7 +66,7 @@ try {
     if (!$html) {
         echo "   ERROR: Failed to fetch page: " . curl_error($ch) . "\n";
         curl_close($ch);
-        exit;
+        throw new Exception("Failed to fetch Jobstreet page");
     }
     
     echo "   SUCCESS: Got " . strlen($html) . " bytes\n";
@@ -427,6 +430,19 @@ try {
 } catch (Exception $e) {
     echo "ERROR: " . $e->getMessage() . "\n";
     echo "Stack trace:\n" . $e->getTraceAsString() . "\n";
+    
+    // Update run status to failed if we have a run ID
+    if (isset($runId)) {
+        try {
+            $stmt = $conn->prepare('UPDATE jobstreet_scrape_runs SET status=\'failed\', log=? WHERE id=?');
+            $log = "Test failed: " . $e->getMessage();
+            $stmt->bind_param('si', $log, $runId);
+            $stmt->execute();
+            $stmt->close();
+        } catch (Exception $dbError) {
+            echo "Failed to update database status: " . $dbError->getMessage() . "\n";
+        }
+    }
 }
 
 echo "\n=== Test Complete ===\n";

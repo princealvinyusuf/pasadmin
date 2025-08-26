@@ -113,7 +113,7 @@ while ($row = $res->fetch_assoc()) { $runs[] = $row; }
             btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Testing...';
             
             try {
-                const res = await fetch('simple_test_scraper.php');
+                const res = await fetch('quick_test_scraper.php');
                 const text = await res.text();
                 
                 // Show results in an alert
