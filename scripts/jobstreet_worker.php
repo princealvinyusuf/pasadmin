@@ -162,14 +162,26 @@ function parseJobstreetHTML($html) {
     
     // Find job listing containers - try multiple selectors
     $selectors = [
-        '//article[contains(@class, "job")]',
-        '//div[contains(@class, "job")]',
-        '//div[contains(@class, "listing")]',
+        // Modern Jobstreet selectors
         '//div[contains(@class, "job-card")]',
         '//div[contains(@class, "job-item")]',
         '//div[contains(@class, "listing-item")]',
         '//div[contains(@class, "search-result")]',
-        '//div[contains(@class, "result")]'
+        '//div[contains(@class, "result")]',
+        '//div[contains(@class, "card")]',
+        '//div[contains(@class, "item")]',
+        '//article[contains(@class, "job")]',
+        '//div[contains(@class, "job")]',
+        '//div[contains(@class, "listing")]',
+        // Generic selectors that might contain jobs
+        '//div[contains(@class, "content")]',
+        '//div[contains(@class, "main")]',
+        '//div[contains(@class, "container")]',
+        '//div[contains(@class, "wrapper")]',
+        // Look for any div with job-related attributes
+        '//div[@data-testid]',
+        '//div[@data-cy]',
+        '//div[@data-automation]'
     ];
     
     $jobNodes = null;
@@ -187,8 +199,26 @@ function parseJobstreetHTML($html) {
     
     if (!$jobNodes || $jobNodes->length == 0) {
         writeLog("No job nodes found with any selector. HTML length: " . strlen($html));
+        
+        // Check if HTML contains expected content
+        if (strpos($html, 'job') !== false) {
+            writeLog("HTML contains 'job' keyword");
+        }
+        if (strpos($html, 'position') !== false) {
+            writeLog("HTML contains 'position' keyword");
+        }
+        if (strpos($html, 'career') !== false) {
+            writeLog("HTML contains 'career' keyword");
+        }
+        
         // Save HTML for debugging
-        file_put_contents(__DIR__ . '/../logs/jobstreet_debug.html', $html);
+        $debugDir = __DIR__ . '/../logs';
+        if (!is_dir($debugDir)) {
+            mkdir($debugDir, 0777, true);
+        }
+        file_put_contents($debugDir . '/jobstreet_debug.html', $html);
+        writeLog("HTML saved to debug file for analysis");
+        
         return [];
     }
     

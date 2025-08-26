@@ -68,6 +68,17 @@ try {
     
     echo "   SUCCESS: Got " . strlen($html) . " bytes\n";
     
+    // Check if HTML contains expected content
+    if (strpos($html, 'job') !== false) {
+        echo "   HTML contains 'job' keyword\n";
+    }
+    if (strpos($html, 'position') !== false) {
+        echo "   HTML contains 'position' keyword\n";
+    }
+    if (strpos($html, 'career') !== false) {
+        echo "   HTML contains 'career' keyword\n";
+    }
+    
     // Try to parse HTML
     echo "5. Parsing HTML...\n";
     
@@ -75,18 +86,28 @@ try {
     @$dom->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
     $xpath = new DOMXPath($dom);
     
-    // Try different selectors
+    // Try different selectors - updated for modern Jobstreet structure
     $selectors = [
-        '//article[contains(@class, "job")]',
-        '//div[contains(@class, "job")]',
-        '//div[contains(@class, "listing")]',
+        // Modern Jobstreet selectors
         '//div[contains(@class, "job-card")]',
         '//div[contains(@class, "job-item")]',
         '//div[contains(@class, "listing-item")]',
         '//div[contains(@class, "search-result")]',
         '//div[contains(@class, "result")]',
         '//div[contains(@class, "card")]',
-        '//div[contains(@class, "item")]'
+        '//div[contains(@class, "item")]',
+        '//article[contains(@class, "job")]',
+        '//div[contains(@class, "job")]',
+        '//div[contains(@class, "listing")]',
+        // Generic selectors that might contain jobs
+        '//div[contains(@class, "content")]',
+        '//div[contains(@class, "main")]',
+        '//div[contains(@class, "container")]',
+        '//div[contains(@class, "wrapper")]',
+        // Look for any div with job-related attributes
+        '//div[@data-testid]',
+        '//div[@data-cy]',
+        '//div[@data-automation]'
     ];
     
     $jobNodes = null;
@@ -102,13 +123,21 @@ try {
         echo "   WARNING: No job nodes found with any selector\n";
         echo "   Saving HTML for debugging...\n";
         
-        $debugDir = __DIR__ . '/logs';
+        // Use relative path to avoid permission issues
+        $debugDir = 'logs';
         if (!is_dir($debugDir)) {
-            mkdir($debugDir, 0777, true);
+            if (!mkdir($debugDir, 0777, true)) {
+                echo "   WARNING: Could not create logs directory, using current directory\n";
+                $debugDir = '.';
+            }
         }
         
-        file_put_contents($debugDir . '/jobstreet_debug.html', $html);
-        echo "   HTML saved to: logs/jobstreet_debug.html\n";
+        $debugFile = $debugDir . '/jobstreet_debug.html';
+        if (file_put_contents($debugFile, $html)) {
+            echo "   HTML saved to: $debugFile\n";
+        } else {
+            echo "   WARNING: Could not save HTML file\n";
+        }
         
         // Try to find any content
         $allDivs = $xpath->query('//div');
@@ -116,11 +145,29 @@ try {
         
         if ($allDivs->length > 0) {
             echo "   First few div classes:\n";
-            for ($i = 0; $i < min(5, $allDivs->length); $i++) {
+            for ($i = 0; $i < min(10, $allDivs->length); $i++) {
                 $div = $allDivs->item($i);
                 $class = $div->getAttribute('class');
                 if ($class) {
                     echo "     - " . $class . "\n";
+                }
+            }
+            
+            // Look for any text that might indicate job listings
+            echo "   Looking for job-related text...\n";
+            $jobKeywords = ['job', 'position', 'vacancy', 'career', 'employment', 'work'];
+            foreach ($jobKeywords as $keyword) {
+                $elements = $xpath->query("//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '$keyword')]");
+                if ($elements->length > 0) {
+                    echo "     Found $keyword: " . $elements->length . " elements\n";
+                    // Show first few examples
+                    for ($j = 0; $j < min(3, $elements->length); $j++) {
+                        $text = trim($elements->item($j)->textContent);
+                        if (strlen($text) > 50) {
+                            $text = substr($text, 0, 50) . "...";
+                        }
+                        echo "       Example: " . $text . "\n";
+                    }
                 }
             }
         }
