@@ -106,6 +106,52 @@ while ($row = $res->fetch_assoc()) { $runs[] = $row; }
             // Create a CSV export of all Jobstreet jobs
             window.location.href = 'export_jobstreet_jobs.php';
         }
+        
+        async function testScraper() {
+            const btn = document.querySelector('button[onclick="testScraper()"]');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Testing...';
+            
+            try {
+                const res = await fetch('test_scraper.php');
+                const text = await res.text();
+                
+                // Show results in an alert
+                alert('Test Results:\n\n' + text);
+                
+                // Refresh the page to show new data
+                window.location.reload();
+                
+            } catch (e) {
+                alert('Test failed: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-bug"></i> Test Scraper';
+            }
+        }
+        
+        async function testScraper() {
+            const btn = document.querySelector('button[onclick="testScraper()"]');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Testing...';
+            
+            try {
+                const res = await fetch('test_scraper.php');
+                const text = await res.text();
+                
+                // Show results in an alert
+                alert('Test Results:\n\n' + text);
+                
+                // Refresh the page to show new data
+                window.location.reload();
+                
+            } catch (e) {
+                alert('Test failed: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-bug"></i> Test Scraper';
+            }
+        }
     </script>
 </head>
 <body class="bg-light">
@@ -116,6 +162,9 @@ while ($row = $res->fetch_assoc()) { $runs[] = $row; }
         <div class="d-flex gap-2">
             <button id="run-btn" class="btn btn-primary" onclick="runScrape()">
                 <i class="bi bi-play-fill"></i> Run Scraping
+            </button>
+            <button class="btn btn-warning" onclick="testScraper()">
+                <i class="bi bi-bug"></i> Test Scraper
             </button>
             <button class="btn btn-success" onclick="downloadScrapedData()">
                 <i class="bi bi-download"></i> Download All Jobstreet Jobs

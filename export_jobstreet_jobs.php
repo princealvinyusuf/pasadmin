@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/access_helper.php';
-if (!current_user_can('manage_jobs')) { http_response_code(403); echo 'Forbidden'; exit; }
+if (!current_user_can('manage_jobstreet_scraping')) { http_response_code(403); echo 'Forbidden'; exit; }
 
 // Get run ID if specified
 $runId = isset($_GET['run_id']) ? intval($_GET['run_id']) : null;

@@ -25,17 +25,59 @@ $conn->query("CREATE TABLE IF NOT EXISTS jobstreet_scrape_runs (
 $conn->query("INSERT INTO jobstreet_scrape_runs (status) VALUES ('queued')");
 $runId = $conn->insert_id;
 
-// Kick off background PHP process (simple, Windows compatible using start /B)
-$php = escapeshellarg(PHP_BINARY);
-$script = escapeshellarg(__DIR__ . '/../scripts/jobstreet_worker.php');
-$cmd = "start /B {$php} {$script} " . escapeshellarg((string)$runId) . "";
+// Try to kick off background PHP process
+$php = PHP_BINARY;
+$script = __DIR__ . '/../scripts/jobstreet_worker.php';
+$runIdStr = (string)$runId;
+
+// Windows-specific execution
 if (stripos(PHP_OS_FAMILY, 'Windows') !== false) {
-    pclose(popen($cmd, 'r'));
+    // Method 1: Try using start command
+    $cmd = "start /B \"Jobstreet Scraper\" \"{$php}\" \"{$script}\" \"{$runIdStr}\"";
+    $output = [];
+    $returnVar = 0;
+    exec($cmd, $output, $returnVar);
+    
+    // Method 2: If start fails, try direct execution
+    if ($returnVar !== 0) {
+        $cmd = "\"{$php}\" \"{$script}\" \"{$runIdStr}\" > NUL 2>&1";
+        exec($cmd, $output, $returnVar);
+    }
+    
+    // Method 3: Try using wscript for background execution
+    if ($returnVar !== 0) {
+        $vbsScript = __DIR__ . '/../scripts/run_worker.vbs';
+        $vbsContent = "Set WshShell = CreateObject(\"WScript.Shell\")\n";
+        $vbsContent .= "WshShell.Run \"\\\"{$php}\\\" \\\"{$script}\\\" \\\"{$runIdStr}\\\"\", 0, false\n";
+        file_put_contents($vbsScript, $vbsContent);
+        
+        $cmd = "wscript \"{$vbsScript}\"";
+        exec($cmd, $output, $returnVar);
+        
+        // Clean up VBS file
+        @unlink($vbsScript);
+    }
 } else {
-    $cmd = "$php $script " . escapeshellarg((string)$runId) . " > /dev/null 2>&1 &";
+    // Unix/Linux execution
+    $cmd = "{$php} {$script} {$runIdStr} > /dev/null 2>&1 &";
     exec($cmd);
 }
 
-echo json_encode(['ok' => true, 'run_id' => $runId]);
+// For immediate testing, let's also run the worker directly in a separate thread
+// This ensures the scraping actually happens
+if (function_exists('fastcgi_finish_request')) {
+    fastcgi_finish_request();
+}
+
+// Run worker in background thread
+register_shutdown_function(function() use ($php, $script, $runIdStr) {
+    if (stripos(PHP_OS_FAMILY, 'Windows') !== false) {
+        pclose(popen("\"{$php}\" \"{$script}\" \"{$runIdStr}\"", 'r'));
+    } else {
+        exec("{$php} {$script} {$runIdStr} > /dev/null 2>&1 &");
+    }
+});
+
+echo json_encode(['ok' => true, 'run_id' => $runId, 'message' => 'Scraping started']);
 ?>
 

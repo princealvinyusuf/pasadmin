@@ -4,19 +4,56 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-$runId = intval($argv[1] ?? 0);
-if ($runId <= 0) { fwrite(STDERR, "Missing run id\n"); exit(1); }
+// Set unlimited execution time for scraping
+set_time_limit(0);
+ini_set('max_execution_time', 0);
 
-require_once __DIR__ . '/../db.php';
+$runId = intval($argv[1] ?? 0);
+if ($runId <= 0) { 
+    fwrite(STDERR, "Missing run id\n"); 
+    exit(1); 
+}
+
+// Log to file for debugging
+$logFile = __DIR__ . '/../logs/jobstreet_worker.log';
+$logDir = dirname($logFile);
+if (!is_dir($logDir)) {
+    mkdir($logDir, 0777, true);
+}
+
+function writeLog($message) {
+    global $logFile;
+    $timestamp = date('Y-m-d H:i:s');
+    $logMessage = "[{$timestamp}] {$message}\n";
+    file_put_contents($logFile, $logMessage, FILE_APPEND | LOCK_EX);
+    fwrite(STDERR, $logMessage);
+}
+
+writeLog("Starting Jobstreet scraping for run ID: {$runId}");
+
+try {
+    require_once __DIR__ . '/../db.php';
+    writeLog("Database connection established");
+} catch (Exception $e) {
+    writeLog("Database connection failed: " . $e->getMessage());
+    exit(1);
+}
 
 // Mark as running
-$stmt = $conn->prepare('UPDATE jobstreet_scrape_runs SET status=\'running\' WHERE id=?');
-$stmt->bind_param('i', $runId);
-$stmt->execute();
-$stmt->close();
+try {
+    $stmt = $conn->prepare('UPDATE jobstreet_scrape_runs SET status=\'running\' WHERE id=?');
+    $stmt->bind_param('i', $runId);
+    $stmt->execute();
+    $stmt->close();
+    writeLog("Updated run status to 'running'");
+} catch (Exception $e) {
+    writeLog("Failed to update status: " . $e->getMessage());
+    exit(1);
+}
 
 // Function to scrape Jobstreet
 function scrapeJobstreet($conn, $runId) {
+    global $logFile;
     $baseUrl = 'https://id.jobstreet.com/id/jobs';
     $userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
     $totalFound = 0;
@@ -32,27 +69,38 @@ function scrapeJobstreet($conn, $runId) {
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_ENCODING, 'gzip, deflate');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language: en-US,en;q=0.5',
+            'Accept-Encoding: gzip, deflate',
+            'Connection: keep-alive',
+            'Upgrade-Insecure-Requests: 1'
+        ]);
         
         // Scrape multiple pages (Jobstreet shows pagination)
-        for ($page = 1; $page <= 5; $page++) { // Limit to 5 pages for now
+        for ($page = 1; $page <= 3; $page++) { // Reduced to 3 pages for testing
             $url = $baseUrl;
             if ($page > 1) {
                 $url .= "?page=" . $page;
             }
             
             $log[] = "Scraping page $page: $url";
+            writeLog("Scraping page $page: $url");
             
             curl_setopt($ch, CURLOPT_URL, $url);
             $html = curl_exec($ch);
             
             if (!$html) {
-                $log[] = "Failed to fetch page $page: " . curl_error($ch);
+                $error = curl_error($ch);
+                $log[] = "Failed to fetch page $page: $error";
+                writeLog("Failed to fetch page $page: $error");
                 continue;
             }
             
             // Parse HTML to extract job listings
             $jobs = parseJobstreetHTML($html);
             $log[] = "Found " . count($jobs) . " jobs on page $page";
+            writeLog("Found " . count($jobs) . " jobs on page $page");
             
             // Import jobs to database
             foreach ($jobs as $job) {
@@ -75,10 +123,13 @@ function scrapeJobstreet($conn, $runId) {
         $stmt->execute();
         $stmt->close();
         
+        writeLog("Scraping completed. Found: {$totalFound}, Imported: {$totalImported}");
         return true;
         
     } catch (Exception $e) {
         $log[] = "Error: " . $e->getMessage();
+        writeLog("Error during scraping: " . $e->getMessage());
+        
         $stmt = $conn->prepare('UPDATE jobstreet_scrape_runs SET status=\'failed\', log=? WHERE id=?');
         $logText = implode("\n", $log);
         $stmt->bind_param('si', $logText, $runId);
@@ -97,62 +148,158 @@ function parseJobstreetHTML($html) {
     @$dom->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
     $xpath = new DOMXPath($dom);
     
-    // Find job listing containers
-    // Jobstreet job listings are typically in article tags or divs with specific classes
-    $jobNodes = $xpath->query('//article[contains(@class, "job")] | //div[contains(@class, "job")] | //div[contains(@class, "listing")]');
+    // Find job listing containers - try multiple selectors
+    $selectors = [
+        '//article[contains(@class, "job")]',
+        '//div[contains(@class, "job")]',
+        '//div[contains(@class, "listing")]',
+        '//div[contains(@class, "job-card")]',
+        '//div[contains(@class, "job-item")]',
+        '//div[contains(@class, "listing-item")]',
+        '//div[contains(@class, "search-result")]',
+        '//div[contains(@class, "result")]'
+    ];
     
-    if ($jobNodes->length == 0) {
-        // Try alternative selectors if the above doesn't work
-        $jobNodes = $xpath->query('//div[contains(@class, "job-card")] | //div[contains(@class, "job-item")] | //div[contains(@class, "listing-item")]');
+    $jobNodes = null;
+    foreach ($selectors as $selector) {
+        $jobNodes = $xpath->query($selector);
+        if ($jobNodes->length > 0) {
+            break;
+        }
     }
+    
+    // If still no jobs found, try to find any div that might contain job info
+    if (!$jobNodes || $jobNodes->length == 0) {
+        $jobNodes = $xpath->query('//div[contains(@class, "card") or contains(@class, "item")]');
+    }
+    
+    if (!$jobNodes || $jobNodes->length == 0) {
+        writeLog("No job nodes found with any selector. HTML length: " . strlen($html));
+        // Save HTML for debugging
+        file_put_contents(__DIR__ . '/../logs/jobstreet_debug.html', $html);
+        return [];
+    }
+    
+    writeLog("Found " . $jobNodes->length . " potential job nodes");
     
     foreach ($jobNodes as $jobNode) {
         $job = [];
         
-        // Extract job title
-        $titleNodes = $xpath->query('.//h1 | .//h2 | .//h3 | .//div[contains(@class, "title")]', $jobNode);
-        if ($titleNodes->length > 0) {
-            $job['nama_jabatan'] = trim($titleNodes->item(0)->textContent);
+        // Extract job title - try multiple selectors
+        $titleSelectors = [
+            './/h1', './/h2', './/h3', './/h4',
+            './/div[contains(@class, "title")]',
+            './/span[contains(@class, "title")]',
+            './/a[contains(@class, "title")]',
+            './/div[contains(@class, "job-title")]'
+        ];
+        
+        foreach ($titleSelectors as $selector) {
+            $titleNodes = $xpath->query($selector, $jobNode);
+            if ($titleNodes->length > 0) {
+                $job['nama_jabatan'] = trim($titleNodes->item(0)->textContent);
+                break;
+            }
         }
         
         // Extract company name
-        $companyNodes = $xpath->query('.//div[contains(@class, "company")] | .//span[contains(@class, "company")] | .//a[contains(@class, "company")]', $jobNode);
-        if ($companyNodes->length > 0) {
-            $job['nama_perusahaan'] = trim($companyNodes->item(0)->textContent);
+        $companySelectors = [
+            './/div[contains(@class, "company")]',
+            './/span[contains(@class, "company")]',
+            './/a[contains(@class, "company")]',
+            './/div[contains(@class, "employer")]'
+        ];
+        
+        foreach ($companySelectors as $selector) {
+            $companyNodes = $xpath->query($selector, $jobNode);
+            if ($companyNodes->length > 0) {
+                $job['nama_perusahaan'] = trim($companyNodes->item(0)->textContent);
+                break;
+            }
         }
         
         // Extract location
-        $locationNodes = $xpath->query('.//div[contains(@class, "location")] | .//span[contains(@class, "location")] | .//div[contains(@class, "area")]', $jobNode);
-        if ($locationNodes->length > 0) {
-            $location = trim($locationNodes->item(0)->textContent);
-            $job['provinsi'] = extractProvince($location);
-            $job['kab_kota'] = extractCity($location);
+        $locationSelectors = [
+            './/div[contains(@class, "location")]',
+            './/span[contains(@class, "location")]',
+            './/div[contains(@class, "area")]',
+            './/div[contains(@class, "region")]'
+        ];
+        
+        foreach ($locationSelectors as $selector) {
+            $locationNodes = $xpath->query($selector, $jobNode);
+            if ($locationNodes->length > 0) {
+                $location = trim($locationNodes->item(0)->textContent);
+                $job['provinsi'] = extractProvince($location);
+                $job['kab_kota'] = extractCity($location);
+                break;
+            }
         }
         
         // Extract salary
-        $salaryNodes = $xpath->query('.//div[contains(@class, "salary")] | .//span[contains(@class, "salary")] | .//div[contains(@class, "gaji")]', $jobNode);
-        if ($salaryNodes->length > 0) {
-            $salary = trim($salaryNodes->item(0)->textContent);
-            $job['gaji_minimum'] = extractMinSalary($salary);
-            $job['gaji_maksimum'] = extractMaxSalary($salary);
+        $salarySelectors = [
+            './/div[contains(@class, "salary")]',
+            './/span[contains(@class, "salary")]',
+            './/div[contains(@class, "gaji")]',
+            './/div[contains(@class, "compensation")]'
+        ];
+        
+        foreach ($salarySelectors as $selector) {
+            $salaryNodes = $xpath->query($selector, $jobNode);
+            if ($salaryNodes->length > 0) {
+                $salary = trim($salaryNodes->item(0)->textContent);
+                $job['gaji_minimum'] = extractMinSalary($salary);
+                $job['gaji_maksimum'] = extractMaxSalary($salary);
+                break;
+            }
         }
         
         // Extract job type
-        $typeNodes = $xpath->query('.//div[contains(@class, "type")] | .//span[contains(@class, "type")] | .//div[contains(@class, "employment")]', $jobNode);
-        if ($typeNodes->length > 0) {
-            $job['tipe_pekerjaan'] = trim($typeNodes->item(0)->textContent);
+        $typeSelectors = [
+            './/div[contains(@class, "type")]',
+            './/span[contains(@class, "type")]',
+            './/div[contains(@class, "employment")]',
+            './/div[contains(@class, "work-type")]'
+        ];
+        
+        foreach ($typeSelectors as $selector) {
+            $typeNodes = $xpath->query($selector, $jobNode);
+            if ($typeNodes->length > 0) {
+                $job['tipe_pekerjaan'] = trim($typeNodes->item(0)->textContent);
+                break;
+            }
         }
         
         // Extract classification
-        $classNodes = $xpath->query('.//div[contains(@class, "classification")] | .//span[contains(@class, "classification")] | .//div[contains(@class, "category")]', $jobNode);
-        if ($classNodes->length > 0) {
-            $job['bidang_industri'] = trim($classNodes->item(0)->textContent);
+        $classSelectors = [
+            './/div[contains(@class, "classification")]',
+            './/span[contains(@class, "classification")]',
+            './/div[contains(@class, "category")]',
+            './/div[contains(@class, "industry")]'
+        ];
+        
+        foreach ($classSelectors as $selector) {
+            $classNodes = $xpath->query($selector, $jobNode);
+            if ($classNodes->length > 0) {
+                $job['bidang_industri'] = trim($classNodes->item(0)->textContent);
+                break;
+            }
         }
         
         // Extract posted date
-        $dateNodes = $xpath->query('.//div[contains(@class, "date")] | .//span[contains(@class, "date")] | .//div[contains(@class, "posted")]', $jobNode);
-        if ($dateNodes->length > 0) {
-            $job['tanggal_posting'] = parsePostedDate(trim($dateNodes->item(0)->textContent));
+        $dateSelectors = [
+            './/div[contains(@class, "date")]',
+            './/span[contains(@class, "date")]',
+            './/div[contains(@class, "posted")]',
+            './/div[contains(@class, "time")]'
+        ];
+        
+        foreach ($dateSelectors as $selector) {
+            $dateNodes = $xpath->query($selector, $jobNode);
+            if ($dateNodes->length > 0) {
+                $job['tanggal_posting'] = parsePostedDate(trim($dateNodes->item(0)->textContent));
+                break;
+            }
         }
         
         // Set platform
@@ -269,8 +416,15 @@ function importJobToDatabase($conn, $job) {
 }
 
 // Run the scraping
-scrapeJobstreet($conn, $runId);
+writeLog("Starting scraping process...");
+$success = scrapeJobstreet($conn, $runId);
 
-exit(0);
+if ($success) {
+    writeLog("Scraping completed successfully");
+} else {
+    writeLog("Scraping failed");
+}
+
+exit($success ? 0 : 1);
 ?>
 
