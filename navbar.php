@@ -71,6 +71,9 @@
 					<a class="nav-link" href="extensions.php">Extensions</a>
 				</li>
 				<li class="nav-item">
+					<a class="nav-link" href="jobstreet_scrapping.php">Jobstreet Scrapping</a>
+				</li>
+				<li class="nav-item">
 					<a class="nav-link" href="logout.php"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
 				</li>
 			</ul>
