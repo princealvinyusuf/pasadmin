@@ -10,7 +10,12 @@ ini_set('max_execution_time', 0);
 
 $runId = intval($argv[1] ?? 0);
 if ($runId <= 0) { 
-    fwrite(STDERR, "Missing run id\n"); 
+    // Check if we're running from web or command line
+    if (defined('STDERR')) {
+        fwrite(STDERR, "Missing run id\n"); 
+    } else {
+        error_log("Missing run id");
+    }
     exit(1); 
 }
 
@@ -26,7 +31,14 @@ function writeLog($message) {
     $timestamp = date('Y-m-d H:i:s');
     $logMessage = "[{$timestamp}] {$message}\n";
     file_put_contents($logFile, $logMessage, FILE_APPEND | LOCK_EX);
-    fwrite(STDERR, $logMessage);
+    
+    // Output to appropriate stream
+    if (defined('STDERR')) {
+        fwrite(STDERR, $logMessage);
+    } else {
+        // For web execution, use error_log
+        error_log($logMessage);
+    }
 }
 
 writeLog("Starting Jobstreet scraping for run ID: {$runId}");

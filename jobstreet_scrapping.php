@@ -113,30 +113,7 @@ while ($row = $res->fetch_assoc()) { $runs[] = $row; }
             btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Testing...';
             
             try {
-                const res = await fetch('test_scraper.php');
-                const text = await res.text();
-                
-                // Show results in an alert
-                alert('Test Results:\n\n' + text);
-                
-                // Refresh the page to show new data
-                window.location.reload();
-                
-            } catch (e) {
-                alert('Test failed: ' + e.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-bug"></i> Test Scraper';
-            }
-        }
-        
-        async function testScraper() {
-            const btn = document.querySelector('button[onclick="testScraper()"]');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Testing...';
-            
-            try {
-                const res = await fetch('test_scraper.php');
+                const res = await fetch('simple_test_scraper.php');
                 const text = await res.text();
                 
                 // Show results in an alert
