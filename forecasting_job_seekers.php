@@ -140,13 +140,21 @@ function fetchDemographicForecast(mysqli $conn, ?string $start, ?string $end): a
 
 function fetchSkillsForecast(mysqli $conn, ?string $start, ?string $end): array {
     list($where, $types, $params) = buildDateWhere($start, $end);
+    
+    // Build the skills filter condition
+    $skillsWhere = "TRIM(IFNULL(keahlian, '')) <> ''";
+    if ($where !== '') {
+        $where .= " AND " . $skillsWhere;
+    } else {
+        $where = "WHERE " . $skillsWhere;
+    }
+    
     $sql = "SELECT 
                 keahlian,
                 COUNT(*) as count,
                 COUNT(CASE WHEN DATE(COALESCE(created_date, tanggal_daftar)) >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as recent_count
             FROM job_seekers 
             $where 
-            AND TRIM(IFNULL(keahlian, '')) <> ''
             GROUP BY keahlian
             ORDER BY count DESC
             LIMIT 20";
