@@ -211,264 +211,297 @@ if ($totalRecords > 1) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <style>
-        body { background: #f6f8fa; }
-        .card-title { font-weight: 600; }
-        .chart-card { min-height: 450px; }
-        .forecast-card { min-height: 350px; }
-        .trend-indicator {
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-        .trend-up { color: #28a745; }
-        .trend-down { color: #dc3545; }
-        .trend-stable { color: #6c757d; }
-        .forecast-badge {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-        }
-    </style>
+    	<style>
+		body { background: #f6f8fa; }
+		.card-title { font-weight: 600; font-size: 0.95rem; }
+		.chart-card { min-height: 300px; }
+		.forecast-card { min-height: 250px; }
+		.trend-indicator {
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		.trend-up { color: #28a745; }
+		.trend-down { color: #dc3545; }
+		.trend-stable { color: #6c757d; }
+		.forecast-badge {
+			font-size: 0.65rem;
+			padding: 0.2rem 0.4rem;
+		}
+		.compact-text { font-size: 0.8rem; }
+		.compact-heading { font-size: 1.1rem; }
+		.compact-card { padding: 0.75rem; }
+		.compact-table { font-size: 0.75rem; }
+		.loading-spinner {
+			display: none;
+			text-align: center;
+			padding: 2rem;
+		}
+		.chart-container { position: relative; }
+		.alert-sm { font-size: 0.8rem; }
+		.alert-sm .bi { font-size: 0.9rem; }
+	</style>
 </head>
 <body class="bg-light">
 <?php include 'navbar.php'; ?>
 <div class="container py-4">
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="mb-2 mb-md-0">
-                <i class="bi bi-graph-up-arrow me-2"></i>Forecasting Job Seekers
-            </h2>
-            <p class="text-muted mb-0">Predictive analytics and trend forecasting for job seeker data</p>
-        </div>
-        <form class="d-flex gap-2" method="get" action="forecasting_job_seekers.php">
-            <input type="date" class="form-control" name="start" value="<?php echo htmlspecialchars($start ?? ''); ?>" placeholder="Start date">
-            <input type="date" class="form-control" name="end" value="<?php echo htmlspecialchars($end ?? ''); ?>" placeholder="End date">
-            <button class="btn btn-primary" type="submit"><i class="bi bi-funnel me-1"></i>Filter</button>
-            <a class="btn btn-outline-secondary" href="forecasting_job_seekers.php">Reset</a>
-        </form>
-    </div>
+    	<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+		<div>
+			<h2 class="mb-1 mb-md-0 compact-heading">
+				<i class="bi bi-graph-up-arrow me-2"></i>Forecasting Job Seekers
+			</h2>
+			<p class="text-muted mb-0 compact-text">Predictive analytics for 5M+ job seeker records</p>
+		</div>
+		<form class="d-flex gap-2" method="get" action="forecasting_job_seekers.php">
+			<input type="date" class="form-control form-control-sm" name="start" value="<?php echo htmlspecialchars($start ?? ''); ?>" placeholder="Start date">
+			<input type="date" class="form-control form-control-sm" name="end" value="<?php echo htmlspecialchars($end ?? ''); ?>" placeholder="End date">
+			<button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-funnel me-1"></i>Filter</button>
+			<a class="btn btn-outline-secondary btn-sm" href="forecasting_job_seekers.php">Reset</a>
+		</form>
+	</div>
 
-    <!-- Forecasting Summary Cards -->
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-md-6 col-xl-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <i class="bi bi-calendar-trend text-primary" style="font-size: 2rem;"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Data Points</div>
-                            <div class="h4 mb-0"><?php echo number_format($totalRecords); ?></div>
-                            <div class="text-muted small">Available for analysis</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-md-6 col-xl-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <i class="bi bi-arrow-up-right text-success" style="font-size: 2rem;"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Daily Growth Rate</div>
-                            <div class="h4 mb-0"><?php echo number_format($avgDailyGrowth, 1); ?></div>
-                            <div class="text-muted small">Average daily increase</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-md-6 col-xl-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <i class="bi bi-graph-up text-warning" style="font-size: 2rem;"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">30-Day Projection</div>
-                            <div class="h4 mb-0"><?php echo number_format($projectedGrowth, 0); ?></div>
-                            <div class="text-muted small">Projected growth</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-md-6 col-xl-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <i class="bi bi-geo-alt text-info" style="font-size: 2rem;"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Top Regions</div>
-                            <div class="h4 mb-0"><?php echo count($regionalForecast); ?></div>
-                            <div class="text-muted small">Analyzed regions</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+	<!-- Performance Info -->
+	<div class="alert alert-info alert-sm py-2 mb-3">
+		<div class="d-flex align-items-center">
+			<i class="bi bi-info-circle me-2"></i>
+			<div class="compact-text">
+				<strong>Performance Optimized:</strong> Charts are configured for large datasets (5M+ records). 
+				Use date filters to improve loading speed.
+			</div>
+		</div>
+	</div>
 
-    <!-- Time Series Forecasting -->
-    <div class="row g-3 mb-4">
-        <div class="col-12">
-            <div class="card chart-card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        <i class="bi bi-clock-history me-2"></i>Time Series Forecasting - Daily Registrations
-                    </h5>
-                    <p class="text-muted small mb-3">Historical trends with linear regression forecasting</p>
-                    <canvas id="timeSeriesChart" height="100"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
+    	<!-- Forecasting Summary Cards -->
+	<div class="row g-2 mb-3">
+		<div class="col-12 col-md-6 col-xl-3">
+			<div class="card shadow-sm border-0 compact-card">
+				<div class="card-body p-2">
+					<div class="d-flex align-items-center">
+						<div class="flex-shrink-0">
+							<i class="bi bi-calendar-trend text-primary" style="font-size: 1.5rem;"></i>
+						</div>
+						<div class="flex-grow-1 ms-2">
+							<div class="text-muted compact-text">Data Points</div>
+							<div class="h5 mb-0"><?php echo number_format($totalRecords); ?></div>
+							<div class="text-muted compact-text">Available for analysis</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-12 col-md-6 col-xl-3">
+			<div class="card shadow-sm border-0 compact-card">
+				<div class="card-body p-2">
+					<div class="d-flex align-items-center">
+						<div class="flex-shrink-0">
+							<i class="bi bi-arrow-up-right text-success" style="font-size: 1.5rem;"></i>
+						</div>
+						<div class="flex-grow-1 ms-2">
+							<div class="text-muted compact-text">Daily Growth Rate</div>
+							<div class="h5 mb-0"><?php echo number_format($avgDailyGrowth, 1); ?></div>
+							<div class="text-muted compact-text">Average daily increase</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-12 col-md-6 col-xl-3">
+			<div class="card shadow-sm border-0 compact-card">
+				<div class="card-body p-2">
+					<div class="d-flex align-items-center">
+						<div class="flex-shrink-0">
+							<i class="bi bi-graph-up text-warning" style="font-size: 1.5rem;"></i>
+						</div>
+						<div class="flex-grow-1 ms-2">
+							<div class="text-muted compact-text">30-Day Projection</div>
+							<div class="h5 mb-0"><?php echo number_format($projectedGrowth, 0); ?></div>
+							<div class="text-muted compact-text">Projected growth</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-12 col-md-6 col-xl-3">
+			<div class="card shadow-sm border-0 compact-card">
+				<div class="card-body p-2">
+					<div class="d-flex align-items-center">
+						<div class="flex-shrink-0">
+							<i class="bi bi-geo-alt text-info" style="font-size: 1.5rem;"></i>
+						</div>
+						<div class="flex-grow-1 ms-2">
+							<div class="text-muted compact-text">Top Regions</div>
+							<div class="h5 mb-0"><?php echo count($regionalForecast); ?></div>
+							<div class="text-muted compact-text">Analyzed regions</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 
-    <!-- Monthly Trends & Regional Forecast -->
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-xl-6">
-            <div class="card chart-card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        <i class="bi bi-calendar-month me-2"></i>Monthly Trends Analysis
-                    </h5>
-                    <p class="text-muted small mb-3">Monthly registration patterns with trend indicators</p>
-                    <canvas id="monthlyTrendsChart"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-xl-6">
-            <div class="card chart-card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        <i class="bi bi-geo-alt me-2"></i>Regional Growth Forecasting
-                    </h5>
-                    <p class="text-muted small mb-3">Province-wise growth rates and projections</p>
-                    <canvas id="regionalForecastChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
+    	<!-- Time Series Forecasting -->
+	<div class="row g-2 mb-3">
+		<div class="col-12">
+			<div class="card chart-card shadow-sm">
+				<div class="card-body compact-card">
+					<h5 class="card-title mb-2">
+						<i class="bi bi-clock-history me-2"></i>Time Series Forecasting - Daily Registrations
+					</h5>
+					<p class="text-muted compact-text mb-2">Historical trends with linear regression forecasting</p>
+					<div class="chart-container">
+						<canvas id="timeSeriesChart"></canvas>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 
-    <!-- Demographic & Skills Forecasting -->
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-xl-6">
-            <div class="card chart-card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        <i class="bi bi-people me-2"></i>Demographic Trends Forecast
-                    </h5>
-                    <p class="text-muted small mb-3">Age group and gender-based growth patterns</p>
-                    <canvas id="demographicForecastChart"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-xl-6">
-            <div class="card chart-card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        <i class="bi bi-lightning me-2"></i>Skills Demand Forecasting
-                    </h5>
-                    <p class="text-muted small mb-3">Emerging skills trends and demand prediction</p>
-                    <canvas id="skillsForecastChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
+    	<!-- Monthly Trends & Regional Forecast -->
+	<div class="row g-2 mb-3">
+		<div class="col-12 col-xl-6">
+			<div class="card chart-card shadow-sm">
+				<div class="card-body compact-card">
+					<h5 class="card-title mb-2">
+						<i class="bi bi-calendar-month me-2"></i>Monthly Trends Analysis
+					</h5>
+					<p class="text-muted compact-text mb-2">Monthly registration patterns with trend indicators</p>
+					<div class="chart-container">
+						<canvas id="monthlyTrendsChart"></canvas>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-12 col-xl-6">
+			<div class="card chart-card shadow-sm">
+				<div class="card-body compact-card">
+					<h5 class="card-title mb-2">
+						<i class="bi bi-geo-alt me-2"></i>Regional Growth Forecasting
+					</h5>
+					<p class="text-muted compact-text mb-2">Province-wise growth rates and projections</p>
+					<div class="chart-container">
+						<canvas id="regionalForecastChart"></canvas>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 
-    <!-- Detailed Forecast Tables -->
-    <div class="row g-3">
-        <div class="col-12 col-xl-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h6 class="card-title mb-0">
-                        <i class="bi bi-table me-2"></i>Regional Growth Forecast Details
-                    </h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Province</th>
-                                    <th>Current</th>
-                                    <th>Recent</th>
-                                    <th>Growth %</th>
-                                    <th>Trend</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach (array_slice($regionalForecast, 0, 10) as $region): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($region['provinsi']); ?></td>
-                                    <td><?php echo number_format($region['current_count']); ?></td>
-                                    <td><?php echo number_format($region['recent_count']); ?></td>
-                                    <td><?php echo $region['growth_rate']; ?>%</td>
-                                    <td>
-                                        <?php if ($region['growth_rate'] > 5): ?>
-                                            <span class="badge bg-success forecast-badge">↑ Growing</span>
-                                        <?php elseif ($region['growth_rate'] < -5): ?>
-                                            <span class="badge bg-danger forecast-badge">↓ Declining</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-secondary forecast-badge">→ Stable</span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-xl-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h6 class="card-title mb-0">
-                        <i class="bi bi-list-check me-2"></i>Top Skills Demand Forecast
-                    </h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Skill</th>
-                                    <th>Total</th>
-                                    <th>Recent</th>
-                                    <th>Demand Trend</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach (array_slice($skillsForecast, 0, 10) as $skill): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($skill['skill']); ?></td>
-                                    <td><?php echo number_format($skill['count']); ?></td>
-                                    <td><?php echo number_format($skill['recent_count']); ?></td>
-                                    <td>
-                                        <?php if ($skill['demand_trend'] > 10): ?>
-                                            <span class="badge bg-success forecast-badge">🔥 High Demand</span>
-                                        <?php elseif ($skill['demand_trend'] > 5): ?>
-                                            <span class="badge bg-warning forecast-badge">📈 Growing</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-secondary forecast-badge">→ Stable</span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    	<!-- Demographic & Skills Forecasting -->
+	<div class="row g-2 mb-3">
+		<div class="col-12 col-xl-6">
+			<div class="card chart-card shadow-sm">
+				<div class="card-body compact-card">
+					<h5 class="card-title mb-2">
+						<i class="bi bi-people me-2"></i>Demographic Trends Forecast
+					</h5>
+					<p class="text-muted compact-text mb-2">Age group and gender-based growth patterns</p>
+					<div class="chart-container">
+						<canvas id="demographicForecastChart"></canvas>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-12 col-xl-6">
+			<div class="card chart-card shadow-sm">
+				<div class="card-body compact-card">
+					<h5 class="card-title mb-2">
+						<i class="bi bi-lightning me-2"></i>Skills Demand Forecasting
+					</h5>
+					<p class="text-muted compact-text mb-2">Emerging skills trends and demand prediction</p>
+					<div class="chart-container">
+						<canvas id="skillsForecastChart"></canvas>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+    	<!-- Detailed Forecast Tables -->
+	<div class="row g-2">
+		<div class="col-12 col-xl-6">
+			<div class="card shadow-sm">
+				<div class="card-header bg-light py-2">
+					<h6 class="card-title mb-0 compact-text">
+						<i class="bi bi-table me-2"></i>Regional Growth Forecast Details
+					</h6>
+				</div>
+				<div class="card-body p-0">
+					<div class="table-responsive">
+						<table class="table table-sm mb-0 compact-table">
+							<thead class="table-light">
+								<tr>
+									<th class="py-1">Province</th>
+									<th class="py-1">Current</th>
+									<th class="py-1">Recent</th>
+									<th class="py-1">Growth %</th>
+									<th class="py-1">Trend</th>
+								</tr>
+							</thead>
+							<tbody>
+								<?php foreach (array_slice($regionalForecast, 0, 8) as $region): ?>
+								<tr>
+									<td class="py-1"><?php echo htmlspecialchars($region['provinsi']); ?></td>
+									<td class="py-1"><?php echo number_format($region['current_count']); ?></td>
+									<td class="py-1"><?php echo number_format($region['recent_count']); ?></td>
+									<td class="py-1"><?php echo $region['growth_rate']; ?>%</td>
+									<td class="py-1">
+										<?php if ($region['growth_rate'] > 5): ?>
+											<span class="badge bg-success forecast-badge">↑ Growing</span>
+										<?php elseif ($region['growth_rate'] < -5): ?>
+											<span class="badge bg-danger forecast-badge">↓ Declining</span>
+										<?php else: ?>
+											<span class="badge bg-secondary forecast-badge">→ Stable</span>
+										<?php endif; ?>
+									</td>
+								</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-12 col-xl-6">
+			<div class="card shadow-sm">
+				<div class="card-header bg-light py-2">
+					<h6 class="card-title mb-0 compact-text">
+						<i class="bi bi-list-check me-2"></i>Top Skills Demand Forecast
+					</h6>
+				</div>
+				<div class="card-body p-0">
+					<div class="table-responsive">
+						<table class="table table-sm mb-0 compact-table">
+							<thead class="table-light">
+								<tr>
+									<th class="py-1">Skill</th>
+									<th class="py-1">Total</th>
+									<th class="py-1">Recent</th>
+									<th class="py-1">Demand Trend</th>
+								</tr>
+							</thead>
+							<tbody>
+								<?php foreach (array_slice($skillsForecast, 0, 8) as $skill): ?>
+								<tr>
+									<td class="py-1"><?php echo htmlspecialchars($skill['skill']); ?></td>
+									<td class="py-1"><?php echo number_format($skill['count']); ?></td>
+									<td class="py-1"><?php echo number_format($skill['recent_count']); ?></td>
+									<td class="py-1">
+										<?php if ($skill['demand_trend'] > 10): ?>
+											<span class="badge bg-success forecast-badge">🔥 High Demand</span>
+										<?php elseif ($skill['demand_trend'] > 5): ?>
+											<span class="badge bg-warning forecast-badge">📈 Growing</span>
+										<?php else: ?>
+											<span class="badge bg-secondary forecast-badge">→ Stable</span>
+										<?php endif; ?>
+									</td>
+								</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
 
 <script>
@@ -530,31 +563,55 @@ new Chart(timeSeriesCtx, {
         maintainAspectRatio: false,
         plugins: {
             title: {
-                display: true,
-                text: 'Daily Registration Trends with 30-Day Forecast'
+                display: false
             },
             tooltip: {
                 mode: 'index',
                 intersect: false,
+                backgroundColor: 'rgba(0,0,0,0.8)',
+                titleFont: { size: 12 },
+                bodyFont: { size: 11 }
+            },
+            legend: {
+                labels: {
+                    font: { size: 11 },
+                    usePointStyle: true
+                }
             }
         },
         scales: {
             x: {
                 type: 'time',
                 time: {
-                    unit: 'day'
+                    unit: 'day',
+                    displayFormats: {
+                        day: 'MMM dd'
+                    }
                 },
                 title: {
-                    display: true,
-                    text: 'Date'
+                    display: false
+                },
+                ticks: {
+                    font: { size: 10 },
+                    maxTicksLimit: 8
                 }
             },
             y: {
                 title: {
-                    display: true,
-                    text: 'Number of Registrations'
+                    display: false
+                },
+                ticks: {
+                    font: { size: 10 },
+                    callback: function(value) {
+                        return value >= 1000 ? (value/1000).toFixed(1) + 'K' : value;
+                    }
                 }
             }
+        },
+        interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
         }
     }
 });
@@ -580,16 +637,29 @@ new Chart(monthlyCtx, {
         maintainAspectRatio: false,
         plugins: {
             title: {
-                display: true,
-                text: 'Monthly Registration Patterns'
+                display: false
+            },
+            legend: {
+                display: false
             }
         },
         scales: {
+            x: {
+                ticks: {
+                    font: { size: 10 },
+                    maxTicksLimit: 6
+                }
+            },
             y: {
                 beginAtZero: true,
                 title: {
-                    display: true,
-                    text: 'Registrations'
+                    display: false
+                },
+                ticks: {
+                    font: { size: 10 },
+                    callback: function(value) {
+                        return value >= 1000 ? (value/1000).toFixed(1) + 'K' : value;
+                    }
                 }
             }
         }
@@ -623,16 +693,32 @@ new Chart(regionalCtx, {
         maintainAspectRatio: false,
         plugins: {
             title: {
-                display: true,
-                text: 'Regional Growth Comparison'
+                display: false
+            },
+            legend: {
+                labels: {
+                    font: { size: 10 },
+                    usePointStyle: true
+                }
             }
         },
         scales: {
+            x: {
+                ticks: {
+                    font: { size: 9 },
+                    maxTicksLimit: 8
+                }
+            },
             y: {
                 beginAtZero: true,
                 title: {
-                    display: true,
-                    text: 'Number of Job Seekers'
+                    display: false
+                },
+                ticks: {
+                    font: { size: 10 },
+                    callback: function(value) {
+                        return value >= 1000 ? (value/1000).toFixed(1) + 'K' : value;
+                    }
                 }
             }
         }
@@ -679,16 +765,32 @@ new Chart(demographicCtx, {
         maintainAspectRatio: false,
         plugins: {
             title: {
-                display: true,
-                text: 'Demographic Distribution by Age & Gender'
+                display: false
+            },
+            legend: {
+                labels: {
+                    font: { size: 10 },
+                    usePointStyle: true
+                }
             }
         },
         scales: {
+            x: {
+                ticks: {
+                    font: { size: 9 },
+                    maxTicksLimit: 6
+                }
+            },
             y: {
                 beginAtZero: true,
                 title: {
-                    display: true,
-                    text: 'Number of Job Seekers'
+                    display: false
+                },
+                ticks: {
+                    font: { size: 10 },
+                    callback: function(value) {
+                        return value >= 1000 ? (value/1000).toFixed(1) + 'K' : value;
+                    }
                 }
             }
         }
@@ -723,16 +825,32 @@ new Chart(skillsCtx, {
         maintainAspectRatio: false,
         plugins: {
             title: {
-                display: true,
-                text: 'Skills Demand Analysis'
+                display: false
+            },
+            legend: {
+                labels: {
+                    font: { size: 10 },
+                    usePointStyle: true
+                }
             }
         },
         scales: {
             x: {
                 beginAtZero: true,
                 title: {
-                    display: true,
-                    text: 'Number of Job Seekers'
+                    display: false
+                },
+                ticks: {
+                    font: { size: 10 },
+                    callback: function(value) {
+                        return value >= 1000 ? (value/1000).toFixed(1) + 'K' : value;
+                    }
+                }
+            },
+            y: {
+                ticks: {
+                    font: { size: 9 },
+                    maxTicksLimit: 8
                 }
             }
         }
