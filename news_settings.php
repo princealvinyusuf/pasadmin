@@ -20,6 +20,40 @@ if (!file_exists($upload_dir)) {
     mkdir($upload_dir, 0755, true);
 }
 
+// Helper function to get correct image URL for display
+function getImageDisplayUrl($image_path) {
+    if (empty($image_path)) return '';
+    
+    // If it's already an absolute path starting with /public, return as is
+    if (strpos($image_path, '/public/') === 0) {
+        return $image_path;
+    }
+    
+    // If it's a relative path like 'images/contents/filename.jpg', convert to absolute
+    if (strpos($image_path, 'images/contents/') === 0) {
+        return '/public/' . $image_path;
+    }
+    
+    return $image_path;
+}
+
+// Helper function to get correct file path for deletion
+function getImageFilePath($image_path) {
+    if (empty($image_path)) return '';
+    
+    // If it's already an absolute path starting with /public, return as is
+    if (strpos($image_path, '/public/') === 0) {
+        return $image_path;
+    }
+    
+    // If it's a relative path like 'images/contents/filename.jpg', convert to absolute
+    if (strpos($image_path, 'images/contents/') === 0) {
+        return '/public/' . $image_path;
+    }
+    
+    return $image_path;
+}
+
 // Handle Create
 if (isset($_POST['add'])) {
     $title = $_POST['title'];
@@ -84,8 +118,8 @@ if (isset($_POST['update'])) {
             
             if (move_uploaded_file($_FILES['image']['tmp_name'], $image_path)) {
                 // Delete old image if it exists
-                if ($current_image && file_exists($current_image)) {
-                    unlink($current_image);
+                if ($current_image && file_exists(getImageFilePath($current_image))) {
+                    unlink(getImageFilePath($current_image));
                 }
             } else {
                 $image_path = $current_image;
@@ -110,8 +144,8 @@ if (isset($_GET['delete'])) {
     if ($row = $result->fetch_assoc()) {
         $image_path = $row['image_url'];
         // Delete image file if it exists
-        if ($image_path && file_exists($image_path)) {
-            unlink($image_path);
+        if ($image_path && file_exists(getImageFilePath($image_path))) {
+            unlink(getImageFilePath($image_path));
         }
     }
     
@@ -299,8 +333,8 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
                 <?php if ($edit_news && $edit_news['image_url']): ?>
                     <div class="current-image">
                         <strong>Current Image:</strong><br>
-                        <img src="<?php echo htmlspecialchars($edit_news['image_url']); ?>" alt="Current image">
-                        <small><?php echo htmlspecialchars($edit_news['image_url']); ?></small>
+                        <img src="<?php echo htmlspecialchars(getImageDisplayUrl($edit_news['image_url'])); ?>" alt="Current image">
+                        <small><?php echo htmlspecialchars(getImageDisplayUrl($edit_news['image_url'])); ?></small>
                     </div>
                 <?php endif; ?>
                 <small class="text-muted">Leave empty to keep current image (when editing)</small>
@@ -336,8 +370,8 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
                 <td><?php echo nl2br(htmlspecialchars($row['content'])); ?></td>
                 <td>
                     <?php if ($row['image_url']): ?>
-                        <img src="<?php echo htmlspecialchars($row['image_url']); ?>" alt="News image" class="news-image">
-                        <br><small><?php echo htmlspecialchars($row['image_url']); ?></small>
+                        <img src="<?php echo htmlspecialchars(getImageDisplayUrl($row['image_url'])); ?>" alt="News image" class="news-image">
+                        <br><small><?php echo htmlspecialchars(getImageDisplayUrl($row['image_url'])); ?></small>
                     <?php else: ?>
                         <span class="text-muted">No image</span>
                     <?php endif; ?>
