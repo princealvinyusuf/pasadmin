@@ -71,6 +71,7 @@
                         <li><a class="dropdown-item" href="broadcast.php">Broadcast</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="database_contact.php">Database Contact</a></li>
+                        <li><a class="dropdown-item" href="karirhub_ads_settings.php">KarirHub Ads Settings</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="cron_settings.php">Other Settings</a></li>
                     </ul>
