@@ -77,6 +77,9 @@
                     </ul>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="backup.php">Backup</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="extensions.php">Extensions</a>
                 </li>
                 <li class="nav-item">

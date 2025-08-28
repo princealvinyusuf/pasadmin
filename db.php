@@ -6,13 +6,13 @@ if (function_exists('mysqli_report')) {
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 }
 
-$host = 'localhost';
-$user = 'root';
-$pass = '';
-$db = 'job_admin_prod';
+define('DB_HOST', 'localhost');
+define('DB_USER', 'root');
+define('DB_PASS', '');
+define('DB_NAME', 'job_admin_prod');
  
 try {
-    $conn = new mysqli($host, $user, $pass, $db);
+    $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 } catch (Throwable $e) {
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
