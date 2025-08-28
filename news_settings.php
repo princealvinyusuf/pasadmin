@@ -15,7 +15,7 @@ if ($conn->connect_error) {
 }
 
 // Create images directory if it doesn't exist
-$upload_dir = 'images/contents/';
+$upload_dir = '/public/images/contents/';
 if (!file_exists($upload_dir)) {
     mkdir($upload_dir, 0755, true);
 }
