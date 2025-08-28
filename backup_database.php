@@ -22,7 +22,7 @@ $filename = 'backup_' . date('Y-m-d_H-i-s') . '.sql';
 $filepath = $backup_dir . $filename;
 
 $command = sprintf(
-    'mysqldump --host=%s --user=%s --password=%s %s > %s',
+    'mysqldump --host=%s --user=%s --password=%s %s > %s 2>&1',
     escapeshellarg($host),
     escapeshellarg($user),
     escapeshellarg($pass),
