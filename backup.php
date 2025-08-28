@@ -1,9 +1,9 @@
 <?php
 session_start();
-if (!isset($_SESSION['loggedin'])) {
-    header('Location: login.php');
-    exit;
-}
+// if (!isset($_SESSION['loggedin'])) {
+//     header('Location: login.php');
+//     exit;
+// }
 require_once 'db.php'; // Include your database connection file
 // require_once 'access_control.php'; // For access control
 
