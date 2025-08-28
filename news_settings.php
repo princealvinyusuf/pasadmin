@@ -15,8 +15,8 @@ if ($conn->connect_error) {
 }
 
 // Create images directory if it doesn't exist
-$upload_base_dir = $_SERVER['DOCUMENT_ROOT'] . '/public/images/contents/';
-$db_image_path_prefix = '/images/contents/';
+$upload_base_dir = $_SERVER['DOCUMENT_ROOT'] . '/paskerid/public/images/contents/';
+$db_image_path_prefix = 'images/contents/';
 
 if (!file_exists($upload_base_dir)) {
     if (!mkdir($upload_base_dir, 0755, true)) {
@@ -28,25 +28,26 @@ if (!file_exists($upload_base_dir)) {
 function getImageDisplayUrl($image_path) {
     if (empty($image_path)) return '';
     
-    // If it's already an absolute path starting with /public, return as is
-    if (strpos($image_path, '/public/') === 0) {
+    // If the path is already absolute and starts with /paskerid/public/, use it as is
+    if (strpos($image_path, '/paskerid/public/') === 0) {
         return $image_path;
     }
     
-    // If it's in the format /images/contents/filename.jpg, prepend /public for web access
-    if (strpos($image_path, '/images/contents/') === 0) {
-        return '/public' . $image_path;
+    // If it's in the format images/contents/filename.jpg (from DB), prepend /paskerid/public/
+    if (strpos($image_path, 'images/contents/') === 0) {
+        return '/paskerid/public/' . $image_path;
     }
     
     return $image_path;
 }
 
-// Helper function to get correct file system path for deletion
+// Helper function to get correct file system path for deletion or access
 function getImageFilePath($image_path) {
     if (empty($image_path)) return '';
     
-    // Construct the full file system path
-    return $_SERVER['DOCUMENT_ROOT'] . '/public' . $image_path;
+    // If the image_path from DB is like 'images/contents/filename.jpg'
+    // prepend DOCUMENT_ROOT and the application base path
+    return $_SERVER['DOCUMENT_ROOT'] . '/paskerid/public/' . $image_path;
 }
 
 // Handle Create
