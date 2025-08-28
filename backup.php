@@ -5,10 +5,10 @@ if (!isset($_SESSION['loggedin'])) {
     exit;
 }
 require_once 'db.php'; // Include your database connection file
-require_once 'access_control.php'; // For access control
+// require_once 'access_control.php'; // For access control
 
-$user_role = $_SESSION['role'];
-checkAccess($user_role, 'Backup'); // Assuming 'Backup' is the new access level
+// $user_role = $_SESSION['role'];
+// checkAccess($user_role, 'Backup'); // Assuming 'Backup' is the new access level
 ?>
 <!DOCTYPE html>
 <html lang="en">
