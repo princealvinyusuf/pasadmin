@@ -95,7 +95,11 @@ require_once 'db.php'; // Include your database connection file
                         if (response.success) {
                             $('#backupStatus').html('<div class="alert alert-success" role="alert">' + response.message + ' <a href="' + response.filePath + '" class="alert-link">Download Backup</a></div>');
                         } else {
-                            $('#backupStatus').html('<div class="alert alert-danger" role="alert">Error: ' + response.message + '</div>');
+                            let errorMessage = response.message;
+                            if (response.details) {
+                                errorMessage += '<pre class="text-start mt-2">' + response.details + '</pre>';
+                            }
+                            $('#backupStatus').html('<div class="alert alert-danger" role="alert">Error: ' + errorMessage + '</div>');
                         }
                     },
                     error: function() {
