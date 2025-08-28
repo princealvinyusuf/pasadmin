@@ -131,6 +131,8 @@ if (isset($_POST['update'])) {
                 if ($current_image && file_exists(getImageFilePath($current_image))) {
                     unlink(getImageFilePath($current_image));
                 }
+                // Store the path without /public/ in database
+                $image_path = '/images/contents/' . $filename;
             } else {
                 $image_path = $current_image;
             }
