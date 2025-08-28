@@ -13,6 +13,25 @@ $user = DB_USER;
 $pass = DB_PASS;
 $db_name = "paskerid_db_prod"; // The database to backup
 
+// Check if mysqldump is available
+$mysqldump_path = '';
+$paths = ['mysqldump', '/usr/bin/mysqldump', '/usr/local/bin/mysqldump', '/opt/lampp/bin/mysqldump'];
+foreach ($paths as $path) {
+    if (shell_exec("which $path 2>/dev/null")) {
+        $mysqldump_path = $path;
+        break;
+    }
+}
+
+if (empty($mysqldump_path)) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'mysqldump command not found. Please ensure MySQL is installed and mysqldump is in your PATH.',
+        'details' => 'Available paths checked: ' . implode(', ', $paths)
+    ]);
+    exit;
+}
+
 $backup_dir = __DIR__ . '/backups/';
 if (!is_dir($backup_dir)) {
     mkdir($backup_dir, 0777, true);
@@ -22,7 +41,8 @@ $filename = 'backup_' . date('Y-m-d_H-i-s') . '.sql';
 $filepath = $backup_dir . $filename;
 
 $command = sprintf(
-    'mysqldump --host=%s --user=%s --password=%s %s > %s 2>&1',
+    '%s --host=%s --user=%s --password=%s %s > %s 2>&1',
+    $mysqldump_path,
     escapeshellarg($host),
     escapeshellarg($user),
     escapeshellarg($pass),
