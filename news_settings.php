@@ -76,6 +76,8 @@ if (isset($_POST['add'])) {
             
             if (move_uploaded_file($_FILES['image']['tmp_name'], $target_file_system_path)) {
                 error_log("File uploaded successfully to: " . $target_file_system_path);
+                // Correctly set the path for database storage
+                $image_path_for_db = $db_image_path_prefix . $filename; 
             } else {
                 error_log("Failed to move uploaded file. Error: " . error_get_last()['message']);
                 $image_path_for_db = ''; // Reset if upload fails
