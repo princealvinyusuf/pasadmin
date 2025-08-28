@@ -15,9 +15,13 @@ if ($conn->connect_error) {
 }
 
 // Create images directory if it doesn't exist
-$upload_dir = '/public/images/contents/';
-if (!file_exists($upload_dir)) {
-    mkdir($upload_dir, 0755, true);
+$upload_base_dir = $_SERVER['DOCUMENT_ROOT'] . '/public/images/contents/';
+$db_image_path_prefix = '/images/contents/';
+
+if (!file_exists($upload_base_dir)) {
+    if (!mkdir($upload_base_dir, 0755, true)) {
+        error_log("Failed to create upload directory: " . $upload_base_dir);
+    }
 }
 
 // Helper function to get correct image URL for display
@@ -29,12 +33,7 @@ function getImageDisplayUrl($image_path) {
         return $image_path;
     }
     
-    // If it's a relative path like 'images/contents/filename.jpg', convert to absolute
-    if (strpos($image_path, 'images/contents/') === 0) {
-        return '/public/' . $image_path;
-    }
-    
-    // If it's already in the format /images/contents/filename.jpg, convert to absolute
+    // If it's in the format /images/contents/filename.jpg, prepend /public for web access
     if (strpos($image_path, '/images/contents/') === 0) {
         return '/public' . $image_path;
     }
@@ -42,26 +41,12 @@ function getImageDisplayUrl($image_path) {
     return $image_path;
 }
 
-// Helper function to get correct file path for deletion
+// Helper function to get correct file system path for deletion
 function getImageFilePath($image_path) {
     if (empty($image_path)) return '';
     
-    // If it's already an absolute path starting with /public, return as is
-    if (strpos($image_path, '/public/') === 0) {
-        return $image_path;
-    }
-    
-    // If it's a relative path like 'images/contents/filename.jpg', convert to absolute
-    if (strpos($image_path, 'images/contents/') === 0) {
-        return '/public/' . $image_path;
-    }
-    
-    // If it's in the format /images/contents/filename.jpg, convert to absolute
-    if (strpos($image_path, '/images/contents/') === 0) {
-        return '/public' . $image_path;
-    }
-    
-    return $image_path;
+    // Construct the full file system path
+    return $_SERVER['DOCUMENT_ROOT'] . '/public' . $image_path;
 }
 
 // Handle Create
@@ -71,7 +56,9 @@ if (isset($_POST['add'])) {
     $date = $_POST['date'];
     $author = $_POST['author'];
     
-    $image_path = '';
+    $image_path_for_db = ''; // Path to store in DB
+    $target_file_system_path = ''; // Path for file system operations
+
     if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
         $file_info = pathinfo($_FILES['image']['name']);
         $extension = strtolower($file_info['extension']);
@@ -81,19 +68,38 @@ if (isset($_POST['add'])) {
         if (in_array($extension, $allowed_extensions)) {
             // Generate unique filename
             $filename = uniqid() . '_' . time() . '.' . $extension;
-            $image_path = $upload_dir . $filename;
+            $target_file_system_path = $upload_base_dir . $filename;
+            $image_path_for_db = $db_image_path_prefix . $filename;
+
+            error_log("Attempting to upload file: " . $_FILES['image']['tmp_name'] . " to " . $target_file_system_path);
             
-            if (move_uploaded_file($_FILES['image']['tmp_name'], $image_path)) {
-                // File uploaded successfully
+            if (move_uploaded_file($_FILES['image']['tmp_name'], $target_file_system_path)) {
+                error_log("File uploaded successfully to: " . $target_file_system_path);
             } else {
-                $image_path = '';
+                error_log("Failed to move uploaded file. Error: " . error_get_last()['message']);
+                $image_path_for_db = ''; // Reset if upload fails
             }
+        } else {
+            error_log("Invalid file extension: " . $extension);
         }
+    } else if (isset($_FILES['image'])) {
+        error_log("File upload error: " . $_FILES['image']['error']);
     }
     
     $stmt = $conn->prepare("INSERT INTO news (title, content, image_url, date, author) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssss", $title, $content, $image_path, $date, $author);
-    $stmt->execute();
+    $stmt->bind_param("sssss", $title, $content, $image_path_for_db, $date, $author);
+    
+    // Debug database insertion
+    error_log("Inserting into database - Title: " . $title);
+    error_log("Inserting into database - Image path: " . $image_path_for_db);
+    
+    $result = $stmt->execute();
+    if (!$result) {
+        error_log("Database insert failed: " . $stmt->error);
+    } else {
+        error_log("Database insert successful. Affected rows: " . $stmt->affected_rows);
+    }
+    
     $stmt->close();
     header("Location: news_settings.php");
     exit();
@@ -107,14 +113,16 @@ if (isset($_POST['update'])) {
     $date = $_POST['date'];
     $author = $_POST['author'];
     
-    // Get current image path
-    $current_image = '';
+    // Get current image path from DB
+    $current_image_db_path = '';
     $result = $conn->query("SELECT image_url FROM news WHERE id=$id");
     if ($row = $result->fetch_assoc()) {
-        $current_image = $row['image_url'];
+        $current_image_db_path = $row['image_url'];
     }
     
-    $image_path = $current_image;
+    $image_path_for_db = $current_image_db_path; // Default to current image
+    $target_file_system_path = ''; // Path for file system operations
+
     if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
         $file_info = pathinfo($_FILES['image']['name']);
         $extension = strtolower($file_info['extension']);
@@ -124,24 +132,42 @@ if (isset($_POST['update'])) {
         if (in_array($extension, $allowed_extensions)) {
             // Generate unique filename
             $filename = uniqid() . '_' . time() . '.' . $extension;
-            $image_path = $upload_dir . $filename;
+            $target_file_system_path = $upload_base_dir . $filename;
+            $image_path_for_db = $db_image_path_prefix . $filename;
+
+            error_log("Attempting to update file: " . $_FILES['image']['tmp_name'] . " to " . $target_file_system_path);
             
-            if (move_uploaded_file($_FILES['image']['tmp_name'], $image_path)) {
-                // Delete old image if it exists
-                if ($current_image && file_exists(getImageFilePath($current_image))) {
-                    unlink(getImageFilePath($current_image));
+            if (move_uploaded_file($_FILES['image']['tmp_name'], $target_file_system_path)) {
+                error_log("New file uploaded successfully to: " . $target_file_system_path);
+                // Delete old image if it exists and a new one was uploaded
+                if ($current_image_db_path && file_exists(getImageFilePath($current_image_db_path))) {
+                    error_log("Deleting old image: " . getImageFilePath($current_image_db_path));
+                    unlink(getImageFilePath($current_image_db_path));
                 }
-                // Store the path without /public/ in database
-                $image_path = '/images/contents/' . $filename;
             } else {
-                $image_path = $current_image;
+                error_log("Failed to move uploaded file during update. Error: " . error_get_last()['message']);
+                $image_path_for_db = $current_image_db_path; // Keep old image path if new upload fails
             }
+        } else {
+            error_log("Invalid file extension during update: " . $extension);
         }
+    } else if (isset($_FILES['image']) && $_FILES['image']['error'] != UPLOAD_ERR_NO_FILE) {
+        error_log("File upload error during update: " . $_FILES['image']['error']);
     }
     
     $stmt = $conn->prepare("UPDATE news SET title=?, content=?, image_url=?, date=?, author=? WHERE id=?");
-    $stmt->bind_param("sssssi", $title, $content, $image_path, $date, $author, $id);
-    $stmt->execute();
+    $stmt->bind_param("sssssi", $title, $content, $image_path_for_db, $date, $author, $id);
+    
+    // Debug database update
+    error_log("Updating database - ID: " . $id . ", Image path: " . $image_path_for_db);
+    
+    $result = $stmt->execute();
+    if (!$result) {
+        error_log("Database update failed: " . $stmt->error);
+    } else {
+        error_log("Database update successful. Affected rows: " . $stmt->affected_rows);
+    }
+    
     $stmt->close();
     header("Location: news_settings.php");
     exit();
@@ -154,16 +180,29 @@ if (isset($_GET['delete'])) {
     // Get image path before deleting
     $result = $conn->query("SELECT image_url FROM news WHERE id=$id");
     if ($row = $result->fetch_assoc()) {
-        $image_path = $row['image_url'];
+        $image_path_for_db = $row['image_url'];
         // Delete image file if it exists
-        if ($image_path && file_exists(getImageFilePath($image_path))) {
-            unlink(getImageFilePath($image_path));
+        if ($image_path_for_db && file_exists(getImageFilePath($image_path_for_db))) {
+            error_log("Deleting image file: " . getImageFilePath($image_path_for_db));
+            unlink(getImageFilePath($image_path_for_db));
+        } else {
+            error_log("Image file not found for deletion or path is empty: " . $image_path_for_db);
         }
     }
     
     $stmt = $conn->prepare("DELETE FROM news WHERE id=?");
     $stmt->bind_param("i", $id);
-    $stmt->execute();
+    
+    // Debug database delete
+    error_log("Deleting from database - ID: " . $id);
+    
+    $result = $stmt->execute();
+    if (!$result) {
+        error_log("Database delete failed: " . $stmt->error);
+    } else {
+        error_log("Database delete successful. Affected rows: " . $stmt->affected_rows);
+    }
+    
     $stmt->close();
     header("Location: news_settings.php");
     exit();
