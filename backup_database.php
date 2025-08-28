@@ -11,7 +11,7 @@ require_once 'db.php'; // Include your database connection file for DB credentia
 $host = DB_HOST;
 $user = DB_USER;
 $pass = DB_PASS;
-$db_name = "job_admin_prod"; // The database to backup
+$db_name = "paskerid_db_prod"; // The database to backup
 
 $backup_dir = __DIR__ . '/backups/';
 if (!is_dir($backup_dir)) {
