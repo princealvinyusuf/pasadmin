@@ -22,13 +22,13 @@ require_once 'db.php'; // Include your database connection file
         /* body {
             background-color: #f8f9fa;
         } */
-        .container {
+        /* .container {
             margin-top: 50px;
             background-color: #ffffff;
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
+        } */
         h2 {
             color: #343a40;
             margin-bottom: 20px;
