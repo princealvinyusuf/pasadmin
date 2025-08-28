@@ -34,6 +34,11 @@ function getImageDisplayUrl($image_path) {
         return '/public/' . $image_path;
     }
     
+    // If it's already in the format /images/contents/filename.jpg, convert to absolute
+    if (strpos($image_path, '/images/contents/') === 0) {
+        return '/public' . $image_path;
+    }
+    
     return $image_path;
 }
 
@@ -49,6 +54,11 @@ function getImageFilePath($image_path) {
     // If it's a relative path like 'images/contents/filename.jpg', convert to absolute
     if (strpos($image_path, 'images/contents/') === 0) {
         return '/public/' . $image_path;
+    }
+    
+    // If it's in the format /images/contents/filename.jpg, convert to absolute
+    if (strpos($image_path, '/images/contents/') === 0) {
+        return '/public' . $image_path;
     }
     
     return $image_path;
@@ -334,7 +344,7 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
                     <div class="current-image">
                         <strong>Current Image:</strong><br>
                         <img src="<?php echo htmlspecialchars(getImageDisplayUrl($edit_news['image_url'])); ?>" alt="Current image">
-                        <small><?php echo htmlspecialchars(getImageDisplayUrl($edit_news['image_url'])); ?></small>
+                        <small><?php echo htmlspecialchars($edit_news['image_url']); ?></small>
                     </div>
                 <?php endif; ?>
                 <small class="text-muted">Leave empty to keep current image (when editing)</small>
@@ -371,7 +381,7 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
                 <td>
                     <?php if ($row['image_url']): ?>
                         <img src="<?php echo htmlspecialchars(getImageDisplayUrl($row['image_url'])); ?>" alt="News image" class="news-image">
-                        <br><small><?php echo htmlspecialchars(getImageDisplayUrl($row['image_url'])); ?></small>
+                        <br><small><?php echo htmlspecialchars($row['image_url']); ?></small>
                     <?php else: ?>
                         <span class="text-muted">No image</span>
                     <?php endif; ?>
