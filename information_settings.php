@@ -15,7 +15,7 @@ if ($conn->connect_error) {
 }
 
 // Create documents directory if it doesn't exist
-$documents_dir = __DIR__ . '/paskerid/public/documents';
+$documents_dir = '/opt/lampp/htdocs/paskerid/public/documents';
 if (!file_exists($documents_dir)) {
     mkdir($documents_dir, 0777, true);
 } else {
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $file_path = $documents_dir . '/' . $new_file_name;
                 
                 if (move_uploaded_file($file_tmp, $file_path)) {
-                    $file_url = 'https://paskerid.kemnaker.go.id/paskerid/public/documents/' . $new_file_name;
+                    $file_url = 'http://localhost/paskerid/public/documents/' . $new_file_name;
                 } else {
                     $upload_error = 'Failed to move uploaded file. Error: ' . error_get_last()['message'] . ' | Directory writable: ' . (is_writable($documents_dir) ? 'Yes' : 'No') . ' | File exists: ' . (file_exists($file_tmp) ? 'Yes' : 'No');
                 }

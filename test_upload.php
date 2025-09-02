@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo "<p>Temporary file: " . $_FILES['test_file']['tmp_name'] . "</p>";
             
             // Try to move the file
-            $upload_dir = __DIR__ . '/paskerid/public/documents/';
+            $upload_dir = '/opt/lampp/htdocs/paskerid/public/documents/';
             $filename = 'test_' . time() . '.txt';
             $destination = $upload_dir . $filename;
             
@@ -50,7 +50,7 @@ echo "<p>max_file_uploads: " . ini_get('max_file_uploads') . "</p>";
 echo "<p>file_uploads: " . (ini_get('file_uploads') ? 'On' : 'Off') . "</p>";
 
 // Create upload directory if it doesn't exist
-$upload_dir = __DIR__ . '/paskerid/public/documents/';
+$upload_dir = '/opt/lampp/htdocs/paskerid/public/documents/';
 if (!file_exists($upload_dir)) {
     mkdir($upload_dir, 0777, true);
     echo "<p>Created directory: " . $upload_dir . "</p>";
