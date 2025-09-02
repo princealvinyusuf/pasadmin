@@ -17,7 +17,29 @@ if ($conn->connect_error) {
 // Create documents directory if it doesn't exist
 $documents_dir = __DIR__ . '/paskerid/public/documents';
 if (!file_exists($documents_dir)) {
-    mkdir($documents_dir, 0755, true);
+    mkdir($documents_dir, 0777, true);
+} else {
+    // Ensure write permissions
+    chmod($documents_dir, 0777);
+}
+
+// Also set permissions for parent directories
+$parent_dir = dirname($documents_dir);
+if (file_exists($parent_dir)) {
+    chmod($parent_dir, 0777);
+}
+$grandparent_dir = dirname($parent_dir);
+if (file_exists($grandparent_dir)) {
+    chmod($grandparent_dir, 0777);
+}
+
+// Test if directory is writable by creating a test file
+$test_file = $documents_dir . '/test_write.txt';
+if (file_put_contents($test_file, 'test') !== false) {
+    unlink($test_file); // Remove test file
+    $directory_writable = true;
+} else {
+    $directory_writable = false;
 }
 
 // Initialize variables
@@ -61,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (move_uploaded_file($file_tmp, $file_path)) {
                     $file_url = 'https://paskerid.kemnaker.go.id/paskerid/public/documents/' . $new_file_name;
                 } else {
-                    $upload_error = 'Failed to move uploaded file.';
+                    $upload_error = 'Failed to move uploaded file. Error: ' . error_get_last()['message'] . ' | Directory writable: ' . (is_writable($documents_dir) ? 'Yes' : 'No') . ' | File exists: ' . (file_exists($file_tmp) ? 'Yes' : 'No');
                 }
             } else {
                 $upload_error = 'File size too large. Maximum size is 10MB.';
@@ -342,6 +364,18 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                 <?php if (!empty($upload_error)): ?>
                     <div class="error-message">
                         <strong>Upload Error:</strong> <?php echo htmlspecialchars($upload_error); ?>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (isset($_FILES['file_upload']) && $_FILES['file_upload']['error'] !== UPLOAD_ERR_NO_FILE): ?>
+                    <div class="file-info" style="background:#fff3e0;border-color:#ffcc02;color:#f57c00;">
+                        <strong>Upload Debug Info:</strong><br>
+                        File Name: <?php echo htmlspecialchars($_FILES['file_upload']['name']); ?><br>
+                        File Size: <?php echo number_format($_FILES['file_upload']['size'] / 1024, 2); ?> KB<br>
+                        Upload Error Code: <?php echo $_FILES['file_upload']['error']; ?><br>
+                        Directory: <?php echo htmlspecialchars($documents_dir); ?><br>
+                        Directory Writable: <?php echo is_writable($documents_dir) ? 'Yes' : 'No'; ?><br>
+                        Directory Test Write: <?php echo isset($directory_writable) && $directory_writable ? 'Success' : 'Failed'; ?>
                     </div>
                 <?php endif; ?>
                 
