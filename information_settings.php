@@ -80,11 +80,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if (in_array($file_ext, $allowed_extensions)) {
                 if ($file_size <= 10 * 1024 * 1024) { // 10MB limit
-                    // Generate unique filename
-                    $timestamp = date('Y-m-d_H-i-s');
-                    $safe_title = preg_replace('/[^a-zA-Z0-9_-]/', '_', $title);
-                    $new_file_name = $safe_title . '_' . $timestamp . '.' . $file_ext;
+                    // Use original filename, but ensure it's unique
+                    $original_name = pathinfo($file_name, PATHINFO_FILENAME);
+                    $new_file_name = $original_name . '.' . $file_ext;
                     $file_path = $documents_dir . '/' . $new_file_name;
+                    
+                    // If file already exists, add a number suffix
+                    $counter = 1;
+                    while (file_exists($file_path)) {
+                        $new_file_name = $original_name . '_' . $counter . '.' . $file_ext;
+                        $file_path = $documents_dir . '/' . $new_file_name;
+                        $counter++;
+                    }
                     
                     if (move_uploaded_file($file_tmp, $file_path)) {
                         $file_url = 'https://paskerid.kemnaker.go.id/paskerid/public/documents/' . $new_file_name;
