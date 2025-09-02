@@ -14,11 +14,18 @@ if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
+// Create documents directory if it doesn't exist
+$documents_dir = __DIR__ . '/paskerid/public/documents';
+if (!file_exists($documents_dir)) {
+    mkdir($documents_dir, 0755, true);
+}
+
 // Initialize variables
 $id = $title = $description = $date = $type = $subject = $file_url = $iframe_url = '';
 $status = '';
 $created_at = $updated_at = '';
 $edit_mode = false;
+$upload_error = '';
 
 // Handle Add or Update
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -28,32 +35,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $date = $_POST['date'];
     $type = $_POST['type'];
     $subject = $_POST['subject'];
-    $file_url = $_POST['file_url'];
     $iframe_url = $_POST['iframe_url'];
     $status = isset($_POST['status']) ? $_POST['status'] : '';
 
-    if (isset($_POST['save'])) {
-        // Add new record, set created_at and updated_at to NOW()
-        $stmt = $conn->prepare("INSERT INTO information (title, description, date, type, subject, file_url, iframe_url, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
-        $stmt->bind_param('ssssssss', $title, $description, $date, $type, $subject, $file_url, $iframe_url, $status);
-        $stmt->execute();
-        $stmt->close();
-        header('Location: information_settings.php');
-        exit();
-    } elseif (isset($_POST['update'])) {
-        // Update record, set updated_at to NOW()
-        $stmt = $conn->prepare("UPDATE information SET title=?, description=?, date=?, type=?, subject=?, file_url=?, iframe_url=?, status=?, updated_at=NOW() WHERE id=?");
-        $stmt->bind_param('ssssssssi', $title, $description, $date, $type, $subject, $file_url, $iframe_url, $status, $id);
-        $stmt->execute();
-        $stmt->close();
-        header('Location: information_settings.php');
-        exit();
+    // Handle file upload
+    $file_url = '';
+    if (isset($_FILES['file_upload']) && $_FILES['file_upload']['error'] === UPLOAD_ERR_OK) {
+        $uploaded_file = $_FILES['file_upload'];
+        $file_name = $uploaded_file['name'];
+        $file_tmp = $uploaded_file['tmp_name'];
+        $file_size = $uploaded_file['size'];
+        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+        
+        // Allowed file extensions
+        $allowed_extensions = array('pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt');
+        
+        if (in_array($file_ext, $allowed_extensions)) {
+            if ($file_size <= 10 * 1024 * 1024) { // 10MB limit
+                // Generate unique filename
+                $timestamp = date('Y-m-d_H-i-s');
+                $safe_title = preg_replace('/[^a-zA-Z0-9_-]/', '_', $title);
+                $new_file_name = $safe_title . '_' . $timestamp . '.' . $file_ext;
+                $file_path = $documents_dir . '/' . $new_file_name;
+                
+                if (move_uploaded_file($file_tmp, $file_path)) {
+                    $file_url = 'https://paskerid.kemnaker.go.id/paskerid/public/documents/' . $new_file_name;
+                } else {
+                    $upload_error = 'Failed to move uploaded file.';
+                }
+            } else {
+                $upload_error = 'File size too large. Maximum size is 10MB.';
+            }
+        } else {
+            $upload_error = 'Invalid file type. Allowed types: ' . implode(', ', $allowed_extensions);
+        }
+    } elseif (isset($_POST['file_url']) && !empty($_POST['file_url'])) {
+        // Keep existing file URL if no new file uploaded
+        $file_url = $_POST['file_url'];
+    }
+
+    if (empty($upload_error)) {
+        if (isset($_POST['save'])) {
+            // Add new record, set created_at and updated_at to NOW()
+            $stmt = $conn->prepare("INSERT INTO information (title, description, date, type, subject, file_url, iframe_url, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
+            $stmt->bind_param('ssssssss', $title, $description, $date, $type, $subject, $file_url, $iframe_url, $status);
+            $stmt->execute();
+            $stmt->close();
+            header('Location: information_settings.php');
+            exit();
+        } elseif (isset($_POST['update'])) {
+            // Update record, set updated_at to NOW()
+            $stmt = $conn->prepare("UPDATE information SET title=?, description=?, date=?, type=?, subject=?, file_url=?, iframe_url=?, status=?, updated_at=NOW() WHERE id=?");
+            $stmt->bind_param('ssssssssi', $title, $description, $date, $type, $subject, $file_url, $iframe_url, $status, $id);
+            $stmt->execute();
+            $stmt->close();
+            header('Location: information_settings.php');
+            exit();
+        }
     }
 }
 
 // Handle Delete
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
+    // Get file URL before deleting to remove the file
+    $result = $conn->query("SELECT file_url FROM information WHERE id=$id");
+    if ($result && $row = $result->fetch_assoc()) {
+        $file_url = $row['file_url'];
+        if (!empty($file_url)) {
+            // Extract filename from URL and delete file
+            $file_name = basename(parse_url($file_url, PHP_URL_PATH));
+            $file_path = $documents_dir . '/' . $file_name;
+            if (file_exists($file_path)) {
+                unlink($file_path);
+            }
+        }
+    }
     $conn->query("DELETE FROM information WHERE id=$id");
     header('Location: information_settings.php');
     exit();
@@ -132,6 +189,7 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
         form input[type="text"],
         form input[type="date"],
         form input[type="datetime-local"],
+        form input[type="file"],
         form textarea {
             width: 100%;
             padding: 10px 12px;
@@ -170,6 +228,33 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
         }
         .btn-cancel:hover {
             background: #cfd8df;
+        }
+        .error-message {
+            color: #d32f2f;
+            background: #ffebee;
+            border: 1px solid #ffcdd2;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 18px;
+            font-size: 0.9rem;
+        }
+        .file-info {
+            background: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 18px;
+            font-size: 0.9rem;
+            color: #2e7d32;
+        }
+        .current-file {
+            background: #fff3e0;
+            border: 1px solid #ffcc02;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 18px;
+            font-size: 0.9rem;
+            color: #f57c00;
         }
         table {
             border-collapse: collapse;
@@ -254,7 +339,13 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
     <div class="container">
         <div class="main-content">
             <div class="modern-card">
-                <form method="post">
+                <?php if (!empty($upload_error)): ?>
+                    <div class="error-message">
+                        <strong>Upload Error:</strong> <?php echo htmlspecialchars($upload_error); ?>
+                    </div>
+                <?php endif; ?>
+                
+                <form method="post" enctype="multipart/form-data">
                     <?php if ($edit_mode): ?>
                         <input type="hidden" name="id" value="<?php echo htmlspecialchars($id); ?>">
                     <?php endif; ?>
@@ -276,9 +367,23 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                     <label>Status:
                         <input type="text" name="status" value="<?php echo htmlspecialchars($status); ?>" required>
                     </label>
-                    <label>File URL:
-                        <input type="text" name="file_url" value="<?php echo htmlspecialchars($file_url); ?>">
+                    
+                    <label>File Upload:
+                        <input type="file" name="file_upload" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt">
+                        <div class="file-info">
+                            <strong>Allowed file types:</strong> PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT<br>
+                            <strong>Maximum file size:</strong> 10MB
+                        </div>
                     </label>
+                    
+                    <?php if ($edit_mode && !empty($file_url)): ?>
+                        <div class="current-file">
+                            <strong>Current file:</strong> <?php echo htmlspecialchars($file_url); ?><br>
+                            <small>Upload a new file to replace the current one, or leave empty to keep the existing file.</small>
+                        </div>
+                        <input type="hidden" name="file_url" value="<?php echo htmlspecialchars($file_url); ?>">
+                    <?php endif; ?>
+                    
                     <label>Iframe URL:
                         <input type="text" name="iframe_url" value="<?php echo htmlspecialchars($iframe_url); ?>">
                     </label>
