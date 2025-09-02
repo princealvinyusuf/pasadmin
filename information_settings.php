@@ -62,7 +62,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Handle file upload
     $file_url = '';
-    if (isset($_FILES['file_upload']) && $_FILES['file_upload']['error'] === UPLOAD_ERR_OK) {
+    $upload_debug = array();
+
+    // Debug: Check if $_FILES is set
+    if (isset($_FILES['file_upload'])) {
+        $upload_debug[] = "FILES array exists";
+        $upload_debug[] = "Upload error code: " . $_FILES['file_upload']['error'];
+        
+        if ($_FILES['file_upload']['error'] === UPLOAD_ERR_OK) {
         $uploaded_file = $_FILES['file_upload'];
         $file_name = $uploaded_file['name'];
         $file_tmp = $uploaded_file['tmp_name'];
@@ -376,6 +383,15 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                         Directory: <?php echo htmlspecialchars($documents_dir); ?><br>
                         Directory Writable: <?php echo is_writable($documents_dir) ? 'Yes' : 'No'; ?><br>
                         Directory Test Write: <?php echo isset($directory_writable) && $directory_writable ? 'Success' : 'Failed'; ?>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($upload_debug)): ?>
+                    <div class="file-info" style="background:#e3f2fd;border-color:#2196f3;color:#1976d2;">
+                        <strong>Debug Information:</strong><br>
+                        <?php foreach ($upload_debug as $debug): ?>
+                            <?php echo htmlspecialchars($debug); ?><br>
+                        <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
                 
