@@ -63,40 +63,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Handle file upload
     $file_url = '';
     $upload_debug = array();
-
-    // Debug: Check if $_FILES is set
+    
     if (isset($_FILES['file_upload'])) {
         $upload_debug[] = "FILES array exists";
         $upload_debug[] = "Upload error code: " . $_FILES['file_upload']['error'];
         
         if ($_FILES['file_upload']['error'] === UPLOAD_ERR_OK) {
-        $uploaded_file = $_FILES['file_upload'];
-        $file_name = $uploaded_file['name'];
-        $file_tmp = $uploaded_file['tmp_name'];
-        $file_size = $uploaded_file['size'];
-        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-        
-        // Allowed file extensions
-        $allowed_extensions = array('pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt');
-        
-        if (in_array($file_ext, $allowed_extensions)) {
-            if ($file_size <= 10 * 1024 * 1024) { // 10MB limit
-                // Generate unique filename
-                $timestamp = date('Y-m-d_H-i-s');
-                $safe_title = preg_replace('/[^a-zA-Z0-9_-]/', '_', $title);
-                $new_file_name = $safe_title . '_' . $timestamp . '.' . $file_ext;
-                $file_path = $documents_dir . '/' . $new_file_name;
-                
-                if (move_uploaded_file($file_tmp, $file_path)) {
-                    $file_url = 'http://localhost/paskerid/public/documents/' . $new_file_name;
+            $uploaded_file = $_FILES['file_upload'];
+            $file_name = $uploaded_file['name'];
+            $file_tmp = $uploaded_file['tmp_name'];
+            $file_size = $uploaded_file['size'];
+            $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+            
+            // Allowed file extensions
+            $allowed_extensions = array('pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt');
+            
+            if (in_array($file_ext, $allowed_extensions)) {
+                if ($file_size <= 10 * 1024 * 1024) { // 10MB limit
+                    // Generate unique filename
+                    $timestamp = date('Y-m-d_H-i-s');
+                    $safe_title = preg_replace('/[^a-zA-Z0-9_-]/', '_', $title);
+                    $new_file_name = $safe_title . '_' . $timestamp . '.' . $file_ext;
+                    $file_path = $documents_dir . '/' . $new_file_name;
+                    
+                    if (move_uploaded_file($file_tmp, $file_path)) {
+                        $file_url = 'https://paskerid.kemnaker.go.id/paskerid/public/documents/' . $new_file_name;
+                    } else {
+                        $upload_error = 'Failed to move uploaded file. Error: ' . error_get_last()['message'] . ' | Directory writable: ' . (is_writable($documents_dir) ? 'Yes' : 'No') . ' | File exists: ' . (file_exists($file_tmp) ? 'Yes' : 'No');
+                    }
                 } else {
-                    $upload_error = 'Failed to move uploaded file. Error: ' . error_get_last()['message'] . ' | Directory writable: ' . (is_writable($documents_dir) ? 'Yes' : 'No') . ' | File exists: ' . (file_exists($file_tmp) ? 'Yes' : 'No');
+                    $upload_error = 'File size too large. Maximum size is 10MB.';
                 }
             } else {
-                $upload_error = 'File size too large. Maximum size is 10MB.';
+                $upload_error = 'Invalid file type. Allowed types: ' . implode(', ', $allowed_extensions);
             }
-        } else {
-            $upload_error = 'Invalid file type. Allowed types: ' . implode(', ', $allowed_extensions);
         }
     } elseif (isset($_POST['file_url']) && !empty($_POST['file_url'])) {
         // Keep existing file URL if no new file uploaded
@@ -374,24 +374,15 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                     </div>
                 <?php endif; ?>
                 
-                <?php if (isset($_FILES['file_upload']) && $_FILES['file_upload']['error'] !== UPLOAD_ERR_NO_FILE): ?>
-                    <div class="file-info" style="background:#fff3e0;border-color:#ffcc02;color:#f57c00;">
-                        <strong>Upload Debug Info:</strong><br>
-                        File Name: <?php echo htmlspecialchars($_FILES['file_upload']['name']); ?><br>
-                        File Size: <?php echo number_format($_FILES['file_upload']['size'] / 1024, 2); ?> KB<br>
-                        Upload Error Code: <?php echo $_FILES['file_upload']['error']; ?><br>
-                        Directory: <?php echo htmlspecialchars($documents_dir); ?><br>
-                        Directory Writable: <?php echo is_writable($documents_dir) ? 'Yes' : 'No'; ?><br>
-                        Directory Test Write: <?php echo isset($directory_writable) && $directory_writable ? 'Success' : 'Failed'; ?>
-                    </div>
-                <?php endif; ?>
-                
                 <?php if (!empty($upload_debug)): ?>
                     <div class="file-info" style="background:#e3f2fd;border-color:#2196f3;color:#1976d2;">
                         <strong>Debug Information:</strong><br>
                         <?php foreach ($upload_debug as $debug): ?>
                             <?php echo htmlspecialchars($debug); ?><br>
                         <?php endforeach; ?>
+                        Directory: <?php echo htmlspecialchars($documents_dir); ?><br>
+                        Directory Writable: <?php echo is_writable($documents_dir) ? 'Yes' : 'No'; ?><br>
+                        Directory Test Write: <?php echo isset($directory_writable) && $directory_writable ? 'Success' : 'Failed'; ?>
                     </div>
                 <?php endif; ?>
                 
