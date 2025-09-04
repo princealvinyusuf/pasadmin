@@ -72,6 +72,7 @@ $qrUrl = 'asmen_qr.php?s=' . urlencode($secret);
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 	<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="bg-light">
 <?php include 'navbar.php'; ?>
@@ -140,6 +141,7 @@ $qrUrl = 'asmen_qr.php?s=' . urlencode($secret);
 				<div class="card-body text-center">
 					<h5 class="mb-2">QR Code</h5>
 					<canvas id="qrCanvas"></canvas>
+					<div id="qrBox" class="mt-2"></div>
 					<div class="small text-muted mt-2">Scan opens public detail</div>
 					<div class="mt-3">
 						<a class="btn btn-outline-secondary btn-sm" href="<?php echo htmlspecialchars($qrUrl); ?>" target="_blank">Open Public View</a>
@@ -161,9 +163,16 @@ $qrUrl = 'asmen_qr.php?s=' . urlencode($secret);
 <script>
 const url = '<?php echo htmlspecialchars($qrUrl); ?>';
 const canvas = document.getElementById('qrCanvas');
-if (canvas && window.QRCode) {
-	QRCode.toCanvas(canvas, url, { width: 220 }, function (error) { if (error) console.error(error); });
-}
+const drawWithQRCodeLib = () => {
+	try { if (window.QRCode && QRCode.toCanvas) { QRCode.toCanvas(canvas, url, { width: 220 }, function (error) { if (error) console.error(error); }); return true; } } catch(e) { console.error(e); }
+	return false;
+};
+const drawWithQRCodeJS = () => {
+	try { if (window.QRCode && typeof QRCode === 'function') { new window.QRCode(document.getElementById('qrBox'), { text: url, width: 220, height: 220 }); return true; } } catch(e) { console.error(e); }
+	return false;
+};
+
+if (!drawWithQRCodeLib()) { drawWithQRCodeJS(); }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
