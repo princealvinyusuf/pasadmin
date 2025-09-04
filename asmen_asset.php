@@ -77,7 +77,7 @@ $qrUrl = $scheme . '://' . $host . $basePath . '/asmen_qr.php?s=' . urlencode($s
 	<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-    #qrCanvas, #qrBox { display: block; margin-left: auto; margin-right: auto; }
+    #qrContainer canvas, #qrContainer img, #qrContainer div { display: block; margin-left: auto; margin-right: auto; }
     .qr-area { min-height: 260px; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
@@ -147,12 +147,13 @@ $qrUrl = $scheme . '://' . $host . $basePath . '/asmen_qr.php?s=' . urlencode($s
 			<div class="card">
 				<div class="card-body text-center">
 					<h5 class="mb-2">QR Code</h5>
-					<div class="qr-area">
-						<canvas id="qrCanvas"></canvas>
-						<div id="qrBox" class="mt-2"></div>
+					<div id="qrContainer" class="qr-area">
+						<canvas id="qrCanvas" style="display:none"></canvas>
+						<div id="qrBox" style="display:none"></div>
 					</div>
 					<div class="small text-muted mt-2">Scan opens public detail</div>
-					<div class="mt-3">
+					<div class="mt-3 d-flex justify-content-center gap-2">
+						<button id="downloadQrBtn" class="btn btn-outline-primary btn-sm" type="button">Download QR</button>
 						<a class="btn btn-outline-secondary btn-sm" href="<?php echo htmlspecialchars($qrUrl); ?>" target="_blank">Open Public View</a>
 					</div>
 				</div>
@@ -173,15 +174,36 @@ $qrUrl = $scheme . '://' . $host . $basePath . '/asmen_qr.php?s=' . urlencode($s
 const url = '<?php echo htmlspecialchars($qrUrl); ?>';
 const canvas = document.getElementById('qrCanvas');
 const drawWithQRCodeLib = () => {
-	try { if (window.QRCode && QRCode.toCanvas) { QRCode.toCanvas(canvas, url, { width: 220 }, function (error) { if (error) console.error(error); }); return true; } } catch(e) { console.error(e); }
+	try { if (window.QRCode && QRCode.toCanvas) { QRCode.toCanvas(canvas, url, { width: 220 }, function (error) { if (error) console.error(error); else { canvas.style.display='block'; document.getElementById('qrBox').style.display='none'; } }); return true; } } catch(e) { console.error(e); }
 	return false;
 };
 const drawWithQRCodeJS = () => {
-	try { if (window.QRCode && typeof QRCode === 'function') { new window.QRCode(document.getElementById('qrBox'), { text: url, width: 220, height: 220 }); return true; } } catch(e) { console.error(e); }
+	try { if (window.QRCode && typeof QRCode === 'function') { document.getElementById('qrBox').style.display='block'; new window.QRCode(document.getElementById('qrBox'), { text: url, width: 220, height: 220 }); return true; } } catch(e) { console.error(e); }
 	return false;
 };
 
 if (!drawWithQRCodeLib()) { drawWithQRCodeJS(); }
+
+// Download QR
+document.getElementById('downloadQrBtn').addEventListener('click', function() {
+	// Prefer canvas, else try to snapshot generated img inside qrBox
+	if (canvas && canvas.style.display !== 'none') {
+		const a = document.createElement('a');
+		a.href = canvas.toDataURL('image/png');
+		a.download = 'asset_qr_<?php echo (int)$asset['id']; ?>.png';
+		a.click();
+		return;
+	}
+	const qrBox = document.getElementById('qrBox');
+	const img = qrBox ? qrBox.querySelector('img') : null;
+	if (img && img.src) {
+		const a = document.createElement('a');
+		a.href = img.src;
+		a.download = 'asset_qr_<?php echo (int)$asset['id']; ?>.png';
+		a.click();
+		return;
+	}
+});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
