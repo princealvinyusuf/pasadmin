@@ -134,8 +134,8 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
 	if ($where !== '') { $stmt->bind_param($types, ...$params); }
 	$stmt->execute();
 	$res = $stmt->get_result();
-	head er('Content-Type: text/csv; charset=utf-8');
-	head er('Content-Disposition: attachment; filename="asmen_assets_' . date('Ymd_His') . '.csv"');
+	header('Content-Type: text/csv; charset=utf-8');
+	header('Content-Disposition: attachment; filename="asmen_assets_' . date('Ymd_His') . '.csv"');
 	$out = fopen('php://output', 'w');
 	$header = array_keys($res->fetch_assoc() ?: []);
 	if ($header) { fputcsv($out, $header); }
