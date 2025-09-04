@@ -63,7 +63,13 @@ function ac_seed_permissions(mysqli $conn): void {
 		['settings_pasker_room_manage','Manage Pasker Room Settings','Settings'],
 		['settings_database_contact_manage','Manage Database Contact','Settings'],
 		['use_broadcast','Use Broadcast','Tools'],
-		['view_extensions','View Extensions','Tools']
+		['view_extensions','View Extensions','Tools'],
+		// AsMen (Asset Management) permissions
+		['asmen_manage_assets','AsMen: Manage Assets','AsMen'],
+		['asmen_view_services','AsMen: View Services','AsMen'],
+		['asmen_view_calendar','AsMen: View Calendar','AsMen'],
+		['asmen_view_dashboard','AsMen: View Dashboard','AsMen'],
+		['asmen_use_qr','AsMen: Use QR','AsMen']
 	];
 	$stmt = $conn->prepare('INSERT IGNORE INTO access_permissions (code,label,category) VALUES (?,?,?)');
 	foreach ($perms as [$c,$l,$cat]) { $stmt->bind_param('sss',$c,$l,$cat); $stmt->execute(); }
