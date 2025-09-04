@@ -212,7 +212,7 @@ $stmt->close();
 				<input class="form-control me-2" type="text" name="search" placeholder="Search..." value="<?php echo htmlspecialchars($search); ?>">
 				<button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
 			</form>
-			<a class="btn btn-success" href="asmen_assets.php?export=1<?php echo $search !== '' ? '&search=' . urlencode($search) : '';"><i class="bi bi-file-earmark-excel"></i> Export</a>
+			<a class="btn btn-success" href="asmen_assets.php?export=1<?php echo $search !== '' ? '&search=' . urlencode($search) : '';?>"><i class="bi bi-file-earmark-excel"></i> Export</a>
 		</div>
 	</div>
 
