@@ -59,8 +59,11 @@ $res = $h->get_result();
 while ($row = $res->fetch_assoc()) { $hist[] = $row; }
 $h->close();
 
-// Compute a QR link (public view)
-$qrUrl = 'asmen_qr.php?s=' . urlencode($secret);
+// Compute an absolute QR link (public view)
+$scheme = isset($_SERVER['HTTP_X_FORWARDED_PROTO']) ? $_SERVER['HTTP_X_FORWARDED_PROTO'] : ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http');
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$basePath = rtrim(dirname($_SERVER['REQUEST_URI'] ?? '/'), '/\\');
+$qrUrl = $scheme . '://' . $host . $basePath . '/asmen_qr.php?s=' . urlencode($secret);
 
 ?>
 <!DOCTYPE html>
@@ -73,6 +76,10 @@ $qrUrl = 'asmen_qr.php?s=' . urlencode($secret);
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 	<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+    #qrCanvas, #qrBox { display: block; margin-left: auto; margin-right: auto; }
+    .qr-area { min-height: 260px; display: flex; align-items: center; justify-content: center; }
+    </style>
 </head>
 <body class="bg-light">
 <?php include 'navbar.php'; ?>
@@ -140,8 +147,10 @@ $qrUrl = 'asmen_qr.php?s=' . urlencode($secret);
 			<div class="card">
 				<div class="card-body text-center">
 					<h5 class="mb-2">QR Code</h5>
-					<canvas id="qrCanvas"></canvas>
-					<div id="qrBox" class="mt-2"></div>
+					<div class="qr-area">
+						<canvas id="qrCanvas"></canvas>
+						<div id="qrBox" class="mt-2"></div>
+					</div>
 					<div class="small text-muted mt-2">Scan opens public detail</div>
 					<div class="mt-3">
 						<a class="btn btn-outline-secondary btn-sm" href="<?php echo htmlspecialchars($qrUrl); ?>" target="_blank">Open Public View</a>
