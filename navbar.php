@@ -76,6 +76,19 @@
                         <li><a class="dropdown-item" href="cron_settings.php">Other Settings</a></li>
                     </ul>
                 </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="asmenDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        AsMen
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="asmenDropdown">
+                        <li><a class="dropdown-item" href="asmen_dashboard.php">Dashboard</a></li>
+                        <li><a class="dropdown-item" href="asmen_assets.php">Assets</a></li>
+                        <li><a class="dropdown-item" href="asmen_services.php">Services</a></li>
+                        <li><a class="dropdown-item" href="asmen_calendar.php">Calendar</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="asmen_qr_scan.php">QR Scanner</a></li>
+                    </ul>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link" href="backup.php">Backup</a>
                 </li>
