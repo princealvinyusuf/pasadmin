@@ -224,9 +224,9 @@ $stmt->close();
 					<div class="col-12 col-md-6 col-lg-4">
 						<label class="form-label"><?php echo htmlspecialchars($meta['label']); ?></label>
 						<?php if ($meta['type'] === 'textarea'): ?>
-							<textarea class="form-control" name="<?php echo $name; ?>"></textarea>
+							<textarea class="form-control" name="<?php echo $name; ?>" <?php echo $name==='kode_register' ? 'required' : ''; ?>></textarea>
 						<?php else: ?>
-							<input class="form-control" type="<?php echo $meta['type']; ?>" name="<?php echo $name; ?>">
+							<input class="form-control" type="<?php echo $meta['type']; ?>" name="<?php echo $name; ?>" <?php echo $name==='kode_register' ? 'required' : ''; ?>>
 						<?php endif; ?>
 					</div>
 					<?php endforeach; ?>

@@ -10,7 +10,7 @@ require_once __DIR__ . '/access_helper.php';
 function asmen_ensure_tables(mysqli $conn): void {
 	// Assets master table
 	$conn->query("CREATE TABLE IF NOT EXISTS asmen_assets (
-		id INT AUTO_INCREMENT PRIMARY KEY,
+		id INT AUTO_INCREMENT UNIQUE,
 		no VARCHAR(50) DEFAULT NULL,
 		jenis_bmn VARCHAR(255) DEFAULT NULL,
 		kode_satker VARCHAR(100) DEFAULT NULL,
@@ -81,7 +81,7 @@ function asmen_ensure_tables(mysqli $conn): void {
 		nama_kl VARCHAR(255) DEFAULT NULL,
 		nama_e1 VARCHAR(255) DEFAULT NULL,
 		nama_korwil VARCHAR(255) DEFAULT NULL,
-		kode_register VARCHAR(150) DEFAULT NULL,
+		kode_register VARCHAR(150) NOT NULL,
 		lokasi_ruang VARCHAR(255) DEFAULT NULL,
 		-- AsMen operational fields
 		qr_secret VARCHAR(64) DEFAULT NULL,
@@ -96,7 +96,8 @@ function asmen_ensure_tables(mysqli $conn): void {
 		KEY idx_nup (nup),
 		KEY idx_no_polisi (no_polisi),
 		KEY idx_kode_register (kode_register),
-		UNIQUE KEY uq_qr_secret (qr_secret)
+		UNIQUE KEY uq_qr_secret (qr_secret),
+		PRIMARY KEY (kode_register)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
 	// Service history table
