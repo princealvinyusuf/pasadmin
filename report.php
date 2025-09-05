@@ -27,6 +27,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $nodePath = 'node';
             $senderDir = __DIR__ . '/whatsapp-sender';
             $cmd = 'cd ' . escapeshellarg($senderDir) . ' && ' .
+                'LD_LIBRARY_PATH= ' .
+                'LIBRARY_PATH= ' .
+                'LD_PRELOAD= ' .
                 'REPORT_URL=' . escapeshellarg($env['REPORT_URL']) . ' ' .
                 'WA_GROUP_JID=' . escapeshellarg($env['WA_GROUP_JID']) . ' ' .
                 $nodePath . ' send_report.js 2>&1';
