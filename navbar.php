@@ -56,6 +56,8 @@
                         <li><a class="dropdown-item" href="testimonials_settings.php">Testimonial Settings</a></li>
                         <li><a class="dropdown-item" href="top_list_settings.php">Top List Settings</a></li>
                         <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="report.php">Report</a></li>
+                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="agenda_settings.php">Agenda Settings</a></li>
                         <li><a class="dropdown-item" href="job_fair_settings.php">Job Fair Settings</a></li>
                         <li><a class="dropdown-item" href="virtual_karir_service_settings.php">Virtual Karir Service Settings</a></li>
