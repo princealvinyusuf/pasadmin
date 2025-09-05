@@ -13,15 +13,32 @@ const puppeteer = require('puppeteer');
 const TARGET_URL = process.env.REPORT_URL || 'https://paskerid.kemnaker.go.id/paskerid/public/';
 const OUTPUT_DIR = process.env.REPORT_OUTPUT_DIR || path.join(__dirname, 'reports');
 const OUTPUT_FILE = path.join(OUTPUT_DIR, 'paskerid_report.png');
+const USER_DATA_DIR = process.env.PUPPETEER_USER_DATA_DIR || path.join(__dirname, '.puppeteer-profile');
+const CRASH_DUMPS_DIR = process.env.PUPPETEER_CRASH_DUMPS_DIR || path.join(__dirname, '.crash-dumps');
 
 async function captureScreenshot() {
     if (!fs.existsSync(OUTPUT_DIR)) {
         fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     }
+    if (!fs.existsSync(USER_DATA_DIR)) {
+        fs.mkdirSync(USER_DATA_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(CRASH_DUMPS_DIR)) {
+        fs.mkdirSync(CRASH_DUMPS_DIR, { recursive: true });
+    }
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROMIUM_PATH || undefined;
     const browser = await puppeteer.launch({
         headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-zygote',
+            '--disable-crash-reporter',
+            `--user-data-dir=${USER_DATA_DIR}`,
+            `--crash-dumps-dir=${CRASH_DUMPS_DIR}`
+        ],
         executablePath
     });
     try {

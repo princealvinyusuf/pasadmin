@@ -31,9 +31,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $configDir = $senderDir . '/.config';
             $cacheDir = $senderDir . '/.cache/puppeteer';
             $reportOutDir = $senderDir . '/reports';
+            $userDataDir = $senderDir . '/.puppeteer-profile';
+            $crashDumpsDir = $senderDir . '/.crash-dumps';
+            $tmpDir = $senderDir . '/.tmp';
             if (!is_dir($configDir)) @mkdir($configDir, 0775, true);
             if (!is_dir($cacheDir)) @mkdir($cacheDir, 0775, true);
             if (!is_dir($reportOutDir)) @mkdir($reportOutDir, 0775, true);
+            if (!is_dir($userDataDir)) @mkdir($userDataDir, 0775, true);
+            if (!is_dir($crashDumpsDir)) @mkdir($crashDumpsDir, 0775, true);
+            if (!is_dir($tmpDir)) @mkdir($tmpDir, 0775, true);
 
             $puppeteerExec = getenv('PUPPETEER_EXECUTABLE_PATH');
             if ($puppeteerExec === false || $puppeteerExec === '') {
@@ -47,6 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'XDG_CONFIG_HOME=' . escapeshellarg($configDir) . ' ' .
                 'PUPPETEER_CACHE_DIR=' . escapeshellarg($cacheDir) . ' ' .
                 'PUPPETEER_EXECUTABLE_PATH=' . escapeshellarg($puppeteerExec) . ' ' .
+                'PUPPETEER_USER_DATA_DIR=' . escapeshellarg($userDataDir) . ' ' .
+                'PUPPETEER_CRASH_DUMPS_DIR=' . escapeshellarg($crashDumpsDir) . ' ' .
+                'TMPDIR=' . escapeshellarg($tmpDir) . ' ' .
                 'REPORT_OUTPUT_DIR=' . escapeshellarg($reportOutDir) . ' ' .
                 'REPORT_URL=' . escapeshellarg($env['REPORT_URL']) . ' ' .
                 'WA_GROUP_JID=' . escapeshellarg($env['WA_GROUP_JID']) . ' ' .
