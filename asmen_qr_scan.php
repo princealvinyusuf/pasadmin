@@ -40,7 +40,13 @@ function onScanSuccess(decodedText, decodedResult) {
 			window.location.href = decodedText;
 			return;
 		}
-		// Fallback: if just secret value scanned
+		// Fallback: treat as kode_register (new format) or legacy secret
+		// First try kode_register: allow broad character set commonly used in registers
+		if (/^[\w\-\.\/]+$/i.test(decodedText)) {
+			window.location.href = 'asmen_qr.php?s=' + encodeURIComponent(decodedText);
+			return;
+		}
+		// Legacy secret fallback (hex)
 		if (/^[a-f0-9]{16,64}$/i.test(decodedText)) {
 			window.location.href = 'asmen_qr.php?s=' + encodeURIComponent(decodedText);
 			return;

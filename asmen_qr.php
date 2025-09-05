@@ -6,14 +6,24 @@ error_reporting(E_ALL);
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/asmen_lib.php';
 
-$secret = isset($_GET['s']) ? trim((string)$_GET['s']) : '';
-if ($secret === '') { http_response_code(400); echo 'Missing QR secret'; exit; }
+$s = isset($_GET['s']) ? trim((string)$_GET['s']) : '';
+if ($s === '') { http_response_code(400); echo 'Missing parameter'; exit; }
 
-$stmt = $conn->prepare('SELECT * FROM asmen_assets WHERE qr_secret=?');
-$stmt->bind_param('s', $secret);
+// Prefer resolving by kode_register (new format), fallback to qr_secret (legacy)
+$stmt = $conn->prepare('SELECT * FROM asmen_assets WHERE kode_register=?');
+$stmt->bind_param('s', $s);
 $stmt->execute();
 $asset = $stmt->get_result()->fetch_assoc();
 $stmt->close();
+
+if (!$asset) {
+    $stmt = $conn->prepare('SELECT * FROM asmen_assets WHERE qr_secret=?');
+    $stmt->bind_param('s', $s);
+    $stmt->execute();
+    $asset = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+}
+
 if (!$asset) { http_response_code(404); echo 'Asset not found'; exit; }
 
 ?>

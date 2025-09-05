@@ -63,7 +63,7 @@ $h->close();
 $scheme = isset($_SERVER['HTTP_X_FORWARDED_PROTO']) ? $_SERVER['HTTP_X_FORWARDED_PROTO'] : ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http');
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $basePath = rtrim(dirname($_SERVER['REQUEST_URI'] ?? '/'), '/\\');
-$qrUrl = $scheme . '://' . $host . $basePath . '/asmen_qr.php?s=' . urlencode($secret);
+$qrUrl = $scheme . '://' . $host . $basePath . '/asmen_qr.php?s=' . urlencode($asset['kode_register']);
 
 ?>
 <!DOCTYPE html>
