@@ -25,6 +25,10 @@ if (!(current_user_can('asmen_use_qr') || current_user_can('asmen_manage_assets'
 <div class="container py-4">
 	<div class="d-flex justify-content-between align-items-center mb-3">
 		<h2 class="mb-0">AsMen - QR Scanner</h2>
+		<div class="form-check form-switch">
+			<input class="form-check-input" type="checkbox" id="bmnToggle">
+			<label class="form-check-label" for="bmnToggle">Scan from BMN QR</label>
+		</div>
 	</div>
 	<div class="card">
 		<div class="card-body">
@@ -36,6 +40,12 @@ if (!(current_user_can('asmen_use_qr') || current_user_can('asmen_manage_assets'
 <script>
 function onScanSuccess(decodedText, decodedResult) {
 	try {
+		// If BMN mode enabled and content starts with '#', strip it
+		var bmnMode = false;
+		try { bmnMode = document.getElementById('bmnToggle')?.checked === true; } catch(e) {}
+		if (bmnMode && typeof decodedText === 'string' && decodedText.startsWith('#')) {
+			decodedText = decodedText.substring(1);
+		}
 		if (decodedText.includes('asmen_qr.php')) {
 			window.location.href = decodedText;
 			return;
