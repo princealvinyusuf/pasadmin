@@ -17,6 +17,14 @@
                     </ul>
                 </li>
                 <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="jejaringDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Jejaring
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="jejaringDropdown">
+                        <li><a class="dropdown-item" href="database_contact.php">Database Contact</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="masterDataDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Master Data
                     </a>
@@ -66,7 +74,6 @@
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="broadcast.php">Broadcast</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="database_contact.php">Database Contact</a></li>
                         <li><a class="dropdown-item" href="karirhub_ads_settings.php">KarirHub Ads Settings</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="cron_settings.php">Other Settings</a></li>
