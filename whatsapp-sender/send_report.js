@@ -11,7 +11,7 @@ const path = require('path');
 const puppeteer = require('puppeteer');
 
 const TARGET_URL = process.env.REPORT_URL || 'https://paskerid.kemnaker.go.id/paskerid/public/';
-const OUTPUT_DIR = path.join(__dirname, '../downloads');
+const OUTPUT_DIR = process.env.REPORT_OUTPUT_DIR || path.join(__dirname, 'reports');
 const OUTPUT_FILE = path.join(OUTPUT_DIR, 'paskerid_report.png');
 
 async function captureScreenshot() {
