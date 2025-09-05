@@ -40,6 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!is_dir($userDataDir)) @mkdir($userDataDir, 0775, true);
             if (!is_dir($crashDumpsDir)) @mkdir($crashDumpsDir, 0775, true);
             if (!is_dir($tmpDir)) @mkdir($tmpDir, 0775, true);
+            // Create Chromium product config path for Crashpad to avoid --database error
+            $chromiumConfigDir = $configDir . '/chromium/Crashpad';
+            if (!is_dir($chromiumConfigDir)) @mkdir($chromiumConfigDir, 0775, true);
 
             $puppeteerExec = getenv('PUPPETEER_EXECUTABLE_PATH');
             if ($puppeteerExec === false || $puppeteerExec === '') {
@@ -56,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'PUPPETEER_USER_DATA_DIR=' . escapeshellarg($userDataDir) . ' ' .
                 'PUPPETEER_CRASH_DUMPS_DIR=' . escapeshellarg($crashDumpsDir) . ' ' .
                 'TMPDIR=' . escapeshellarg($tmpDir) . ' ' .
+                'HOME=' . escapeshellarg($senderDir) . ' ' .
                 'CHROME_CRASHPAD_PIPE_NAME=0 ' .
                 'CHROME_HEADLESS=1 ' .
                 'CHROME_LOG_FILE=' . escapeshellarg($senderDir . '/chrome_debug.log') . ' ' .
