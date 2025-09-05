@@ -3,9 +3,9 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-require_once __DIR__ . '/auth_guard.php';
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/access_helper.php';
+require_once __DIR__ . '/../auth_guard.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../access_helper.php';
 require_once __DIR__ . '/asmen_lib.php';
 
 if (!(current_user_can('asmen_view_calendar') || current_user_can('asmen_manage_assets'))) { http_response_code(403); echo 'Forbidden'; exit; }
@@ -36,7 +36,7 @@ $stmt->close();
 	<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
 </head>
 <body class="bg-light">
-<?php include 'navbar.php'; ?>
+<?php include '../navbar.php'; ?>
 <div class="container py-4">
 	<div class="d-flex justify-content-between align-items-center mb-3">
 		<h2 class="mb-0">AsMen - Service Calendar</h2>

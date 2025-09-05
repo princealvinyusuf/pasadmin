@@ -129,12 +129,12 @@
                         AsMen
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="asmenDropdown">
-                        <?php if ($canAsmenDashboard): ?><li><a class="dropdown-item" href="asmen_dashboard.php">Dashboard</a></li><?php endif; ?>
-                        <?php if ($canAsmenAssets): ?><li><a class="dropdown-item" href="asmen_assets.php">Assets</a></li><?php endif; ?>
-                        <?php if ($canAsmenServices): ?><li><a class="dropdown-item" href="asmen_services.php">Services</a></li><?php endif; ?>
-                        <?php if ($canAsmenCalendar): ?><li><a class="dropdown-item" href="asmen_calendar.php">Calendar</a></li><?php endif; ?>
+                        <?php if ($canAsmenDashboard): ?><li><a class="dropdown-item" href="asmen_feature/asmen_dashboard.php">Dashboard</a></li><?php endif; ?>
+                        <?php if ($canAsmenAssets): ?><li><a class="dropdown-item" href="asmen_feature/asmen_assets.php">Assets</a></li><?php endif; ?>
+                        <?php if ($canAsmenServices): ?><li><a class="dropdown-item" href="asmen_feature/asmen_services.php">Services</a></li><?php endif; ?>
+                        <?php if ($canAsmenCalendar): ?><li><a class="dropdown-item" href="asmen_feature/asmen_calendar.php">Calendar</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canAsmenQR): ?><li><a class="dropdown-item" href="asmen_qr_scan.php">QR Scanner</a></li><?php endif; ?>
+                        <?php if ($canAsmenQR): ?><li><a class="dropdown-item" href="asmen_feature/asmen_qr_scan.php">QR Scanner</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>

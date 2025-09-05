@@ -3,9 +3,9 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-require_once __DIR__ . '/auth_guard.php';
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/access_helper.php';
+require_once __DIR__ . '/../auth_guard.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../access_helper.php';
 require_once __DIR__ . '/asmen_lib.php';
 
 if (!current_user_can('asmen_manage_assets')) { http_response_code(403); echo 'Forbidden'; exit; }
@@ -75,7 +75,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		foreach ($fieldsForSql as $f) { $set[] = "$f=?"; }
 		$sql = 'UPDATE asmen_assets SET ' . implode(', ', $set) . ' WHERE id=?';
 		$stmt = $conn->prepare($sql);
-		$stmt->bind_param($types . 'i', ...array_merge($values, [$id]));
+		$bindTypes = $types . 'i';
+		$bindParams = [];
+		$bindParams[] = &$bindTypes;
+		foreach ($values as $k => $v) { $bindParams[] = &$values[$k]; }
+		$bindParams[] = &$id;
+		call_user_func_array([$stmt, 'bind_param'], $bindParams);
 		$stmt->execute();
 
 		// Recompute service plan
@@ -93,7 +98,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$placeholders = implode(', ', array_fill(0, count($fieldsForSql), '?'));
 		$sql = 'INSERT INTO asmen_assets (' . implode(', ', $fieldsForSql) . ") VALUES ($placeholders)";
 		$stmt = $conn->prepare($sql);
-		$stmt->bind_param($types, ...$values);
+		$bindTypes = $types;
+		$bindParams = [];
+		$bindParams[] = &$bindTypes;
+		foreach ($values as $k => $v) { $bindParams[] = &$values[$k]; }
+		call_user_func_array([$stmt, 'bind_param'], $bindParams);
 		$stmt->execute();
 		$newId = $stmt->insert_id;
 		$secret = asmen_ensure_qr_secret($conn, $newId);
@@ -203,7 +212,7 @@ $stmt->close();
 	</style>
 </head>
 <body class="bg-light">
-<?php include 'navbar.php'; ?>
+<?php include '../navbar.php'; ?>
 <div class="container py-4">
 	<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
 		<h2 class="mb-2 mb-md-0">AsMen - Assets</h2>

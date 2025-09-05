@@ -3,9 +3,9 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-require_once __DIR__ . '/auth_guard.php';
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/access_helper.php';
+require_once __DIR__ . '/../auth_guard.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../access_helper.php';
 require_once __DIR__ . '/asmen_lib.php';
 
 if (!(current_user_can('asmen_view_dashboard') || current_user_can('asmen_manage_assets'))) { http_response_code(403); echo 'Forbidden'; exit; }
@@ -46,7 +46,7 @@ while ($row = $res2->fetch_assoc()) { $byJenis[] = $row; }
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body class="bg-light">
-<?php include 'navbar.php'; ?>
+<?php include '../navbar.php'; ?>
 <div class="container py-4">
 	<h2 class="mb-3">AsMen - Dashboard</h2>
 	<div class="row g-3">

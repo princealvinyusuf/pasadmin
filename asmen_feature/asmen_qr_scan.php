@@ -3,8 +3,8 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-require_once __DIR__ . '/auth_guard.php';
-require_once __DIR__ . '/access_helper.php';
+require_once __DIR__ . '/../auth_guard.php';
+require_once __DIR__ . '/../access_helper.php';
 
 if (!(current_user_can('asmen_use_qr') || current_user_can('asmen_manage_assets'))) { http_response_code(403); echo 'Forbidden'; exit; }
 ?>
@@ -21,7 +21,7 @@ if (!(current_user_can('asmen_use_qr') || current_user_can('asmen_manage_assets'
 	</style>
 </head>
 <body class="bg-light">
-<?php include 'navbar.php'; ?>
+<?php include '../navbar.php'; ?>
 <div class="container py-4">
 	<div class="d-flex justify-content-between align-items-center mb-3">
 		<h2 class="mb-0">AsMen - QR Scanner</h2>
