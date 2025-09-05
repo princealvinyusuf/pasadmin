@@ -5,6 +5,8 @@ error_reporting(E_ALL);
 mysqli_report(MYSQLI_REPORT_OFF);
 
 require_once __DIR__ . '/auth_guard.php';
+require_once __DIR__ . '/access_helper.php';
+if (!(current_user_can('settings_partnership_type_manage') || current_user_can('manage_settings'))) { http_response_code(403); echo 'Forbidden'; exit; }
 
 // DB connection
 $host = 'localhost';

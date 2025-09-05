@@ -62,6 +62,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		['settings_kemitraan_booked_manage','Manage Kemitraan Booked','Settings'],
 		['settings_pasker_room_manage','Manage Pasker Room Settings','Settings'],
 		['settings_database_contact_manage','Manage Database Contact','Settings'],
+		['settings_partnership_type_manage','Manage Partnership Types','Settings'],
 		['use_broadcast','Use Broadcast','Tools'],
 		['view_extensions','View Extensions','Tools'],
 		// AsMen (Asset Management) permissions

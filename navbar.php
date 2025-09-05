@@ -25,6 +25,7 @@
     $canJobFair = current_user_can('settings_job_fair_manage');
     $canVirtualKarir = current_user_can('settings_virtual_karir_service_manage');
     $canMitraKerja = current_user_can('settings_mitra_kerja_manage');
+    $canPartnershipType = current_user_can('settings_partnership_type_manage');
     $canMitraSubmission = current_user_can('settings_mitra_submission_manage');
     $canKemitraanBooked = current_user_can('settings_kemitraan_booked_manage');
     $canPaskerRoom = current_user_can('settings_pasker_room_manage');
@@ -41,7 +42,7 @@
     $hasDashboard = ($canDashJobs || $canDashSeekers);
     $hasMasterData = ($canJobs || $canJobSeekers);
     $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canAccessControl || $canBroadcast);
-    $hasLayanan = ($canManageSettings || $canMitraKerja || $canMitraSubmission || $canKemitraanBooked || $canPaskerRoom);
+    $hasLayanan = ($canManageSettings || $canMitraKerja || $canPartnershipType || $canMitraSubmission || $canKemitraanBooked || $canPaskerRoom);
     $hasJejaring = ($canManageSettings || $canDatabaseContact);
     $hasAsmen = ($canAsmenDashboard || $canAsmenAssets || $canAsmenServices || $canAsmenCalendar || $canAsmenQR);
 ?>
@@ -115,7 +116,7 @@
                         Layanan
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="layananDropdown">
-                        <?php if ($canManageSettings || $canMitraKerja): ?><li><a class="dropdown-item" href="partnership_type_settings.php">Partnership Type Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canPartnershipType): ?><li><a class="dropdown-item" href="partnership_type_settings.php">Partnership Type Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canMitraSubmission): ?><li><a class="dropdown-item" href="kemitraan_submission.php">Mitra Kerja Submission</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canKemitraanBooked): ?><li><a class="dropdown-item" href="kemitraan_booked.php">Kemitraan Booked</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canPaskerRoom): ?><li><a class="dropdown-item" href="pasker_room_settings.php">Pasker Room Settings</a></li><?php endif; ?>
