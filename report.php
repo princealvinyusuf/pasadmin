@@ -56,6 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'PUPPETEER_USER_DATA_DIR=' . escapeshellarg($userDataDir) . ' ' .
                 'PUPPETEER_CRASH_DUMPS_DIR=' . escapeshellarg($crashDumpsDir) . ' ' .
                 'TMPDIR=' . escapeshellarg($tmpDir) . ' ' .
+                'CHROME_CRASHPAD_PIPE_NAME=0 ' .
+                'CHROME_HEADLESS=1 ' .
+                'CHROME_LOG_FILE=' . escapeshellarg($senderDir . '/chrome_debug.log') . ' ' .
                 'REPORT_OUTPUT_DIR=' . escapeshellarg($reportOutDir) . ' ' .
                 'REPORT_URL=' . escapeshellarg($env['REPORT_URL']) . ' ' .
                 'WA_GROUP_JID=' . escapeshellarg($env['WA_GROUP_JID']) . ' ' .

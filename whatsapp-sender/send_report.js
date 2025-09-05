@@ -28,13 +28,18 @@ async function captureScreenshot() {
     }
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROMIUM_PATH || undefined;
     const browser = await puppeteer.launch({
-        headless: 'new',
+        headless: true,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-gpu',
             '--no-zygote',
+            '--single-process',
+            '--disable-software-rasterizer',
+            '--disable-features=NetworkService,NetworkServiceInProcess',
+            '--no-crashpad',
+            '--disable-crashpad',
             '--disable-crash-reporter',
             `--user-data-dir=${USER_DATA_DIR}`,
             `--crash-dumps-dir=${CRASH_DUMPS_DIR}`
