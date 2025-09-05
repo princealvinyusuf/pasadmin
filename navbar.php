@@ -34,15 +34,6 @@
                     </ul>
                 </li>
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="cleansingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Cleansing
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="cleansingDropdown">
-                        <li><a class="dropdown-item" href="cleansing_snaphunt.php">Snaphunt</a></li>
-                        <li><a class="dropdown-item" href="cleansing_makaryo.php">Makaryo</a></li>
-                    </ul>
-                </li>
-                <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="forecastingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Forecasting
                     </a>
