@@ -26,10 +26,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ];
             $nodePath = 'node';
             $senderDir = __DIR__ . '/whatsapp-sender';
+
+            // Ensure writable config/cache dirs for Puppeteer
+            $configDir = $senderDir . '/.config';
+            $cacheDir = $senderDir . '/.cache/puppeteer';
+            if (!is_dir($configDir)) @mkdir($configDir, 0775, true);
+            if (!is_dir($cacheDir)) @mkdir($cacheDir, 0775, true);
+
+            $puppeteerExec = getenv('PUPPETEER_EXECUTABLE_PATH');
+            if ($puppeteerExec === false || $puppeteerExec === '') {
+                $puppeteerExec = '/usr/bin/chromium';
+            }
+
             $cmd = 'cd ' . escapeshellarg($senderDir) . ' && ' .
                 'LD_LIBRARY_PATH= ' .
                 'LIBRARY_PATH= ' .
                 'LD_PRELOAD= ' .
+                'XDG_CONFIG_HOME=' . escapeshellarg($configDir) . ' ' .
+                'PUPPETEER_CACHE_DIR=' . escapeshellarg($cacheDir) . ' ' .
+                'PUPPETEER_EXECUTABLE_PATH=' . escapeshellarg($puppeteerExec) . ' ' .
                 'REPORT_URL=' . escapeshellarg($env['REPORT_URL']) . ' ' .
                 'WA_GROUP_JID=' . escapeshellarg($env['WA_GROUP_JID']) . ' ' .
                 $nodePath . ' send_report.js 2>&1';
