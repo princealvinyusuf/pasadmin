@@ -34,14 +34,6 @@
                     </ul>
                 </li>
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="forecastingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Forecasting
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="forecastingDropdown">
-                        <li><a class="dropdown-item" href="forecasting_job_seekers.php">Forecasting Job Seekers</a></li>
-                    </ul>
-                </li>
-                <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Settings
                     </a>
