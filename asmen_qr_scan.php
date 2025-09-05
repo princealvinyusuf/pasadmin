@@ -53,11 +53,23 @@ function onScanFailure(error) { /* ignore continuous errors */ }
 
 document.addEventListener('DOMContentLoaded', function() {
 	const html5QrCode = new Html5Qrcode('reader');
-	Html5Qrcode.getCameras().then(cameras => {
-		const camId = cameras && cameras.length ? cameras[0].id : null;
-		if (!camId) { alert('No camera found'); return; }
-		html5QrCode.start(camId, { fps: 10, qrbox: 280 }, onScanSuccess, onScanFailure);
-	}).catch(err => { console.error(err); alert('Unable to access camera'); });
+	const config = { fps: 10, qrbox: 280 };
+	html5QrCode
+		.start({ facingMode: { exact: 'environment' } }, config, onScanSuccess, onScanFailure)
+		.catch(err => {
+			return html5QrCode.start({ facingMode: 'environment' }, config, onScanSuccess, onScanFailure);
+		})
+		.catch(err => {
+			Html5Qrcode.getCameras().then(cameras => {
+				let backCam = null;
+				if (cameras && cameras.length) {
+					backCam = cameras.find(c => /back|rear|environment|world/i.test(c.label)) || cameras[cameras.length - 1];
+				}
+				const camId = backCam ? backCam.id : null;
+				if (!camId) { alert('No camera found'); return; }
+				html5QrCode.start(camId, config, onScanSuccess, onScanFailure).catch(e => { console.error(e); alert('Unable to access camera'); });
+			}).catch(e => { console.error(e); alert('Unable to access camera'); });
+		});
 });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
