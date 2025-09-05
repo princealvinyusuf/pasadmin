@@ -56,17 +56,11 @@
                         <li><a class="dropdown-item" href="testimonials_settings.php">Testimonial Settings</a></li>
                         <li><a class="dropdown-item" href="top_list_settings.php">Top List Settings</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="report.php">Report</a></li>
-                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="agenda_settings.php">Agenda Settings</a></li>
                         <li><a class="dropdown-item" href="job_fair_settings.php">Job Fair Settings</a></li>
                         <li><a class="dropdown-item" href="virtual_karir_service_settings.php">Virtual Karir Service Settings</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="mitra_kerja_settings.php">Mitra Kerja Settings</a></li>
-                        <li><a class="dropdown-item" href="partnership_type_settings.php">Partnership Type Settings</a></li>
-                        <li><a class="dropdown-item" href="kemitraan_submission.php">Mitra Kerja Submission</a></li>
-                        <li><a class="dropdown-item" href="kemitraan_booked.php">Kemitraan Booked</a></li>
-                        <li><a class="dropdown-item" href="pasker_room_settings.php">Pasker Room Settings</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="access_control.php">Access Control</a></li>
                         <li><hr class="dropdown-divider"></li>
@@ -76,6 +70,17 @@
                         <li><a class="dropdown-item" href="karirhub_ads_settings.php">KarirHub Ads Settings</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="cron_settings.php">Other Settings</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="layananDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Layanan
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="layananDropdown">
+                        <li><a class="dropdown-item" href="partnership_type_settings.php">Partnership Type Settings</a></li>
+                        <li><a class="dropdown-item" href="kemitraan_submission.php">Mitra Kerja Submission</a></li>
+                        <li><a class="dropdown-item" href="kemitraan_booked.php">Kemitraan Booked</a></li>
+                        <li><a class="dropdown-item" href="pasker_room_settings.php">Pasker Room Settings</a></li>
                     </ul>
                 </li>
                 <li class="nav-item dropdown">
