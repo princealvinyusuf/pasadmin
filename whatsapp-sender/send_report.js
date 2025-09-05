@@ -28,7 +28,10 @@ async function captureScreenshot() {
         const page = await browser.newPage();
         await page.setViewport({ width: 1366, height: 768, deviceScaleFactor: 1 });
         await page.goto(TARGET_URL, { waitUntil: 'networkidle2', timeout: 120000 });
-        await page.waitForTimeout(3000);
+        try {
+            await page.waitForSelector('body', { timeout: 15000 });
+        } catch (_) {}
+        await new Promise(resolve => setTimeout(resolve, 3000));
         await page.screenshot({ path: OUTPUT_FILE, fullPage: true });
         return OUTPUT_FILE;
     } finally {
