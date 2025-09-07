@@ -6,8 +6,8 @@ error_reporting(E_ALL);
 // API block: same file serves JSON for CRUD via ?api=1
 if (isset($_GET['api']) && $_GET['api'] === '1') {
     header('Content-Type: application/json; charset=utf-8');
-    require __DIR__ . '/db.php';
-    require __DIR__ . '/auth.php';
+    require __DIR__ . '/../db.php';
+    require __DIR__ . '/../auth.php';
 
     // Ensure table exists (first run friendly)
     $conn->query(
@@ -155,7 +155,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
 }
 
 // HTML/UI branch requires normal auth guard (redirect to login if needed)
-require_once __DIR__ . '/auth_guard.php';
+require_once __DIR__ . '/../auth_guard.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -178,7 +178,7 @@ require_once __DIR__ . '/auth_guard.php';
     </script>
 </head>
 <body class="bg-light">
-    <?php include 'navbar.php'; ?>
+    <?php include '../navbar.php'; ?>
 
     <header class="header-bar py-4 mb-4 text-white">
         <div class="container d-flex flex-wrap align-items-center justify-content-between">

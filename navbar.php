@@ -49,8 +49,10 @@
 <?php
     $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
     $isAsmenContext = strpos($scriptName, '/asmen_feature/') !== false;
-    $rootPrefix = $isAsmenContext ? '../' : '';
-    $asmenPrefix = $isAsmenContext ? '' : 'asmen_feature/';
+    $isJejaringContext = strpos($scriptName, '/jejaring/') !== false;
+    $isSubdirContext = ($isAsmenContext || $isJejaringContext);
+    $rootPrefix = $isSubdirContext ? '../' : '';
+    $asmenPrefix = $isAsmenContext ? '' : ($rootPrefix . 'asmen_feature/');
 ?>
             <ul class="navbar-nav ms-auto">
                 <?php if ($hasDashboard): ?>
@@ -70,7 +72,7 @@
                         Jejaring
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="jejaringDropdown">
-                        <?php if ($canManageSettings || $canDatabaseContact): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>database_contact.php">Database Contact</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canDatabaseContact): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>jejaring/database_contact.php">Database Contact</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
