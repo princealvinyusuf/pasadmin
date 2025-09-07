@@ -44,7 +44,6 @@ function ac_seed_permissions(mysqli $conn): void {
 		['manage_jobs','Manage Jobs','Data'],
 		['manage_job_seekers','Manage Job Seekers','Data'],
 		['view_cleansing','View Cleansing Pages','Tools'],
-		['manage_jobstreet_scraping','Manage Jobstreet Scraping','Tools'],
 		['manage_settings','Manage All Settings','Settings (Global)'],
 		['settings_chart_manage','Manage Chart Settings','Settings'],
 		['settings_contribution_manage','Manage Contribution Settings','Settings'],
