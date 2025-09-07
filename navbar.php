@@ -1,4 +1,13 @@
 <?php require_once __DIR__ . '/access_helper.php'; ?>
+<?php
+    // Determine context early so brand link uses correct root
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    $isAsmenContext = strpos($scriptName, '/asmen_feature/') !== false;
+    $isJejaringContext = strpos($scriptName, '/jejaring/') !== false;
+    $isSubdirContext = ($isAsmenContext || $isJejaringContext);
+    $rootPrefix = $isSubdirContext ? '../' : '';
+    $asmenPrefix = $isAsmenContext ? '' : ($rootPrefix . 'asmen_feature/');
+?>
 <!-- Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container">
@@ -46,14 +55,7 @@
     $hasJejaring = ($canManageSettings || $canDatabaseContact);
     $hasAsmen = ($canAsmenDashboard || $canAsmenAssets || $canAsmenServices || $canAsmenCalendar || $canAsmenQR);
 ?>
-<?php
-    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-    $isAsmenContext = strpos($scriptName, '/asmen_feature/') !== false;
-    $isJejaringContext = strpos($scriptName, '/jejaring/') !== false;
-    $isSubdirContext = ($isAsmenContext || $isJejaringContext);
-    $rootPrefix = $isSubdirContext ? '../' : '';
-    $asmenPrefix = $isAsmenContext ? '' : ($rootPrefix . 'asmen_feature/');
-?>
+<?php // context already computed above ?>
             <ul class="navbar-nav ms-auto">
                 <?php if ($hasDashboard): ?>
                 <li class="nav-item dropdown">
