@@ -124,10 +124,10 @@
                         Layanan
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="layananDropdown">
-                        <?php if ($canManageSettings || $canPartnershipType): ?><li><a class="dropdown-item" href="partnership_type_settings.php">Partnership Type Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canMitraSubmission): ?><li><a class="dropdown-item" href="kemitraan_submission.php">Mitra Kerja Submission</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canKemitraanBooked): ?><li><a class="dropdown-item" href="kemitraan_booked.php">Kemitraan Booked</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canPaskerRoom): ?><li><a class="dropdown-item" href="pasker_room_settings.php">Pasker Room Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canPartnershipType): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>partnership_type_settings.php">Partnership Type Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canMitraSubmission): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_submission.php">Mitra Kerja Submission</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canKemitraanBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_booked.php">Kemitraan Booked</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canPaskerRoom): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>pasker_room_settings.php">Pasker Room Settings</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
