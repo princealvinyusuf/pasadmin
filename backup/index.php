@@ -4,7 +4,7 @@ session_start();
 //     header('Location: login.php');
 //     exit;
 // }
-require_once 'db.php'; // Include your database connection file
+require_once '../db.php'; // Include your database connection file
 // require_once 'access_control.php'; // For access control
 
 // $user_role = $_SESSION['role'];
@@ -39,7 +39,7 @@ require_once 'db.php'; // Include your database connection file
     </style>
 </head>
 <body>
-    <?php include 'navbar.php'; ?>
+    <?php include '../navbar.php'; ?>
     <div class="container">
         <h2 class="text-center">Database Backup Management</h2>
         <div class="row mt-4">
@@ -133,3 +133,5 @@ require_once 'db.php'; // Include your database connection file
     </script>
 </body>
 </html>
+
+

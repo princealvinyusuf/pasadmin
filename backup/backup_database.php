@@ -5,7 +5,7 @@ error_reporting(E_ALL);
 
 header('Content-Type: application/json');
 
-require_once 'db.php'; // Include your database connection file for DB credentials
+require_once '../db.php'; // Include your database connection file for DB credentials
 
 // Database credentials from db.php
 $host = DB_HOST;
@@ -70,3 +70,5 @@ if ($return_var === 0) {
     ]);
 }
 ?>
+
+

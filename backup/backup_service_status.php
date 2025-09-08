@@ -7,3 +7,5 @@ if (file_exists($status_file)) {
     echo 'Stopped';
 }
 ?>
+
+

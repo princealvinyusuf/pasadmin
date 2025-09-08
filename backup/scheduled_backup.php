@@ -8,7 +8,7 @@ $status_file = __DIR__ . '/backup_service.status';
 $service_status = file_exists($status_file) ? trim(file_get_contents($status_file)) : 'Stopped';
 
 if ($service_status === 'Running') {
-    require_once 'db.php'; // Include your database connection file for DB credentials
+    require_once '../db.php'; // Include your database connection file for DB credentials
 
     // Database credentials from db.php
     $host = DB_HOST;
@@ -47,3 +47,5 @@ if ($service_status === 'Running') {
     error_log('Scheduled backup skipped: service is not running.');
 }
 ?>
+
+

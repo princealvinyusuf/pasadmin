@@ -149,7 +149,7 @@
                 </li>
                 <?php endif; ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootPrefix; ?>backup.php">Backup</a>
+                    <a class="nav-link" href="<?php echo $rootPrefix; ?>backup/">Backup</a>
                 </li>
                 <?php if ($canExtensions || $canManageSettings): ?>
                 <li class="nav-item">
