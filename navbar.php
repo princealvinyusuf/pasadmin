@@ -4,7 +4,8 @@
     $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
     $isAsmenContext = strpos($scriptName, '/asmen_feature/') !== false;
     $isJejaringContext = strpos($scriptName, '/jejaring/') !== false;
-    $isSubdirContext = ($isAsmenContext || $isJejaringContext);
+    $isBackupContext = strpos($scriptName, '/backup/') !== false;
+    $isSubdirContext = ($isAsmenContext || $isJejaringContext || $isBackupContext);
     $rootPrefix = $isSubdirContext ? '../' : '';
     $asmenPrefix = $isAsmenContext ? '' : ($rootPrefix . 'asmen_feature/');
 ?>
