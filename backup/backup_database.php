@@ -5,7 +5,13 @@ error_reporting(E_ALL);
 
 header('Content-Type: application/json');
 
-require_once '../db.php'; // Include your database connection file for DB credentials
+require_once '../db.php';
+require_once '../access_helper.php';
+if (!current_user_is_super_admin()) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Forbidden: Super admin access required.']);
+    exit;
+}
 
 // Database credentials from db.php
 $host = DB_HOST;

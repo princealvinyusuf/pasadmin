@@ -1,14 +1,12 @@
 <?php
 session_start();
-// if (!isset($_SESSION['loggedin'])) {
-//     header('Location: login.php');
-//     exit;
-// }
-require_once '../db.php'; // Include your database connection file
-// require_once 'access_control.php'; // For access control
-
-// $user_role = $_SESSION['role'];
-// checkAccess($user_role, 'Backup'); // Assuming 'Backup' is the new access level
+require_once '../db.php';
+require_once '../access_helper.php';
+if (!current_user_is_super_admin()) {
+    http_response_code(403);
+    echo 'Forbidden: Super admin access required.';
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

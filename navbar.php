@@ -148,9 +148,11 @@
                     </ul>
                 </li>
                 <?php endif; ?>
+                <?php if (current_user_is_super_admin()): ?>
                 <li class="nav-item">
                     <a class="nav-link" href="<?php echo $rootPrefix; ?>backup/">Backup</a>
                 </li>
+                <?php endif; ?>
                 <?php if ($canExtensions || $canManageSettings): ?>
                 <li class="nav-item">
                     <a class="nav-link" href="<?php echo $rootPrefix; ?>extensions.php">Extensions</a>
