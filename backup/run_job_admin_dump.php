@@ -63,6 +63,7 @@ $status = @json_decode(@file_get_contents($status_file), true) ?: [];
 $status['state'] = 'running';
 $status['pid'] = getmypid();
 $status['bytes_written'] = 0;
+$status['request_stop'] = false;
 @file_put_contents($status_file, json_encode($status));
 
 // Start dump process
@@ -89,6 +90,23 @@ while (true) {
 	$running = $stat && $stat['running'];
 	$bytes = file_exists($targetFile) ? filesize($targetFile) : 0;
 	$status['bytes_written'] = $bytes;
+
+	// Check for stop request
+	$current = @json_decode(@file_get_contents($status_file), true) ?: [];
+	if (!empty($current['request_stop'])) {
+		$status['state'] = 'stopping';
+		@file_put_contents($status_file, json_encode($status));
+		// Try to terminate gracefully
+		@proc_terminate($process);
+		usleep(500000);
+		$stat = proc_get_status($process);
+		if ($stat && $stat['running']) {
+			// Force kill if still running
+			@proc_terminate($process, 9);
+		}
+		break;
+	}
+
 	@file_put_contents($status_file, json_encode($status));
 	if (!$running) break;
 	usleep(500000); // 500ms
@@ -101,8 +119,15 @@ $status['exit_code'] = $exit_code;
 if ($exit_code === 0) {
 	$status['state'] = 'completed';
 } else {
-	$status['state'] = 'error';
-	$status['message'] = 'mysqldump exited with code ' . $exit_code;
+	// If stopping, mark stopped instead of error
+	$cur = @json_decode(@file_get_contents($status_file), true) ?: [];
+	if (($cur['state'] ?? '') === 'stopping' || !empty($cur['request_stop'])) {
+		$status['state'] = 'stopped';
+		$status['message'] = 'Backup was stopped by user.';
+	} else {
+		$status['state'] = 'error';
+		$status['message'] = 'mysqldump exited with code ' . $exit_code;
+	}
 }
 @file_put_contents($status_file, json_encode($status));
 

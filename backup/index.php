@@ -55,6 +55,9 @@ if (!current_user_is_super_admin()) {
                         <div class="progress mt-2 d-none" id="jobAdminProgressWrap">
                             <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" id="jobAdminProgressBar" role="progressbar" style="width: 0%">0%</div>
                         </div>
+                        <div class="mt-2 d-none" id="jobAdminControls">
+                            <button id="stopJobAdminBackupBtn" class="btn btn-outline-danger btn-sm"><i class="bi bi-stop-circle me-1"></i>Stop Backup</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -121,6 +124,7 @@ if (!current_user_is_super_admin()) {
                     const st = res.status || {};
                     if (st.state === 'running') {
                         $('#jobAdminProgressWrap').removeClass('d-none');
+                        $('#jobAdminControls').removeClass('d-none');
                         const percent = (st.percent !== null && st.percent !== undefined) ? parseInt(st.percent) : null;
                         if (percent !== null && !isNaN(percent)) {
                             $('#jobAdminProgressBar').css('width', percent + '%').text(percent + '%');
@@ -136,19 +140,29 @@ if (!current_user_is_super_admin()) {
                         $('#jobAdminProgressBar').removeClass('progress-bar-animated').css('width', '100%').text('100%');
                         const link = st.filePathRel ? '<a href="' + st.filePathRel + '" class="alert-link">Download Backup</a>' : '';
                         $('#jobAdminBackupStatus').html('<div class="alert alert-warning" role="alert">Backup completed. ' + link + '</div>');
+                        $('#jobAdminControls').addClass('d-none');
                     } else if (st.state === 'error') {
                         clearInterval(jobAdminPollTimer);
                         jobAdminPollTimer = null;
                         $('#downloadJobAdminBackupBtn').prop('disabled', false);
                         $('#jobAdminProgressWrap').addClass('d-none');
+                        $('#jobAdminControls').addClass('d-none');
                         const msg = st.message || 'Unknown error';
                         $('#jobAdminBackupStatus').html('<div class="alert alert-danger" role="alert">Error: ' + msg + '</div>');
+                    } else if (st.state === 'stopped') {
+                        clearInterval(jobAdminPollTimer);
+                        jobAdminPollTimer = null;
+                        $('#downloadJobAdminBackupBtn').prop('disabled', false);
+                        $('#jobAdminProgressWrap').addClass('d-none');
+                        $('#jobAdminControls').addClass('d-none');
+                        $('#jobAdminBackupStatus').html('<div class="alert alert-secondary" role="alert">Backup stopped.</div>');
                     } else {
                         // idle or unknown
                         clearInterval(jobAdminPollTimer);
                         jobAdminPollTimer = null;
                         $('#downloadJobAdminBackupBtn').prop('disabled', false);
                         $('#jobAdminProgressWrap').addClass('d-none');
+                        $('#jobAdminControls').addClass('d-none');
                     }
                 });
             }
@@ -158,6 +172,7 @@ if (!current_user_is_super_admin()) {
                 $('#jobAdminBackupStatus').html('<div class="spinner-border text-warning" role="status"><span class="visually-hidden">Loading...</span></div> Starting backup for job_admin_prod...');
                 $('#jobAdminProgressBar').addClass('progress-bar-animated').css('width', '0%').text('0%');
                 $('#jobAdminProgressWrap').removeClass('d-none');
+                $('#jobAdminControls').removeClass('d-none');
 
                 $.ajax({
                     url: 'start_job_admin_backup.php',
@@ -171,16 +186,39 @@ if (!current_user_is_super_admin()) {
                             let errorMessage = (response && response.message) ? response.message : 'Failed to start backup.';
                             $('#downloadJobAdminBackupBtn').prop('disabled', false);
                             $('#jobAdminProgressWrap').addClass('d-none');
+                            $('#jobAdminControls').addClass('d-none');
                             $('#jobAdminBackupStatus').html('<div class="alert alert-danger" role="alert">Error: ' + errorMessage + '</div>');
                         }
                     },
                     error: function() {
                         $('#downloadJobAdminBackupBtn').prop('disabled', false);
                         $('#jobAdminProgressWrap').addClass('d-none');
+                        $('#jobAdminControls').addClass('d-none');
                         $('#jobAdminBackupStatus').html('<div class="alert alert-danger" role="alert">An error occurred trying to start the backup.</div>');
                     }
                 });
             });
+
+            $('#stopJobAdminBackupBtn').on('click', function() {
+                $('#stopJobAdminBackupBtn').prop('disabled', true);
+                $.post('stop_job_admin_backup.php', {}, function(res) {
+                    // UI will update on next poll
+                    setTimeout(function() { $('#stopJobAdminBackupBtn').prop('disabled', false); }, 1000);
+                });
+            });
+
+            // On page load, detect if a backup is already running and resume polling
+            (function resumeIfRunning() {
+                $.get('status_job_admin_backup.php', function(res) {
+                    if (res && res.success && res.status && res.status.state === 'running') {
+                        $('#downloadJobAdminBackupBtn').prop('disabled', true);
+                        $('#jobAdminProgressWrap').removeClass('d-none');
+                        $('#jobAdminControls').removeClass('d-none');
+                        if (jobAdminPollTimer) { clearInterval(jobAdminPollTimer); }
+                        jobAdminPollTimer = setInterval(pollJobAdminStatus, 1000);
+                    }
+                });
+            })();
 
             $('#startServiceBtn').on('click', function() {
                 $.post('backup_service_control.php', { action: 'start' }, function(response) {
