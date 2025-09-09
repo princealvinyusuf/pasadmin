@@ -26,6 +26,35 @@ if ($action === 'kill' && isset($_POST['id'])) {
             $error = 'Failed to kill session ID ' . $killId . ': ' . $e->getMessage();
         }
     }
+} elseif ($action === 'kill_user' && isset($_POST['user'])) {
+    if (!current_user_can('kill_db_session') && !current_user_can('manage_settings')) { http_response_code(403); echo 'Forbidden'; exit; }
+    $targetUser = (string)($_POST['user'] ?? '');
+    $targetHost = (string)($_POST['host'] ?? '');
+    $hostOnly = $targetHost !== '' ? explode(':', $targetHost)[0] : '';
+    $ids = [];
+    try {
+        $res = $conn->query('SHOW FULL PROCESSLIST');
+        while ($r = $res->fetch_assoc()) {
+            $u = $r['User'] ?? $r['USER'] ?? '';
+            $h = $r['Host'] ?? $r['HOST'] ?? '';
+            $hOnly = explode(':', (string)$h)[0];
+            $id = intval($r['Id'] ?? $r['ID'] ?? 0);
+            if ($u === $targetUser && ($hostOnly === '' || $hOnly === $hostOnly) && $id > 0 && $id !== $currentId) {
+                $ids[] = $id;
+            }
+        }
+    } catch (Throwable $e) {
+        $error = 'Failed to scan sessions: ' . $e->getMessage();
+    }
+    $killed = 0;
+    foreach ($ids as $id) {
+        try { $conn->query('KILL ' . $id); $killed++; } catch (Throwable $e) { /* ignore */ }
+    }
+    if ($killed > 0) {
+        $message = 'Killed ' . $killed . ' session(s) for user ' . $targetUser . ($hostOnly !== '' ? ('@' . $hostOnly) : '');
+    } else {
+        if (empty($error)) { $error = 'No sessions to kill for user ' . $targetUser . ($hostOnly !== '' ? ('@' . $hostOnly) : ''); }
+    }
 }
 
 // Filters
@@ -178,12 +207,20 @@ foreach ($rows as $r) {
 				<?php foreach ($norm as $row): ?>
 					<tr>
 						<td>
-							<?php if ((current_user_can('kill_db_session') || current_user_can('manage_settings')) && (int)$row['ID'] !== (int)$currentId): ?>
-							<form method="post" action="active_db_sessions.php" onsubmit="return confirm('Kill session ID <?php echo (int)$row['ID']; ?>?');" style="display:inline-block">
-								<input type="hidden" name="action" value="kill">
-								<input type="hidden" name="id" value="<?php echo (int)$row['ID']; ?>">
-								<button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-x-circle"></i> Kill</button>
-							</form>
+							<?php if (current_user_can('kill_db_session') || current_user_can('manage_settings')): ?>
+								<?php if ((int)$row['ID'] !== (int)$currentId): ?>
+								<form method="post" action="active_db_sessions.php" onsubmit="return confirm('Kill session ID <?php echo (int)$row['ID']; ?>?');" style="display:inline-block">
+									<input type="hidden" name="action" value="kill">
+									<input type="hidden" name="id" value="<?php echo (int)$row['ID']; ?>">
+									<button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-x-circle"></i> Kill</button>
+								</form>
+								<?php endif; ?>
+								<form method="post" action="active_db_sessions.php" onsubmit="return confirm('Kill ALL sessions for user <?php echo htmlspecialchars((string)$row['USER']); ?><?php $hOnly = explode(':', (string)$row['HOST'])[0]; echo $hOnly !== '' ? '@' . htmlspecialchars($hOnly) : ''; ?>?');" style="display:inline-block">
+									<input type="hidden" name="action" value="kill_user">
+									<input type="hidden" name="user" value="<?php echo htmlspecialchars((string)$row['USER']); ?>">
+									<input type="hidden" name="host" value="<?php echo htmlspecialchars((string)$row['HOST']); ?>">
+									<button class="btn btn-sm btn-outline-warning" type="submit"><i class="bi bi-person-x"></i> Kill User</button>
+								</form>
 							<?php endif; ?>
 						</td>
 						<td><?php echo htmlspecialchars((string)$row['ID']); ?></td>
