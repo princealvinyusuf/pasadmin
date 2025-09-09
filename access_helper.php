@@ -64,6 +64,8 @@ function ac_seed_permissions(mysqli $conn): void {
 		['settings_partnership_type_manage','Manage Partnership Types','Settings'],
 		['use_broadcast','Use Broadcast','Tools'],
 		['view_extensions','View Extensions','Tools'],
+		['view_db_sessions','View Active DB Sessions','Tools'],
+		['kill_db_session','Kill DB Session','Tools'],
 		// AsMen (Asset Management) permissions
 		['asmen_manage_assets','AsMen: Manage Assets','AsMen'],
 		['asmen_view_services','AsMen: View Services','AsMen'],

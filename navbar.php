@@ -109,6 +109,8 @@
                         <?php if ($canManageSettings || $canJobFair): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>job_fair_settings.php">Job Fair Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canVirtualKarir): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>virtual_karir_service_settings.php">Virtual Karir Service Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
+                        <?php if ($canManageSettings || current_user_can('view_db_sessions')): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>active_db_sessions.php">Active DB Sessions</a></li><?php endif; ?>
+                        <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings || $canMitraKerja): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>mitra_kerja_settings.php">Mitra Kerja Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings || $canAccessControl): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>access_control.php">Access Control</a></li><?php endif; ?>
