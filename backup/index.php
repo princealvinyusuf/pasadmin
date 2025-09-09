@@ -45,9 +45,13 @@ if (!current_user_is_super_admin()) {
                 <div class="card">
                     <div class="card-body text-center">
                         <h5 class="card-title">Manual Backup</h5>
-                        <p class="card-text">Create an immediate backup of the database.</p>
-                        <button id="downloadBackupBtn" class="btn btn-primary"><i class="bi bi-download me-2"></i>Download .sql Backup</button>
+                        <p class="card-text">Create an immediate backup of the databases.</p>
+                        <div class="d-grid gap-2 d-md-block">
+                            <button id="downloadBackupBtn" class="btn btn-primary me-2"><i class="bi bi-download me-2"></i>Download .sql Backup (paskerid_db_prod)</button>
+                            <button id="downloadJobAdminBackupBtn" class="btn btn-warning"><i class="bi bi-filetype-sql me-2"></i>Download .sql Backup (job_admin_prod)</button>
+                        </div>
                         <div id="backupStatus" class="mt-3"></div>
+                        <div id="jobAdminBackupStatus" class="mt-2"></div>
                     </div>
                 </div>
             </div>
@@ -102,6 +106,28 @@ if (!current_user_is_super_admin()) {
                     },
                     error: function() {
                         $('#backupStatus').html('<div class="alert alert-danger" role="alert">An error occurred during backup.</div>');
+                    }
+                });
+            });
+
+            $('#downloadJobAdminBackupBtn').on('click', function() {
+                $('#jobAdminBackupStatus').html('<div class="spinner-border text-warning" role="status"><span class="visually-hidden">Loading...</span></div> Backing up job_admin_prod database...');
+                $.ajax({
+                    url: 'backup_database_job_admin.php',
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            $('#jobAdminBackupStatus').html('<div class="alert alert-warning" role="alert">' + response.message + ' <a href="' + response.filePath + '" class="alert-link">Download Backup</a></div>');
+                        } else {
+                            let errorMessage = response.message;
+                            if (response.details) {
+                                errorMessage += '<pre class="text-start mt-2">' + response.details + '</pre>';
+                            }
+                            $('#jobAdminBackupStatus').html('<div class="alert alert-danger" role="alert">Error: ' + errorMessage + '</div>');
+                        }
+                    },
+                    error: function() {
+                        $('#jobAdminBackupStatus').html('<div class="alert alert-danger" role="alert">An error occurred during job_admin_prod backup.</div>');
                     }
                 });
             });
