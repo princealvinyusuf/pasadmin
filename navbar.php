@@ -49,7 +49,8 @@
     $canAsmenCalendar = current_user_can('asmen_view_calendar');
     $canAsmenQR = current_user_can('asmen_use_qr') || $canAsmenAssets;
 
-    $hasDashboard = ($canDashJobs || $canDashSeekers);
+    // Show Dashboard menu if user can view any dashboard or manage settings (for custom Tableau dashboards)
+    $hasDashboard = ($canDashJobs || $canDashSeekers || current_user_can('manage_settings'));
     $hasMasterData = ($canJobs || $canJobSeekers);
     $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canAccessControl || $canBroadcast);
     $hasLayanan = ($canManageSettings || $canMitraKerja || $canPartnershipType || $canMitraSubmission || $canKemitraanBooked || $canPaskerRoom);
@@ -66,6 +67,9 @@
                     <ul class="dropdown-menu" aria-labelledby="dashboardDropdown">
                         <?php if ($canDashJobs || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_jobs.php">Dashboard Jobs</a></li><?php endif; ?>
                         <?php if ($canDashSeekers || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_job_seekers.php">Dashboard Job Seekers</a></li><?php endif; ?>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_kebutuhan_tenaga_kerja.php">Dashboard Kebutuhan Tenaga Kerja</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_persediaan_tenaga_kerja.php">Dashboard Persediaan Tenaga Kerja</a></li>
                     </ul>
                 </li>
                 <?php endif; ?>
