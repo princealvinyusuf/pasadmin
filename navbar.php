@@ -20,6 +20,8 @@
 <?php
     $canDashJobs = current_user_can('view_dashboard_jobs');
     $canDashSeekers = current_user_can('view_dashboard_job_seekers');
+    $canDashKebutuhan = current_user_can('view_dashboard_kebutuhan_tk');
+    $canDashPersediaan = current_user_can('view_dashboard_persediaan_tk');
     $canJobs = current_user_can('manage_jobs');
     $canJobSeekers = current_user_can('manage_job_seekers');
     $canManageSettings = current_user_can('manage_settings');
@@ -49,8 +51,8 @@
     $canAsmenCalendar = current_user_can('asmen_view_calendar');
     $canAsmenQR = current_user_can('asmen_use_qr') || $canAsmenAssets;
 
-    // Show Dashboard menu if user can view any dashboard or manage settings (for custom Tableau dashboards)
-    $hasDashboard = ($canDashJobs || $canDashSeekers || current_user_can('manage_settings'));
+    // Show Dashboard if user can view any dashboard or manage settings
+    $hasDashboard = ($canDashJobs || $canDashSeekers || $canDashKebutuhan || $canDashPersediaan || current_user_can('manage_settings'));
     $hasMasterData = ($canJobs || $canJobSeekers);
     $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canAccessControl || $canBroadcast);
     $hasLayanan = ($canManageSettings || $canMitraKerja || $canPartnershipType || $canMitraSubmission || $canKemitraanBooked || $canPaskerRoom);
@@ -68,8 +70,8 @@
                         <?php if ($canDashJobs || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_jobs.php">Dashboard Jobs</a></li><?php endif; ?>
                         <?php if ($canDashSeekers || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_job_seekers.php">Dashboard Job Seekers</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if (current_user_can('view_dashboard_kebutuhan_tk') || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_kebutuhan_tenaga_kerja.php">Dashboard Kebutuhan Tenaga Kerja</a></li><?php endif; ?>
-                        <?php if (current_user_can('view_dashboard_persediaan_tk') || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_persediaan_tenaga_kerja.php">Dashboard Persediaan Tenaga Kerja</a></li><?php endif; ?>
+                        <?php if ($canDashKebutuhan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_kebutuhan_tenaga_kerja.php">Dashboard Kebutuhan Tenaga Kerja</a></li><?php endif; ?>
+                        <?php if ($canDashPersediaan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_persediaan_tenaga_kerja.php">Dashboard Persediaan Tenaga Kerja</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
