@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/access_helper.php';
-if (!(current_user_can('view_dashboard_jobs') || current_user_can('view_dashboard_job_seekers') || current_user_can('manage_settings'))) { http_response_code(403); echo 'Forbidden'; exit; }
+if (!(current_user_can('view_dashboard_kebutuhan_tk') || current_user_can('manage_settings'))) { http_response_code(403); echo 'Forbidden'; exit; }
 
 // Ensure storage table exists in job_admin_prod
 try {

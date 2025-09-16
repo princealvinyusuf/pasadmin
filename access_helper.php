@@ -41,6 +41,8 @@ function ac_seed_permissions(mysqli $conn): void {
 		['manage_access_control','Manage Access Control','Admin'],
 		['view_dashboard_jobs','View Dashboard Jobs','Dashboard'],
 		['view_dashboard_job_seekers','View Dashboard Job Seekers','Dashboard'],
+		['view_dashboard_kebutuhan_tk','View Dashboard Kebutuhan Tenaga Kerja','Dashboard'],
+		['view_dashboard_persediaan_tk','View Dashboard Persediaan Tenaga Kerja','Dashboard'],
 		['manage_jobs','Manage Jobs','Data'],
 		['manage_job_seekers','Manage Job Seekers','Data'],
 		['view_cleansing','View Cleansing Pages','Tools'],

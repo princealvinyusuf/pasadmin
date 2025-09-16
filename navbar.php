@@ -68,8 +68,8 @@
                         <?php if ($canDashJobs || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_jobs.php">Dashboard Jobs</a></li><?php endif; ?>
                         <?php if ($canDashSeekers || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_job_seekers.php">Dashboard Job Seekers</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_kebutuhan_tenaga_kerja.php">Dashboard Kebutuhan Tenaga Kerja</a></li>
-                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_persediaan_tenaga_kerja.php">Dashboard Persediaan Tenaga Kerja</a></li>
+                        <?php if (current_user_can('view_dashboard_kebutuhan_tk') || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_kebutuhan_tenaga_kerja.php">Dashboard Kebutuhan Tenaga Kerja</a></li><?php endif; ?>
+                        <?php if (current_user_can('view_dashboard_persediaan_tk') || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_persediaan_tenaga_kerja.php">Dashboard Persediaan Tenaga Kerja</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>

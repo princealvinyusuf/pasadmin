@@ -8,7 +8,7 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/access_helper.php';
 
 // Allow viewing if user can view any dashboard or manage settings
-if (!(current_user_can('view_dashboard_jobs') || current_user_can('view_dashboard_job_seekers') || current_user_can('manage_settings'))) {
+if (!(current_user_can('view_dashboard_kebutuhan_tk') || current_user_can('view_dashboard_persediaan_tk') || current_user_can('manage_settings'))) {
     http_response_code(403);
     echo 'Forbidden';
     exit;
