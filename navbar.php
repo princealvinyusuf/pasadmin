@@ -129,6 +129,11 @@
                     </ul>
                 </li>
                 <?php endif; ?>
+                <?php if (current_user_can('view_audit_trails') || $canManageSettings): ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="<?php echo $rootPrefix; ?>audit_trails.php">Audit Trails</a>
+                </li>
+                <?php endif; ?>
                 <?php if ($hasLayanan): ?>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="layananDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
