@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty(trim($_POST['jenis_mitra']))) { $errors['jenis_mitra'] = "Jenis Mitra wajib dipilih"; }
 
     // Proses upload file
-    $uploadDir = __DIR__ . '/uploads/';
+    $uploadDir = $tahapanUploadDir; // from init.php
     if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0777, true); }
     if (!is_writable($uploadDir)) { @chmod($uploadDir, 0777); }
     $filePaths = ['file1' => $data['file1'], 'file2' => $data['file2'], 'file3' => $data['file3']];

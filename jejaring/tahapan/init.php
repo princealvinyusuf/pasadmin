@@ -64,7 +64,10 @@ if (isset($conn) && $conn instanceof mysqli) {
 }
 
 // Ensure uploads directory exists
-$tahapanUploadDir = __DIR__ . '/uploads/';
+$tahapanUploadDir = realpath(__DIR__) . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
+if ($tahapanUploadDir === false) {
+    $tahapanUploadDir = __DIR__ . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
+}
 if (!is_dir($tahapanUploadDir)) {
     @mkdir($tahapanUploadDir, 0755, true);
 }

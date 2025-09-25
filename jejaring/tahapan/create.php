@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty(trim($_POST['jenis_mitra']))) { $errors['jenis_mitra'] = "Jenis Mitra wajib dipilih"; }
     
     if (count($errors) === 0) {
-        $uploadDir = __DIR__ . '/uploads/';
+        $uploadDir = $tahapanUploadDir; // from init.php
         if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0777, true); }
         if (!is_writable($uploadDir)) { @chmod($uploadDir, 0777); }
 
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     case UPLOAD_ERR_EXTENSION: $msg .= 'diblokir ekstensi.'; break;
                     default: $msg .= 'gagal memindahkan file.'; break;
                 }
-                if (!is_writable($uploadDir)) { $msg .= ' Direktori upload tidak dapat ditulis.'; }
+                if (!is_writable($uploadDir)) { $msg .= ' Direktori upload tidak dapat ditulis: ' . htmlspecialchars($uploadDir) . '.'; }
                 $errors[$key] = $msg;
             }
         }
