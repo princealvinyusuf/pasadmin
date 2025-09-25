@@ -81,6 +81,7 @@
                         Jejaring
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="jejaringDropdown">
+                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>jejaring/tahapan/index.php">Tahapan Kerjasama</a></li>
                         <?php if ($canManageSettings || $canDatabaseContact): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>jejaring/database_contact.php">Database Contact</a></li><?php endif; ?>
                     </ul>
                 </li>
