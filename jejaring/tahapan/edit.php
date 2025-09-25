@@ -2,7 +2,7 @@
 // =================================================================
 // FILE: edit.php (VERSI PERBAIKAN FINAL - FIXED)
 // =================================================================
-include "../../views/header.php";
+include "../views/header.php";
 include "init.php"; 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -36,9 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Proses upload file
     $uploadDir = __DIR__ . '/uploads/';
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
-    }
+    if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0777, true); }
+    if (!is_writable($uploadDir)) { @chmod($uploadDir, 0777); }
     $filePaths = ['file1' => $data['file1'], 'file2' => $data['file2'], 'file3' => $data['file3']];
     
     foreach(['file1', 'file2', 'file3'] as $fileKey) {
@@ -61,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newFileName = time() . '_' . basename($originalName);
             }
 
-            if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $uploadDir . $newFileName)) {
+            if (is_uploaded_file($_FILES[$fileKey]['tmp_name']) && move_uploaded_file($_FILES[$fileKey]['tmp_name'], $uploadDir . $newFileName)) {
                 $filePaths[$fileKey] = $newFileName;
             } else {
                 $errors['file_upload'] = "Gagal mengunggah file: " . htmlspecialchars($originalName);

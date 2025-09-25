@@ -1,5 +1,5 @@
 <?php
-include "../../views/header.php";
+include "../views/header.php";
 include "init.php";
 
 // Menampilkan pesan notifikasi

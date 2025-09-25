@@ -3,12 +3,12 @@ include "init.php";
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 $errors = [];
+$_uploadDiag = [];
 
 function handleUpload($fileKey, $customName, $uploadDir) {
     if (isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] == UPLOAD_ERR_OK) {
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
+        if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0777, true); }
+        if (!is_writable($uploadDir)) { @chmod($uploadDir, 0777); }
 
         $originalFileName = $_FILES[$fileKey]['name'];
         $fileExtension = pathinfo($originalFileName, PATHINFO_EXTENSION);
@@ -22,7 +22,7 @@ function handleUpload($fileKey, $customName, $uploadDir) {
         $newFileName = time() . '_' . $safeFileName . '.' . $fileExtension;
         $targetPath = $uploadDir . $newFileName;
 
-        if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $targetPath)) {
+        if (is_uploaded_file($_FILES[$fileKey]['tmp_name']) && move_uploaded_file($_FILES[$fileKey]['tmp_name'], $targetPath)) {
             return $newFileName;
         }
     }
@@ -35,9 +35,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (count($errors) === 0) {
         $uploadDir = __DIR__ . '/uploads/';
+        if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0777, true); }
+        if (!is_writable($uploadDir)) { @chmod($uploadDir, 0777); }
+
         $file1Name = handleUpload('file1', $_POST['file1_nama'], $uploadDir);
         $file2Name = handleUpload('file2', $_POST['file2_nama'], $uploadDir);
         $file3Name = handleUpload('file3', $_POST['file3_nama'], $uploadDir);
+
+        foreach (['file1' => $file1Name, 'file2' => $file2Name, 'file3' => $file3Name] as $key => $savedName) {
+            $errCode = $_FILES[$key]['error'] ?? UPLOAD_ERR_NO_FILE;
+            if ($errCode !== UPLOAD_ERR_NO_FILE && $savedName === null) {
+                $msg = 'Gagal mengunggah ' . $key . ' - ';
+                switch ($errCode) {
+                    case UPLOAD_ERR_INI_SIZE:
+                    case UPLOAD_ERR_FORM_SIZE: $msg .= 'ukuran file melebihi batas.'; break;
+                    case UPLOAD_ERR_PARTIAL: $msg .= 'upload terpotong.'; break;
+                    case UPLOAD_ERR_NO_TMP_DIR: $msg .= 'folder tmp tidak tersedia.'; break;
+                    case UPLOAD_ERR_CANT_WRITE: $msg .= 'gagal menulis ke disk.'; break;
+                    case UPLOAD_ERR_EXTENSION: $msg .= 'diblokir ekstensi.'; break;
+                    default: $msg .= 'gagal memindahkan file.'; break;
+                }
+                if (!is_writable($uploadDir)) { $msg .= ' Direktori upload tidak dapat ditulis.'; }
+                $errors[$key] = $msg;
+            }
+        }
 
         $sql = "INSERT INTO tahapan_kerjasama (
                     nama_mitra, jenis_mitra, sumber_usulan, tandai, 
@@ -62,11 +83,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $file1Name, $file2Name, $file3Name
         );
         
-        if ($stmt->execute()) { 
+        if (empty($errors) && $stmt->execute()) { 
             header("Location: index.php?success=created"); 
             exit(); 
         } else { 
-            $errors['db_error'] = "Gagal menyimpan: " . htmlspecialchars($stmt->error); 
+            if (empty($errors)) {
+                $errors['db_error'] = "Gagal menyimpan: " . htmlspecialchars($stmt->error);
+            }
         }
     }
 }
