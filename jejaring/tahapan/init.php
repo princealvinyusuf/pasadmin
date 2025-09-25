@@ -72,4 +72,30 @@ if (!is_dir($tahapanUploadDir)) {
     @mkdir($tahapanUploadDir, 0755, true);
 }
 
+// Sanitize a base filename (without extension)
+function tahapanSanitizeBaseName(string $name): string {
+    $name = str_replace(' ', '_', trim($name));
+    return preg_replace('/[^a-zA-Z0-9_.\-]/', '_', $name);
+}
+
+// Generate a collision-resistant unique filename within a directory
+function tahapanGenerateUniqueFileName(string $directory, string $desiredBase, string $extension): string {
+    $base = tahapanSanitizeBaseName($desiredBase);
+    $ext = ltrim(strtolower($extension), '.');
+    $stamp = date('YmdHis');
+    // fast unique component to avoid collisions
+    try {
+        $rand = bin2hex(random_bytes(4));
+    } catch (Throwable $e) {
+        $rand = substr(sha1(uniqid((string)mt_rand(), true)), 0, 8);
+    }
+    $candidate = $stamp . '_' . $rand . '_' . $base . '.' . $ext;
+    // just in case, ensure not exists
+    $i = 0;
+    while (file_exists($directory . $candidate) && $i < 5) {
+        $candidate = $stamp . '_' . $rand . '_' . $base . '_' . (++$i) . '.' . $ext;
+    }
+    return $candidate;
+}
+
 

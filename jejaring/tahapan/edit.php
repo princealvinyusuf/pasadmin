@@ -53,12 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
             $customName = trim($_POST[$customNameKey] ?? '');
             
-            if (!empty($customName)) {
-                $safeName = preg_replace('/[^a-zA-Z0-9_.\-]/', '_', $customName);
-                $newFileName = time() . '_' . $safeName . '.' . $extension;
-            } else {
-                $newFileName = time() . '_' . basename($originalName);
-            }
+            $baseName = !empty($customName) ? $customName : basename($originalName, '.' . $extension);
+            $newFileName = tahapanGenerateUniqueFileName($uploadDir, $baseName, $extension);
 
             if (is_uploaded_file($_FILES[$fileKey]['tmp_name']) && move_uploaded_file($_FILES[$fileKey]['tmp_name'], $uploadDir . $newFileName)) {
                 $filePaths[$fileKey] = $newFileName;

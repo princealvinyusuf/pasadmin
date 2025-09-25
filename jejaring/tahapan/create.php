@@ -21,12 +21,8 @@ function handleUpload($fileKey, $customName, $uploadDir) {
         $fileExtension = pathinfo($originalFileName, PATHINFO_EXTENSION);
         
         $baseName = basename($originalFileName, "." . $fileExtension);
-
         $finalName = !empty(trim($customName)) ? trim($customName) : $baseName;
-
-        $safeFileName = preg_replace('/[^a-zA-Z0-9-_\.]/', '', str_replace(' ', '_', $finalName));
-        
-        $newFileName = time() . '_' . $safeFileName . '.' . $fileExtension;
+        $newFileName = tahapanGenerateUniqueFileName($uploadDir, $finalName, $fileExtension);
         $targetPath = $uploadDir . $newFileName;
 
         if (is_uploaded_file($_FILES[$fileKey]['tmp_name']) && move_uploaded_file($_FILES[$fileKey]['tmp_name'], $targetPath)) {
