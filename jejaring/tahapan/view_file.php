@@ -1,3 +1,5 @@
+// Root DB not required here, but include init to ensure directory and settings are present
+include "init.php";
 <?php
 function renderErrorPage($title, $message) {
     http_response_code($title === '404 Not Found' ? 404 : 400);

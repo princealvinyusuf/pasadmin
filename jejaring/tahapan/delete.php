@@ -1,5 +1,5 @@
 <?php
-include "db.php";
+include "init.php";
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     header("Location: index.php?error=invalid_id");

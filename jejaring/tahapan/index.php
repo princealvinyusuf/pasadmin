@@ -1,6 +1,6 @@
 <?php
 include "../../views/header.php";
-include "db.php";
+include "init.php";
 
 // Menampilkan pesan notifikasi
 $message = '';

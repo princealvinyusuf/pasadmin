@@ -1,5 +1,5 @@
 <?php
-include "db.php";
+include "init.php";
 
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if ($id <= 0) {
