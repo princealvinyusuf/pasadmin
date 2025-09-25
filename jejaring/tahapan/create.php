@@ -7,8 +7,15 @@ $_uploadDiag = [];
 
 function handleUpload($fileKey, $customName, $uploadDir) {
     if (isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] == UPLOAD_ERR_OK) {
-        if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0777, true); }
-        if (!is_writable($uploadDir)) { @chmod($uploadDir, 0777); }
+        if (!is_dir($uploadDir)) {
+            @mkdir($uploadDir, 0777, true);
+        }
+        if (!is_writable($uploadDir)) {
+            @chmod($uploadDir, 0777);
+        }
+        if (!is_dir($uploadDir) || !is_writable($uploadDir)) {
+            return null; // avoid move_uploaded_file warning when dir absent
+        }
 
         $originalFileName = $_FILES[$fileKey]['name'];
         $fileExtension = pathinfo($originalFileName, PATHINFO_EXTENSION);
