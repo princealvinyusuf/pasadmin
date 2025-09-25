@@ -8,6 +8,7 @@
     $isSubdirContext = ($isAsmenContext || $isJejaringContext || $isBackupContext);
     $rootPrefix = $isSubdirContext ? '../' : '';
     $asmenPrefix = $isAsmenContext ? '' : ($rootPrefix . 'asmen_feature/');
+    $jejaringPrefix = $isJejaringContext ? '' : ($rootPrefix . 'jejaring/');
 ?>
 <!-- Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -82,8 +83,8 @@
                         Jejaring
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="jejaringDropdown">
-                        <?php if ($canManageSettings || $canDatabaseContact): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>jejaring/database_contact.php">Database Contact</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canJejaringTahapan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>jejaring/tahapan/index.php">Tahapan Kerjasama</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canDatabaseContact): ?><li><a class="dropdown-item" href="<?php echo $jejaringPrefix; ?>database_contact.php">Database Contact</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canJejaringTahapan): ?><li><a class="dropdown-item" href="<?php echo $jejaringPrefix; ?>tahapan/index.php">Tahapan Kerjasama</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
