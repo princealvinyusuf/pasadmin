@@ -152,6 +152,7 @@ $pksDataExists = !empty($data['status_pks']) || !empty($data['nomor_pks']) || !e
     </style>
 </head>
 <body>
+<?php include "../../navbar.php"; ?>
     <div class="container my-5">
         <div class="row justify-content-center">
             <div class="col-lg-11">

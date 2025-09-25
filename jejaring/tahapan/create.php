@@ -114,6 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
+<?php include "../../navbar.php"; ?>
     <div class="container my-5"><div class="row justify-content-center"><div class="col-lg-11"><div class="card form-card">
         <div class="card-header form-card-header text-center p-4"><h2 class="mb-1"><i class="bi bi-person-plus-fill"></i> Tambah Mitra Baru</h2><p class="mb-0">Lengkapi informasi di bawah ini.</p></div>
         <div class="card-body p-4 p-md-5">

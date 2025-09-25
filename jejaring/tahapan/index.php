@@ -1,5 +1,4 @@
 <?php
-include "../views/header.php";
 include "init.php";
 
 // Menampilkan pesan notifikasi
@@ -107,6 +106,7 @@ function formatValue($value) {
     </style>
 </head>
 <body>
+<?php include "../../navbar.php"; ?>
 <div class="container my-5">
     <div class="main-container">
         <div class="text-center mb-4">
