@@ -56,7 +56,8 @@
     $hasMasterData = ($canJobs || $canJobSeekers);
     $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canAccessControl || $canBroadcast);
     $hasLayanan = ($canManageSettings || $canMitraKerja || $canPartnershipType || $canMitraSubmission || $canKemitraanBooked || $canPaskerRoom);
-    $hasJejaring = ($canManageSettings || $canDatabaseContact);
+    $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
+    $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan);
     $hasAsmen = ($canAsmenDashboard || $canAsmenAssets || $canAsmenServices || $canAsmenCalendar || $canAsmenQR);
 ?>
 <?php // context already computed above ?>
@@ -83,6 +84,7 @@
                     <ul class="dropdown-menu" aria-labelledby="jejaringDropdown">
                         <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>jejaring/tahapan/index.php">Tahapan Kerjasama</a></li>
                         <?php if ($canManageSettings || $canDatabaseContact): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>jejaring/database_contact.php">Database Contact</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canJejaringTahapan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>jejaring/tahapan/index.php">Tahapan Kerjasama</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
