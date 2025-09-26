@@ -6,9 +6,18 @@
     $isJejaringContext = strpos($scriptName, '/jejaring/') !== false;
     $isBackupContext = strpos($scriptName, '/backup/') !== false;
     $isSubdirContext = ($isAsmenContext || $isJejaringContext || $isBackupContext);
-    $rootPrefix = $isSubdirContext ? '../' : '';
-    $asmenPrefix = $isAsmenContext ? '' : ($rootPrefix . 'asmen_feature/');
-    $jejaringPrefix = $isJejaringContext ? '' : ($rootPrefix . 'jejaring/');
+    // Compute absolute base URL for this app (ending with /pasadmin/)
+    $appRootMarker = '/pasadmin/';
+    $posApp = strpos($scriptName, $appRootMarker);
+    $appBaseUrl = ($posApp !== false) ? substr($scriptName, 0, $posApp + strlen($appRootMarker)) : '/';
+    // Absolute prefixes
+    $rootUrl = $appBaseUrl; // e.g., /pasadmin/
+    $asmenUrl = $appBaseUrl . 'asmen_feature/';
+    $jejaringUrl = $appBaseUrl . 'jejaring/';
+    // Back-compat variables used below
+    $rootPrefix = $rootUrl;
+    $asmenPrefix = $asmenUrl;
+    $jejaringPrefix = $jejaringUrl;
 ?>
 <!-- Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -69,11 +78,11 @@
                         Dashboard
                         </a>
                     <ul class="dropdown-menu" aria-labelledby="dashboardDropdown">
-                        <?php if ($canDashJobs || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_jobs.php">Dashboard Jobs</a></li><?php endif; ?>
-                        <?php if ($canDashSeekers || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_job_seekers.php">Dashboard Job Seekers</a></li><?php endif; ?>
+                            <?php if ($canDashJobs || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_jobs.php">Dashboard Jobs</a></li><?php endif; ?>
+                            <?php if ($canDashSeekers || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_job_seekers.php">Dashboard Job Seekers</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canDashKebutuhan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_kebutuhan_tenaga_kerja.php">Dashboard Kebutuhan Tenaga Kerja</a></li><?php endif; ?>
-                        <?php if ($canDashPersediaan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>dashboard_persediaan_tenaga_kerja.php">Dashboard Persediaan Tenaga Kerja</a></li><?php endif; ?>
+                            <?php if ($canDashKebutuhan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_kebutuhan_tenaga_kerja.php">Dashboard Kebutuhan Tenaga Kerja</a></li><?php endif; ?>
+                            <?php if ($canDashPersediaan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_persediaan_tenaga_kerja.php">Dashboard Persediaan Tenaga Kerja</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -83,8 +92,8 @@
                         Jejaring
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="jejaringDropdown">
-                        <?php if ($canManageSettings || $canDatabaseContact): ?><li><a class="dropdown-item" href="<?php echo $jejaringPrefix; ?>database_contact.php">Database Contact</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canJejaringTahapan): ?><li><a class="dropdown-item" href="<?php echo $jejaringPrefix; ?>tahapan/index.php">Tahapan Kerjasama</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canDatabaseContact): ?><li><a class="dropdown-item" href="<?php echo $jejaringUrl; ?>database_contact.php">Database Contact</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canJejaringTahapan): ?><li><a class="dropdown-item" href="<?php echo $jejaringUrl; ?>tahapan/index.php">Tahapan Kerjasama</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -94,8 +103,8 @@
                         Master Data
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
-                        <?php if ($canJobs || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>jobs.php">Jobs</a></li><?php endif; ?>
-                        <?php if ($canJobSeekers || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>job_seekers.php">Job Seekers</a></li><?php endif; ?>
+                            <?php if ($canJobs || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>jobs.php">Jobs</a></li><?php endif; ?>
+                            <?php if ($canJobSeekers || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>job_seekers.php">Job Seekers</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -105,36 +114,36 @@
                         Settings
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="settingsDropdown">
-                        <?php if ($canManageSettings || $canChart): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>chart_settings.php">Chart Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canContribution): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>contribution_settings.php">Contribution Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canInformation): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>information_settings.php">Information Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canNews): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>news_settings.php">News Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canServices): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>services_settings.php">Services Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canStatistics): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>statistics_settings.php">Statistics Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canTestimonials): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>testimonials_settings.php">Testimonial Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canTopList): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>top_list_settings.php">Top List Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canChart): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>chart_settings.php">Chart Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canContribution): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>contribution_settings.php">Contribution Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canInformation): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>information_settings.php">Information Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canNews): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>news_settings.php">News Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canServices): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>services_settings.php">Services Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canStatistics): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>statistics_settings.php">Statistics Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canTestimonials): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>testimonials_settings.php">Testimonial Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canTopList): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>top_list_settings.php">Top List Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canManageSettings || $canAgenda): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>agenda_settings.php">Agenda Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canJobFair): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>job_fair_settings.php">Job Fair Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canVirtualKarir): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>virtual_karir_service_settings.php">Virtual Karir Service Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canAgenda): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>agenda_settings.php">Agenda Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canJobFair): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>job_fair_settings.php">Job Fair Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canVirtualKarir): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>virtual_karir_service_settings.php">Virtual Karir Service Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canManageSettings || current_user_can('view_db_sessions')): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>active_db_sessions.php">Active DB Sessions</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || current_user_can('view_db_sessions')): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>active_db_sessions.php">Active DB Sessions</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canManageSettings || $canMitraKerja): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>mitra_kerja_settings.php">Mitra Kerja Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canMitraKerja): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>mitra_kerja_settings.php">Mitra Kerja Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canManageSettings || $canAccessControl): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>access_control.php">Access Control</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canAccessControl): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>access_control.php">Access Control</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canManageSettings || $canBroadcast): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>broadcast.php">Broadcast</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canBroadcast): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>broadcast.php">Broadcast</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_ads_settings.php">KarirHub Ads Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>karirhub_ads_settings.php">KarirHub Ads Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>cron_settings.php">Other Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>cron_settings.php">Other Settings</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
                 <?php if (current_user_can('view_audit_trails') || $canManageSettings): ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootPrefix; ?>audit_trails.php">Audit Trails</a>
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>audit_trails.php">Audit Trails</a>
                 </li>
                 <?php endif; ?>
                 <?php if ($hasLayanan): ?>
@@ -167,16 +176,16 @@
                 <?php endif; ?>
                 <?php if (current_user_is_super_admin()): ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootPrefix; ?>backup/">Backup</a>
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>backup/">Backup</a>
                 </li>
                 <?php endif; ?>
                 <?php if ($canExtensions || $canManageSettings): ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootPrefix; ?>extensions.php">Extensions</a>
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>extensions.php">Extensions</a>
                 </li>
                 <?php endif; ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootPrefix; ?>logout.php"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>logout.php"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
                 </li>
             </ul>
         </div>
