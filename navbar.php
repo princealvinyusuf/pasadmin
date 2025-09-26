@@ -2,13 +2,11 @@
 <?php
     // Determine context early so brand link uses correct root
     $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-    $isAsmenContext = strpos($scriptName, '/asmen_feature/') !== false;
-    $isJejaringContext = strpos($scriptName, '/jejaring/') !== false;
-    $isBackupContext = strpos($scriptName, '/backup/') !== false;
-    $isSubdirContext = ($isAsmenContext || $isJejaringContext || $isBackupContext);
-    $rootPrefix = $isSubdirContext ? '../' : '';
-    $asmenPrefix = $isAsmenContext ? '' : ($rootPrefix . 'asmen_feature/');
-    $jejaringPrefix = $isJejaringContext ? '' : ($rootPrefix . 'jejaring/');
+    $currentDir = trim(dirname($scriptName), '/');
+    $depth = ($currentDir === '') ? 0 : (substr_count($currentDir, '/') + 1);
+    $rootPrefix = $depth > 0 ? str_repeat('../', $depth) : '';
+    $asmenPrefix = $rootPrefix . 'asmen_feature/';
+    $jejaringPrefix = $rootPrefix . 'jejaring/';
 ?>
 <!-- Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
