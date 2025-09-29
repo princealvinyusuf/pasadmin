@@ -344,7 +344,7 @@ require_once __DIR__ . '/../auth_guard.php';
                             <option value="Asosiasi/Komunitas">Asosiasi/Komunitas</option>
                         </select>
                     </div>
-                    <!-- <div class="col-6 col-md-2">
+                    <div class="col-6 col-md-2">
                         <select id="sort" class="form-select">
                             <option value="name" selected>Name</option>
                             <option value="website">Website</option>
@@ -354,7 +354,7 @@ require_once __DIR__ . '/../auth_guard.php';
                             <option value="company">Company</option>
                             <option value="created_at">Created</option>
                         </select>
-                    </div> -->
+                    </div>
                     <div class="col-6 col-md-2">
                         <select id="order" class="form-select">
                             <option value="asc">Asc</option>
