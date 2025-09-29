@@ -17,6 +17,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             job_title VARCHAR(150) NULL,
             email VARCHAR(190) NULL,
             phone VARCHAR(60) NULL,
+            website VARCHAR(255) NULL,
             company VARCHAR(190) NULL,
             kemitraan VARCHAR(100) NULL,
             notes TEXT NULL,
@@ -26,6 +27,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             INDEX idx_email (email),
             INDEX idx_job_title (job_title),
             INDEX idx_phone (phone),
+            INDEX idx_website (website),
             INDEX idx_company (company),
             INDEX idx_kemitraan (kemitraan)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
@@ -45,6 +47,15 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
         if ($checkColKem && $checkColKem->num_rows === 0) {
             $conn->query('ALTER TABLE contacts ADD COLUMN kemitraan VARCHAR(100) NULL AFTER company');
             $conn->query('CREATE INDEX idx_kemitraan ON contacts (kemitraan)');
+        }
+    } catch (Throwable $e) { /* ignore */ }
+
+    // Ensure website exists for older installs
+    try {
+        $checkColWeb = $conn->query("SHOW COLUMNS FROM contacts LIKE 'website'");
+        if ($checkColWeb && $checkColWeb->num_rows === 0) {
+            $conn->query('ALTER TABLE contacts ADD COLUMN website VARCHAR(255) NULL AFTER phone');
+            $conn->query('CREATE INDEX idx_website ON contacts (website)');
         }
     } catch (Throwable $e) { /* ignore */ }
 
@@ -70,7 +81,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             $search = trim($_GET['search'] ?? '');
             $sort = $_GET['sort'] ?? 'name';
             $order = strtolower($_GET['order'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
-            $allowedSort = ['name', 'job_title', 'email', 'phone', 'company', 'kemitraan', 'created_at'];
+            $allowedSort = ['name', 'job_title', 'email', 'phone', 'website', 'company', 'kemitraan', 'created_at'];
             if (!in_array($sort, $allowedSort, true)) $sort = 'name';
 
             $where = '';
@@ -78,9 +89,9 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             $types = '';
             if ($search !== '') {
                 $searchLike = '%' . $search . '%';
-                $where = 'WHERE name LIKE ? OR job_title LIKE ? OR email LIKE ? OR phone LIKE ? OR company LIKE ? OR kemitraan LIKE ?';
-                $params = [$searchLike, $searchLike, $searchLike, $searchLike, $searchLike, $searchLike];
-                $types = 'ssssss';
+                $where = 'WHERE name LIKE ? OR job_title LIKE ? OR email LIKE ? OR phone LIKE ? OR website LIKE ? OR company LIKE ? OR kemitraan LIKE ?';
+                $params = [$searchLike, $searchLike, $searchLike, $searchLike, $searchLike, $searchLike, $searchLike];
+                $types = 'sssssss';
             }
 
             // Optional exact kemitraan filter via query param
@@ -93,7 +104,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
 
             // JSON export (full dataset honoring filters and sort)
             if (isset($_GET['export']) && strtolower($_GET['export']) === 'json') {
-                $exportSql = "SELECT id, name, job_title, email, phone, company, kemitraan, notes, created_at, updated_at FROM contacts $where ORDER BY $sort $order";
+                $exportSql = "SELECT id, name, job_title, email, phone, website, company, kemitraan, notes, created_at, updated_at FROM contacts $where ORDER BY $sort $order";
                 if ($where) {
                     $exportStmt = $conn->prepare($exportSql);
                     $exportStmt->bind_param($types, ...$params);
@@ -111,7 +122,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
 
             // CSV export (full dataset honoring filters and sort)
             if (isset($_GET['export']) && strtolower($_GET['export']) === 'csv') {
-                $exportSql = "SELECT id, name, job_title, email, phone, company, kemitraan, notes, created_at, updated_at FROM contacts $where ORDER BY $sort $order";
+                $exportSql = "SELECT id, name, job_title, email, phone, website, company, kemitraan, notes, created_at, updated_at FROM contacts $where ORDER BY $sort $order";
                 if ($where) {
                     $exportStmt = $conn->prepare($exportSql);
                     $exportStmt->bind_param($types, ...$params);
@@ -127,7 +138,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
                 // UTF-8 BOM for Excel
                 echo "\xEF\xBB\xBF";
                 $out = fopen('php://output', 'w');
-                fputcsv($out, ['ID', 'Name', 'Job Title', 'Email', 'Phone', 'Company', 'Kemitraan', 'Notes', 'Created At', 'Updated At']);
+                fputcsv($out, ['ID', 'Name', 'Job Title', 'Email', 'Phone', 'Website', 'Company', 'Kemitraan', 'Notes', 'Created At', 'Updated At']);
                 while ($row = $exportRes->fetch_assoc()) {
                     fputcsv($out, [
                         $row['id'] ?? '',
@@ -135,6 +146,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
                         $row['job_title'] ?? '',
                         $row['email'] ?? '',
                         $row['phone'] ?? '',
+                        $row['website'] ?? '',
                         $row['company'] ?? '',
                         $row['kemitraan'] ?? '',
                         $row['notes'] ?? '',
@@ -202,16 +214,17 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
         if (!is_array($data)) { $data = $_POST; }
 
         if ($method === 'POST') {
-            $stmt = $conn->prepare('INSERT INTO contacts (name, job_title, email, phone, company, kemitraan, notes) VALUES (?,?,?,?,?,?,?)');
+            $stmt = $conn->prepare('INSERT INTO contacts (name, job_title, email, phone, website, company, kemitraan, notes) VALUES (?,?,?,?,?,?,?,?)');
             $name = trim($data['name'] ?? '');
             if ($name === '') { http_response_code(422); echo json_encode(['error' => 'Name is required']); exit; }
             $jobTitle = trim($data['job_title'] ?? '');
             $email = trim($data['email'] ?? '');
             $phone = trim($data['phone'] ?? '');
+            $website = trim($data['website'] ?? '');
             $company = trim($data['company'] ?? '');
             $kemitraan = trim($data['kemitraan'] ?? '');
             $notes = trim($data['notes'] ?? '');
-            $stmt->bind_param('sssssss', $name, $jobTitle, $email, $phone, $company, $kemitraan, $notes);
+            $stmt->bind_param('ssssssss', $name, $jobTitle, $email, $phone, $website, $company, $kemitraan, $notes);
             $stmt->execute();
             echo json_encode(['success' => $stmt->affected_rows > 0, 'id' => $stmt->insert_id]);
             $stmt->close();
@@ -221,16 +234,17 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
         if ($method === 'PUT') {
             $id = intval($data['id'] ?? 0);
             if ($id <= 0) { http_response_code(400); echo json_encode(['error' => 'Invalid ID']); exit; }
-            $stmt = $conn->prepare('UPDATE contacts SET name=?, job_title=?, email=?, phone=?, company=?, kemitraan=?, notes=? WHERE id=?');
+            $stmt = $conn->prepare('UPDATE contacts SET name=?, job_title=?, email=?, phone=?, website=?, company=?, kemitraan=?, notes=? WHERE id=?');
             $name = trim($data['name'] ?? '');
             if ($name === '') { http_response_code(422); echo json_encode(['error' => 'Name is required']); exit; }
             $jobTitle = trim($data['job_title'] ?? '');
             $email = trim($data['email'] ?? '');
             $phone = trim($data['phone'] ?? '');
+            $website = trim($data['website'] ?? '');
             $company = trim($data['company'] ?? '');
             $kemitraan = trim($data['kemitraan'] ?? '');
             $notes = trim($data['notes'] ?? '');
-            $stmt->bind_param('sssssssi', $name, $jobTitle, $email, $phone, $company, $kemitraan, $notes, $id);
+            $stmt->bind_param('ssssssssi', $name, $jobTitle, $email, $phone, $website, $company, $kemitraan, $notes, $id);
             $stmt->execute();
             echo json_encode(['success' => $stmt->affected_rows >= 0]);
             $stmt->close();
@@ -330,16 +344,17 @@ require_once __DIR__ . '/../auth_guard.php';
                             <option value="Asosiasi/Komunitas">Asosiasi/Komunitas</option>
                         </select>
                     </div>
-                    <div class="col-6 col-md-2">
+                    <!-- <div class="col-6 col-md-2">
                         <select id="sort" class="form-select">
                             <option value="name" selected>Name</option>
+                            <option value="website">Website</option>
                             <option value="kemitraan">Kemitraan</option>
                             <option value="email">Email</option>
                             <option value="phone">Phone</option>
                             <option value="company">Company</option>
                             <option value="created_at">Created</option>
                         </select>
-                    </div>
+                    </div> -->
                     <div class="col-6 col-md-2">
                         <select id="order" class="form-select">
                             <option value="asc">Asc</option>
@@ -413,6 +428,10 @@ require_once __DIR__ . '/../auth_guard.php';
                             </div>
                         </div>
                         <div class="mt-3">
+                            <label class="form-label">Website</label>
+                            <input type="text" id="contact-website" class="form-control" placeholder="https://example.com">
+                        </div>
+                        <div class="mt-3">
                             <label class="form-label">Company</label>
                             <input type="text" id="contact-company" class="form-control" placeholder="Company name">
                         </div>
@@ -482,6 +501,7 @@ require_once __DIR__ . '/../auth_guard.php';
                             <hr>
                             <div class="small mb-1"><i class="bi bi-envelope me-2 text-muted"></i>${escapeHtml(c.email || '')}</div>
                             <div class="small mb-1"><i class="bi bi-telephone me-2 text-muted"></i>${escapeHtml(c.phone || '')}</div>
+                            <div class="small mb-1"><i class="bi bi-globe me-2 text-muted"></i>${(c.website||'').trim() ? ('<a href="' + escapeHtml(/^https?:\/\//i.test((c.website||'').trim()) ? (c.website||'').trim() : ('https://' + (c.website||'').trim())) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml((c.website||'').trim()) + '</a>') : ''}</div>
                             <div class="small mb-1"><i class="bi bi-building me-2 text-muted"></i>${escapeHtml(c.company || '')}</div>
                             <div class="small mb-2"><i class="bi bi-people me-2 text-muted"></i>${escapeHtml(c.kemitraan || '')}</div>
                             <div class="small text-muted"><i class="bi bi-calendar2-plus me-2"></i>Added ${fmtDate(c.created_at)}</div>
@@ -573,9 +593,9 @@ require_once __DIR__ . '/../auth_guard.php';
             const data = await res.json();
             const rows = (data && data.contacts) ? data.contacts : [];
             const worksheetData = [
-                ['ID','Name','Job Title','Email','Phone','Company','Kemitraan','Notes','Created At','Updated At'],
+                ['ID','Name','Job Title','Email','Phone','Website','Company','Kemitraan','Notes','Created At','Updated At'],
                 ...rows.map(r => [
-                    r.id || '', r.name || '', r.job_title || '', r.email || '', r.phone || '', r.company || '', r.kemitraan || '', r.notes || '', r.created_at || '', r.updated_at || ''
+                    r.id || '', r.name || '', r.job_title || '', r.email || '', r.phone || '', r.website || '', r.company || '', r.kemitraan || '', r.notes || '', r.created_at || '', r.updated_at || ''
                 ])
             ];
             const wb = XLSX.utils.book_new();
@@ -605,6 +625,7 @@ require_once __DIR__ . '/../auth_guard.php';
                 document.getElementById('contact-job-title').value = c.job_title || '';
                 document.getElementById('contact-email').value = c.email || '';
                 document.getElementById('contact-phone').value = c.phone || '';
+                document.getElementById('contact-website').value = c.website || '';
                 document.getElementById('contact-company').value = c.company || '';
                 document.getElementById('contact-kemitraan').value = c.kemitraan || '';
                 document.getElementById('contact-notes').value = c.notes || '';
@@ -619,6 +640,7 @@ require_once __DIR__ . '/../auth_guard.php';
                     job_title: c.job_title || '',
                     email: c.email || '',
                     phone: c.phone || '',
+                    website: c.website || '',
                     company: c.company || '',
                     kemitraan: c.kemitraan || '',
                     notes: c.notes || ''
@@ -645,6 +667,7 @@ require_once __DIR__ . '/../auth_guard.php';
                 job_title: document.getElementById('contact-job-title').value.trim(),
                 email: document.getElementById('contact-email').value.trim(),
                 phone: document.getElementById('contact-phone').value.trim(),
+                website: document.getElementById('contact-website').value.trim(),
                 company: document.getElementById('contact-company').value.trim(),
                 kemitraan: document.getElementById('contact-kemitraan').value.trim(),
                 notes: document.getElementById('contact-notes').value.trim()
