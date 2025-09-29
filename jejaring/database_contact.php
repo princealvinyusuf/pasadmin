@@ -414,8 +414,9 @@ require_once __DIR__ . '/../auth_guard.php';
                                     </div>
                                 </div>
                                 <div>
-                                    <button class="btn btn-light border btn-sm me-1" data-action="edit" data-id="${c.id}"><i class="bi bi-pencil"></i></button>
-                                    <button class="btn btn-light border btn-sm text-danger" data-action="delete" data-id="${c.id}"><i class="bi bi-trash"></i></button>
+                                    <button class="btn btn-light border btn-sm me-1" title="Edit" data-action="edit" data-id="${c.id}"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-light border btn-sm me-1" title="Duplicate" data-action="duplicate" data-id="${c.id}"><i class="bi bi-files"></i></button>
+                                    <button class="btn btn-light border btn-sm text-danger" title="Delete" data-action="delete" data-id="${c.id}"><i class="bi bi-trash"></i></button>
                                 </div>
                             </div>
                             <hr>
@@ -525,6 +526,25 @@ require_once __DIR__ . '/../auth_guard.php';
                 document.getElementById('contact-notes').value = c.notes || '';
                 document.getElementById('contactModalLabel').innerText = 'Edit Contact';
                 modal.show();
+            } else if (action === 'duplicate') {
+                const res = await fetch(API_URL + '&id=' + encodeURIComponent(id));
+                const data = await res.json();
+                const c = data.contact || {};
+                const payload = {
+                    name: c.name || '',
+                    job_title: c.job_title || '',
+                    email: c.email || '',
+                    phone: c.phone || '',
+                    company: c.company || '',
+                    kemitraan: c.kemitraan || '',
+                    notes: c.notes || ''
+                };
+                const result = await saveContact(payload);
+                if (result && (result.success || result.id)) {
+                    loadContacts();
+                } else {
+                    alert('Failed to duplicate contact');
+                }
             } else if (action === 'delete') {
                 if (confirm('Delete this contact?')) {
                     await deleteContact(id);
