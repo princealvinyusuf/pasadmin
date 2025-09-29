@@ -333,7 +333,17 @@ require_once __DIR__ . '/../auth_guard.php';
                         <i class="bi bi-search search-icon"></i>
                         <input type="text" id="search" class="form-control search-input" placeholder="Search contacts by name, email, phone, or company...">
                     </div>
-                    
+                    <div class="col-6 col-md-2">
+                        <select id="filter-kemitraan" class="form-select">
+                            <option value="">All Kemitraan</option>
+                            <option value="Kemitraan/Lembaga">Kemitraan/Lembaga</option>
+                            <option value="Pemerintah Daerah">Pemerintah Daerah</option>
+                            <option value="Swasta/Perusahaan">Swasta/Perusahaan</option>
+                            <option value="Job Portal">Job Portal</option>
+                            <option value="Universitas">Universitas</option>
+                            <option value="Asosiasi/Komunitas">Asosiasi/Komunitas</option>
+                        </select>
+                    </div>
                     <div class="col-6 col-md-2">
                         <select id="sort" class="form-select">
                             <option value="name" selected>Name</option>
@@ -446,7 +456,7 @@ require_once __DIR__ . '/../auth_guard.php';
         const paginationEl = document.getElementById('pagination');
         const emptyState = document.getElementById('empty-state');
         const searchInput = document.getElementById('search');
-        
+        const filterKemitraan = document.getElementById('filter-kemitraan');
         const sortSelect = document.getElementById('sort');
         const orderSelect = document.getElementById('order');
         const modalEl = document.getElementById('contactModal');
@@ -549,7 +559,7 @@ require_once __DIR__ . '/../auth_guard.php';
                 page: String(currentPage),
                 per_page: String(perPage)
             });
-            
+            if (filterKemitraan.value) { params.set('kemitraan', filterKemitraan.value); }
             const res = await fetch('' + location.pathname + '?' + params.toString());
             const data = await res.json();
             renderRows(data.contacts || []);
@@ -578,7 +588,7 @@ require_once __DIR__ . '/../auth_guard.php';
                 sort: sortSelect.value,
                 order: orderSelect.value
             });
-            
+            if (filterKemitraan.value) { params.set('kemitraan', filterKemitraan.value); }
             const res = await fetch('' + location.pathname + '?' + params.toString());
             const data = await res.json();
             const rows = (data && data.contacts) ? data.contacts : [];
@@ -598,7 +608,7 @@ require_once __DIR__ . '/../auth_guard.php';
         searchInput.addEventListener('input', debounce(resetToFirstAndLoad, 300));
         sortSelect.addEventListener('change', resetToFirstAndLoad);
         orderSelect.addEventListener('change', resetToFirstAndLoad);
-        
+        filterKemitraan.addEventListener('change', resetToFirstAndLoad);
 
         cardsContainer.addEventListener('click', async (e) => {
             const btn = e.target.closest('button[data-action]');
