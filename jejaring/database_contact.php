@@ -91,6 +91,44 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
                 $types .= 's';
             }
 
+            // CSV export (full dataset honoring filters and sort)
+            if (isset($_GET['export']) && strtolower($_GET['export']) === 'csv') {
+                $exportSql = "SELECT id, name, job_title, email, phone, company, kemitraan, notes, created_at, updated_at FROM contacts $where ORDER BY $sort $order";
+                if ($where) {
+                    $exportStmt = $conn->prepare($exportSql);
+                    $exportStmt->bind_param($types, ...$params);
+                    $exportStmt->execute();
+                    $exportRes = $exportStmt->get_result();
+                } else {
+                    $exportRes = $conn->query($exportSql);
+                }
+
+                $filename = 'contacts_' . date('Ymd_His') . '.csv';
+                header('Content-Type: text/csv; charset=utf-8');
+                header('Content-Disposition: attachment; filename=' . $filename);
+                // UTF-8 BOM for Excel
+                echo "\xEF\xBB\xBF";
+                $out = fopen('php://output', 'w');
+                fputcsv($out, ['ID', 'Name', 'Job Title', 'Email', 'Phone', 'Company', 'Kemitraan', 'Notes', 'Created At', 'Updated At']);
+                while ($row = $exportRes->fetch_assoc()) {
+                    fputcsv($out, [
+                        $row['id'] ?? '',
+                        $row['name'] ?? '',
+                        $row['job_title'] ?? '',
+                        $row['email'] ?? '',
+                        $row['phone'] ?? '',
+                        $row['company'] ?? '',
+                        $row['kemitraan'] ?? '',
+                        $row['notes'] ?? '',
+                        $row['created_at'] ?? '',
+                        $row['updated_at'] ?? ''
+                    ]);
+                }
+                if (isset($exportStmt)) { $exportStmt->close(); }
+                fclose($out);
+                exit;
+            }
+
             // Pagination inputs
             $page = max(1, intval($_GET['page'] ?? 1));
             $perPage = intval($_GET['per_page'] ?? 9);
@@ -243,7 +281,10 @@ require_once __DIR__ . '/../auth_guard.php';
                     <small class="opacity-75">Manage contacts with search, sort and quick actions</small>
                 </div>
             </div>
-            <div>
+            <div class="d-flex gap-2">
+                <button id="btn-export" class="btn btn-outline-light text-white border-0">
+                    <i class="bi bi-file-earmark-excel me-1"></i> Export to Excel
+                </button>
                 <button id="btn-add-contact-top" class="btn btn-light text-primary fw-semibold">
                     <i class="bi bi-plus-lg me-1"></i> Add Contact
                 </button>
@@ -500,6 +541,17 @@ require_once __DIR__ . '/../auth_guard.php';
         // Event bindings
         document.getElementById('btn-add-contact-top').addEventListener('click', () => { openAdd(); });
         document.getElementById('btn-add-contact-empty').addEventListener('click', () => { openAdd(); });
+        document.getElementById('btn-export').addEventListener('click', () => {
+            const params = new URLSearchParams({
+                api: '1',
+                export: 'csv',
+                search: searchInput.value.trim(),
+                sort: sortSelect.value,
+                order: orderSelect.value
+            });
+            if (filterKemitraan.value) { params.set('kemitraan', filterKemitraan.value); }
+            window.open('' + location.pathname + '?' + params.toString(), '_blank');
+        });
         function resetToFirstAndLoad() { currentPage = 1; loadContacts(); }
         searchInput.addEventListener('input', debounce(resetToFirstAndLoad, 300));
         sortSelect.addEventListener('change', resetToFirstAndLoad);
