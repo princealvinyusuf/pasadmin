@@ -91,6 +91,24 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
                 $types .= 's';
             }
 
+            // JSON export (full dataset honoring filters and sort)
+            if (isset($_GET['export']) && strtolower($_GET['export']) === 'json') {
+                $exportSql = "SELECT id, name, job_title, email, phone, company, kemitraan, notes, created_at, updated_at FROM contacts $where ORDER BY $sort $order";
+                if ($where) {
+                    $exportStmt = $conn->prepare($exportSql);
+                    $exportStmt->bind_param($types, ...$params);
+                    $exportStmt->execute();
+                    $exportRes = $exportStmt->get_result();
+                } else {
+                    $exportRes = $conn->query($exportSql);
+                }
+                $rows = [];
+                while ($row = $exportRes->fetch_assoc()) { $rows[] = $row; }
+                if (isset($exportStmt)) { $exportStmt->close(); }
+                echo json_encode(['contacts' => $rows]);
+                exit;
+            }
+
             // CSV export (full dataset honoring filters and sort)
             if (isset($_GET['export']) && strtolower($_GET['export']) === 'csv') {
                 $exportSql = "SELECT id, name, job_title, email, phone, company, kemitraan, notes, created_at, updated_at FROM contacts $where ORDER BY $sort $order";
@@ -264,6 +282,7 @@ require_once __DIR__ . '/../auth_guard.php';
         .empty-state { color:#6c757d; }
         .rounded-xl { border-radius: 16px; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
         // Small helper to know API url on this same file
         const API_URL = location.pathname + '?api=1';
@@ -282,7 +301,7 @@ require_once __DIR__ . '/../auth_guard.php';
                 </div>
             </div>
             <div class="d-flex gap-2">
-                <button id="btn-export" class="btn btn-outline-light text-white border-0">
+                <button id="btn-export" class="btn btn-outline-light text-success border-0">
                     <i class="bi bi-file-earmark-excel me-1"></i> Export to Excel
                 </button>
                 <button id="btn-add-contact-top" class="btn btn-light text-primary fw-semibold">
@@ -541,16 +560,29 @@ require_once __DIR__ . '/../auth_guard.php';
         // Event bindings
         document.getElementById('btn-add-contact-top').addEventListener('click', () => { openAdd(); });
         document.getElementById('btn-add-contact-empty').addEventListener('click', () => { openAdd(); });
-        document.getElementById('btn-export').addEventListener('click', () => {
+        document.getElementById('btn-export').addEventListener('click', async () => {
             const params = new URLSearchParams({
                 api: '1',
-                export: 'csv',
+                export: 'json',
                 search: searchInput.value.trim(),
                 sort: sortSelect.value,
                 order: orderSelect.value
             });
             if (filterKemitraan.value) { params.set('kemitraan', filterKemitraan.value); }
-            window.open('' + location.pathname + '?' + params.toString(), '_blank');
+            const res = await fetch('' + location.pathname + '?' + params.toString());
+            const data = await res.json();
+            const rows = (data && data.contacts) ? data.contacts : [];
+            const worksheetData = [
+                ['ID','Name','Job Title','Email','Phone','Company','Kemitraan','Notes','Created At','Updated At'],
+                ...rows.map(r => [
+                    r.id || '', r.name || '', r.job_title || '', r.email || '', r.phone || '', r.company || '', r.kemitraan || '', r.notes || '', r.created_at || '', r.updated_at || ''
+                ])
+            ];
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
+            const filename = 'contacts_' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.xlsx';
+            XLSX.writeFile(wb, filename);
         });
         function resetToFirstAndLoad() { currentPage = 1; loadContacts(); }
         searchInput.addEventListener('input', debounce(resetToFirstAndLoad, 300));
