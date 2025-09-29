@@ -79,8 +79,10 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             }
 
             $search = trim($_GET['search'] ?? '');
-            $sort = 'name';
-            $order = 'ASC';
+            $sort = $_GET['sort'] ?? 'name';
+            $order = strtolower($_GET['order'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
+            $allowedSort = ['name', 'job_title', 'email', 'phone', 'website', 'company', 'kemitraan', 'created_at'];
+            if (!in_array($sort, $allowedSort, true)) $sort = 'name';
 
             $where = '';
             $params = [];
@@ -102,7 +104,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
 
             // JSON export (full dataset honoring filters and sort)
             if (isset($_GET['export']) && strtolower($_GET['export']) === 'json') {
-                $exportSql = "SELECT id, name, job_title, email, phone, website, company, kemitraan, notes, created_at, updated_at FROM contacts $where ORDER BY name ASC";
+                $exportSql = "SELECT id, name, job_title, email, phone, website, company, kemitraan, notes, created_at, updated_at FROM contacts $where ORDER BY $sort $order";
                 if ($where) {
                     $exportStmt = $conn->prepare($exportSql);
                     $exportStmt->bind_param($types, ...$params);
@@ -120,7 +122,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
 
             // CSV export (full dataset honoring filters and sort)
             if (isset($_GET['export']) && strtolower($_GET['export']) === 'csv') {
-                $exportSql = "SELECT id, name, job_title, email, phone, website, company, kemitraan, notes, created_at, updated_at FROM contacts $where ORDER BY name ASC";
+                $exportSql = "SELECT id, name, job_title, email, phone, website, company, kemitraan, notes, created_at, updated_at FROM contacts $where ORDER BY $sort $order";
                 if ($where) {
                     $exportStmt = $conn->prepare($exportSql);
                     $exportStmt->bind_param($types, ...$params);
@@ -180,7 +182,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             }
 
             // Data page
-            $sql = "SELECT * FROM contacts $where ORDER BY name ASC LIMIT ? OFFSET ?";
+            $sql = "SELECT * FROM contacts $where ORDER BY $sort $order LIMIT ? OFFSET ?";
             $stmt = $conn->prepare($sql);
             if ($types) {
                 $bindTypes = $types . 'ii';
@@ -332,11 +334,31 @@ require_once __DIR__ . '/../auth_guard.php';
                         <input type="text" id="search" class="form-control search-input" placeholder="Search contacts by name, email, phone, or company...">
                     </div>
                     <div class="col-6 col-md-2">
-                        
+                        <select id="filter-kemitraan" class="form-select">
+                            <option value="">All Kemitraan</option>
+                            <option value="Kemitraan/Lembaga">Kemitraan/Lembaga</option>
+                            <option value="Pemerintah Daerah">Pemerintah Daerah</option>
+                            <option value="Swasta/Perusahaan">Swasta/Perusahaan</option>
+                            <option value="Job Portal">Job Portal</option>
+                            <option value="Universitas">Universitas</option>
+                            <option value="Asosiasi/Komunitas">Asosiasi/Komunitas</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <select id="sort" class="form-select">
+                            <option value="name" selected>Name</option>
+                            <option value="website">Website</option>
+                            <option value="kemitraan">Kemitraan</option>
+                            <option value="email">Email</option>
+                            <option value="phone">Phone</option>
+                            <option value="company">Company</option>
+                            <option value="created_at">Created</option>
+                        </select>
                     </div>
                     <div class="col-6 col-md-2">
                         <select id="order" class="form-select">
                             <option value="asc">Asc</option>
+                            <option value="desc">Desc</option>
                         </select>
                     </div>
                 </div>
@@ -435,6 +457,7 @@ require_once __DIR__ . '/../auth_guard.php';
         const emptyState = document.getElementById('empty-state');
         const searchInput = document.getElementById('search');
         const filterKemitraan = document.getElementById('filter-kemitraan');
+        const sortSelect = document.getElementById('sort');
         const orderSelect = document.getElementById('order');
         const modalEl = document.getElementById('contactModal');
         const modal = new bootstrap.Modal(modalEl);
@@ -531,6 +554,8 @@ require_once __DIR__ . '/../auth_guard.php';
             const params = new URLSearchParams({
                 api: '1',
                 search: searchInput.value.trim(),
+                sort: sortSelect.value,
+                order: orderSelect.value,
                 page: String(currentPage),
                 per_page: String(perPage)
             });
@@ -560,6 +585,8 @@ require_once __DIR__ . '/../auth_guard.php';
                 api: '1',
                 export: 'json',
                 search: searchInput.value.trim(),
+                sort: sortSelect.value,
+                order: orderSelect.value
             });
             if (filterKemitraan.value) { params.set('kemitraan', filterKemitraan.value); }
             const res = await fetch('' + location.pathname + '?' + params.toString());
@@ -579,6 +606,7 @@ require_once __DIR__ . '/../auth_guard.php';
         });
         function resetToFirstAndLoad() { currentPage = 1; loadContacts(); }
         searchInput.addEventListener('input', debounce(resetToFirstAndLoad, 300));
+        sortSelect.addEventListener('change', resetToFirstAndLoad);
         orderSelect.addEventListener('change', resetToFirstAndLoad);
         filterKemitraan.addEventListener('change', resetToFirstAndLoad);
 
