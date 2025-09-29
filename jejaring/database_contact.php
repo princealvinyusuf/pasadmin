@@ -91,20 +91,53 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
                 $types .= 's';
             }
 
-            $sql = "SELECT * FROM contacts $where ORDER BY $sort $order";
+            // Pagination inputs
+            $page = max(1, intval($_GET['page'] ?? 1));
+            $perPage = intval($_GET['per_page'] ?? 9);
+            if ($perPage <= 0) { $perPage = 9; }
+            if ($perPage > 100) { $perPage = 100; }
+            $offset = ($page - 1) * $perPage;
+
+            // Total count for pagination
+            $countSql = "SELECT COUNT(*) as cnt FROM contacts $where";
             if ($where) {
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param($types, ...$params);
-                $stmt->execute();
-                $result = $stmt->get_result();
+                $countStmt = $conn->prepare($countSql);
+                $countStmt->bind_param($types, ...$params);
+                $countStmt->execute();
+                $countRes = $countStmt->get_result();
+                $total = intval(($countRes->fetch_assoc()['cnt'] ?? 0));
+                $countStmt->close();
             } else {
-                $result = $conn->query($sql);
+                $countRes = $conn->query($countSql);
+                $rowCnt = $countRes ? $countRes->fetch_assoc() : ['cnt' => 0];
+                $total = intval($rowCnt['cnt'] ?? 0);
             }
+
+            // Data page
+            $sql = "SELECT * FROM contacts $where ORDER BY $sort $order LIMIT ? OFFSET ?";
+            $stmt = $conn->prepare($sql);
+            if ($types) {
+                $bindTypes = $types . 'ii';
+                $bindValues = array_merge($params, [$perPage, $offset]);
+                $stmt->bind_param($bindTypes, ...$bindValues);
+            } else {
+                $stmt->bind_param('ii', $perPage, $offset);
+            }
+            $stmt->execute();
+            $result = $stmt->get_result();
 
             $contacts = [];
             while ($row = $result->fetch_assoc()) { $contacts[] = $row; }
             if (isset($stmt)) $stmt->close();
-            echo json_encode(['contacts' => $contacts]);
+            echo json_encode([
+                'contacts' => $contacts,
+                'pagination' => [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'total_pages' => ($perPage > 0 ? (int)ceil($total / $perPage) : 1)
+                ]
+            ]);
             exit;
         }
 
@@ -267,6 +300,9 @@ require_once __DIR__ . '/../auth_guard.php';
                 </div>
 
                 <div id="cards-container" class="row g-3"></div>
+                <nav class="mt-3" aria-label="Pagination">
+                    <ul id="pagination" class="pagination justify-content-center mb-0"></ul>
+                </nav>
             </div>
         </div>
     </main>
@@ -338,6 +374,7 @@ require_once __DIR__ . '/../auth_guard.php';
     <script>
     (function() {
         const cardsContainer = document.getElementById('cards-container');
+        const paginationEl = document.getElementById('pagination');
         const emptyState = document.getElementById('empty-state');
         const searchInput = document.getElementById('search');
         const filterKemitraan = document.getElementById('filter-kemitraan');
@@ -397,17 +434,55 @@ require_once __DIR__ . '/../auth_guard.php';
             return String(s).replace(/[&<>"]/g, function(m) { return ({'&':'&amp;','<' :'&lt;','>' :'&gt;','"':'&quot;'}[m]); });
         }
 
+        let currentPage = 1;
+        const perPage = 9;
+
+        function renderPagination(pagination) {
+            paginationEl.innerHTML = '';
+            if (!pagination || pagination.total_pages <= 1) { return; }
+            const { page, total_pages } = pagination;
+
+            function pageItem(p, label = null, disabled = false, active = false) {
+                const li = document.createElement('li');
+                li.className = 'page-item' + (disabled ? ' disabled' : '') + (active ? ' active' : '');
+                const a = document.createElement('a');
+                a.className = 'page-link';
+                a.href = '#';
+                a.textContent = label || String(p);
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (!disabled && !active) {
+                        currentPage = p;
+                        loadContacts();
+                    }
+                });
+                li.appendChild(a);
+                return li;
+            }
+
+            paginationEl.appendChild(pageItem(page - 1, '«', page <= 1, false));
+            const start = Math.max(1, page - 2);
+            const end = Math.min(total_pages, page + 2);
+            for (let p = start; p <= end; p++) {
+                paginationEl.appendChild(pageItem(p, null, false, p === page));
+            }
+            paginationEl.appendChild(pageItem(page + 1, '»', page >= total_pages, false));
+        }
+
         async function loadContacts() {
             const params = new URLSearchParams({
                 api: '1',
                 search: searchInput.value.trim(),
                 sort: sortSelect.value,
-                order: orderSelect.value
+                order: orderSelect.value,
+                page: String(currentPage),
+                per_page: String(perPage)
             });
             if (filterKemitraan.value) { params.set('kemitraan', filterKemitraan.value); }
             const res = await fetch('' + location.pathname + '?' + params.toString());
             const data = await res.json();
             renderRows(data.contacts || []);
+            renderPagination(data.pagination || null);
         }
 
         async function saveContact(payload) {
@@ -424,10 +499,11 @@ require_once __DIR__ . '/../auth_guard.php';
         // Event bindings
         document.getElementById('btn-add-contact-top').addEventListener('click', () => { openAdd(); });
         document.getElementById('btn-add-contact-empty').addEventListener('click', () => { openAdd(); });
-        searchInput.addEventListener('input', debounce(loadContacts, 300));
-        sortSelect.addEventListener('change', loadContacts);
-        orderSelect.addEventListener('change', loadContacts);
-        filterKemitraan.addEventListener('change', loadContacts);
+        function resetToFirstAndLoad() { currentPage = 1; loadContacts(); }
+        searchInput.addEventListener('input', debounce(resetToFirstAndLoad, 300));
+        sortSelect.addEventListener('change', resetToFirstAndLoad);
+        orderSelect.addEventListener('change', resetToFirstAndLoad);
+        filterKemitraan.addEventListener('change', resetToFirstAndLoad);
 
         cardsContainer.addEventListener('click', async (e) => {
             const btn = e.target.closest('button[data-action]');
