@@ -344,23 +344,6 @@ require_once __DIR__ . '/../auth_guard.php';
                             <option value="Asosiasi/Komunitas">Asosiasi/Komunitas</option>
                         </select>
                     </div>
-                    <div class="col-6 col-md-2">
-                        <select id="sort" class="form-select">
-                            <option value="name" selected>Name</option>
-                            <option value="website">Website</option>
-                            <option value="kemitraan">Kemitraan</option>
-                            <option value="email">Email</option>
-                            <option value="phone">Phone</option>
-                            <option value="company">Company</option>
-                            <option value="created_at">Created</option>
-                        </select>
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <select id="order" class="form-select">
-                            <option value="asc">Asc</option>
-                            <option value="desc">Desc</option>
-                        </select>
-                    </div>
                 </div>
             </div>
         </div>
@@ -457,8 +440,6 @@ require_once __DIR__ . '/../auth_guard.php';
         const emptyState = document.getElementById('empty-state');
         const searchInput = document.getElementById('search');
         const filterKemitraan = document.getElementById('filter-kemitraan');
-        const sortSelect = document.getElementById('sort');
-        const orderSelect = document.getElementById('order');
         const modalEl = document.getElementById('contactModal');
         const modal = new bootstrap.Modal(modalEl);
         const form = document.getElementById('contact-form');
@@ -554,8 +535,6 @@ require_once __DIR__ . '/../auth_guard.php';
             const params = new URLSearchParams({
                 api: '1',
                 search: searchInput.value.trim(),
-                sort: sortSelect.value,
-                order: orderSelect.value,
                 page: String(currentPage),
                 per_page: String(perPage)
             });
@@ -585,8 +564,8 @@ require_once __DIR__ . '/../auth_guard.php';
                 api: '1',
                 export: 'json',
                 search: searchInput.value.trim(),
-                sort: sortSelect.value,
-                order: orderSelect.value
+                page: String(currentPage),
+                per_page: String(perPage)
             });
             if (filterKemitraan.value) { params.set('kemitraan', filterKemitraan.value); }
             const res = await fetch('' + location.pathname + '?' + params.toString());
@@ -606,8 +585,6 @@ require_once __DIR__ . '/../auth_guard.php';
         });
         function resetToFirstAndLoad() { currentPage = 1; loadContacts(); }
         searchInput.addEventListener('input', debounce(resetToFirstAndLoad, 300));
-        sortSelect.addEventListener('change', resetToFirstAndLoad);
-        orderSelect.addEventListener('change', resetToFirstAndLoad);
         filterKemitraan.addEventListener('change', resetToFirstAndLoad);
 
         cardsContainer.addEventListener('click', async (e) => {
