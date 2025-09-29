@@ -301,7 +301,7 @@ require_once __DIR__ . '/../auth_guard.php';
                 </div>
             </div>
             <div class="d-flex gap-2">
-                <button id="btn-export" class="btn btn-outline-light text-success border-0">
+                <button id="btn-export" class="btn btn-outline-light text-warning border-0">
                     <i class="bi bi-file-earmark-excel me-1"></i> Export to Excel
                 </button>
                 <button id="btn-add-contact-top" class="btn btn-light text-primary fw-semibold">
