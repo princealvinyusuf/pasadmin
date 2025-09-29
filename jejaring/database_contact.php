@@ -18,6 +18,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             email VARCHAR(190) NULL,
             phone VARCHAR(60) NULL,
             company VARCHAR(190) NULL,
+            kemitraan VARCHAR(100) NULL,
             notes TEXT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -25,7 +26,8 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             INDEX idx_email (email),
             INDEX idx_job_title (job_title),
             INDEX idx_phone (phone),
-            INDEX idx_company (company)
+            INDEX idx_company (company),
+            INDEX idx_kemitraan (kemitraan)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
     );
 
@@ -34,6 +36,15 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
         $checkCol = $conn->query("SHOW COLUMNS FROM contacts LIKE 'job_title'");
         if ($checkCol && $checkCol->num_rows === 0) {
             $conn->query('ALTER TABLE contacts ADD COLUMN job_title VARCHAR(150) NULL AFTER name');
+        }
+    } catch (Throwable $e) { /* ignore */ }
+
+    // Ensure kemitraan exists for older installs
+    try {
+        $checkColKem = $conn->query("SHOW COLUMNS FROM contacts LIKE 'kemitraan'");
+        if ($checkColKem && $checkColKem->num_rows === 0) {
+            $conn->query('ALTER TABLE contacts ADD COLUMN kemitraan VARCHAR(100) NULL AFTER company');
+            $conn->query('CREATE INDEX idx_kemitraan ON contacts (kemitraan)');
         }
     } catch (Throwable $e) { /* ignore */ }
 
@@ -59,7 +70,7 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             $search = trim($_GET['search'] ?? '');
             $sort = $_GET['sort'] ?? 'name';
             $order = strtolower($_GET['order'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
-            $allowedSort = ['name', 'job_title', 'email', 'phone', 'company', 'created_at'];
+            $allowedSort = ['name', 'job_title', 'email', 'phone', 'company', 'kemitraan', 'created_at'];
             if (!in_array($sort, $allowedSort, true)) $sort = 'name';
 
             $where = '';
@@ -67,9 +78,9 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
             $types = '';
             if ($search !== '') {
                 $searchLike = '%' . $search . '%';
-                $where = 'WHERE name LIKE ? OR job_title LIKE ? OR email LIKE ? OR phone LIKE ? OR company LIKE ?';
-                $params = [$searchLike, $searchLike, $searchLike, $searchLike, $searchLike];
-                $types = 'sssss';
+                $where = 'WHERE name LIKE ? OR job_title LIKE ? OR email LIKE ? OR phone LIKE ? OR company LIKE ? OR kemitraan LIKE ?';
+                $params = [$searchLike, $searchLike, $searchLike, $searchLike, $searchLike, $searchLike];
+                $types = 'ssssss';
             }
 
             $sql = "SELECT * FROM contacts $where ORDER BY $sort $order";
@@ -94,15 +105,16 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
         if (!is_array($data)) { $data = $_POST; }
 
         if ($method === 'POST') {
-            $stmt = $conn->prepare('INSERT INTO contacts (name, job_title, email, phone, company, notes) VALUES (?,?,?,?,?,?)');
+            $stmt = $conn->prepare('INSERT INTO contacts (name, job_title, email, phone, company, kemitraan, notes) VALUES (?,?,?,?,?,?,?)');
             $name = trim($data['name'] ?? '');
             if ($name === '') { http_response_code(422); echo json_encode(['error' => 'Name is required']); exit; }
             $jobTitle = trim($data['job_title'] ?? '');
             $email = trim($data['email'] ?? '');
             $phone = trim($data['phone'] ?? '');
             $company = trim($data['company'] ?? '');
+            $kemitraan = trim($data['kemitraan'] ?? '');
             $notes = trim($data['notes'] ?? '');
-            $stmt->bind_param('ssssss', $name, $jobTitle, $email, $phone, $company, $notes);
+            $stmt->bind_param('sssssss', $name, $jobTitle, $email, $phone, $company, $kemitraan, $notes);
             $stmt->execute();
             echo json_encode(['success' => $stmt->affected_rows > 0, 'id' => $stmt->insert_id]);
             $stmt->close();
@@ -112,15 +124,16 @@ if (isset($_GET['api']) && $_GET['api'] === '1') {
         if ($method === 'PUT') {
             $id = intval($data['id'] ?? 0);
             if ($id <= 0) { http_response_code(400); echo json_encode(['error' => 'Invalid ID']); exit; }
-            $stmt = $conn->prepare('UPDATE contacts SET name=?, job_title=?, email=?, phone=?, company=?, notes=? WHERE id=?');
+            $stmt = $conn->prepare('UPDATE contacts SET name=?, job_title=?, email=?, phone=?, company=?, kemitraan=?, notes=? WHERE id=?');
             $name = trim($data['name'] ?? '');
             if ($name === '') { http_response_code(422); echo json_encode(['error' => 'Name is required']); exit; }
             $jobTitle = trim($data['job_title'] ?? '');
             $email = trim($data['email'] ?? '');
             $phone = trim($data['phone'] ?? '');
             $company = trim($data['company'] ?? '');
+            $kemitraan = trim($data['kemitraan'] ?? '');
             $notes = trim($data['notes'] ?? '');
-            $stmt->bind_param('ssssssi', $name, $jobTitle, $email, $phone, $company, $notes, $id);
+            $stmt->bind_param('sssssssi', $name, $jobTitle, $email, $phone, $company, $kemitraan, $notes, $id);
             $stmt->execute();
             echo json_encode(['success' => $stmt->affected_rows >= 0]);
             $stmt->close();
@@ -208,6 +221,7 @@ require_once __DIR__ . '/../auth_guard.php';
                     <div class="col-6 col-md-2">
                         <select id="sort" class="form-select">
                             <option value="name" selected>Name</option>
+                            <option value="kemitraan">Kemitraan</option>
                             <option value="email">Email</option>
                             <option value="phone">Phone</option>
                             <option value="company">Company</option>
@@ -260,6 +274,18 @@ require_once __DIR__ . '/../auth_guard.php';
                         <div class="mb-3">
                             <label class="form-label">Job Title</label>
                             <input type="text" id="contact-job-title" class="form-control" placeholder="IT Engineer, HR Manager, ...">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Kemitraan</label>
+                            <select id="contact-kemitraan" class="form-select">
+                                <option value="">- Pilih Kemitraan -</option>
+                                <option value="Kemitraan/Lembaga">Kemitraan/Lembaga</option>
+                                <option value="Pemerintah Daerah">Pemerintah Daerah</option>
+                                <option value="Swasta/Perusahaan">Swasta/Perusahaan</option>
+                                <option value="Job Portal">Job Portal</option>
+                                <option value="Universitas">Universitas</option>
+                                <option value="Asosiasi/Komunitas">Asosiasi/Komunitas</option>
+                            </select>
                         </div>
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -338,7 +364,8 @@ require_once __DIR__ . '/../auth_guard.php';
                             <hr>
                             <div class="small mb-1"><i class="bi bi-envelope me-2 text-muted"></i>${escapeHtml(c.email || '')}</div>
                             <div class="small mb-1"><i class="bi bi-telephone me-2 text-muted"></i>${escapeHtml(c.phone || '')}</div>
-                            <div class="small mb-2"><i class="bi bi-building me-2 text-muted"></i>${escapeHtml(c.company || '')}</div>
+                            <div class="small mb-1"><i class="bi bi-building me-2 text-muted"></i>${escapeHtml(c.company || '')}</div>
+                            <div class="small mb-2"><i class="bi bi-people me-2 text-muted"></i>${escapeHtml(c.kemitraan || '')}</div>
                             <div class="small text-muted"><i class="bi bi-calendar2-plus me-2"></i>Added ${fmtDate(c.created_at)}</div>
                         </div>
                     </div>`;
@@ -396,6 +423,7 @@ require_once __DIR__ . '/../auth_guard.php';
                 document.getElementById('contact-email').value = c.email || '';
                 document.getElementById('contact-phone').value = c.phone || '';
                 document.getElementById('contact-company').value = c.company || '';
+                document.getElementById('contact-kemitraan').value = c.kemitraan || '';
                 document.getElementById('contact-notes').value = c.notes || '';
                 document.getElementById('contactModalLabel').innerText = 'Edit Contact';
                 modal.show();
@@ -416,6 +444,7 @@ require_once __DIR__ . '/../auth_guard.php';
                 email: document.getElementById('contact-email').value.trim(),
                 phone: document.getElementById('contact-phone').value.trim(),
                 company: document.getElementById('contact-company').value.trim(),
+                kemitraan: document.getElementById('contact-kemitraan').value.trim(),
                 notes: document.getElementById('contact-notes').value.trim()
             };
             const res = await saveContact(payload);
@@ -433,6 +462,7 @@ require_once __DIR__ . '/../auth_guard.php';
         function openAdd() {
             form.reset();
             document.getElementById('contact-id').value = '';
+            document.getElementById('contact-kemitraan').value = '';
             document.getElementById('contactModalLabel').innerText = 'Add Contact';
             modal.show();
         }
