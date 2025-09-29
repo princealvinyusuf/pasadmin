@@ -329,11 +329,7 @@ require_once __DIR__ . '/../auth_guard.php';
         <div class="card shadow-sm rounded-xl mb-4">
             <div class="card-body">
                 <div class="row g-2 align-items-center">
-                    <div class="col-12 col-md-8 position-relative">
-                        <i class="bi bi-search search-icon"></i>
-                        <input type="text" id="search" class="form-control search-input" placeholder="Search contacts by name, email, phone, or company...">
-                    </div>
-                    <div class="col-6 col-md-2">
+                    <div class="col-12 col-md-4">
                         <select id="filter-kemitraan" class="form-select">
                             <option value="">All Kemitraan</option>
                             <option value="Kemitraan/Lembaga">Kemitraan/Lembaga</option>
@@ -342,23 +338,6 @@ require_once __DIR__ . '/../auth_guard.php';
                             <option value="Job Portal">Job Portal</option>
                             <option value="Universitas">Universitas</option>
                             <option value="Asosiasi/Komunitas">Asosiasi/Komunitas</option>
-                        </select>
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <select id="sort" class="form-select">
-                            <option value="name" selected>Name</option>
-                            <option value="website">Website</option>
-                            <option value="kemitraan">Kemitraan</option>
-                            <option value="email">Email</option>
-                            <option value="phone">Phone</option>
-                            <option value="company">Company</option>
-                            <option value="created_at">Created</option>
-                        </select>
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <select id="order" class="form-select">
-                            <option value="asc">Asc</option>
-                            <option value="desc">Desc</option>
                         </select>
                     </div>
                 </div>
@@ -455,10 +434,7 @@ require_once __DIR__ . '/../auth_guard.php';
         const cardsContainer = document.getElementById('cards-container');
         const paginationEl = document.getElementById('pagination');
         const emptyState = document.getElementById('empty-state');
-        const searchInput = document.getElementById('search');
         const filterKemitraan = document.getElementById('filter-kemitraan');
-        const sortSelect = document.getElementById('sort');
-        const orderSelect = document.getElementById('order');
         const modalEl = document.getElementById('contactModal');
         const modal = new bootstrap.Modal(modalEl);
         const form = document.getElementById('contact-form');
@@ -553,9 +529,6 @@ require_once __DIR__ . '/../auth_guard.php';
         async function loadContacts() {
             const params = new URLSearchParams({
                 api: '1',
-                search: searchInput.value.trim(),
-                sort: sortSelect.value,
-                order: orderSelect.value,
                 page: String(currentPage),
                 per_page: String(perPage)
             });
@@ -584,9 +557,6 @@ require_once __DIR__ . '/../auth_guard.php';
             const params = new URLSearchParams({
                 api: '1',
                 export: 'json',
-                search: searchInput.value.trim(),
-                sort: sortSelect.value,
-                order: orderSelect.value
             });
             if (filterKemitraan.value) { params.set('kemitraan', filterKemitraan.value); }
             const res = await fetch('' + location.pathname + '?' + params.toString());
@@ -605,9 +575,6 @@ require_once __DIR__ . '/../auth_guard.php';
             XLSX.writeFile(wb, filename);
         });
         function resetToFirstAndLoad() { currentPage = 1; loadContacts(); }
-        searchInput.addEventListener('input', debounce(resetToFirstAndLoad, 300));
-        sortSelect.addEventListener('change', resetToFirstAndLoad);
-        orderSelect.addEventListener('change', resetToFirstAndLoad);
         filterKemitraan.addEventListener('change', resetToFirstAndLoad);
 
         cardsContainer.addEventListener('click', async (e) => {
