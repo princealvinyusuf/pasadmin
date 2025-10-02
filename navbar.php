@@ -75,6 +75,7 @@
     $canNakerSecond = current_user_can('naker_award_manage_second') || $canManageSettings;
     $canNakerStage2 = current_user_can('naker_award_view_stage2') || $canNakerSecond || $canManageSettings;
     $canNakerThird = current_user_can('naker_award_manage_third') || $canManageSettings;
+    $canNakerVerify = current_user_can('naker_award_verify') || $canManageSettings;
     $hasNakerAward = ($canNakerAssessment || $canNakerStage1 || $canManageSettings);
 ?>
 <?php // context already computed above ?>
@@ -192,6 +193,7 @@
                         <?php if ($canNakerSecond): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_second_assessment.php">Second Assessment</a></li><?php endif; ?>
                         <?php if ($canNakerStage2): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_stage2_shortlisted_c.php">Stage 2 Shortlisted C</a></li><?php endif; ?>
                         <?php if ($canNakerThird): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_third_assessment.php">Third Assessment</a></li><?php endif; ?>
+                        <?php if ($canNakerVerify): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_verification.php">Verification</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
