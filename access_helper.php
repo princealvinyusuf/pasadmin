@@ -70,6 +70,9 @@ function ac_seed_permissions(mysqli $conn): void {
 		['view_db_sessions','View Active DB Sessions','Tools'],
 		['kill_db_session','Kill DB Session','Tools'],
 		['view_audit_trails','View Audit Trails','Admin'],
+		// Naker Award permissions
+		['naker_award_manage_assessment','Naker Award: Manage Initial Assessment','Naker Award'],
+		['naker_award_view_stage1','Naker Award: View Stage 1 Shortlisted C','Naker Award'],
 		// AsMen (Asset Management) permissions
 		['asmen_manage_assets','AsMen: Manage Assets','AsMen'],
 		['asmen_view_services','AsMen: View Services','AsMen'],

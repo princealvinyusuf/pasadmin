@@ -69,6 +69,10 @@
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
     $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan);
     $hasAsmen = ($canAsmenDashboard || $canAsmenAssets || $canAsmenServices || $canAsmenCalendar || $canAsmenQR);
+    // Naker Award flags
+    $canNakerAssessment = current_user_can('naker_award_manage_assessment');
+    $canNakerStage1 = current_user_can('naker_award_view_stage1') || $canNakerAssessment || $canManageSettings;
+    $hasNakerAward = ($canNakerAssessment || $canNakerStage1 || $canManageSettings);
 ?>
 <?php // context already computed above ?>
             <ul class="navbar-nav ms-auto">
@@ -171,6 +175,17 @@
                         <?php if ($canAsmenCalendar): ?><li><a class="dropdown-item" href="<?php echo $asmenPrefix; ?>asmen_calendar.php">Calendar</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canAsmenQR): ?><li><a class="dropdown-item" href="<?php echo $asmenPrefix; ?>asmen_qr_scan.php">QR Scanner</a></li><?php endif; ?>
+                    </ul>
+                </li>
+                <?php endif; ?>
+                <?php if ($hasNakerAward): ?>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="nakerAwardDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Naker Award
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="nakerAwardDropdown">
+                        <?php if ($canNakerAssessment || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_initial_assessment.php">Initial Assessment</a></li><?php endif; ?>
+                        <?php if ($canNakerStage1 || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_stage1_shortlisted_c.php">Stage 1 Shortlisted C</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
