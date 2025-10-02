@@ -15,39 +15,54 @@ if ($conn->connect_error) {
 }
 
 // Helpers to manage logo uploads
+function get_public_root_dir() {
+    // This file lives in /public/pasadmin; parent directory is the public web root
+    return dirname(__DIR__);
+}
+
 function handle_logo_upload(string $fieldName = 'logo') {
-    $logoPath = '';
+    $logoWebPath = '';
     if (!isset($_FILES[$fieldName]) || empty($_FILES[$fieldName]['name'])) {
-        return $logoPath;
+        return $logoWebPath;
     }
 
-    $uploadDir = 'images/mitra_kerja/';
-    if (!is_dir($uploadDir)) {
-        @mkdir($uploadDir, 0777, true);
+    $publicRoot = get_public_root_dir();
+    $uploadDirFs = $publicRoot . '/images/mitra_kerja/';
+    if (!is_dir($uploadDirFs)) {
+        @mkdir($uploadDirFs, 0777, true);
     }
 
     $tmpPath = $_FILES[$fieldName]['tmp_name'];
-    if (!is_uploaded_file($tmpPath)) { return $logoPath; }
+    if (!is_uploaded_file($tmpPath)) { return $logoWebPath; }
 
     $allowed = array('image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/svg+xml');
     $mime = @mime_content_type($tmpPath);
-    if ($mime && !in_array($mime, $allowed)) { return $logoPath; }
+    if ($mime && !in_array($mime, $allowed)) { return $logoWebPath; }
 
     $originalName = basename($_FILES[$fieldName]['name']);
     $safeName = preg_replace('/[^A-Za-z0-9_.-]/', '_', $originalName);
     $filename = time() . '_' . $safeName;
-    $target = $uploadDir . $filename;
+    $targetFs = $uploadDirFs . $filename;
 
-    if (move_uploaded_file($tmpPath, $target)) {
-        $logoPath = $target;
+    if (move_uploaded_file($tmpPath, $targetFs)) {
+        // Store web path rooted at public, so it works from any app path
+        $logoWebPath = '/images/mitra_kerja/' . $filename;
     }
-    return $logoPath;
+    return $logoWebPath;
 }
 
-function safe_unlink_logo($path) {
-    if (!$path) { return; }
-    if (strpos($path, 'images/mitra_kerja/') === 0 && file_exists($path)) {
-        @unlink($path);
+function web_to_filesystem_path($webPath) {
+    if (!$webPath) { return ''; }
+    $publicRoot = get_public_root_dir();
+    $relative = ltrim($webPath, '/');
+    return $publicRoot . '/' . $relative;
+}
+
+function safe_unlink_logo($webPath) {
+    if (!$webPath) { return; }
+    if (strpos($webPath, '/images/mitra_kerja/') === 0) {
+        $fsPath = web_to_filesystem_path($webPath);
+        if (file_exists($fsPath)) { @unlink($fsPath); }
     }
 }
 
