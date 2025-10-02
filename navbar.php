@@ -77,7 +77,16 @@
     $canNakerThird = current_user_can('naker_award_manage_third') || $canManageSettings;
     $canNakerVerify = current_user_can('naker_award_verify') || $canManageSettings;
     $canNakerFinal = current_user_can('naker_award_final_nominees') || $canManageSettings;
-    $hasNakerAward = ($canNakerAssessment || $canNakerStage1 || $canManageSettings);
+    $hasNakerAward = (
+        $canNakerAssessment ||
+        $canNakerStage1 ||
+        $canNakerSecond ||
+        $canNakerStage2 ||
+        $canNakerThird ||
+        $canNakerVerify ||
+        $canNakerFinal ||
+        $canManageSettings
+    );
 ?>
 <?php // context already computed above ?>
             <ul class="navbar-nav ms-auto">
