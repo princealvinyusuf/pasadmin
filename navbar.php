@@ -72,6 +72,7 @@
     // Naker Award flags
     $canNakerAssessment = current_user_can('naker_award_manage_assessment');
     $canNakerStage1 = current_user_can('naker_award_view_stage1') || $canNakerAssessment || $canManageSettings;
+    $canNakerSecond = current_user_can('naker_award_manage_second') || $canManageSettings;
     $hasNakerAward = ($canNakerAssessment || $canNakerStage1 || $canManageSettings);
 ?>
 <?php // context already computed above ?>
@@ -186,6 +187,7 @@
                     <ul class="dropdown-menu" aria-labelledby="nakerAwardDropdown">
                         <?php if ($canNakerAssessment || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_initial_assessment.php">Initial Assessment</a></li><?php endif; ?>
                         <?php if ($canNakerStage1 || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_stage1_shortlisted_c.php">Stage 1 Shortlisted C</a></li><?php endif; ?>
+                        <?php if ($canNakerSecond): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_second_assessment.php">Second Assessment</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>

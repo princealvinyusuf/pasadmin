@@ -73,6 +73,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		// Naker Award permissions
 		['naker_award_manage_assessment','Naker Award: Manage Initial Assessment','Naker Award'],
 		['naker_award_view_stage1','Naker Award: View Stage 1 Shortlisted C','Naker Award'],
+		['naker_award_manage_second','Naker Award: Manage Second Assessment','Naker Award'],
 		// AsMen (Asset Management) permissions
 		['asmen_manage_assets','AsMen: Manage Assets','AsMen'],
 		['asmen_view_services','AsMen: View Services','AsMen'],
