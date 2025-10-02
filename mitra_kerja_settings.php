@@ -14,6 +14,43 @@ if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
+// Helpers to manage logo uploads
+function handle_logo_upload(string $fieldName = 'logo') {
+    $logoPath = '';
+    if (!isset($_FILES[$fieldName]) || empty($_FILES[$fieldName]['name'])) {
+        return $logoPath;
+    }
+
+    $uploadDir = 'images/mitra_kerja/';
+    if (!is_dir($uploadDir)) {
+        @mkdir($uploadDir, 0777, true);
+    }
+
+    $tmpPath = $_FILES[$fieldName]['tmp_name'];
+    if (!is_uploaded_file($tmpPath)) { return $logoPath; }
+
+    $allowed = array('image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/svg+xml');
+    $mime = @mime_content_type($tmpPath);
+    if ($mime && !in_array($mime, $allowed)) { return $logoPath; }
+
+    $originalName = basename($_FILES[$fieldName]['name']);
+    $safeName = preg_replace('/[^A-Za-z0-9_.-]/', '_', $originalName);
+    $filename = time() . '_' . $safeName;
+    $target = $uploadDir . $filename;
+
+    if (move_uploaded_file($tmpPath, $target)) {
+        $logoPath = $target;
+    }
+    return $logoPath;
+}
+
+function safe_unlink_logo($path) {
+    if (!$path) { return; }
+    if (strpos($path, 'images/mitra_kerja/') === 0 && file_exists($path)) {
+        @unlink($path);
+    }
+}
+
 // Handle Create
 if (isset($_POST['add'])) {
     $name = $_POST['name'];
@@ -24,8 +61,9 @@ if (isset($_POST['add'])) {
     $email = $_POST['email'];
     $website_url = $_POST['website_url'];
     $pic = $_POST['pic'];
-    $stmt = $conn->prepare("INSERT INTO mitra_kerja (name, wilayah, divider, address, contact, email, website_url, pic, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
-    $stmt->bind_param("ssssssss", $name, $wilayah, $divider, $address, $contact, $email, $website_url, $pic);
+    $logoPath = handle_logo_upload('logo');
+    $stmt = $conn->prepare("INSERT INTO mitra_kerja (name, wilayah, divider, address, contact, email, website_url, pic, logo, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
+    $stmt->bind_param("sssssssss", $name, $wilayah, $divider, $address, $contact, $email, $website_url, $pic, $logoPath);
     $stmt->execute();
     $stmt->close();
     header("Location: mitra_kerja_settings.php");
@@ -43,8 +81,19 @@ if (isset($_POST['update'])) {
     $email = $_POST['email'];
     $website_url = $_POST['website_url'];
     $pic = $_POST['pic'];
-    $stmt = $conn->prepare("UPDATE mitra_kerja SET name=?, wilayah=?, divider=?, address=?, contact=?, email=?, website_url=?, pic=?, updated_at=NOW() WHERE id=?");
-    $stmt->bind_param("ssssssssi", $name, $wilayah, $divider, $address, $contact, $email, $website_url, $pic, $id);
+    $existingLogo = $_POST['existing_logo'] ?? '';
+    $logoPath = $existingLogo;
+    if (isset($_POST['remove_logo']) && $existingLogo) {
+        safe_unlink_logo($existingLogo);
+        $logoPath = '';
+    }
+    $uploadedLogo = handle_logo_upload('logo');
+    if ($uploadedLogo) {
+        if ($existingLogo && $existingLogo !== $uploadedLogo) { safe_unlink_logo($existingLogo); }
+        $logoPath = $uploadedLogo;
+    }
+    $stmt = $conn->prepare("UPDATE mitra_kerja SET name=?, wilayah=?, divider=?, address=?, contact=?, email=?, website_url=?, pic=?, logo=?, updated_at=NOW() WHERE id=?");
+    $stmt->bind_param("sssssssssi", $name, $wilayah, $divider, $address, $contact, $email, $website_url, $pic, $logoPath, $id);
     $stmt->execute();
     $stmt->close();
     header("Location: mitra_kerja_settings.php");
@@ -54,6 +103,14 @@ if (isset($_POST['update'])) {
 // Handle Delete
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
+    // remove logo file if exists
+    $sel = $conn->prepare("SELECT logo FROM mitra_kerja WHERE id=?");
+    $sel->bind_param("i", $id);
+    $sel->execute();
+    $sel->bind_result($logoPath);
+    $sel->fetch();
+    $sel->close();
+    if (!empty($logoPath)) { safe_unlink_logo($logoPath); }
     $stmt = $conn->prepare("DELETE FROM mitra_kerja WHERE id=?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
@@ -200,7 +257,7 @@ $mitras = $conn->query("SELECT * FROM mitra_kerja ORDER BY id DESC");
     <div class="container">
         <h2>Mitra Kerja Settings</h2>
         <h3><?php echo $edit_mitra ? 'Edit Mitra Kerja' : 'Add Mitra Kerja'; ?></h3>
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
             <?php if ($edit_mitra): ?>
                 <input type="hidden" name="id" value="<?php echo $edit_mitra['id']; ?>">
             <?php endif; ?>
@@ -228,6 +285,18 @@ $mitras = $conn->query("SELECT * FROM mitra_kerja ORDER BY id DESC");
             <label>PIC (Person in Charge):
                 <input type="text" name="pic" value="<?php echo $edit_mitra['pic'] ?? ''; ?>">
             </label>
+            <label>Logo:
+                <input type="file" name="logo" accept="image/*">
+            </label>
+            <?php if ($edit_mitra && !empty($edit_mitra['logo'])): ?>
+                <div style="margin-bottom: 8px;">
+                    <img src="<?php echo htmlspecialchars($edit_mitra['logo']); ?>" alt="Current logo" style="height:48px; border:1px solid #e5e7eb; border-radius:4px; background:#fff; padding:2px;">
+                    <label style="display:inline-block; margin-left:10px;">
+                        <input type="checkbox" name="remove_logo" value="1"> Remove current logo
+                    </label>
+                    <input type="hidden" name="existing_logo" value="<?php echo htmlspecialchars($edit_mitra['logo']); ?>">
+                </div>
+            <?php endif; ?>
             <button type="submit" class="btn" name="<?php echo $edit_mitra ? 'update' : 'add'; ?>"><?php echo $edit_mitra ? 'Update' : 'Add'; ?></button>
             <?php if ($edit_mitra): ?>
                 <a href="mitra_kerja_settings.php" class="btn cancel">Cancel</a>
@@ -245,6 +314,7 @@ $mitras = $conn->query("SELECT * FROM mitra_kerja ORDER BY id DESC");
                 <th>Email</th>
                 <th>Website URL</th>
                 <th>PIC</th>
+                <th>Logo</th>
                 <th>Created At</th>
                 <th>Updated At</th>
                 <th>Actions</th>
@@ -260,6 +330,11 @@ $mitras = $conn->query("SELECT * FROM mitra_kerja ORDER BY id DESC");
                 <td><?php echo htmlspecialchars($row['email']); ?></td>
                 <td><?php echo htmlspecialchars($row['website_url']); ?></td>
                 <td><?php echo htmlspecialchars($row['pic']); ?></td>
+                <td>
+                    <?php if (!empty($row['logo'])): ?>
+                        <img src="<?php echo htmlspecialchars($row['logo']); ?>" alt="logo" style="height:40px;">
+                    <?php endif; ?>
+                </td>
                 <td><?php echo $row['created_at']; ?></td>
                 <td><?php echo $row['updated_at']; ?></td>
                 <td class="actions">
