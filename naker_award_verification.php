@@ -108,7 +108,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                             <form method="post" class="d-inline" onsubmit="return confirm('Are you sure all the information provided is correct and are you fully responsible for the assessment conditions? This action cannot be undone. Please be careful.');">
                                 <input type="hidden" name="action" value="verify">
                                 <input type="hidden" name="assessment_id" value="<?php echo intval($row['id']); ?>">
-                                <button type="submit" class="btn btn-sm btn-success">Verify</button>
+                                <button type="submit" class="btn btn-sm btn-success" <?php echo empty($row['verified_at']) ? '' : 'disabled'; ?>>Verify</button>
                             </form>
                         </td>
                         <td><?php echo htmlspecialchars($row['s2_updated']); ?></td>
