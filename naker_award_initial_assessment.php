@@ -12,25 +12,45 @@ if (!current_user_can('naker_award_manage_assessment') && !current_user_can('man
 $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     company_name VARCHAR(200) NOT NULL,
-    postings_count INT NOT NULL DEFAULT 0,
-    quota_count INT NOT NULL DEFAULT 0,
-    ratio_wlkp_percent DECIMAL(8,2) NOT NULL DEFAULT 0,
-    realization_percent DECIMAL(8,2) NOT NULL DEFAULT 0,
-    disability_need_count INT NOT NULL DEFAULT 0,
-    nilai_akhir_postings INT NOT NULL DEFAULT 0,
-    indeks_postings DECIMAL(10,2) NOT NULL DEFAULT 0,
-    nilai_akhir_quota INT NOT NULL DEFAULT 0,
-    indeks_quota DECIMAL(10,2) NOT NULL DEFAULT 0,
-    nilai_akhir_ratio INT NOT NULL DEFAULT 0,
-    indeks_ratio DECIMAL(10,2) NOT NULL DEFAULT 0,
-    nilai_akhir_realization INT NOT NULL DEFAULT 0,
-    indeks_realization DECIMAL(10,2) NOT NULL DEFAULT 0,
-    nilai_akhir_disability INT NOT NULL DEFAULT 0,
-    indeks_disability DECIMAL(10,2) NOT NULL DEFAULT 0,
-    total_indeks DECIMAL(10,2) NOT NULL DEFAULT 0,
+    postings_count VARCHAR(100) NOT NULL DEFAULT '0',
+    quota_count VARCHAR(100) NOT NULL DEFAULT '0',
+    ratio_wlkp_percent VARCHAR(100) NOT NULL DEFAULT '0',
+    realization_percent VARCHAR(100) NOT NULL DEFAULT '0',
+    disability_need_count VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_postings VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_postings VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_quota VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_quota VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_ratio VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_ratio VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_realization VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_realization VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_disability VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_disability VARCHAR(100) NOT NULL DEFAULT '0',
+    total_indeks VARCHAR(100) NOT NULL DEFAULT '0',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_company_created (company_name(100), created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// Lightweight migration: convert numeric columns to VARCHAR to accept flexible inputs
+// and avoid strict type failures during bulk imports. Safe to run repeatedly.
+@$conn->query("ALTER TABLE naker_award_assessments 
+    MODIFY postings_count VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY quota_count VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY ratio_wlkp_percent VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY realization_percent VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY disability_need_count VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY nilai_akhir_postings VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY indeks_postings VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY nilai_akhir_quota VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY indeks_quota VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY nilai_akhir_ratio VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY indeks_ratio VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY nilai_akhir_realization VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY indeks_realization VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY nilai_akhir_disability VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY indeks_disability VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY total_indeks VARCHAR(100) NOT NULL DEFAULT '0'");
 
 // Weights
 $WEIGHT_POSTINGS = 30;   // %
@@ -191,25 +211,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 nilai_akhir_realization, indeks_realization, nilai_akhir_disability, indeks_disability, total_indeks
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
             if (!$stmt) { $errors[] = ['row'=>$idx+1,'error'=>'Prepare failed: ' . $conn->error]; continue; }
+            $s_company = $company;
+            $s_postings = (string)$postings;
+            $s_quota = (string)$quota;
+            $s_ratio = (string)number_format($ratio, 2, '.', '');
+            $s_realization = (string)number_format($realization, 2, '.', '');
+            $s_disability = (string)$disability;
+            $s_na_postings = (string)$na_postings;
+            $s_idx_postings = (string)number_format($idx_postings, 2, '.', '');
+            $s_na_quota = (string)$na_quota;
+            $s_idx_quota = (string)number_format($idx_quota, 2, '.', '');
+            $s_na_ratio = (string)$na_ratio;
+            $s_idx_ratio = (string)number_format($idx_ratio, 2, '.', '');
+            $s_na_realization = (string)$na_realization;
+            $s_idx_realization = (string)number_format($idx_realization, 2, '.', '');
+            $s_na_disability = (string)$na_disability;
+            $s_idx_disability = (string)number_format($idx_disability, 2, '.', '');
+            $s_total_indeks = (string)number_format($total_indeks, 2, '.', '');
+
             $okBind = $stmt->bind_param(
-                'siiddiidididididd',
-                $company,
-                $postings,
-                $quota,
-                $ratio,
-                $realization,
-                $disability,
-                $na_postings,
-                $idx_postings,
-                $na_quota,
-                $idx_quota,
-                $na_ratio,
-                $idx_ratio,
-                $na_realization,
-                $idx_realization,
-                $na_disability,
-                $idx_disability,
-                $total_indeks
+                'sssssssssssssssss',
+                $s_company,
+                $s_postings,
+                $s_quota,
+                $s_ratio,
+                $s_realization,
+                $s_disability,
+                $s_na_postings,
+                $s_idx_postings,
+                $s_na_quota,
+                $s_idx_quota,
+                $s_na_ratio,
+                $s_idx_ratio,
+                $s_na_realization,
+                $s_idx_realization,
+                $s_na_disability,
+                $s_idx_disability,
+                $s_total_indeks
             );
             if (!$okBind) {
                 $errors[] = ['row'=>$idx+1,'error'=>'Bind failed: ' . $stmt->error];
@@ -256,25 +294,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         nilai_akhir_postings, indeks_postings, nilai_akhir_quota, indeks_quota, nilai_akhir_ratio, indeks_ratio,
         nilai_akhir_realization, indeks_realization, nilai_akhir_disability, indeks_disability, total_indeks
     ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+    $s_company = $company;
+    $s_postings = (string)$postings;
+    $s_quota = (string)$quota;
+    $s_ratio = (string)number_format($ratio, 2, '.', '');
+    $s_realization = (string)number_format($realization, 2, '.', '');
+    $s_disability = (string)$disability;
+    $s_na_postings = (string)$na_postings;
+    $s_idx_postings = (string)number_format($idx_postings, 2, '.', '');
+    $s_na_quota = (string)$na_quota;
+    $s_idx_quota = (string)number_format($idx_quota, 2, '.', '');
+    $s_na_ratio = (string)$na_ratio;
+    $s_idx_ratio = (string)number_format($idx_ratio, 2, '.', '');
+    $s_na_realization = (string)$na_realization;
+    $s_idx_realization = (string)number_format($idx_realization, 2, '.', '');
+    $s_na_disability = (string)$na_disability;
+    $s_idx_disability = (string)number_format($idx_disability, 2, '.', '');
+    $s_total_indeks = (string)number_format($total_indeks, 2, '.', '');
+
     $stmt->bind_param(
-        'siiddiidididididd',
-        $company,
-        $postings,
-        $quota,
-        $ratio,
-        $realization,
-        $disability,
-        $na_postings,
-        $idx_postings,
-        $na_quota,
-        $idx_quota,
-        $na_ratio,
-        $idx_ratio,
-        $na_realization,
-        $idx_realization,
-        $na_disability,
-        $idx_disability,
-        $total_indeks
+        'sssssssssssssssss',
+        $s_company,
+        $s_postings,
+        $s_quota,
+        $s_ratio,
+        $s_realization,
+        $s_disability,
+        $s_na_postings,
+        $s_idx_postings,
+        $s_na_quota,
+        $s_idx_quota,
+        $s_na_ratio,
+        $s_idx_ratio,
+        $s_na_realization,
+        $s_idx_realization,
+        $s_na_disability,
+        $s_idx_disability,
+        $s_total_indeks
     );
     $stmt->execute();
     $stmt->close();

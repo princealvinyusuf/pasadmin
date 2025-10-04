@@ -29,7 +29,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_second_mandatory (
 $sql = "SELECT a.id, a.company_name, a.total_indeks, m.wlkp_status, m.wlkp_code, m.clearance_no_law_path, m.bpjstk_membership_doc_path, m.minimum_wage_doc_path, m.clearance_smk3_status_doc_path, m.smk3_certificate_copy_path, m.clearance_zero_accident_doc_path, m.updated_at
         FROM naker_award_assessments a
         JOIN naker_award_second_mandatory m ON m.assessment_id=a.id AND m.final_submitted=1
-        ORDER BY a.total_indeks DESC, a.company_name ASC";
+        ORDER BY CAST(a.total_indeks AS DECIMAL(10,2)) DESC, a.company_name ASC";
 $res = $conn->query($sql);
 $rows = [];
 while ($r = $res->fetch_assoc()) { $rows[] = $r; }

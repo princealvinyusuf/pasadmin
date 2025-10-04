@@ -33,7 +33,7 @@ $sql = "SELECT a.id, a.company_name, a.total_indeks, m.updated_at, g.id AS g_id,
         FROM naker_award_assessments a
         JOIN naker_award_second_mandatory m ON m.assessment_id=a.id AND m.final_submitted=1
         LEFT JOIN naker_award_third_general g ON g.assessment_id=a.id
-        ORDER BY a.total_indeks DESC, a.company_name ASC";
+        ORDER BY CAST(a.total_indeks AS DECIMAL(10,2)) DESC, a.company_name ASC";
 $res = $conn->query($sql);
 $rows = [];
 while ($r = $res->fetch_assoc()) { $rows[] = $r; }

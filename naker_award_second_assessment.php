@@ -12,22 +12,22 @@ if (!current_user_can('naker_award_manage_second') && !current_user_can('manage_
 $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     company_name VARCHAR(200) NOT NULL,
-    postings_count INT NOT NULL DEFAULT 0,
-    quota_count INT NOT NULL DEFAULT 0,
-    ratio_wlkp_percent DECIMAL(8,2) NOT NULL DEFAULT 0,
-    realization_percent DECIMAL(8,2) NOT NULL DEFAULT 0,
-    disability_need_count INT NOT NULL DEFAULT 0,
-    nilai_akhir_postings INT NOT NULL DEFAULT 0,
-    indeks_postings DECIMAL(10,2) NOT NULL DEFAULT 0,
-    nilai_akhir_quota INT NOT NULL DEFAULT 0,
-    indeks_quota DECIMAL(10,2) NOT NULL DEFAULT 0,
-    nilai_akhir_ratio INT NOT NULL DEFAULT 0,
-    indeks_ratio DECIMAL(10,2) NOT NULL DEFAULT 0,
-    nilai_akhir_realization INT NOT NULL DEFAULT 0,
-    indeks_realization DECIMAL(10,2) NOT NULL DEFAULT 0,
-    nilai_akhir_disability INT NOT NULL DEFAULT 0,
-    indeks_disability DECIMAL(10,2) NOT NULL DEFAULT 0,
-    total_indeks DECIMAL(10,2) NOT NULL DEFAULT 0,
+    postings_count VARCHAR(100) NOT NULL DEFAULT '0',
+    quota_count VARCHAR(100) NOT NULL DEFAULT '0',
+    ratio_wlkp_percent VARCHAR(100) NOT NULL DEFAULT '0',
+    realization_percent VARCHAR(100) NOT NULL DEFAULT '0',
+    disability_need_count VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_postings VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_postings VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_quota VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_quota VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_ratio VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_ratio VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_realization VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_realization VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_disability VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_disability VARCHAR(100) NOT NULL DEFAULT '0',
+    total_indeks VARCHAR(100) NOT NULL DEFAULT '0',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
@@ -52,7 +52,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_second_mandatory (
 $sql = "SELECT a.id, a.company_name, a.total_indeks, a.created_at, m.final_submitted, m.id AS m_id
         FROM naker_award_assessments a
         LEFT JOIN naker_award_second_mandatory m ON m.assessment_id = a.id
-        ORDER BY a.total_indeks DESC, a.company_name ASC
+        ORDER BY CAST(a.total_indeks AS DECIMAL(10,2)) DESC, a.company_name ASC
         LIMIT 15";
 $result = $conn->query($sql);
 $rows = [];
