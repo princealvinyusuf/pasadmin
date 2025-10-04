@@ -17,8 +17,23 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_second_mandatory (
     UNIQUE KEY uniq_assessment (assessment_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-// Fetch only Stage 2 shortlisted (final_submitted=1)
-$sql = "SELECT a.id, a.company_name, a.total_indeks, m.updated_at FROM naker_award_assessments a JOIN naker_award_second_mandatory m ON m.assessment_id=a.id AND m.final_submitted=1 ORDER BY a.total_indeks DESC, a.company_name ASC";
+// Ensure third-stage general table exists (for status)
+$conn->query("CREATE TABLE IF NOT EXISTS naker_award_third_general (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    assessment_id INT NOT NULL,
+    legal_entity_status_doc_path VARCHAR(255) DEFAULT NULL,
+    operational_permit_doc_path VARCHAR(255) DEFAULT NULL,
+    final_submitted TINYINT(1) NOT NULL DEFAULT 0,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_assessment (assessment_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// Fetch only Stage 2 shortlisted, include third-stage status
+$sql = "SELECT a.id, a.company_name, a.total_indeks, m.updated_at, g.id AS g_id, g.final_submitted AS g_final_submitted
+        FROM naker_award_assessments a
+        JOIN naker_award_second_mandatory m ON m.assessment_id=a.id AND m.final_submitted=1
+        LEFT JOIN naker_award_third_general g ON g.assessment_id=a.id
+        ORDER BY a.total_indeks DESC, a.company_name ASC";
 $res = $conn->query($sql);
 $rows = [];
 while ($r = $res->fetch_assoc()) { $rows[] = $r; }
@@ -49,6 +64,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                         <th>Nama Perusahaan</th>
                         <th>Total Indeks WLLP</th>
                         <th>Last Update</th>
+                        <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -59,6 +75,19 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                         <td><?php echo htmlspecialchars($row['company_name']); ?></td>
                         <td><strong><?php echo number_format((float)$row['total_indeks'], 2); ?></strong></td>
                         <td><?php echo htmlspecialchars($row['updated_at']); ?></td>
+                        <td>
+                            <?php
+                            $statusHtml = '<span class="badge bg-secondary">Not yet submitted</span>';
+                            if (isset($row['g_id']) && $row['g_id']) {
+                                if (intval($row['g_final_submitted']) === 1) {
+                                    $statusHtml = '<span class="badge bg-success">Submitted</span>';
+                                } else {
+                                    $statusHtml = '<span class="badge bg-warning text-dark">In progress</span>';
+                                }
+                            }
+                            echo $statusHtml;
+                            ?>
+                        </td>
                         <td>
                             <a class="btn btn-sm btn-primary" href="naker_award_third_assessment_form.php?assessment_id=<?php echo intval($row['id']); ?>">General Data</a>
                         </td>
