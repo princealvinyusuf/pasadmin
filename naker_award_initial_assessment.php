@@ -145,8 +145,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Bulk import handler (AJAX)
     if (isset($_POST['action']) && $_POST['action'] === 'bulk_import') {
         header('Content-Type: application/json');
-        $rows = $_POST['rows'] ?? [];
-        if (!is_array($rows)) { echo json_encode(['ok'=>false,'error'=>'Invalid payload']); exit; }
+        $rowsParam = $_POST['rows'] ?? null;
+        if (is_string($rowsParam)) {
+            $decoded = json_decode($rowsParam, true);
+            $rows = is_array($decoded) ? $decoded : [];
+        } elseif (is_array($rowsParam)) {
+            $rows = $rowsParam;
+        } else {
+            $rows = [];
+        }
+        if (!is_array($rows)) { echo json_encode(['ok'=>false,'error'=>'Invalid rows JSON']); exit; }
 
         $inserted = 0; $errors = [];
         foreach ($rows as $idx => $r) {
@@ -204,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $total_indeks
             );
             if (!$stmt->execute()) {
-                $errors[] = ['row'=>$idx+1,'error'=>'Execute failed'];
+                $errors[] = ['row'=>$idx+1,'error'=>'Execute failed: ' . $conn->error];
             } else {
                 $inserted++;
             }
