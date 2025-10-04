@@ -103,7 +103,7 @@ $resultRow = null; $message = '';
                 </div>
                 <div class="col-12 col-md-3">
                     <label class="form-label">Jumlah Postingan Lowongan</label>
-                    <input type="number" name="postings_count" min="0" class="form-control" required>
+                    <input type="number" name="postings_count" id="postings_count" min="0" class="form-control" required>
                 </div>
                 <div class="col-12 col-md-3">
                     <label class="form-label">Jumlah Kuota Lowongan</label>
@@ -118,8 +118,12 @@ $resultRow = null; $message = '';
                     <input type="number" step="0.01" min="0" name="ratio_wlkp_percent" id="ratio_wlkp_percent" class="form-control" readonly>
                 </div>
                 <div class="col-12 col-md-3">
+                    <label class="form-label">Angka Realisasi</label>
+                    <input type="number" step="1" min="0" name="angka_realisasi" id="angka_realisasi" class="form-control" required>
+                </div>
+                <div class="col-12 col-md-3">
                     <label class="form-label">Realisasi Penempatan TK (%)</label>
-                    <input type="number" step="0.01" min="0" name="realization_percent" class="form-control" required>
+                    <input type="number" step="0.01" min="0" name="realization_percent" id="realization_percent" class="form-control" readonly>
                 </div>
                 <div class="col-12 col-md-3">
                     <label class="form-label">Jumlah Kebutuhan Disabilitas</label>
@@ -140,7 +144,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $quota = intval($_POST['quota_count'] ?? 0);
     $rencana = floatval($_POST['rencana_kebutuhan_wlkp'] ?? 0);
     $ratio = ($rencana > 0) ? (($quota / $rencana) * 100.0) : 0.0;
-    $realization = floatval($_POST['realization_percent'] ?? 0);
+    $angkaRealisasi = floatval($_POST['angka_realisasi'] ?? 0);
+    $realization = ($postings > 0) ? (($angkaRealisasi / $postings) * 100.0) : 0.0;
     $disability = intval($_POST['disability_need_count'] ?? 0);
 
     $na_postings = calculate_nilai_akhir_for_postings($postings);
@@ -277,6 +282,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var quotaInput = document.getElementById('quota_count');
     var rencanaInput = document.getElementById('rencana_kebutuhan_wlkp');
     var ratioInput = document.getElementById('ratio_wlkp_percent');
+    var postingsInput = document.getElementById('postings_count');
+    var angkaRealisasiInput = document.getElementById('angka_realisasi');
+    var realizationInput = document.getElementById('realization_percent');
 
     function updateRatio() {
         var quota = parseFloat(quotaInput.value) || 0;
@@ -288,9 +296,22 @@ document.addEventListener('DOMContentLoaded', function() {
         ratioInput.value = ratio.toFixed(2);
     }
 
+    function updateRealization() {
+        var postings = parseFloat(postingsInput.value) || 0;
+        var angka = parseFloat(angkaRealisasiInput.value) || 0;
+        var realization = 0;
+        if (postings > 0) {
+            realization = (angka / postings) * 100;
+        }
+        realizationInput.value = realization.toFixed(2);
+    }
+
     quotaInput.addEventListener('input', updateRatio);
     rencanaInput.addEventListener('input', updateRatio);
+    postingsInput.addEventListener('input', updateRealization);
+    angkaRealisasiInput.addEventListener('input', updateRealization);
     updateRatio();
+    updateRealization();
 });
 </script>
 </body>
