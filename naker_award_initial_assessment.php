@@ -107,11 +107,15 @@ $resultRow = null; $message = '';
                 </div>
                 <div class="col-12 col-md-3">
                     <label class="form-label">Jumlah Kuota Lowongan</label>
-                    <input type="number" name="quota_count" min="0" class="form-control" required>
+                    <input type="number" name="quota_count" id="quota_count" min="0" class="form-control" required>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Rencana Kebutuhan Tenaga Kerja WLKP</label>
+                    <input type="number" step="0.01" min="0" name="rencana_kebutuhan_wlkp" id="rencana_kebutuhan_wlkp" class="form-control" required>
                 </div>
                 <div class="col-12 col-md-3">
                     <label class="form-label">Ratio Lowongan Terhadap WLKP (%)</label>
-                    <input type="number" step="0.01" min="0" name="ratio_wlkp_percent" class="form-control" required>
+                    <input type="number" step="0.01" min="0" name="ratio_wlkp_percent" id="ratio_wlkp_percent" class="form-control" readonly>
                 </div>
                 <div class="col-12 col-md-3">
                     <label class="form-label">Realisasi Penempatan TK (%)</label>
@@ -134,7 +138,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $company = trim($_POST['company_name'] ?? '');
     $postings = intval($_POST['postings_count'] ?? 0);
     $quota = intval($_POST['quota_count'] ?? 0);
-    $ratio = floatval($_POST['ratio_wlkp_percent'] ?? 0);
+    $rencana = floatval($_POST['rencana_kebutuhan_wlkp'] ?? 0);
+    $ratio = ($rencana > 0) ? (($quota / $rencana) * 100.0) : 0.0;
     $realization = floatval($_POST['realization_percent'] ?? 0);
     $disability = intval($_POST['disability_need_count'] ?? 0);
 
@@ -267,6 +272,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var quotaInput = document.getElementById('quota_count');
+    var rencanaInput = document.getElementById('rencana_kebutuhan_wlkp');
+    var ratioInput = document.getElementById('ratio_wlkp_percent');
+
+    function updateRatio() {
+        var quota = parseFloat(quotaInput.value) || 0;
+        var rencana = parseFloat(rencanaInput.value) || 0;
+        var ratio = 0;
+        if (rencana > 0) {
+            ratio = (quota / rencana) * 100;
+        }
+        ratioInput.value = ratio.toFixed(2);
+    }
+
+    quotaInput.addEventListener('input', updateRatio);
+    rencanaInput.addEventListener('input', updateRatio);
+    updateRatio();
+});
+</script>
 </body>
 </html>
 
