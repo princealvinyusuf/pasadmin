@@ -119,7 +119,7 @@ $resultRow = null; $message = '';
                 </div>
                 <div class="col-12 col-md-3">
                     <label class="form-label">Angka Realisasi</label>
-                    <input type="number" step="1" min="0" name="angka_realisasi" id="angka_realisasi" class="form-control" required>
+                    <input type="number" step="0.01" min="0" name="angka_realisasi" id="angka_realisasi" class="form-control" required>
                 </div>
                 <div class="col-12 col-md-3">
                     <label class="form-label">Realisasi Penempatan TK (%)</label>
@@ -142,10 +142,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $company = trim($_POST['company_name'] ?? '');
     $postings = intval($_POST['postings_count'] ?? 0);
     $quota = intval($_POST['quota_count'] ?? 0);
-    $rencana = floatval($_POST['rencana_kebutuhan_wlkp'] ?? 0);
+    $rencanaRaw = $_POST['rencana_kebutuhan_wlkp'] ?? '0';
+    $rencana = floatval(str_replace(',', '.', $rencanaRaw));
     $ratio = ($rencana > 0) ? (($quota / $rencana) * 100.0) : 0.0;
-    $angkaRealisasi = floatval($_POST['angka_realisasi'] ?? 0);
-    $realization = ($postings > 0) ? (($angkaRealisasi / $postings) * 100.0) : 0.0;
+    $angkaRealisasiRaw = $_POST['angka_realisasi'] ?? '0';
+    $angkaRealisasi = floatval(str_replace(',', '.', $angkaRealisasiRaw));
+    $realization = ($quota > 0) ? (($angkaRealisasi / $quota) * 100.0) : 0.0;
     $disability = intval($_POST['disability_need_count'] ?? 0);
 
     $na_postings = calculate_nilai_akhir_for_postings($postings);
@@ -286,9 +288,17 @@ document.addEventListener('DOMContentLoaded', function() {
     var angkaRealisasiInput = document.getElementById('angka_realisasi');
     var realizationInput = document.getElementById('realization_percent');
 
+    function parseNumber(value) {
+        if (typeof value === 'string') {
+            value = value.replace(/,/g, '.');
+        }
+        var n = parseFloat(value);
+        return isNaN(n) ? 0 : n;
+    }
+
     function updateRatio() {
-        var quota = parseFloat(quotaInput.value) || 0;
-        var rencana = parseFloat(rencanaInput.value) || 0;
+        var quota = parseNumber(quotaInput.value) || 0;
+        var rencana = parseNumber(rencanaInput.value) || 0;
         var ratio = 0;
         if (rencana > 0) {
             ratio = (quota / rencana) * 100;
@@ -297,11 +307,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateRealization() {
-        var postings = parseFloat(postingsInput.value) || 0;
-        var angka = parseFloat(angkaRealisasiInput.value) || 0;
+        var quota = parseNumber(quotaInput.value) || 0;
+        var angka = parseNumber(angkaRealisasiInput.value) || 0;
         var realization = 0;
-        if (postings > 0) {
-            realization = (angka / postings) * 100;
+        if (quota > 0) {
+            realization = (angka / quota) * 100;
         }
         realizationInput.value = realization.toFixed(2);
     }
