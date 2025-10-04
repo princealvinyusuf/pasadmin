@@ -90,7 +90,7 @@ function compute_indeks(float $weightPercent, int $nilaiAkhir): float {
     return round(($weightPercent * $nilaiAkhir) / 100.0, 2);
 }
 
-$resultRow = null; $message = '';
+$resultRow = null; $message = isset($_GET['msg']) ? (string)$_GET['msg'] : '';
 
 ?>
 <!DOCTYPE html>
@@ -118,11 +118,19 @@ $resultRow = null; $message = '';
             <a class="btn btn-outline-primary" href="https://paskerid.kemnaker.go.id/paskerid/public/pasadmin/download/TemplateBulking_Initial_Assessment.xlsx" target="_blank" rel="noopener">
                 <i class="bi bi-download"></i> Download Template
             </a>
+            <form method="post" class="d-inline" onsubmit="return confirmTruncatePin();">
+                <input type="hidden" name="action" value="truncate_all">
+                <input type="hidden" name="pin" id="truncate_pin" value="">
+                <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash"></i> Clean All Tables</button>
+            </form>
         </div>
     </div>
 
     <div class="card mb-4">
         <div class="card-body">
+            <?php if (!empty($message)): ?>
+                <div class="alert alert-info py-2 px-3 mb-3"><?php echo htmlspecialchars($message); ?></div>
+            <?php endif; ?>
             <form method="post" class="row g-3">
                 <div class="col-12 col-md-6">
                     <label class="form-label">Nama Perusahaan</label>
@@ -265,6 +273,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
         echo json_encode(['ok'=>true,'inserted'=>$inserted,'errors'=>$errors]);
+        exit;
+    }
+    // Truncate all related tables
+    if (isset($_POST['action']) && $_POST['action'] === 'truncate_all') {
+        if (!current_user_can('manage_settings')) { http_response_code(403); echo 'Forbidden'; exit; }
+        $pin = trim((string)($_POST['pin'] ?? ''));
+        $expectedPin = date('dmY');
+        if ($pin !== $expectedPin) {
+            header('Location: naker_award_initial_assessment.php?msg=' . urlencode('Invalid PIN'));
+            exit;
+        }
+        // Disable FK checks to allow truncation order-insensitive
+        $conn->query('SET FOREIGN_KEY_CHECKS=0');
+        // List of all tables related to Naker Award
+        $tables = [
+            'naker_award_final_positions',
+            'naker_award_verifications',
+            'naker_award_third_general',
+            'naker_award_second_mandatory',
+            'naker_award_assessments'
+        ];
+        foreach ($tables as $t) { @$conn->query('TRUNCATE TABLE ' . $t); }
+        $conn->query('SET FOREIGN_KEY_CHECKS=1');
+        header('Location: naker_award_initial_assessment.php?msg=' . urlencode('All tables cleaned'));
         exit;
     }
     // Redo calculations for binding and save
@@ -592,6 +624,26 @@ document.addEventListener('DOMContentLoaded', function() {
             startImportBtn.disabled = false;
         }
     });
+
+    // Confirm truncate with PIN = ddmmyyyy
+    window.confirmTruncatePin = function(){
+        var pinInput = prompt('Enter PIN (ddmmyyyy) to confirm delete:');
+        if (pinInput === null) return false;
+        var now = new Date();
+        var dd = String(now.getDate()).padStart(2, '0');
+        var mm = String(now.getMonth() + 1).padStart(2, '0');
+        var yyyy = String(now.getFullYear());
+        var expected = dd + mm + yyyy;
+        if (pinInput.trim() !== expected) {
+            alert('Invalid PIN. Operation cancelled.');
+            return false;
+        }
+        var ok = confirm('Are you absolutely sure? This will TRUNCATE all Naker Award tables.');
+        if (!ok) return false;
+        var hidden = document.getElementById('truncate_pin');
+        if (hidden) hidden.value = expected;
+        return true;
+    };
 });
 </script>
 </body>
