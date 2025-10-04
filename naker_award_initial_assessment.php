@@ -115,7 +115,7 @@ $resultRow = null; $message = isset($_GET['msg']) ? (string)$_GET['msg'] : '';
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary" href="naker_award_stage1_shortlisted_c.php">View Stage 1 Shortlisted C</a>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bulkImportModal"><i class="bi bi-file-earmark-excel"></i> Import Excel</button>
-            <a class="btn btn-outline-primary" href="https://paskerid.kemnaker.go.id/paskerid/public/pasadmin/download/TemplateBulking_Initial_Assessment.xlsx" target="_blank" rel="noopener">
+            <a class="btn btn-outline-primary" href="https://paskerid.kemnaker.go.id/paskerid/public/pasadmin/downloads/TemplateBulking_Initial_Assessment.xlsx" target="_blank" rel="noopener">
                 <i class="bi bi-download"></i> Download Template
             </a>
             <form method="post" class="d-inline" onsubmit="return confirmTruncatePin();">
