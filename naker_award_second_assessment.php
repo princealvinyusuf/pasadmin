@@ -31,8 +31,30 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-// Top 15 by total_indeks
-$result = $conn->query('SELECT id, company_name, total_indeks, created_at FROM naker_award_assessments ORDER BY total_indeks DESC, company_name ASC LIMIT 15');
+// Ensure second mandatory table exists (for status)
+$conn->query("CREATE TABLE IF NOT EXISTS naker_award_second_mandatory (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    assessment_id INT NOT NULL,
+    wlkp_status VARCHAR(100) DEFAULT NULL,
+    wlkp_code VARCHAR(150) DEFAULT NULL,
+    clearance_no_law_path VARCHAR(255) DEFAULT NULL,
+    bpjstk_membership_doc_path VARCHAR(255) DEFAULT NULL,
+    minimum_wage_doc_path VARCHAR(255) DEFAULT NULL,
+    clearance_smk3_status_doc_path VARCHAR(255) DEFAULT NULL,
+    smk3_certificate_copy_path VARCHAR(255) DEFAULT NULL,
+    clearance_zero_accident_doc_path VARCHAR(255) DEFAULT NULL,
+    final_submitted TINYINT(1) NOT NULL DEFAULT 0,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_assessment (assessment_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// Top 15 by total_indeks with second-stage status
+$sql = "SELECT a.id, a.company_name, a.total_indeks, a.created_at, m.final_submitted, m.id AS m_id
+        FROM naker_award_assessments a
+        LEFT JOIN naker_award_second_mandatory m ON m.assessment_id = a.id
+        ORDER BY a.total_indeks DESC, a.company_name ASC
+        LIMIT 15";
+$result = $conn->query($sql);
 $rows = [];
 while ($r = $result->fetch_assoc()) { $rows[] = $r; }
 ?>
@@ -62,6 +84,7 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
                         <th>Nama Perusahaan</th>
                         <th>Total Indeks WLLP</th>
                         <th>Tanggal</th>
+                        <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -72,6 +95,19 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
                         <td><?php echo htmlspecialchars($row['company_name']); ?></td>
                         <td><strong><?php echo number_format((float)$row['total_indeks'], 2); ?></strong></td>
                         <td><?php echo htmlspecialchars($row['created_at']); ?></td>
+                        <td>
+                            <?php
+                            $statusHtml = '<span class="badge bg-secondary">Not yet submitted</span>';
+                            if (isset($row['m_id']) && $row['m_id']) {
+                                if (intval($row['final_submitted']) === 1) {
+                                    $statusHtml = '<span class="badge bg-success">Submitted</span>';
+                                } else {
+                                    $statusHtml = '<span class="badge bg-warning text-dark">In progress</span>';
+                                }
+                            }
+                            echo $statusHtml;
+                            ?>
+                        </td>
                         <td>
                             <a class="btn btn-sm btn-primary" href="naker_award_second_assessment_form.php?assessment_id=<?php echo intval($row['id']); ?>">Mandatory Data</a>
                         </td>
