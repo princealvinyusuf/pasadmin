@@ -627,7 +627,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Confirm truncate with PIN = ddmmyyyy
     window.confirmTruncatePin = function(){
-        var pinInput = prompt('Enter PIN (ddmmyyyy) to confirm delete:');
+        var pinInput = prompt('Enter PIN to confirm delete:');
         if (pinInput === null) return false;
         var now = new Date();
         var dd = String(now.getDate()).padStart(2, '0');
