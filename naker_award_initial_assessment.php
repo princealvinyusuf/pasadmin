@@ -81,6 +81,7 @@ $resultRow = null; $message = '';
     <title>Naker Award - Initial Assessment</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         body { background: #f6f8fa; }
         .table thead th { background: #f1f5f9; }
@@ -91,7 +92,10 @@ $resultRow = null; $message = '';
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Naker Award - Initial Assessment</h2>
-        <a class="btn btn-outline-secondary" href="naker_award_stage1_shortlisted_c.php">View Stage 1 Shortlisted C</a>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary" href="naker_award_stage1_shortlisted_c.php">View Stage 1 Shortlisted C</a>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bulkImportModal"><i class="bi bi-file-earmark-excel"></i> Import Excel</button>
+        </div>
     </div>
 
     <div class="card mb-4">
@@ -138,6 +142,77 @@ $resultRow = null; $message = '';
 
 <?php
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Bulk import handler (AJAX)
+    if (isset($_POST['action']) && $_POST['action'] === 'bulk_import') {
+        header('Content-Type: application/json');
+        $rows = $_POST['rows'] ?? [];
+        if (!is_array($rows)) { echo json_encode(['ok'=>false,'error'=>'Invalid payload']); exit; }
+
+        $inserted = 0; $errors = [];
+        foreach ($rows as $idx => $r) {
+            $company = trim((string)($r['company_name'] ?? ''));
+            if ($company === '') { $errors[] = ['row'=>$idx+1,'error'=>'Missing company_name']; continue; }
+            $postings = intval($r['postings_count'] ?? 0);
+            $quota = intval($r['quota_count'] ?? 0);
+            // Normalize decimals with commas for rencana and angka_realisasi
+            $rencanaRaw = (string)($r['rencana_kebutuhan_wlkp'] ?? '0');
+            $rencana = floatval(str_replace(',', '.', $rencanaRaw));
+            $angkaRealisasiRaw = (string)($r['angka_realisasi'] ?? '0');
+            $angkaRealisasi = floatval(str_replace(',', '.', $angkaRealisasiRaw));
+
+            $ratio = ($rencana > 0) ? (($quota / $rencana) * 100.0) : 0.0;
+            $realization = ($quota > 0) ? (($angkaRealisasi / $quota) * 100.0) : 0.0;
+            $disability = intval($r['disability_need_count'] ?? 0);
+
+            $na_postings = calculate_nilai_akhir_for_postings($postings);
+            $na_quota = calculate_nilai_akhir_for_quota($quota);
+            $na_ratio = calculate_nilai_akhir_for_percent($ratio);
+            $na_realization = calculate_nilai_akhir_for_percent($realization);
+            $na_disability = calculate_nilai_akhir_for_disability($disability);
+
+            $idx_postings = compute_indeks($WEIGHT_POSTINGS, $na_postings);
+            $idx_quota = compute_indeks($WEIGHT_QUOTA, $na_quota);
+            $idx_ratio = compute_indeks($WEIGHT_RATIO, $na_ratio);
+            $idx_realization = compute_indeks($WEIGHT_REALIZATION, $na_realization);
+            $idx_disability = compute_indeks($WEIGHT_DISABILITY, $na_disability);
+            $total_indeks = round($idx_postings + $idx_quota + $idx_ratio + $idx_realization + $idx_disability, 2);
+
+            $stmt = $conn->prepare('INSERT INTO naker_award_assessments (
+                company_name, postings_count, quota_count, ratio_wlkp_percent, realization_percent, disability_need_count,
+                nilai_akhir_postings, indeks_postings, nilai_akhir_quota, indeks_quota, nilai_akhir_ratio, indeks_ratio,
+                nilai_akhir_realization, indeks_realization, nilai_akhir_disability, indeks_disability, total_indeks
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+            if (!$stmt) { $errors[] = ['row'=>$idx+1,'error'=>'Prepare failed']; continue; }
+            $stmt->bind_param(
+                'siiddiidididididd',
+                $company,
+                $postings,
+                $quota,
+                $ratio,
+                $realization,
+                $disability,
+                $na_postings,
+                $idx_postings,
+                $na_quota,
+                $idx_quota,
+                $na_ratio,
+                $idx_ratio,
+                $na_realization,
+                $idx_realization,
+                $na_disability,
+                $idx_disability,
+                $total_indeks
+            );
+            if (!$stmt->execute()) {
+                $errors[] = ['row'=>$idx+1,'error'=>'Execute failed'];
+            } else {
+                $inserted++;
+            }
+            $stmt->close();
+        }
+        echo json_encode(['ok'=>true,'inserted'=>$inserted,'errors'=>$errors]);
+        exit;
+    }
     // Redo calculations for binding and save
     $company = trim($_POST['company_name'] ?? '');
     $postings = intval($_POST['postings_count'] ?? 0);
@@ -279,6 +354,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Bulk Import Modal -->
+<div class="modal fade" id="bulkImportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import Excel - Initial Assessment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Choose Excel File (.xlsx)</label>
+                    <input type="file" id="bulkFile" accept=".xlsx,.xls" class="form-control">
+                    <div class="form-text">Expected columns: company_name, postings_count, quota_count, rencana_kebutuhan_wlkp, angka_realisasi, disability_need_count.</div>
+                </div>
+                <div id="bulkStatus" class="small text-muted"></div>
+                <div class="progress mt-2" role="progressbar" aria-label="Bulk import" aria-valuemin="0" aria-valuemax="100">
+                    <div id="bulkProgress" class="progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button class="btn btn-primary" id="startImportBtn" disabled>Start Import</button>
+            </div>
+        </div>
+    </div>
+    </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var quotaInput = document.getElementById('quota_count');
@@ -322,6 +423,99 @@ document.addEventListener('DOMContentLoaded', function() {
     angkaRealisasiInput.addEventListener('input', updateRealization);
     updateRatio();
     updateRealization();
+
+    // Bulk import logic
+    var bulkFileInput = document.getElementById('bulkFile');
+    var startImportBtn = document.getElementById('startImportBtn');
+    var bulkStatus = document.getElementById('bulkStatus');
+    var bulkProgress = document.getElementById('bulkProgress');
+
+    function setProgress(done, total){
+        var pct = total > 0 ? Math.round((done/total)*100) : 0;
+        bulkProgress.style.width = pct + '%';
+        bulkProgress.textContent = pct + '%';
+    }
+
+    bulkFileInput && bulkFileInput.addEventListener('change', function(){
+        startImportBtn.disabled = !bulkFileInput.files || bulkFileInput.files.length === 0;
+        bulkStatus.textContent = '';
+        setProgress(0,1);
+    });
+
+    function readWorkbook(file){
+        return new Promise(function(resolve, reject){
+            var reader = new FileReader();
+            reader.onload = function(e){
+                try {
+                    var data = new Uint8Array(e.target.result);
+                    var wb = XLSX.read(data, {type:'array'});
+                    resolve(wb);
+                } catch(err){ reject(err); }
+            };
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    function normalizeNumber(x){
+        if (x === undefined || x === null) return 0;
+        if (typeof x === 'number') return x;
+        var s = String(x).trim();
+        if (!s) return 0;
+        return parseFloat(s.replace(/,/g, '.')) || 0;
+    }
+
+    async function importRows(rows){
+        var total = rows.length, ok = 0, fail = 0;
+        setProgress(0, total);
+        bulkStatus.textContent = 'Uploading ' + total + ' rows...';
+        // Chunk to reduce payload size per request
+        var chunkSize = 50;
+        for (let i=0; i<rows.length; i+=chunkSize){
+            var chunk = rows.slice(i, i+chunkSize);
+            try {
+                const res = await fetch(window.location.href, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ action: 'bulk_import', rows: JSON.stringify(chunk) })
+                });
+                const data = await res.json();
+                ok += (data.inserted || 0);
+                fail += (data.errors ? data.errors.length : 0);
+            } catch(err){
+                fail += chunk.length;
+            }
+            setProgress(Math.min(i+chunk.length, total), total);
+        }
+        bulkStatus.textContent = 'Done. Inserted: ' + ok + ', Failed: ' + fail + '.';
+    }
+
+    startImportBtn && startImportBtn.addEventListener('click', async function(){
+        if (!bulkFileInput.files || bulkFileInput.files.length === 0) return;
+        startImportBtn.disabled = true;
+        try {
+            var wb = await readWorkbook(bulkFileInput.files[0]);
+            var firstSheet = wb.SheetNames[0];
+            var ws = wb.Sheets[firstSheet];
+            var json = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+            // Map expected columns with fallback for common variants
+            var rows = json.map(function(r){
+                return {
+                    company_name: r.company_name || r.Company || r['Nama Perusahaan'] || '',
+                    postings_count: parseInt(r.postings_count || r.Postings || r['Jumlah Postingan Lowongan'] || '0', 10) || 0,
+                    quota_count: parseInt(r.quota_count || r.Quota || r['Jumlah Kuota Lowongan'] || '0', 10) || 0,
+                    rencana_kebutuhan_wlkp: normalizeNumber(r.rencana_kebutuhan_wlkp || r.Rencana || r['Rencana Kebutuhan Tenaga Kerja WLKP'] || '0'),
+                    angka_realisasi: normalizeNumber(r.angka_realisasi || r.Realisasi || r['Angka Realisasi'] || '0'),
+                    disability_need_count: parseInt(r.disability_need_count || r.Disability || r['Jumlah Kebutuhan Disabilitas'] || '0', 10) || 0
+                };
+            }).filter(function(r){ return (r.company_name || '').trim() !== ''; });
+            await importRows(rows);
+        } catch(err){
+            bulkStatus.textContent = 'Failed: ' + (err && err.message ? err.message : String(err));
+        } finally {
+            startImportBtn.disabled = false;
+        }
+    });
 });
 </script>
 </body>
