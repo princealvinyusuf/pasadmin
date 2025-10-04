@@ -190,8 +190,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 nilai_akhir_postings, indeks_postings, nilai_akhir_quota, indeks_quota, nilai_akhir_ratio, indeks_ratio,
                 nilai_akhir_realization, indeks_realization, nilai_akhir_disability, indeks_disability, total_indeks
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-            if (!$stmt) { $errors[] = ['row'=>$idx+1,'error'=>'Prepare failed']; continue; }
-            $stmt->bind_param(
+            if (!$stmt) { $errors[] = ['row'=>$idx+1,'error'=>'Prepare failed: ' . $conn->error]; continue; }
+            $okBind = $stmt->bind_param(
                 'siiddiidididididd',
                 $company,
                 $postings,
@@ -211,8 +211,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $idx_disability,
                 $total_indeks
             );
+            if (!$okBind) {
+                $errors[] = ['row'=>$idx+1,'error'=>'Bind failed: ' . $stmt->error];
+                $stmt->close();
+                continue;
+            }
             if (!$stmt->execute()) {
-                $errors[] = ['row'=>$idx+1,'error'=>'Execute failed: ' . $conn->error];
+                $errors[] = ['row'=>$idx+1,'error'=>'Execute failed: ' . $stmt->error];
             } else {
                 $inserted++;
             }
@@ -490,6 +495,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await res.json();
                 ok += (data.inserted || 0);
                 fail += (data.errors ? data.errors.length : 0);
+                if (data.errors && data.errors.length) {
+                    const firstErr = data.errors[0];
+                    bulkStatus.textContent = 'Error at row ' + firstErr.row + ': ' + firstErr.error;
+                }
             } catch(err){
                 fail += chunk.length;
             }
