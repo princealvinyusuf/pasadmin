@@ -82,6 +82,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                         <th>#</th>
                         <th>Nama Perusahaan</th>
                         <th>Total Indeks</th>
+                        <th>Status</th>
                         <th>Actions</th>
                         <th>Stage 2</th>
                         <th>Third</th>
@@ -94,6 +95,14 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                         <td><?php echo $i++; ?></td>
                         <td><?php echo htmlspecialchars($row['company_name']); ?></td>
                         <td><strong><?php echo number_format((float)$row['total_indeks'], 2); ?></strong></td>
+                        <td>
+                            <?php
+                            $statusHtml = empty($row['verified_at'])
+                                ? '<span class="badge bg-warning text-dark">Pending verification</span>'
+                                : '<span class="badge bg-success">Verified</span>';
+                            echo $statusHtml;
+                            ?>
+                        </td>
                         <td>
                             <button type="button" class="btn btn-sm btn-outline-primary v-detail" data-assessment-id="<?php echo intval($row['id']); ?>">Detail</button>
                             <form method="post" class="d-inline" onsubmit="return confirm('Are you sure all the information provided is correct and are you fully responsible for the assessment conditions? This action cannot be undone. Please be careful.');">
