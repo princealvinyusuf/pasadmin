@@ -27,6 +27,8 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
     indeks_ratio VARCHAR(100) NOT NULL DEFAULT '0',
     nilai_akhir_realization VARCHAR(100) NOT NULL DEFAULT '0',
     indeks_realization VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_tindak VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_tindak VARCHAR(100) NOT NULL DEFAULT '0',
     nilai_akhir_disability VARCHAR(100) NOT NULL DEFAULT '0',
     indeks_disability VARCHAR(100) NOT NULL DEFAULT '0',
     total_indeks VARCHAR(100) NOT NULL DEFAULT '0',
@@ -71,6 +73,8 @@ try {
     MODIFY indeks_ratio VARCHAR(100) NOT NULL DEFAULT '0',
     MODIFY nilai_akhir_realization VARCHAR(100) NOT NULL DEFAULT '0',
     MODIFY indeks_realization VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY nilai_akhir_tindak VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY indeks_tindak VARCHAR(100) NOT NULL DEFAULT '0',
     MODIFY nilai_akhir_disability VARCHAR(100) NOT NULL DEFAULT '0',
     MODIFY indeks_disability VARCHAR(100) NOT NULL DEFAULT '0',
     MODIFY total_indeks VARCHAR(100) NOT NULL DEFAULT '0'");
