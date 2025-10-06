@@ -294,7 +294,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $s_total_indeks = (string)number_format($total_indeks, 2, '.', '');
 
             $okBind = $stmt->bind_param(
-                'ssssssssssssssssss',
+                'sssssssssssssssssss',
                 $s_company,
                 $s_postings,
                 $s_quota,
@@ -407,7 +407,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $s_total_indeks = (string)number_format($total_indeks, 2, '.', '');
 
     $stmt->bind_param(
-        'ssssssssssssssssss',
+        'sssssssssssssssssss',
         $s_company,
         $s_postings,
         $s_quota,
