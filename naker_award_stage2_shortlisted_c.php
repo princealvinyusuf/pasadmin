@@ -102,17 +102,17 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                     <div class="table-responsive">
                         <table class="table table-bordered align-middle">
                             <thead>
-                                <tr><th>No</th><th>Jenis Data/Informasi</th><th>Deskripsi / Bukti</th></tr>
+								<tr><th>No</th><th>Jenis Data/Informasi</th><th>Deskripsi / Bukti</th><th>Status</th></tr>
                             </thead>
                             <tbody>
-                                <tr><td>1</td><td>Status WLKP Perusahaan</td><td id="s2_wlkp_status"></td></tr>
-                                <tr><td>2</td><td>Kode WLKP Perusahaan</td><td id="s2_wlkp_code"></td></tr>
-                                <tr><td>3</td><td>Surat Clearance: Tidak sedang dalam proses hukum / indikasi pelanggaran</td><td id="s2_no_law"></td></tr>
-                                <tr><td>4</td><td>Status Keanggotaan BPJS-TK</td><td id="s2_bpjstk"></td></tr>
-                                <tr><td>5</td><td>Daftar perusahaan menerapkan Upah Minimum</td><td id="s2_wage"></td></tr>
-                                <tr><td>6</td><td>Surat Clearance: Sudah menerapkan SMK3</td><td id="s2_smk3_status"></td></tr>
-                                <tr><td>7</td><td>Copy Sertifikat SMK3</td><td id="s2_smk3_copy"></td></tr>
-                                <tr><td>8</td><td>Surat Clearance: Zero Accident 2025</td><td id="s2_zeroacc"></td></tr>
+								<tr><td>1</td><td>Status WLKP Perusahaan</td><td id="s2_wlkp_status"></td><td id="s2_wlkp_status_st" class="text-center"></td></tr>
+								<tr><td>2</td><td>Kode WLKP Perusahaan</td><td id="s2_wlkp_code"></td><td id="s2_wlkp_code_st" class="text-center"></td></tr>
+								<tr><td>3</td><td>Surat Clearance: Tidak sedang dalam proses hukum / indikasi pelanggaran</td><td id="s2_no_law"></td><td id="s2_no_law_st" class="text-center"></td></tr>
+								<tr><td>4</td><td>Status Keanggotaan BPJS-TK</td><td id="s2_bpjstk"></td><td id="s2_bpjstk_st" class="text-center"></td></tr>
+								<tr><td>5</td><td>Daftar perusahaan menerapkan Upah Minimum</td><td id="s2_wage"></td><td id="s2_wage_st" class="text-center"></td></tr>
+								<tr><td>6</td><td>Surat Clearance: Sudah menerapkan SMK3</td><td id="s2_smk3_status"></td><td id="s2_smk3_status_st" class="text-center"></td></tr>
+								<tr><td>7</td><td>Copy Sertifikat SMK3</td><td id="s2_smk3_copy"></td><td id="s2_smk3_copy_st" class="text-center"></td></tr>
+								<tr><td>8</td><td>Surat Clearance: Zero Accident 2025</td><td id="s2_zeroacc"></td><td id="s2_zeroacc_st" class="text-center"></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -125,18 +125,43 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 <script>
 (function(){
     function linkify(path){ if (!path) return '<span class="text-muted">-</span>'; return '<a href="'+ path +'" target="_blank">View document</a>'; }
+    function statusIcon(has){
+        return has ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>';
+    }
+    function setStatus(id, has){
+        var el = document.getElementById(id);
+        if (el) el.innerHTML = statusIcon(has);
+    }
     for (const btn of document.querySelectorAll('.s2-detail')){
         btn.addEventListener('click', function(){
             const d = this.dataset;
             document.getElementById('s2_company').textContent = d.company || '';
-            document.getElementById('s2_wlkp_status').textContent = d.wlkpStatus || '';
-            document.getElementById('s2_wlkp_code').textContent = d.wlkpCode || '';
-            document.getElementById('s2_no_law').innerHTML = linkify(d.noLaw);
-            document.getElementById('s2_bpjstk').innerHTML = linkify(d.bpjstk);
-            document.getElementById('s2_wage').innerHTML = linkify(d.wage);
-            document.getElementById('s2_smk3_status').innerHTML = linkify(d.smk3Status);
-            document.getElementById('s2_smk3_copy').innerHTML = linkify(d.smk3Copy);
-            document.getElementById('s2_zeroacc').innerHTML = linkify(d.zeroacc);
+            const wlkpStatus = d.wlkpStatus || '';
+            const wlkpCode = d.wlkpCode || '';
+            const noLaw = d.noLaw || '';
+            const bpjstk = d.bpjstk || '';
+            const wage = d.wage || '';
+            const smk3Status = d.smk3Status || '';
+            const smk3Copy = d.smk3Copy || '';
+            const zeroacc = d.zeroacc || '';
+
+            document.getElementById('s2_wlkp_status').textContent = wlkpStatus;
+            document.getElementById('s2_wlkp_code').textContent = wlkpCode;
+            document.getElementById('s2_no_law').innerHTML = linkify(noLaw);
+            document.getElementById('s2_bpjstk').innerHTML = linkify(bpjstk);
+            document.getElementById('s2_wage').innerHTML = linkify(wage);
+            document.getElementById('s2_smk3_status').innerHTML = linkify(smk3Status);
+            document.getElementById('s2_smk3_copy').innerHTML = linkify(smk3Copy);
+            document.getElementById('s2_zeroacc').innerHTML = linkify(zeroacc);
+
+            setStatus('s2_wlkp_status_st', !!wlkpStatus.trim());
+            setStatus('s2_wlkp_code_st', !!wlkpCode.trim());
+            setStatus('s2_no_law_st', !!noLaw);
+            setStatus('s2_bpjstk_st', !!bpjstk);
+            setStatus('s2_wage_st', !!wage);
+            setStatus('s2_smk3_status_st', !!smk3Status);
+            setStatus('s2_smk3_copy_st', !!smk3Copy);
+            setStatus('s2_zeroacc_st', !!zeroacc);
         });
     }
 })();
