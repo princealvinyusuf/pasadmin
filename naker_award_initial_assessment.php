@@ -83,6 +83,7 @@ try {
     weight_ratio INT NOT NULL DEFAULT 10,
     weight_realization INT NOT NULL DEFAULT 20,
     weight_disability INT NOT NULL DEFAULT 15,
+    weight_tindak INT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
@@ -91,7 +92,7 @@ $cntRow = $cntRes ? $cntRes->fetch_assoc() : ['c' => 0];
 if (intval($cntRow['c'] ?? 0) === 0) { @$conn->query('INSERT INTO naker_award_weights (id) VALUES (1)'); }
 $weightsRow = null;
 try {
-    $wq = $conn->query('SELECT weight_postings, weight_quota, weight_ratio, weight_realization, weight_disability FROM naker_award_weights WHERE id=1');
+    $wq = $conn->query('SELECT weight_postings, weight_quota, weight_ratio, weight_realization, weight_disability, weight_tindak FROM naker_award_weights WHERE id=1');
     $weightsRow = $wq ? $wq->fetch_assoc() : null;
 } catch (Throwable $e) { $weightsRow = null; }
 $WEIGHT_POSTINGS = intval($weightsRow['weight_postings'] ?? 30);
@@ -99,6 +100,7 @@ $WEIGHT_QUOTA = intval($weightsRow['weight_quota'] ?? 25);
 $WEIGHT_RATIO = intval($weightsRow['weight_ratio'] ?? 10);
 $WEIGHT_REALIZATION = intval($weightsRow['weight_realization'] ?? 20);
 $WEIGHT_DISABILITY = intval($weightsRow['weight_disability'] ?? 15);
+$WEIGHT_TINDAK = intval($weightsRow['weight_tindak'] ?? 0);
 
 function calculate_nilai_akhir_for_postings(int $count): int {
     if ($count <= 0) { return 0; }
@@ -264,14 +266,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $idx_quota = compute_indeks($WEIGHT_QUOTA, $na_quota);
             $idx_ratio = compute_indeks($WEIGHT_RATIO, $na_ratio);
             $idx_realization = compute_indeks($WEIGHT_REALIZATION, $na_realization);
+    $idx_disability = compute_indeks($WEIGHT_DISABILITY, $na_disability);
+    $na_tindak = calculate_nilai_akhir_for_percent($tindakPercent);
+    $idx_tindak = compute_indeks($WEIGHT_TINDAK, $na_tindak);
+    $total_indeks = round($idx_postings + $idx_quota + $idx_ratio + $idx_realization + $idx_disability + $idx_tindak, 2);
             $idx_disability = compute_indeks($WEIGHT_DISABILITY, $na_disability);
-            $total_indeks = round($idx_postings + $idx_quota + $idx_ratio + $idx_realization + $idx_disability, 2);
+            $na_tindak = calculate_nilai_akhir_for_percent($tindakPercent);
+            $idx_tindak = compute_indeks($WEIGHT_TINDAK, $na_tindak);
+            $total_indeks = round($idx_postings + $idx_quota + $idx_ratio + $idx_realization + $idx_disability + $idx_tindak, 2);
 
             $stmt = $conn->prepare('INSERT INTO naker_award_assessments (
                 company_name, postings_count, quota_count, ratio_wlkp_percent, realization_percent, tindak_lanjut_total, tindak_lanjut_percent, disability_need_count,
                 nilai_akhir_postings, indeks_postings, nilai_akhir_quota, indeks_quota, nilai_akhir_ratio, indeks_ratio,
-                nilai_akhir_realization, indeks_realization, nilai_akhir_disability, indeks_disability, total_indeks
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+                nilai_akhir_realization, indeks_realization, nilai_akhir_disability, indeks_disability, total_indeks,
+                nilai_akhir_tindak, indeks_tindak
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
             if (!$stmt) { $errors[] = ['row'=>$idx+1,'error'=>'Prepare failed: ' . $conn->error]; continue; }
             $s_company = $company;
             $s_postings = (string)$postings;
@@ -292,9 +301,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $s_na_disability = (string)$na_disability;
             $s_idx_disability = (string)number_format($idx_disability, 2, '.', '');
             $s_total_indeks = (string)number_format($total_indeks, 2, '.', '');
+            $s_na_tindak = (string)$na_tindak;
+            $s_idx_tindak = (string)number_format($idx_tindak, 2, '.', '');
 
             $okBind = $stmt->bind_param(
-                'sssssssssssssssssss',
+                'sssssssssssssssssssss',
                 $s_company,
                 $s_postings,
                 $s_quota,
@@ -313,7 +324,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $s_idx_realization,
                 $s_na_disability,
                 $s_idx_disability,
-                $s_total_indeks
+                $s_total_indeks,
+                $s_na_tindak,
+                $s_idx_tindak
             );
             if (!$okBind) {
                 $errors[] = ['row'=>$idx+1,'error'=>'Bind failed: ' . $stmt->error];
@@ -379,13 +392,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $idx_ratio = compute_indeks($WEIGHT_RATIO, $na_ratio);
     $idx_realization = compute_indeks($WEIGHT_REALIZATION, $na_realization);
     $idx_disability = compute_indeks($WEIGHT_DISABILITY, $na_disability);
-    $total_indeks = round($idx_postings + $idx_quota + $idx_ratio + $idx_realization + $idx_disability, 2);
+    $na_tindak = calculate_nilai_akhir_for_percent($tindakPercent);
+    $idx_tindak = compute_indeks($WEIGHT_TINDAK, $na_tindak);
+    $total_indeks = round($idx_postings + $idx_quota + $idx_ratio + $idx_realization + $idx_disability + $idx_tindak, 2);
 
     $stmt = $conn->prepare('INSERT INTO naker_award_assessments (
         company_name, postings_count, quota_count, ratio_wlkp_percent, realization_percent, tindak_lanjut_total, tindak_lanjut_percent, disability_need_count,
         nilai_akhir_postings, indeks_postings, nilai_akhir_quota, indeks_quota, nilai_akhir_ratio, indeks_ratio,
-        nilai_akhir_realization, indeks_realization, nilai_akhir_disability, indeks_disability, total_indeks
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+        nilai_akhir_realization, indeks_realization, nilai_akhir_disability, indeks_disability, total_indeks,
+        nilai_akhir_tindak, indeks_tindak
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
     $s_company = $company;
     $s_postings = (string)$postings;
     $s_quota = (string)$quota;
@@ -405,9 +421,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $s_na_disability = (string)$na_disability;
     $s_idx_disability = (string)number_format($idx_disability, 2, '.', '');
     $s_total_indeks = (string)number_format($total_indeks, 2, '.', '');
+    $s_na_tindak = (string)$na_tindak;
+    $s_idx_tindak = (string)number_format($idx_tindak, 2, '.', '');
 
     $stmt->bind_param(
-        'sssssssssssssssssss',
+        'sssssssssssssssssssss',
         $s_company,
         $s_postings,
         $s_quota,
@@ -426,7 +444,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $s_idx_realization,
         $s_na_disability,
         $s_idx_disability,
-        $s_total_indeks
+        $s_total_indeks,
+        $s_na_tindak,
+        $s_idx_tindak
     );
     $stmt->execute();
     $stmt->close();
@@ -444,11 +464,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'na_quota' => $na_quota,
         'na_ratio' => $na_ratio,
         'na_realization' => $na_realization,
+        'na_tindak' => $na_tindak,
         'na_disability' => $na_disability,
         'idx_postings' => $idx_postings,
         'idx_quota' => $idx_quota,
         'idx_ratio' => $idx_ratio,
         'idx_realization' => $idx_realization,
+        'idx_tindak' => $idx_tindak,
         'idx_disability' => $idx_disability,
         'total_indeks' => $total_indeks
     ];
@@ -505,6 +527,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <td><?php echo number_format($resultRow['realization_percent'], 2); ?>%</td>
                             <td><?php echo intval($resultRow['na_realization']); ?></td>
                             <td><?php echo number_format($resultRow['idx_realization'], 2); ?></td>
+                        </tr>
+                        <tr>
+                            <td>Tindak Lanjut Lamaran</td>
+                            <td><?php echo intval($WEIGHT_TINDAK); ?>%</td>
+                            <td><?php echo number_format($resultRow['tindak_lanjut_percent'] ?? 0, 2); ?>% (<?php echo intval($resultRow['tindak_lanjut_total'] ?? 0); ?>/<?php echo intval($resultRow['postings_count']); ?>)</td>
+                            <td><?php echo isset($resultRow['na_tindak']) ? intval($resultRow['na_tindak']) : intval(calculate_nilai_akhir_for_percent($resultRow['tindak_lanjut_percent'] ?? 0)); ?></td>
+                            <td><?php echo isset($resultRow['idx_tindak']) ? number_format($resultRow['idx_tindak'], 2) : number_format(compute_indeks($WEIGHT_TINDAK, calculate_nilai_akhir_for_percent($resultRow['tindak_lanjut_percent'] ?? 0)), 2); ?></td>
                         </tr>
                         <tr>
                             <td>Jumlah Kebutuhan Disabilitas</td>

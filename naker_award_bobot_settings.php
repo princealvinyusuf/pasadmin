@@ -16,9 +16,18 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_weights (
     weight_ratio INT NOT NULL DEFAULT 10,
     weight_realization INT NOT NULL DEFAULT 20,
     weight_disability INT NOT NULL DEFAULT 15,
+    weight_tindak INT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// Ensure new column exists on older deployments
+try { $conn->query("ALTER TABLE naker_award_weights ADD COLUMN IF NOT EXISTS weight_tindak INT NOT NULL DEFAULT 0"); } catch (Throwable $e) {
+    try {
+        $chk = $conn->query("SHOW COLUMNS FROM naker_award_weights LIKE 'weight_tindak'");
+        if ($chk && $chk->num_rows === 0) { $conn->query("ALTER TABLE naker_award_weights ADD COLUMN weight_tindak INT NOT NULL DEFAULT 0"); }
+    } catch (Throwable $e2) {}
+}
 
 $res = $conn->query('SELECT COUNT(*) AS c FROM naker_award_weights');
 $row = $res ? $res->fetch_assoc() : ['c' => 0];
@@ -29,16 +38,17 @@ if (intval($row['c'] ?? 0) === 0) {
 
 // Load current weights
 function load_current_weights(mysqli $conn): array {
-    $defaults = [30,25,10,20,15];
+    $defaults = [30,25,10,20,15,0];
     try {
-        $q = $conn->query('SELECT weight_postings, weight_quota, weight_ratio, weight_realization, weight_disability FROM naker_award_weights WHERE id=1');
+        $q = $conn->query('SELECT weight_postings, weight_quota, weight_ratio, weight_realization, weight_disability, weight_tindak FROM naker_award_weights WHERE id=1');
         if ($q && ($r = $q->fetch_assoc())) {
             return [
                 intval($r['weight_postings']),
                 intval($r['weight_quota']),
                 intval($r['weight_ratio']),
                 intval($r['weight_realization']),
-                intval($r['weight_disability'])
+                intval($r['weight_disability']),
+                intval($r['weight_tindak'])
             ];
         }
     } catch (Throwable $e) {}
@@ -54,20 +64,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $wRatio = max(0, min(100, intval($_POST['weight_ratio'] ?? 0)));
     $wReal = max(0, min(100, intval($_POST['weight_realization'] ?? 0)));
     $wDis = max(0, min(100, intval($_POST['weight_disability'] ?? 0)));
+    $wTindak = max(0, min(100, intval($_POST['weight_tindak'] ?? 0)));
 
-    $sum = $wPost + $wQuota + $wRatio + $wReal + $wDis;
+    $sum = $wPost + $wQuota + $wRatio + $wReal + $wDis + $wTindak;
     if ($sum !== 100) {
         $error = 'Total bobot harus 100%. Saat ini: ' . $sum . '%.';
     } else {
-        $stmt = $conn->prepare('UPDATE naker_award_weights SET weight_postings=?, weight_quota=?, weight_ratio=?, weight_realization=?, weight_disability=? WHERE id=1');
-        $stmt->bind_param('iiiii', $wPost, $wQuota, $wRatio, $wReal, $wDis);
+        $stmt = $conn->prepare('UPDATE naker_award_weights SET weight_postings=?, weight_quota=?, weight_ratio=?, weight_realization=?, weight_disability=?, weight_tindak=? WHERE id=1');
+        $stmt->bind_param('iiiiii', $wPost, $wQuota, $wRatio, $wReal, $wDis, $wTindak);
         $stmt->execute();
         $stmt->close();
         $message = 'Bobot tersimpan.';
     }
 }
 
-list($curPost, $curQuota, $curRatio, $curReal, $curDis) = load_current_weights($conn);
+list($curPost, $curQuota, $curRatio, $curReal, $curDis, $curTindak) = load_current_weights($conn);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -125,6 +136,13 @@ list($curPost, $curQuota, $curRatio, $curReal, $curDis) = load_current_weights($
                     <label class="form-label">Jumlah Kebutuhan Disabilitas</label>
                     <div class="input-group">
                         <input type="number" name="weight_disability" class="form-control" min="0" max="100" value="<?php echo intval($curDis); ?>" required>
+                        <span class="input-group-text">%</span>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Tindak Lanjut Lamaran</label>
+                    <div class="input-group">
+                        <input type="number" name="weight_tindak" class="form-control" min="0" max="100" value="<?php echo intval($curTindak); ?>" required>
                         <span class="input-group-text">%</span>
                     </div>
                 </div>
