@@ -218,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $angkaRealisasi = floatval(str_replace(',', '.', $angkaRealisasiRaw));
 
             $ratio = ($rencana > 0) ? (($quota / $rencana) * 100.0) : 0.0;
-            $realization = ($quota > 0) ? (($angkaRealisasi / $quota) * 100.0) : 0.0;
+            $realization = ($postings > 0) ? (($angkaRealisasi / $postings) * 100.0) : 0.0;
             $disability = intval($r['disability_need_count'] ?? 0);
 
             $na_postings = calculate_nilai_akhir_for_postings($postings);
@@ -326,7 +326,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ratio = ($rencana > 0) ? (($quota / $rencana) * 100.0) : 0.0;
     $angkaRealisasiRaw = $_POST['angka_realisasi'] ?? '0';
     $angkaRealisasi = floatval(str_replace(',', '.', $angkaRealisasiRaw));
-    $realization = ($quota > 0) ? (($angkaRealisasi / $quota) * 100.0) : 0.0;
+    $realization = ($postings > 0) ? (($angkaRealisasi / $postings) * 100.0) : 0.0;
     $disability = intval($_POST['disability_need_count'] ?? 0);
 
     $na_postings = calculate_nilai_akhir_for_postings($postings);
@@ -530,11 +530,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateRealization() {
-        var quota = parseNumber(quotaInput.value) || 0;
+        var postings = parseNumber(postingsInput.value) || 0;
         var angka = parseNumber(angkaRealisasiInput.value) || 0;
         var realization = 0;
-        if (quota > 0) {
-            realization = (angka / quota) * 100;
+        if (postings > 0) {
+            realization = (angka / postings) * 100;
         }
         realizationInput.value = realization.toFixed(2);
     }
