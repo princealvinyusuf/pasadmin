@@ -16,6 +16,8 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
     quota_count VARCHAR(100) NOT NULL DEFAULT '0',
     ratio_wlkp_percent VARCHAR(100) NOT NULL DEFAULT '0',
     realization_percent VARCHAR(100) NOT NULL DEFAULT '0',
+    tindak_lanjut_total VARCHAR(100) NOT NULL DEFAULT '0',
+    tindak_lanjut_percent VARCHAR(100) NOT NULL DEFAULT '0',
     disability_need_count VARCHAR(100) NOT NULL DEFAULT '0',
     nilai_akhir_postings VARCHAR(100) NOT NULL DEFAULT '0',
     indeks_postings VARCHAR(100) NOT NULL DEFAULT '0',
@@ -39,6 +41,8 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
     MODIFY quota_count VARCHAR(100) NOT NULL DEFAULT '0',
     MODIFY ratio_wlkp_percent VARCHAR(100) NOT NULL DEFAULT '0',
     MODIFY realization_percent VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY tindak_lanjut_total VARCHAR(100) NOT NULL DEFAULT '0',
+    MODIFY tindak_lanjut_percent VARCHAR(100) NOT NULL DEFAULT '0',
     MODIFY disability_need_count VARCHAR(100) NOT NULL DEFAULT '0',
     MODIFY nilai_akhir_postings VARCHAR(100) NOT NULL DEFAULT '0',
     MODIFY indeks_postings VARCHAR(100) NOT NULL DEFAULT '0',
@@ -178,6 +182,14 @@ $resultRow = null; $message = isset($_GET['msg']) ? (string)$_GET['msg'] : '';
                     <label class="form-label">Realisasi Penempatan TK (%)</label>
                     <input type="number" step="0.01" min="0" name="realization_percent" id="realization_percent" class="form-control" readonly>
                 </div>
+    <div class="col-12 col-md-3">
+        <label class="form-label">Total Postingan Dengan Tindak Lanjut</label>
+        <input type="number" min="0" name="tindak_lanjut_total" id="tindak_lanjut_total" class="form-control" required>
+    </div>
+    <div class="col-12 col-md-3">
+        <label class="form-label">Tindak Lanjut Lamaran (%)</label>
+        <input type="number" step="0.01" min="0" name="tindak_lanjut_percent" id="tindak_lanjut_percent" class="form-control" readonly>
+    </div>
                 <div class="col-12 col-md-3">
                     <label class="form-label">Jumlah Kebutuhan Disabilitas</label>
                     <input type="number" min="0" name="disability_need_count" class="form-control" required>
@@ -216,9 +228,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $rencana = floatval(str_replace(',', '.', $rencanaRaw));
             $angkaRealisasiRaw = (string)($r['angka_realisasi'] ?? '0');
             $angkaRealisasi = floatval(str_replace(',', '.', $angkaRealisasiRaw));
+            $tindakTotal = intval($r['tindak_lanjut_total'] ?? 0);
 
             $ratio = ($rencana > 0) ? (($quota / $rencana) * 100.0) : 0.0;
             $realization = ($postings > 0) ? (($angkaRealisasi / $postings) * 100.0) : 0.0;
+            $tindakPercent = ($postings > 0) ? (($tindakTotal / $postings) * 100.0) : 0.0;
             $disability = intval($r['disability_need_count'] ?? 0);
 
             $na_postings = calculate_nilai_akhir_for_postings($postings);
@@ -235,16 +249,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $total_indeks = round($idx_postings + $idx_quota + $idx_ratio + $idx_realization + $idx_disability, 2);
 
             $stmt = $conn->prepare('INSERT INTO naker_award_assessments (
-                company_name, postings_count, quota_count, ratio_wlkp_percent, realization_percent, disability_need_count,
+                company_name, postings_count, quota_count, ratio_wlkp_percent, realization_percent, tindak_lanjut_total, tindak_lanjut_percent, disability_need_count,
                 nilai_akhir_postings, indeks_postings, nilai_akhir_quota, indeks_quota, nilai_akhir_ratio, indeks_ratio,
                 nilai_akhir_realization, indeks_realization, nilai_akhir_disability, indeks_disability, total_indeks
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
             if (!$stmt) { $errors[] = ['row'=>$idx+1,'error'=>'Prepare failed: ' . $conn->error]; continue; }
             $s_company = $company;
             $s_postings = (string)$postings;
             $s_quota = (string)$quota;
             $s_ratio = (string)number_format($ratio, 2, '.', '');
             $s_realization = (string)number_format($realization, 2, '.', '');
+            $s_tindak_total = (string)$tindakTotal;
+            $s_tindak_percent = (string)number_format($tindakPercent, 2, '.', '');
             $s_disability = (string)$disability;
             $s_na_postings = (string)$na_postings;
             $s_idx_postings = (string)number_format($idx_postings, 2, '.', '');
@@ -259,12 +275,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $s_total_indeks = (string)number_format($total_indeks, 2, '.', '');
 
             $okBind = $stmt->bind_param(
-                'sssssssssssssssss',
+                'ssssssssssssssssss',
                 $s_company,
                 $s_postings,
                 $s_quota,
                 $s_ratio,
                 $s_realization,
+                $s_tindak_total,
+                $s_tindak_percent,
                 $s_disability,
                 $s_na_postings,
                 $s_idx_postings,
@@ -326,6 +344,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ratio = ($rencana > 0) ? (($quota / $rencana) * 100.0) : 0.0;
     $angkaRealisasiRaw = $_POST['angka_realisasi'] ?? '0';
     $angkaRealisasi = floatval(str_replace(',', '.', $angkaRealisasiRaw));
+    $tindakTotal = intval($_POST['tindak_lanjut_total'] ?? 0);
+    $tindakPercent = ($postings > 0) ? (($tindakTotal / $postings) * 100.0) : 0.0;
     $realization = ($postings > 0) ? (($angkaRealisasi / $postings) * 100.0) : 0.0;
     $disability = intval($_POST['disability_need_count'] ?? 0);
 
@@ -343,15 +363,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $total_indeks = round($idx_postings + $idx_quota + $idx_ratio + $idx_realization + $idx_disability, 2);
 
     $stmt = $conn->prepare('INSERT INTO naker_award_assessments (
-        company_name, postings_count, quota_count, ratio_wlkp_percent, realization_percent, disability_need_count,
+        company_name, postings_count, quota_count, ratio_wlkp_percent, realization_percent, tindak_lanjut_total, tindak_lanjut_percent, disability_need_count,
         nilai_akhir_postings, indeks_postings, nilai_akhir_quota, indeks_quota, nilai_akhir_ratio, indeks_ratio,
         nilai_akhir_realization, indeks_realization, nilai_akhir_disability, indeks_disability, total_indeks
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
     $s_company = $company;
     $s_postings = (string)$postings;
     $s_quota = (string)$quota;
     $s_ratio = (string)number_format($ratio, 2, '.', '');
     $s_realization = (string)number_format($realization, 2, '.', '');
+    $s_tindak_total = (string)$tindakTotal;
+    $s_tindak_percent = (string)number_format($tindakPercent, 2, '.', '');
     $s_disability = (string)$disability;
     $s_na_postings = (string)$na_postings;
     $s_idx_postings = (string)number_format($idx_postings, 2, '.', '');
@@ -366,12 +388,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $s_total_indeks = (string)number_format($total_indeks, 2, '.', '');
 
     $stmt->bind_param(
-        'sssssssssssssssss',
+        'ssssssssssssssssss',
         $s_company,
         $s_postings,
         $s_quota,
         $s_ratio,
         $s_realization,
+        $s_tindak_total,
+        $s_tindak_percent,
         $s_disability,
         $s_na_postings,
         $s_idx_postings,
@@ -394,6 +418,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'quota_count' => $quota,
         'ratio_wlkp_percent' => $ratio,
         'realization_percent' => $realization,
+        'tindak_lanjut_total' => $tindakTotal,
+        'tindak_lanjut_percent' => $tindakPercent,
         'disability_need_count' => $disability,
         'na_postings' => $na_postings,
         'na_quota' => $na_quota,
@@ -439,6 +465,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <td><?php echo intval($resultRow['quota_count']); ?></td>
                             <td><?php echo intval($resultRow['na_quota']); ?></td>
                             <td><?php echo number_format($resultRow['idx_quota'], 2); ?></td>
+                        </tr>
+                        <tr>
+                            <td>Tindak Lanjut Lamaran</td>
+                            <td>-</td>
+                            <td><?php echo number_format($resultRow['tindak_lanjut_percent'] ?? 0, 2); ?>% (<?php echo intval($resultRow['tindak_lanjut_total'] ?? 0); ?>/<?php echo intval($resultRow['postings_count']); ?>)</td>
+                            <td>-</td>
+                            <td>-</td>
                         </tr>
                         <tr>
                             <td>Ratio Lowongan Terhadap WLKP</td>
@@ -510,6 +543,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var postingsInput = document.getElementById('postings_count');
     var angkaRealisasiInput = document.getElementById('angka_realisasi');
     var realizationInput = document.getElementById('realization_percent');
+    var tindakTotalInput = document.getElementById('tindak_lanjut_total');
+    var tindakPercentInput = document.getElementById('tindak_lanjut_percent');
 
     function parseNumber(value) {
         if (typeof value === 'string') {
@@ -539,12 +574,24 @@ document.addEventListener('DOMContentLoaded', function() {
         realizationInput.value = realization.toFixed(2);
     }
 
+    function updateTindakLanjut(){
+        var postings = parseNumber(postingsInput.value) || 0;
+        var tindak = parseNumber(tindakTotalInput.value) || 0;
+        var pct = 0;
+        if (postings > 0) {
+            pct = (tindak / postings) * 100;
+        }
+        tindakPercentInput.value = pct.toFixed(2);
+    }
+
     quotaInput.addEventListener('input', updateRatio);
     rencanaInput.addEventListener('input', updateRatio);
-    postingsInput.addEventListener('input', updateRealization);
+    postingsInput.addEventListener('input', function(){ updateRealization(); updateTindakLanjut(); });
     angkaRealisasiInput.addEventListener('input', updateRealization);
+    tindakTotalInput.addEventListener('input', updateTindakLanjut);
     updateRatio();
     updateRealization();
+    updateTindakLanjut();
 
     // Bulk import logic
     var bulkFileInput = document.getElementById('bulkFile');
@@ -632,6 +679,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     quota_count: parseInt(r.quota_count || r.Quota || r['Jumlah Kuota Lowongan'] || '0', 10) || 0,
                     rencana_kebutuhan_wlkp: normalizeNumber(r.rencana_kebutuhan_wlkp || r.Rencana || r['Rencana Kebutuhan Tenaga Kerja WLKP'] || '0'),
                     angka_realisasi: normalizeNumber(r.angka_realisasi || r.Realisasi || r['Angka Realisasi'] || '0'),
+                    tindak_lanjut_total: parseInt(r.tindak_lanjut_total || r['Total Postingan Dengan Tindak Lanjut'] || '0', 10) || 0,
                     disability_need_count: parseInt(r.disability_need_count || r.Disability || r['Jumlah Kebutuhan Disabilitas'] || '0', 10) || 0
                 };
             }).filter(function(r){ return (r.company_name || '').trim() !== ''; });
