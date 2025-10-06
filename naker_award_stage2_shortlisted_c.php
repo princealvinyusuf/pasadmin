@@ -124,7 +124,12 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 (function(){
-    function linkify(path){ if (!path) return '<span class="text-muted">-</span>'; return '<a href="'+ path +'" target="_blank">View document</a>'; }
+    function linkify(path){
+        if (!path) return '<span class="text-muted">-</span>';
+        return '<a href="'+ path +'" target="_blank" rel="noopener" aria-label="View document" class="text-decoration-none">'
+            + '<i class="bi bi-file-earmark-text fs-5"></i>'
+            + '</a>';
+    }
     function statusIcon(has){
         return has ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>';
     }
