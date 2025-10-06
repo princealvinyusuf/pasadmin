@@ -40,6 +40,8 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
 try {
     $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS tindak_lanjut_total VARCHAR(100) NOT NULL DEFAULT '0'");
     $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS tindak_lanjut_percent VARCHAR(100) NOT NULL DEFAULT '0'");
+    $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS nilai_akhir_tindak VARCHAR(100) NOT NULL DEFAULT '0'");
+    $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS indeks_tindak VARCHAR(100) NOT NULL DEFAULT '0'");
 } catch (Throwable $e) {
     try {
         $check = $conn->query("SHOW COLUMNS FROM naker_award_assessments LIKE 'tindak_lanjut_total'");
@@ -53,6 +55,18 @@ try {
             $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN tindak_lanjut_percent VARCHAR(100) NOT NULL DEFAULT '0'");
         }
     } catch (Throwable $e3) {}
+    try {
+        $check3 = $conn->query("SHOW COLUMNS FROM naker_award_assessments LIKE 'nilai_akhir_tindak'");
+        if ($check3 && $check3->num_rows === 0) {
+            $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN nilai_akhir_tindak VARCHAR(100) NOT NULL DEFAULT '0'");
+        }
+    } catch (Throwable $e4) {}
+    try {
+        $check4 = $conn->query("SHOW COLUMNS FROM naker_award_assessments LIKE 'indeks_tindak'");
+        if ($check4 && $check4->num_rows === 0) {
+            $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN indeks_tindak VARCHAR(100) NOT NULL DEFAULT '0'");
+        }
+    } catch (Throwable $e5) {}
 }
 
 // Lightweight migration: convert numeric columns to VARCHAR to accept flexible inputs
