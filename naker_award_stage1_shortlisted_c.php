@@ -9,27 +9,53 @@ require_once __DIR__ . '/access_helper.php';
 if (!current_user_can('naker_award_view_stage1') && !current_user_can('naker_award_manage_assessment') && !current_user_can('manage_settings')) { http_response_code(403); echo 'Forbidden'; exit; }
 
 // Ensure table exists (in case this page is opened first)
+// Ensure assessments table exists with the latest columns
 $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     company_name VARCHAR(200) NOT NULL,
-    postings_count INT NOT NULL DEFAULT 0,
-    quota_count INT NOT NULL DEFAULT 0,
-    ratio_wlkp_percent DECIMAL(8,2) NOT NULL DEFAULT 0,
-    realization_percent DECIMAL(8,2) NOT NULL DEFAULT 0,
-    disability_need_count INT NOT NULL DEFAULT 0,
-    nilai_akhir_postings INT NOT NULL DEFAULT 0,
-    indeks_postings DECIMAL(10,2) NOT NULL DEFAULT 0,
-    nilai_akhir_quota INT NOT NULL DEFAULT 0,
-    indeks_quota DECIMAL(10,2) NOT NULL DEFAULT 0,
-    nilai_akhir_ratio INT NOT NULL DEFAULT 0,
-    indeks_ratio DECIMAL(10,2) NOT NULL DEFAULT 0,
-    nilai_akhir_realization INT NOT NULL DEFAULT 0,
-    indeks_realization DECIMAL(10,2) NOT NULL DEFAULT 0,
-    nilai_akhir_disability INT NOT NULL DEFAULT 0,
-    indeks_disability DECIMAL(10,2) NOT NULL DEFAULT 0,
-    total_indeks DECIMAL(10,2) NOT NULL DEFAULT 0,
+    postings_count VARCHAR(100) NOT NULL DEFAULT '0',
+    quota_count VARCHAR(100) NOT NULL DEFAULT '0',
+    ratio_wlkp_percent VARCHAR(100) NOT NULL DEFAULT '0',
+    realization_percent VARCHAR(100) NOT NULL DEFAULT '0',
+    tindak_lanjut_total VARCHAR(100) NOT NULL DEFAULT '0',
+    tindak_lanjut_percent VARCHAR(100) NOT NULL DEFAULT '0',
+    disability_need_count VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_postings VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_postings VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_quota VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_quota VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_ratio VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_ratio VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_realization VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_realization VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_tindak VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_tindak VARCHAR(100) NOT NULL DEFAULT '0',
+    nilai_akhir_disability VARCHAR(100) NOT NULL DEFAULT '0',
+    indeks_disability VARCHAR(100) NOT NULL DEFAULT '0',
+    total_indeks VARCHAR(100) NOT NULL DEFAULT '0',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// Ensure weights table and load dynamic weights
+$conn->query("CREATE TABLE IF NOT EXISTS naker_award_weights (
+    id INT PRIMARY KEY,
+    weight_postings INT NOT NULL DEFAULT 30,
+    weight_quota INT NOT NULL DEFAULT 25,
+    weight_ratio INT NOT NULL DEFAULT 10,
+    weight_realization INT NOT NULL DEFAULT 20,
+    weight_disability INT NOT NULL DEFAULT 15,
+    weight_tindak INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+$resW = $conn->query('SELECT weight_postings, weight_quota, weight_ratio, weight_realization, weight_disability, weight_tindak FROM naker_award_weights WHERE id=1');
+$w = $resW ? $resW->fetch_assoc() : null;
+$WEIGHT_POSTINGS = intval($w['weight_postings'] ?? 30);
+$WEIGHT_QUOTA = intval($w['weight_quota'] ?? 25);
+$WEIGHT_RATIO = intval($w['weight_ratio'] ?? 10);
+$WEIGHT_REALIZATION = intval($w['weight_realization'] ?? 20);
+$WEIGHT_DISABILITY = intval($w['weight_disability'] ?? 15);
+$WEIGHT_TINDAK = intval($w['weight_tindak'] ?? 0);
 
 // Fetch all results sorted by total indeks desc
 $res = $conn->query('SELECT * FROM naker_award_assessments ORDER BY total_indeks DESC, company_name ASC');
@@ -61,7 +87,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                         <th>#</th>
                         <th>Nama Perusahaan</th>
                         <th>Total Indeks WLLP</th>
-						<th>Nilai Akhir (Postingan, Kuota, Ratio, Realisasi, Disabilitas)</th>
+						<th>Nilai Akhir (Postingan, Kuota, Ratio, Realisasi, Tindak, Disabilitas)</th>
 						<th>Actions</th>
                         <th>Tanggal</th>
                     </tr>
@@ -78,6 +104,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                                  intval($row['nilai_akhir_quota']) . ', ' .
                                  intval($row['nilai_akhir_ratio']) . ', ' .
                                  intval($row['nilai_akhir_realization']) . ', ' .
+                                 intval($row['nilai_akhir_tindak']) . ', ' .
                                  intval($row['nilai_akhir_disability']);
                             ?>
                         </td>
@@ -88,7 +115,10 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 								data-quota="<?php echo intval($row['quota_count']); ?>"
 								data-ratio="<?php echo number_format((float)$row['ratio_wlkp_percent'], 2, '.', ''); ?>"
 								data-realization="<?php echo number_format((float)$row['realization_percent'], 2, '.', ''); ?>"
-								data-disability="<?php echo intval($row['disability_need_count']); ?>"
+							data-disability="<?php echo intval($row['disability_need_count']); ?>"
+							data-tindak-actual="<?php echo number_format((float)($row['tindak_lanjut_percent'] ?? 0), 2, '.', ''); ?>"
+							data-na-tindak="<?php echo intval($row['nilai_akhir_tindak'] ?? 0); ?>"
+							data-idx-tindak="<?php echo number_format((float)($row['indeks_tindak'] ?? 0), 2, '.', ''); ?>"
 								data-na-postings="<?php echo intval($row['nilai_akhir_postings']); ?>"
 								data-idx-postings="<?php echo number_format((float)$row['indeks_postings'], 2, '.', ''); ?>"
 								data-na-quota="<?php echo intval($row['nilai_akhir_quota']); ?>"
@@ -133,35 +163,42 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 							<tbody>
 								<tr>
 									<td>Jumlah Postingan Lowongan</td>
-									<td>30%</td>
+                                    <td><?php echo intval($WEIGHT_POSTINGS); ?>%</td>
 									<td id="dm_postings_actual"></td>
 									<td id="dm_postings_na"></td>
 									<td id="dm_postings_idx"></td>
 								</tr>
 								<tr>
 									<td>Jumlah Kuota Lowongan</td>
-									<td>25%</td>
+                                    <td><?php echo intval($WEIGHT_QUOTA); ?>%</td>
 									<td id="dm_quota_actual"></td>
 									<td id="dm_quota_na"></td>
 									<td id="dm_quota_idx"></td>
 								</tr>
 								<tr>
 									<td>Ratio Lowongan Terhadap WLKP</td>
-									<td>10%</td>
+                                    <td><?php echo intval($WEIGHT_RATIO); ?>%</td>
 									<td id="dm_ratio_actual"></td>
 									<td id="dm_ratio_na"></td>
 									<td id="dm_ratio_idx"></td>
 								</tr>
 								<tr>
 									<td>Realisasi Penempatan TK</td>
-									<td>20%</td>
+                                    <td><?php echo intval($WEIGHT_REALIZATION); ?>%</td>
 									<td id="dm_real_actual"></td>
 									<td id="dm_real_na"></td>
 									<td id="dm_real_idx"></td>
 								</tr>
+                                <tr>
+                                    <td>Tindak Lanjut Lamaran</td>
+                                    <td><?php echo intval($WEIGHT_TINDAK); ?>%</td>
+                                    <td id="dm_tindak_actual"></td>
+                                    <td id="dm_tindak_na"></td>
+                                    <td id="dm_tindak_idx"></td>
+                                </tr>
 								<tr>
 									<td>Jumlah Kebutuhan Disabilitas</td>
-									<td>15%</td>
+                                    <td><?php echo intval($WEIGHT_DISABILITY); ?>%</td>
 									<td id="dm_disab_actual"></td>
 									<td id="dm_disab_na"></td>
 									<td id="dm_disab_idx"></td>
@@ -203,12 +240,17 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 								<tr><td></td><td>10% - 50%</td><td>80</td></tr>
 								<tr><td></td><td>&gt; 50%</td><td>100</td></tr>
 
-								<tr class="table-light"><th colspan="3">Realisasi Penempatan Tenaga Kerja (Bobot 20%)</th></tr>
+                                <tr class="table-light"><th colspan="3">Realisasi Penempatan Tenaga Kerja (Bobot <?php echo intval($WEIGHT_REALIZATION); ?>%)</th></tr>
 								<tr><td></td><td>&lt; 10%</td><td>60</td></tr>
 								<tr><td></td><td>10% - 50%</td><td>80</td></tr>
 								<tr><td></td><td>&gt; 50%</td><td>100</td></tr>
 
-								<tr class="table-light"><th colspan="3">Jumlah Kebutuhan Disabilitas (Bobot 15%)</th></tr>
+                                <tr class="table-light"><th colspan="3">Tindak Lanjut Lamaran (Bobot <?php echo intval($WEIGHT_TINDAK); ?>%)</th></tr>
+                                <tr><td></td><td>&lt; 10%</td><td>60</td></tr>
+                                <tr><td></td><td>10% - 50%</td><td>80</td></tr>
+                                <tr><td></td><td>&gt; 50%</td><td>100</td></tr>
+
+                                <tr class="table-light"><th colspan="3">Jumlah Kebutuhan Disabilitas (Bobot <?php echo intval($WEIGHT_DISABILITY); ?>%)</th></tr>
 								<tr><td></td><td>0</td><td>0</td></tr>
 								<tr><td></td><td>1 - 5</td><td>60</td></tr>
 								<tr><td></td><td>6 - 10</td><td>80</td></tr>
@@ -248,6 +290,9 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 			setText('dm_disab_actual', fmtInt(d.disability));
 			setText('dm_disab_na', fmtInt(d.naDisab));
 			setText('dm_disab_idx', fmtDec(d.idxDisab));
+			setText('dm_tindak_actual', fmtPct(d.tindakActual));
+			setText('dm_tindak_na', fmtInt(d.naTindak));
+			setText('dm_tindak_idx', fmtDec(d.idxTindak));
 			setText('dm_total', fmtDec(d.total));
 		});
 	}
