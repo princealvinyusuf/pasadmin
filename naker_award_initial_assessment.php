@@ -52,12 +52,30 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
     MODIFY indeks_disability VARCHAR(100) NOT NULL DEFAULT '0',
     MODIFY total_indeks VARCHAR(100) NOT NULL DEFAULT '0'");
 
-// Weights
-$WEIGHT_POSTINGS = 30;   // %
-$WEIGHT_QUOTA = 25;      // %
-$WEIGHT_RATIO = 10;      // %
-$WEIGHT_REALIZATION = 20;// %
-$WEIGHT_DISABILITY = 15; // %
+// Dynamic Weights: load from settings table with safe defaults
+@$conn->query("CREATE TABLE IF NOT EXISTS naker_award_weights (
+    id INT PRIMARY KEY,
+    weight_postings INT NOT NULL DEFAULT 30,
+    weight_quota INT NOT NULL DEFAULT 25,
+    weight_ratio INT NOT NULL DEFAULT 10,
+    weight_realization INT NOT NULL DEFAULT 20,
+    weight_disability INT NOT NULL DEFAULT 15,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+$cntRes = @$conn->query('SELECT COUNT(*) AS c FROM naker_award_weights');
+$cntRow = $cntRes ? $cntRes->fetch_assoc() : ['c' => 0];
+if (intval($cntRow['c'] ?? 0) === 0) { @$conn->query('INSERT INTO naker_award_weights (id) VALUES (1)'); }
+$weightsRow = null;
+try {
+    $wq = $conn->query('SELECT weight_postings, weight_quota, weight_ratio, weight_realization, weight_disability FROM naker_award_weights WHERE id=1');
+    $weightsRow = $wq ? $wq->fetch_assoc() : null;
+} catch (Throwable $e) { $weightsRow = null; }
+$WEIGHT_POSTINGS = intval($weightsRow['weight_postings'] ?? 30);
+$WEIGHT_QUOTA = intval($weightsRow['weight_quota'] ?? 25);
+$WEIGHT_RATIO = intval($weightsRow['weight_ratio'] ?? 10);
+$WEIGHT_REALIZATION = intval($weightsRow['weight_realization'] ?? 20);
+$WEIGHT_DISABILITY = intval($weightsRow['weight_disability'] ?? 15);
 
 function calculate_nilai_akhir_for_postings(int $count): int {
     if ($count <= 0) { return 0; }
@@ -410,35 +428,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <tbody>
                         <tr>
                             <td>Jumlah Postingan Lowongan</td>
-                            <td>30%</td>
+                            <td><?php echo intval($WEIGHT_POSTINGS); ?>%</td>
                             <td><?php echo intval($resultRow['postings_count']); ?></td>
                             <td><?php echo intval($resultRow['na_postings']); ?></td>
                             <td><?php echo number_format($resultRow['idx_postings'], 2); ?></td>
                         </tr>
                         <tr>
                             <td>Jumlah Kuota Lowongan</td>
-                            <td>25%</td>
+                            <td><?php echo intval($WEIGHT_QUOTA); ?>%</td>
                             <td><?php echo intval($resultRow['quota_count']); ?></td>
                             <td><?php echo intval($resultRow['na_quota']); ?></td>
                             <td><?php echo number_format($resultRow['idx_quota'], 2); ?></td>
                         </tr>
                         <tr>
                             <td>Ratio Lowongan Terhadap WLKP</td>
-                            <td>10%</td>
+                            <td><?php echo intval($WEIGHT_RATIO); ?>%</td>
                             <td><?php echo number_format($resultRow['ratio_wlkp_percent'], 2); ?>%</td>
                             <td><?php echo intval($resultRow['na_ratio']); ?></td>
                             <td><?php echo number_format($resultRow['idx_ratio'], 2); ?></td>
                         </tr>
                         <tr>
                             <td>Realisasi Penempatan TK</td>
-                            <td>20%</td>
+                            <td><?php echo intval($WEIGHT_REALIZATION); ?>%</td>
                             <td><?php echo number_format($resultRow['realization_percent'], 2); ?>%</td>
                             <td><?php echo intval($resultRow['na_realization']); ?></td>
                             <td><?php echo number_format($resultRow['idx_realization'], 2); ?></td>
                         </tr>
                         <tr>
                             <td>Jumlah Kebutuhan Disabilitas</td>
-                            <td>15%</td>
+                            <td><?php echo intval($WEIGHT_DISABILITY); ?>%</td>
                             <td><?php echo intval($resultRow['disability_need_count']); ?></td>
                             <td><?php echo intval($resultRow['na_disability']); ?></td>
                             <td><?php echo number_format($resultRow['idx_disability'], 2); ?></td>
