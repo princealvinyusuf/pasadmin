@@ -34,6 +34,25 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
     INDEX idx_company_created (company_name(100), created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+// Ensure new columns for tindak lanjut exist even on older tables
+try {
+    $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS tindak_lanjut_total VARCHAR(100) NOT NULL DEFAULT '0'");
+    $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS tindak_lanjut_percent VARCHAR(100) NOT NULL DEFAULT '0'");
+} catch (Throwable $e) {
+    try {
+        $check = $conn->query("SHOW COLUMNS FROM naker_award_assessments LIKE 'tindak_lanjut_total'");
+        if ($check && $check->num_rows === 0) {
+            $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN tindak_lanjut_total VARCHAR(100) NOT NULL DEFAULT '0'");
+        }
+    } catch (Throwable $e2) {}
+    try {
+        $check2 = $conn->query("SHOW COLUMNS FROM naker_award_assessments LIKE 'tindak_lanjut_percent'");
+        if ($check2 && $check2->num_rows === 0) {
+            $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN tindak_lanjut_percent VARCHAR(100) NOT NULL DEFAULT '0'");
+        }
+    } catch (Throwable $e3) {}
+}
+
 // Lightweight migration: convert numeric columns to VARCHAR to accept flexible inputs
 // and avoid strict type failures during bulk imports. Safe to run repeatedly.
 @$conn->query("ALTER TABLE naker_award_assessments 
