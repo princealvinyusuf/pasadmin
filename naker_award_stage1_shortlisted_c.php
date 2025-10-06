@@ -175,6 +175,48 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 							</tfoot>
 						</table>
 					</div>
+				<div class="mt-4">
+					<h6 class="mb-2">Keterangan Perhitungan</h6>
+					<p class="small text-muted mb-3">Nilai Akhir ditentukan dari Nilai Aktual berdasarkan kriteria pada tabel di bawah. Indeks WLLP dihitung dengan rumus: <strong>(Bobot &times; Nilai Akhir) / 100</strong>. Total Indeks WLLP adalah penjumlahan seluruh indeks indikator.</p>
+					<div class="table-responsive">
+						<table class="table table-bordered table-sm align-middle">
+							<thead>
+								<tr>
+									<th>Indikator</th>
+									<th>Range</th>
+									<th>Nilai</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-light"><th colspan="3">Jumlah Postingan Lowongan (Bobot 30%)</th></tr>
+								<tr><td></td><td>1 - 10</td><td>60</td></tr>
+								<tr><td></td><td>11 - 50</td><td>80</td></tr>
+								<tr><td></td><td>&gt; 50</td><td>100</td></tr>
+
+								<tr class="table-light"><th colspan="3">Jumlah Kuota Lowongan (Bobot 25%)</th></tr>
+								<tr><td></td><td>1 - 50</td><td>60</td></tr>
+								<tr><td></td><td>51 - 100</td><td>80</td></tr>
+								<tr><td></td><td>&gt; 100</td><td>100</td></tr>
+
+								<tr class="table-light"><th colspan="3">Rasio Lowongan terhadap WLKP (Bobot 10%)</th></tr>
+								<tr><td></td><td>&lt; 10%</td><td>60</td></tr>
+								<tr><td></td><td>10% - 50%</td><td>80</td></tr>
+								<tr><td></td><td>&gt; 50%</td><td>100</td></tr>
+
+								<tr class="table-light"><th colspan="3">Realisasi Penempatan Tenaga Kerja (Bobot 20%)</th></tr>
+								<tr><td></td><td>&lt; 10%</td><td>60</td></tr>
+								<tr><td></td><td>10% - 50%</td><td>80</td></tr>
+								<tr><td></td><td>&gt; 50%</td><td>100</td></tr>
+
+								<tr class="table-light"><th colspan="3">Jumlah Kebutuhan Disabilitas (Bobot 15%)</th></tr>
+								<tr><td></td><td>0</td><td>0</td></tr>
+								<tr><td></td><td>1 - 5</td><td>60</td></tr>
+								<tr><td></td><td>6 - 10</td><td>80</td></tr>
+								<tr><td></td><td>&gt; 10</td><td>100</td></tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
 				</div>
 			</div>
 		</div>
