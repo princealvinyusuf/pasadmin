@@ -580,7 +580,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="mb-3">
                     <label class="form-label">Choose Excel File (.xlsx)</label>
                     <input type="file" id="bulkFile" accept=".xlsx,.xls" class="form-control">
-                    <div class="form-text">Expected columns: company_name, postings_count, quota_count, rencana_kebutuhan_wlkp, angka_realisasi, disability_need_count.</div>
+                    <div class="form-text">Expected columns: company_name, postings_count, quota_count, rencana_kebutuhan_wlkp, angka_realisasi, tindak_lanjut_total, disability_need_count.</div>
                 </div>
                 <div id="bulkStatus" class="small text-muted"></div>
                 <div class="progress mt-2" role="progressbar" aria-label="Bulk import" aria-valuemin="0" aria-valuemax="100">
