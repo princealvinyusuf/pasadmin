@@ -526,13 +526,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <td><?php echo number_format($resultRow['idx_quota'], 2); ?></td>
                         </tr>
                         <tr>
-                            <td>Tindak Lanjut Lamaran</td>
-                            <td>-</td>
-                            <td><?php echo number_format($resultRow['tindak_lanjut_percent'] ?? 0, 2); ?>% (<?php echo intval($resultRow['tindak_lanjut_total'] ?? 0); ?>/<?php echo intval($resultRow['postings_count']); ?>)</td>
-                            <td>-</td>
-                            <td>-</td>
-                        </tr>
-                        <tr>
                             <td>Ratio Lowongan Terhadap WLKP</td>
                             <td><?php echo intval($WEIGHT_RATIO); ?>%</td>
                             <td><?php echo number_format($resultRow['ratio_wlkp_percent'], 2); ?>%</td>
