@@ -15,6 +15,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_second_mandatory (
     wlkp_status VARCHAR(100) DEFAULT NULL,
     wlkp_code VARCHAR(150) DEFAULT NULL,
     clearance_no_law_path VARCHAR(255) DEFAULT NULL,
+    clearance_industrial_dispute_doc_path VARCHAR(255) DEFAULT NULL,
     bpjstk_membership_doc_path VARCHAR(255) DEFAULT NULL,
     minimum_wage_doc_path VARCHAR(255) DEFAULT NULL,
     clearance_smk3_status_doc_path VARCHAR(255) DEFAULT NULL,
@@ -25,8 +26,15 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_second_mandatory (
     UNIQUE KEY uniq_assessment (assessment_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+// Backfill new column if missing (compat with older MySQL)
+$colCheckSql2 = "SELECT COUNT(*) AS cnt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'naker_award_second_mandatory' AND COLUMN_NAME = 'clearance_industrial_dispute_doc_path'";
+$colCheckRes2 = $conn->query($colCheckSql2);
+if ($colCheckRes2 && ($row2 = $colCheckRes2->fetch_assoc()) && intval($row2['cnt']) === 0) {
+    $conn->query("ALTER TABLE naker_award_second_mandatory ADD COLUMN clearance_industrial_dispute_doc_path VARCHAR(255) DEFAULT NULL");
+}
+
 // Query companies that submitted mandatory data
-$sql = "SELECT a.id, a.company_name, a.total_indeks, m.wlkp_status, m.wlkp_code, m.clearance_no_law_path, m.bpjstk_membership_doc_path, m.minimum_wage_doc_path, m.clearance_smk3_status_doc_path, m.smk3_certificate_copy_path, m.clearance_zero_accident_doc_path, m.updated_at
+$sql = "SELECT a.id, a.company_name, a.total_indeks, m.wlkp_status, m.wlkp_code, m.clearance_no_law_path, m.clearance_industrial_dispute_doc_path, m.bpjstk_membership_doc_path, m.minimum_wage_doc_path, m.clearance_smk3_status_doc_path, m.smk3_certificate_copy_path, m.clearance_zero_accident_doc_path, m.updated_at
         FROM naker_award_assessments a
         JOIN naker_award_second_mandatory m ON m.assessment_id=a.id AND m.final_submitted=1
         ORDER BY CAST(a.total_indeks AS DECIMAL(10,2)) DESC, a.company_name ASC";
@@ -75,6 +83,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                                 data-wlkp-status="<?php echo htmlspecialchars((string)$row['wlkp_status']); ?>"
                                 data-wlkp-code="<?php echo htmlspecialchars((string)$row['wlkp_code']); ?>"
                                 data-no-law="<?php echo htmlspecialchars((string)$row['clearance_no_law_path']); ?>"
+                                data-industrial-dispute="<?php echo htmlspecialchars((string)$row['clearance_industrial_dispute_doc_path']); ?>"
                                 data-bpjstk="<?php echo htmlspecialchars((string)$row['bpjstk_membership_doc_path']); ?>"
                                 data-wage="<?php echo htmlspecialchars((string)$row['minimum_wage_doc_path']); ?>"
                                 data-smk3-status="<?php echo htmlspecialchars((string)$row['clearance_smk3_status_doc_path']); ?>"
@@ -108,11 +117,12 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 								<tr><td>1</td><td>Status WLKP Perusahaan</td><td id="s2_wlkp_status"></td><td id="s2_wlkp_status_st" class="text-center"></td></tr>
 								<tr><td>2</td><td>Kode WLKP Perusahaan</td><td id="s2_wlkp_code"></td><td id="s2_wlkp_code_st" class="text-center"></td></tr>
 								<tr><td>3</td><td>Surat Clearance: Tidak sedang dalam proses hukum / indikasi pelanggaran</td><td id="s2_no_law"></td><td id="s2_no_law_st" class="text-center"></td></tr>
-								<tr><td>4</td><td>Status Keanggotaan BPJS-TK</td><td id="s2_bpjstk"></td><td id="s2_bpjstk_st" class="text-center"></td></tr>
-								<tr><td>5</td><td>Daftar perusahaan menerapkan Upah Minimum</td><td id="s2_wage"></td><td id="s2_wage_st" class="text-center"></td></tr>
-								<tr><td>6</td><td>Surat Clearance: Sudah menerapkan SMK3</td><td id="s2_smk3_status"></td><td id="s2_smk3_status_st" class="text-center"></td></tr>
-								<tr><td>7</td><td>Copy Sertifikat SMK3</td><td id="s2_smk3_copy"></td><td id="s2_smk3_copy_st" class="text-center"></td></tr>
-								<tr><td>8</td><td>Surat Clearance: Zero Accident 2025</td><td id="s2_zeroacc"></td><td id="s2_zeroacc_st" class="text-center"></td></tr>
+                                <tr><td>4</td><td>Tidak sedang dalam proses kasus perselisihan hubungan industrial</td><td id="s2_industrial_dispute"></td><td id="s2_industrial_dispute_st" class="text-center"></td></tr>
+                                <tr><td>5</td><td>Status Keanggotaan BPJS-TK</td><td id="s2_bpjstk"></td><td id="s2_bpjstk_st" class="text-center"></td></tr>
+                                <tr><td>6</td><td>Daftar perusahaan menerapkan Upah Minimum</td><td id="s2_wage"></td><td id="s2_wage_st" class="text-center"></td></tr>
+                                <tr><td>7</td><td>Surat Clearance: Sudah menerapkan SMK3</td><td id="s2_smk3_status"></td><td id="s2_smk3_status_st" class="text-center"></td></tr>
+                                <tr><td>8</td><td>Copy Sertifikat SMK3</td><td id="s2_smk3_copy"></td><td id="s2_smk3_copy_st" class="text-center"></td></tr>
+                                <tr><td>9</td><td>Surat Clearance: Zero Accident 2025</td><td id="s2_zeroacc"></td><td id="s2_zeroacc_st" class="text-center"></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -144,6 +154,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
             const wlkpStatus = d.wlkpStatus || '';
             const wlkpCode = d.wlkpCode || '';
             const noLaw = d.noLaw || '';
+            const industrialDispute = d.industrialDispute || '';
             const bpjstk = d.bpjstk || '';
             const wage = d.wage || '';
             const smk3Status = d.smk3Status || '';
@@ -153,6 +164,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
             document.getElementById('s2_wlkp_status').textContent = wlkpStatus;
             document.getElementById('s2_wlkp_code').textContent = wlkpCode;
             document.getElementById('s2_no_law').innerHTML = linkify(noLaw);
+            document.getElementById('s2_industrial_dispute').innerHTML = linkify(industrialDispute);
             document.getElementById('s2_bpjstk').innerHTML = linkify(bpjstk);
             document.getElementById('s2_wage').innerHTML = linkify(wage);
             document.getElementById('s2_smk3_status').innerHTML = linkify(smk3Status);
@@ -162,6 +174,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
             setStatus('s2_wlkp_status_st', !!wlkpStatus.trim());
             setStatus('s2_wlkp_code_st', !!wlkpCode.trim());
             setStatus('s2_no_law_st', !!noLaw);
+            setStatus('s2_industrial_dispute_st', !!industrialDispute);
             setStatus('s2_bpjstk_st', !!bpjstk);
             setStatus('s2_wage_st', !!wage);
             setStatus('s2_smk3_status_st', !!smk3Status);
