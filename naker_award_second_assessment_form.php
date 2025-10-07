@@ -19,6 +19,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_second_mandatory (
     wlkp_status VARCHAR(100) DEFAULT NULL,
     wlkp_code VARCHAR(150) DEFAULT NULL,
     clearance_no_law_path VARCHAR(255) DEFAULT NULL,
+    clearance_industrial_dispute_doc_path VARCHAR(255) DEFAULT NULL,
     bpjstk_membership_doc_path VARCHAR(255) DEFAULT NULL,
     minimum_wage_doc_path VARCHAR(255) DEFAULT NULL,
     clearance_smk3_status_doc_path VARCHAR(255) DEFAULT NULL,
@@ -28,6 +29,14 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_second_mandatory (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uniq_assessment (assessment_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// Ensure new column exists for deployments where table was created earlier
+// Backfill column if missing (compatible with older MySQL versions)
+$colCheckSql = "SELECT COUNT(*) AS cnt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'naker_award_second_mandatory' AND COLUMN_NAME = 'clearance_industrial_dispute_doc_path'";
+$colCheckRes = $conn->query($colCheckSql);
+if ($colCheckRes && ($row = $colCheckRes->fetch_assoc()) && intval($row['cnt']) === 0) {
+    $conn->query("ALTER TABLE naker_award_second_mandatory ADD COLUMN clearance_industrial_dispute_doc_path VARCHAR(255) DEFAULT NULL");
+}
 
 // Fetch company info
 $stmt = $conn->prepare('SELECT company_name FROM naker_award_assessments WHERE id=?');
@@ -55,6 +64,7 @@ function save_text(mysqli $conn, int $assessmentId, string $field, ?string $valu
 function save_file(mysqli $conn, int $assessmentId, string $field, array $file, string $uploadDir): ?string {
     $allowed = [
         'clearance_no_law_path',
+        'clearance_industrial_dispute_doc_path',
         'bpjstk_membership_doc_path',
         'minimum_wage_doc_path',
         'clearance_smk3_status_doc_path',
@@ -103,6 +113,7 @@ $data = [
     'wlkp_status' => null,
     'wlkp_code' => null,
     'clearance_no_law_path' => null,
+    'clearance_industrial_dispute_doc_path' => null,
     'bpjstk_membership_doc_path' => null,
     'minimum_wage_doc_path' => null,
     'clearance_smk3_status_doc_path' => null,
@@ -110,7 +121,7 @@ $data = [
     'clearance_zero_accident_doc_path' => null,
     'final_submitted' => 0
 ];
-$stmt = $conn->prepare('SELECT wlkp_status,wlkp_code,clearance_no_law_path,bpjstk_membership_doc_path,minimum_wage_doc_path,clearance_smk3_status_doc_path,smk3_certificate_copy_path,clearance_zero_accident_doc_path,final_submitted FROM naker_award_second_mandatory WHERE assessment_id=?');
+$stmt = $conn->prepare('SELECT wlkp_status,wlkp_code,clearance_no_law_path,clearance_industrial_dispute_doc_path,bpjstk_membership_doc_path,minimum_wage_doc_path,clearance_smk3_status_doc_path,smk3_certificate_copy_path,clearance_zero_accident_doc_path,final_submitted FROM naker_award_second_mandatory WHERE assessment_id=?');
 $stmt->bind_param('i', $assessmentId);
 $stmt->execute();
 $res = $stmt->get_result();
@@ -197,6 +208,22 @@ $isLocked = intval($data['final_submitted']) === 1;
                         </tr>
                         <tr>
                             <td>4</td>
+                            <td>Tidak sedang dalam proses kasus perselisihan hubungan industrial</td>
+                            <td>
+                                <form method="post" enctype="multipart/form-data" class="d-flex gap-2">
+                                    <input type="hidden" name="action" value="save_field">
+                                    <input type="hidden" name="field" value="clearance_industrial_dispute_doc_path">
+                                    <input type="file" name="file" class="form-control" <?php echo $isLocked?'disabled':''; ?>>
+                                    <button class="btn btn-primary" type="submit" <?php echo $isLocked?'disabled':''; ?>>Save</button>
+                                </form>
+                                <?php if (!empty($data['clearance_industrial_dispute_doc_path'])): ?>
+                                <div class="mt-1"><a href="<?php echo htmlspecialchars($data['clearance_industrial_dispute_doc_path']); ?>" target="_blank">View document</a></div>
+                                <?php endif; ?>
+                            </td>
+                            <td>Dokumen</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
                             <td>Status Keanggotaan BPJS-TK (pemadanan data)</td>
                             <td>
                                 <form method="post" enctype="multipart/form-data" class="d-flex gap-2">
@@ -212,7 +239,7 @@ $isLocked = intval($data['final_submitted']) === 1;
                             <td>Dokumen / No. Anggota</td>
                         </tr>
                         <tr>
-                            <td>5</td>
+                            <td>6</td>
                             <td>Daftar Perusahaan yang menerapkan Upah Minimum di setiap Provinsi</td>
                             <td>
                                 <form method="post" enctype="multipart/form-data" class="d-flex gap-2">
@@ -228,7 +255,7 @@ $isLocked = intval($data['final_submitted']) === 1;
                             <td>Dokumen</td>
                         </tr>
                         <tr>
-                            <td>6</td>
+                            <td>7</td>
                             <td>Surat Clearance Sudah menerapkan SMK3</td>
                             <td>
                                 <form method="post" enctype="multipart/form-data" class="d-flex gap-2">
@@ -244,7 +271,7 @@ $isLocked = intval($data['final_submitted']) === 1;
                             <td>Dokumen</td>
                         </tr>
                         <tr>
-                            <td>7</td>
+                            <td>8</td>
                             <td>Copy Sertifikat SMK3</td>
                             <td>
                                 <form method="post" enctype="multipart/form-data" class="d-flex gap-2">
@@ -260,7 +287,7 @@ $isLocked = intval($data['final_submitted']) === 1;
                             <td>Dokumen</td>
                         </tr>
                         <tr>
-                            <td>8</td>
+                            <td>9</td>
                             <td>Surat Clearance Zero Accident 2025</td>
                             <td>
                                 <form method="post" enctype="multipart/form-data" class="d-flex gap-2">
