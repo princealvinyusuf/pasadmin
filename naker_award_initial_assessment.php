@@ -8,6 +8,59 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/access_helper.php';
 if (!current_user_can('naker_award_manage_assessment') && !current_user_can('manage_settings')) { http_response_code(403); echo 'Forbidden'; exit; }
 
+// Interval helpers
+function naker_get_intervals(mysqli $conn): array {
+    try {
+        $conn->query("CREATE TABLE IF NOT EXISTS naker_award_intervals (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            indicator VARCHAR(50) NOT NULL,
+            operator ENUM('<','<=','>','>=','==','between') NOT NULL DEFAULT 'between',
+            min_value DECIMAL(15,4) NULL,
+            max_value DECIMAL(15,4) NULL,
+            nilai_akhir INT NOT NULL,
+            sort_order INT NOT NULL DEFAULT 0,
+            active TINYINT(1) NOT NULL DEFAULT 1,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_indicator_sort (indicator, sort_order)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    } catch (Throwable $e) {}
+    $grouped = [
+        'postings' => [],
+        'quota' => [],
+        'ratio' => [],
+        'realization' => [],
+        'tindak' => [],
+        'disability' => []
+    ];
+    try {
+        $res = $conn->query("SELECT * FROM naker_award_intervals WHERE active=1 ORDER BY indicator ASC, sort_order ASC, id ASC");
+        while ($r = $res->fetch_assoc()) {
+            $ind = $r['indicator'];
+            if (!isset($grouped[$ind])) { $grouped[$ind] = []; }
+            $grouped[$ind][] = $r;
+        }
+    } catch (Throwable $e) {}
+    return $grouped;
+}
+
+function naker_eval_interval(array $items, float $value): int {
+    foreach ($items as $it) {
+        $op = $it['operator'];
+        $min = isset($it['min_value']) ? floatval($it['min_value']) : null;
+        $max = isset($it['max_value']) ? floatval($it['max_value']) : null;
+        $ok = false;
+        if ($op === 'between') { $ok = ($min !== null && $max !== null && $value >= $min && $value <= $max); }
+        elseif ($op === '<') { $ok = ($min !== null && $value < $min); }
+        elseif ($op === '<=') { $ok = ($min !== null && $value <= $min); }
+        elseif ($op === '>') { $ok = ($min !== null && $value > $min); }
+        elseif ($op === '>=') { $ok = ($min !== null && $value >= $min); }
+        elseif ($op === '==') { $ok = ($min !== null && $value == $min); }
+        if ($ok) { return intval($it['nilai_akhir']); }
+    }
+    return 0;
+}
+
 // Ensure table exists
 $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -120,37 +173,19 @@ $WEIGHT_REALIZATION = intval($weightsRow['weight_realization'] ?? 20);
 $WEIGHT_DISABILITY = intval($weightsRow['weight_disability'] ?? 15);
 $WEIGHT_TINDAK = intval($weightsRow['weight_tindak'] ?? 0);
 
-function calculate_nilai_akhir_for_postings(int $count): int {
-    if ($count <= 0) { return 0; }
-    if ($count >= 1 && $count <= 10) { return 60; }
-    if ($count >= 11 && $count <= 50) { return 80; }
-    return 100; // > 50
-}
-
-function calculate_nilai_akhir_for_quota(int $count): int {
-    if ($count <= 0) { return 0; }
-    if ($count >= 1 && $count <= 50) { return 60; }
-    if ($count >= 51 && $count <= 100) { return 80; }
-    return 100; // > 100
-}
-
-function calculate_nilai_akhir_for_percent(float $pct): int { // used by ratio & realization
-    if ($pct < 10) { return 60; }
-    if ($pct <= 50) { return 80; }
-    return 100; // > 50
-}
-
-function calculate_nilai_akhir_for_disability(int $count): int {
-    if ($count <= 0) { return 0; }
-    if ($count >= 1 && $count <= 5) { return 60; }
-    if ($count >= 6 && $count <= 10) { return 80; }
-    return 100; // > 10
-}
+// Dynamic NA calculations powered by intervals
+function calculate_nilai_akhir_for_postings(int $count): int { global $intervals; return naker_eval_interval($intervals['postings'] ?? [], floatval($count)); }
+function calculate_nilai_akhir_for_quota(int $count): int { global $intervals; return naker_eval_interval($intervals['quota'] ?? [], floatval($count)); }
+function calculate_nilai_akhir_for_percent(float $pct): int { global $intervals; return naker_eval_interval(($intervals['ratio'] ?? []), $pct); }
+function calculate_nilai_akhir_for_percent_real(float $pct): int { global $intervals; return naker_eval_interval(($intervals['realization'] ?? []), $pct); }
+function calculate_nilai_akhir_for_disability(int $count): int { global $intervals; return naker_eval_interval($intervals['disability'] ?? [], floatval($count)); }
+function calculate_nilai_akhir_for_tindak(float $pct): int { global $intervals; return naker_eval_interval(($intervals['tindak'] ?? []), $pct); }
 
 function compute_indeks(float $weightPercent, int $nilaiAkhir): float {
     return round(($weightPercent * $nilaiAkhir) / 100.0, 2);
 }
 
+$intervals = naker_get_intervals($conn);
 $resultRow = null; $message = isset($_GET['msg']) ? (string)$_GET['msg'] : '';
 
 ?>
@@ -277,7 +312,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $na_postings = calculate_nilai_akhir_for_postings($postings);
             $na_quota = calculate_nilai_akhir_for_quota($quota);
             $na_ratio = calculate_nilai_akhir_for_percent($ratio);
-            $na_realization = calculate_nilai_akhir_for_percent($realization);
+            $na_realization = calculate_nilai_akhir_for_percent_real($realization);
             $na_disability = calculate_nilai_akhir_for_disability($disability);
 
             $idx_postings = compute_indeks($WEIGHT_POSTINGS, $na_postings);
@@ -285,7 +320,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $idx_ratio = compute_indeks($WEIGHT_RATIO, $na_ratio);
             $idx_realization = compute_indeks($WEIGHT_REALIZATION, $na_realization);
     $idx_disability = compute_indeks($WEIGHT_DISABILITY, $na_disability);
-    $na_tindak = calculate_nilai_akhir_for_percent($tindakPercent);
+    $na_tindak = calculate_nilai_akhir_for_tindak($tindakPercent);
     $idx_tindak = compute_indeks($WEIGHT_TINDAK, $na_tindak);
     $total_indeks = round($idx_postings + $idx_quota + $idx_ratio + $idx_realization + $idx_disability + $idx_tindak, 2);
             $idx_disability = compute_indeks($WEIGHT_DISABILITY, $na_disability);
@@ -401,8 +436,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $na_postings = calculate_nilai_akhir_for_postings($postings);
     $na_quota = calculate_nilai_akhir_for_quota($quota);
-    $na_ratio = calculate_nilai_akhir_for_percent($ratio);
-    $na_realization = calculate_nilai_akhir_for_percent($realization);
+            $na_ratio = calculate_nilai_akhir_for_percent($ratio);
+            $na_realization = calculate_nilai_akhir_for_percent_real($realization);
     $na_disability = calculate_nilai_akhir_for_disability($disability);
 
     $idx_postings = compute_indeks($WEIGHT_POSTINGS, $na_postings);
@@ -410,7 +445,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $idx_ratio = compute_indeks($WEIGHT_RATIO, $na_ratio);
     $idx_realization = compute_indeks($WEIGHT_REALIZATION, $na_realization);
     $idx_disability = compute_indeks($WEIGHT_DISABILITY, $na_disability);
-    $na_tindak = calculate_nilai_akhir_for_percent($tindakPercent);
+    $na_tindak = calculate_nilai_akhir_for_tindak($tindakPercent);
     $idx_tindak = compute_indeks($WEIGHT_TINDAK, $na_tindak);
     $total_indeks = round($idx_postings + $idx_quota + $idx_ratio + $idx_realization + $idx_disability + $idx_tindak, 2);
 

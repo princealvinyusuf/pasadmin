@@ -8,6 +8,32 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/access_helper.php';
 if (!current_user_can('naker_award_view_stage1') && !current_user_can('naker_award_manage_assessment') && !current_user_can('manage_settings')) { http_response_code(403); echo 'Forbidden'; exit; }
 
+// Load intervals to display dynamic ranges
+try {
+    $conn->query("CREATE TABLE IF NOT EXISTS naker_award_intervals (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        indicator VARCHAR(50) NOT NULL,
+        operator ENUM('<','<=','>','>=','==','between') NOT NULL DEFAULT 'between',
+        min_value DECIMAL(15,4) NULL,
+        max_value DECIMAL(15,4) NULL,
+        nilai_akhir INT NOT NULL,
+        sort_order INT NOT NULL DEFAULT 0,
+        active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_indicator_sort (indicator, sort_order)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+} catch (Throwable $e) {}
+function get_intervals_grouped(mysqli $conn): array {
+    $out = [];
+    try {
+        $res = $conn->query("SELECT * FROM naker_award_intervals WHERE active=1 ORDER BY indicator ASC, sort_order ASC, id ASC");
+        while ($r = $res->fetch_assoc()) { $out[$r['indicator']][] = $r; }
+    } catch (Throwable $e) {}
+    return $out;
+}
+$intervals = get_intervals_grouped($conn);
+
 // Ensure table exists (in case this page is opened first)
 // Ensure assessments table exists with the latest columns
 $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
@@ -80,7 +106,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
     </div>
 
     <div class="card">
-        <div class="table-responsive">
+                    <div class="table-responsive">
             <table class="table table-striped mb-0">
                 <thead>
                     <tr>
@@ -225,36 +251,119 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 								</tr>
 							</thead>
 							<tbody>
-								<tr class="table-light"><th colspan="3">Jumlah Postingan Lowongan (Bobot 30%)</th></tr>
-								<tr><td></td><td>1 - 10</td><td>60</td></tr>
-								<tr><td></td><td>11 - 50</td><td>80</td></tr>
-								<tr><td></td><td>&gt; 50</td><td>100</td></tr>
+                                <tr class="table-light"><th colspan="3">Jumlah Postingan Lowongan (Bobot <?php echo intval($WEIGHT_POSTINGS); ?>%)</th></tr>
+                                <?php foreach (($intervals['postings'] ?? []) as $it): ?>
+                                <tr>
+                                    <td></td>
+                                    <td>
+                                        <?php
+                                        $op = $it['operator']; $min = $it['min_value']; $max = $it['max_value'];
+                                        if ($op === 'between') { echo htmlspecialchars($min) . ' - ' . htmlspecialchars($max); }
+                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($min); }
+                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($min); }
+                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($min); }
+                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($min); }
+                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($min); }
+                                        ?>
+                                    </td>
+                                    <td><?php echo intval($it['nilai_akhir']); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
 
-								<tr class="table-light"><th colspan="3">Jumlah Kuota Lowongan (Bobot 25%)</th></tr>
-								<tr><td></td><td>1 - 50</td><td>60</td></tr>
-								<tr><td></td><td>51 - 100</td><td>80</td></tr>
-								<tr><td></td><td>&gt; 100</td><td>100</td></tr>
+                                <tr class="table-light"><th colspan="3">Jumlah Kuota Lowongan (Bobot <?php echo intval($WEIGHT_QUOTA); ?>%)</th></tr>
+                                <?php foreach (($intervals['quota'] ?? []) as $it): ?>
+                                <tr>
+                                    <td></td>
+                                    <td>
+                                        <?php
+                                        $op = $it['operator']; $min = $it['min_value']; $max = $it['max_value'];
+                                        if ($op === 'between') { echo htmlspecialchars($min) . ' - ' . htmlspecialchars($max); }
+                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($min); }
+                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($min); }
+                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($min); }
+                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($min); }
+                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($min); }
+                                        ?>
+                                    </td>
+                                    <td><?php echo intval($it['nilai_akhir']); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
 
-								<tr class="table-light"><th colspan="3">Rasio Lowongan terhadap WLKP (Bobot 10%)</th></tr>
-								<tr><td></td><td>&lt; 10%</td><td>60</td></tr>
-								<tr><td></td><td>10% - 50%</td><td>80</td></tr>
-								<tr><td></td><td>&gt; 50%</td><td>100</td></tr>
+                                <tr class="table-light"><th colspan="3">Rasio Lowongan terhadap WLKP (Bobot <?php echo intval($WEIGHT_RATIO); ?>%)</th></tr>
+                                <?php foreach (($intervals['ratio'] ?? []) as $it): ?>
+                                <tr>
+                                    <td></td>
+                                    <td>
+                                        <?php
+                                        $op = $it['operator']; $min = $it['min_value']; $max = $it['max_value'];
+                                        if ($op === 'between') { echo htmlspecialchars($min) . '% - ' . htmlspecialchars($max) . '%'; }
+                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($min) . '%'; }
+                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($min) . '%'; }
+                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($min) . '%'; }
+                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($min) . '%'; }
+                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($min) . '%'; }
+                                        ?>
+                                    </td>
+                                    <td><?php echo intval($it['nilai_akhir']); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
 
                                 <tr class="table-light"><th colspan="3">Realisasi Penempatan Tenaga Kerja (Bobot <?php echo intval($WEIGHT_REALIZATION); ?>%)</th></tr>
-								<tr><td></td><td>&lt; 10%</td><td>60</td></tr>
-								<tr><td></td><td>10% - 50%</td><td>80</td></tr>
-								<tr><td></td><td>&gt; 50%</td><td>100</td></tr>
+                                <?php foreach (($intervals['realization'] ?? []) as $it): ?>
+                                <tr>
+                                    <td></td>
+                                    <td>
+                                        <?php
+                                        $op = $it['operator']; $min = $it['min_value']; $max = $it['max_value'];
+                                        if ($op === 'between') { echo htmlspecialchars($min) . '% - ' . htmlspecialchars($max) . '%'; }
+                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($min) . '%'; }
+                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($min) . '%'; }
+                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($min) . '%'; }
+                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($min) . '%'; }
+                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($min) . '%'; }
+                                        ?>
+                                    </td>
+                                    <td><?php echo intval($it['nilai_akhir']); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
 
                                 <tr class="table-light"><th colspan="3">Tindak Lanjut Lamaran (Bobot <?php echo intval($WEIGHT_TINDAK); ?>%)</th></tr>
-                                <tr><td></td><td>&lt; 10%</td><td>60</td></tr>
-                                <tr><td></td><td>10% - 50%</td><td>80</td></tr>
-                                <tr><td></td><td>&gt; 50%</td><td>100</td></tr>
+                                <?php foreach (($intervals['tindak'] ?? []) as $it): ?>
+                                <tr>
+                                    <td></td>
+                                    <td>
+                                        <?php
+                                        $op = $it['operator']; $min = $it['min_value']; $max = $it['max_value'];
+                                        if ($op === 'between') { echo htmlspecialchars($min) . '% - ' . htmlspecialchars($max) . '%'; }
+                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($min) . '%'; }
+                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($min) . '%'; }
+                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($min) . '%'; }
+                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($min) . '%'; }
+                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($min) . '%'; }
+                                        ?>
+                                    </td>
+                                    <td><?php echo intval($it['nilai_akhir']); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
 
                                 <tr class="table-light"><th colspan="3">Jumlah Kebutuhan Disabilitas (Bobot <?php echo intval($WEIGHT_DISABILITY); ?>%)</th></tr>
-								<tr><td></td><td>0</td><td>0</td></tr>
-								<tr><td></td><td>1 - 5</td><td>60</td></tr>
-								<tr><td></td><td>6 - 10</td><td>80</td></tr>
-								<tr><td></td><td>&gt; 10</td><td>100</td></tr>
+                                <?php foreach (($intervals['disability'] ?? []) as $it): ?>
+                                <tr>
+                                    <td></td>
+                                    <td>
+                                        <?php
+                                        $op = $it['operator']; $min = $it['min_value']; $max = $it['max_value'];
+                                        if ($op === 'between') { echo htmlspecialchars($min) . ' - ' . htmlspecialchars($max); }
+                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($min); }
+                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($min); }
+                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($min); }
+                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($min); }
+                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($min); }
+                                        ?>
+                                    </td>
+                                    <td><?php echo intval($it['nilai_akhir']); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
 							</tbody>
 						</table>
 					</div>
