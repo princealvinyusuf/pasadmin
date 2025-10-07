@@ -323,10 +323,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $na_tindak = calculate_nilai_akhir_for_tindak($tindakPercent);
     $idx_tindak = compute_indeks($WEIGHT_TINDAK, $na_tindak);
     $total_indeks = round($idx_postings + $idx_quota + $idx_ratio + $idx_realization + $idx_disability + $idx_tindak, 2);
-            $idx_disability = compute_indeks($WEIGHT_DISABILITY, $na_disability);
-            $na_tindak = calculate_nilai_akhir_for_percent($tindakPercent);
-            $idx_tindak = compute_indeks($WEIGHT_TINDAK, $na_tindak);
-            $total_indeks = round($idx_postings + $idx_quota + $idx_ratio + $idx_realization + $idx_disability + $idx_tindak, 2);
 
             $stmt = $conn->prepare('INSERT INTO naker_award_assessments (
                 company_name, postings_count, quota_count, ratio_wlkp_percent, realization_percent, tindak_lanjut_total, tindak_lanjut_percent, disability_need_count,
@@ -578,8 +574,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <td>Tindak Lanjut Lamaran</td>
                             <td><?php echo intval($WEIGHT_TINDAK); ?>%</td>
                             <td><?php echo number_format($resultRow['tindak_lanjut_percent'] ?? 0, 2); ?>% (<?php echo intval($resultRow['tindak_lanjut_total'] ?? 0); ?>/<?php echo intval($resultRow['postings_count']); ?>)</td>
-                            <td><?php echo isset($resultRow['na_tindak']) ? intval($resultRow['na_tindak']) : intval(calculate_nilai_akhir_for_percent($resultRow['tindak_lanjut_percent'] ?? 0)); ?></td>
-                            <td><?php echo isset($resultRow['idx_tindak']) ? number_format($resultRow['idx_tindak'], 2) : number_format(compute_indeks($WEIGHT_TINDAK, calculate_nilai_akhir_for_percent($resultRow['tindak_lanjut_percent'] ?? 0)), 2); ?></td>
+                            <td><?php echo isset($resultRow['na_tindak']) ? intval($resultRow['na_tindak']) : intval(calculate_nilai_akhir_for_tindak($resultRow['tindak_lanjut_percent'] ?? 0)); ?></td>
+                            <td><?php echo isset($resultRow['idx_tindak']) ? number_format($resultRow['idx_tindak'], 2) : number_format(compute_indeks($WEIGHT_TINDAK, calculate_nilai_akhir_for_tindak($resultRow['tindak_lanjut_percent'] ?? 0)), 2); ?></td>
                         </tr>
                         <tr>
                             <td>Jumlah Kebutuhan Disabilitas</td>
