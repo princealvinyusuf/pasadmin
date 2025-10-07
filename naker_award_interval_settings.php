@@ -28,33 +28,35 @@ function seed_default_intervals(mysqli $conn): void {
     $row = $check ? $check->fetch_assoc() : ['c' => 0];
     if (intval($row['c'] ?? 0) > 0) { return; }
     $rows = [];
-    // postings
+    // postings (≤0 -> 0, 1-3 -> 60, 4-7 -> 80, >7 -> 100)
     $rows[] = ['postings','<=',0,null,0,10,1];
-    $rows[] = ['postings','between',1,10,60,20,1];
-    $rows[] = ['postings','between',11,50,80,30,1];
-    $rows[] = ['postings','>',50,null,100,40,1];
-    // quota
+    $rows[] = ['postings','between',1,3,60,20,1];
+    $rows[] = ['postings','between',4,7,80,30,1];
+    $rows[] = ['postings','>',7,null,100,40,1];
+    // quota (≤0 -> 0, 1-100 -> 60, 101-200 -> 80, >200 -> 100)
     $rows[] = ['quota','<=',0,null,0,10,1];
-    $rows[] = ['quota','between',1,50,60,20,1];
-    $rows[] = ['quota','between',51,100,80,30,1];
-    $rows[] = ['quota','>',100,null,100,40,1];
-    // ratio (percent)
+    $rows[] = ['quota','between',1,100,60,20,1];
+    $rows[] = ['quota','between',101,200,80,30,1];
+    $rows[] = ['quota','>',200,null,100,40,1];
+    // ratio (percent) (<10% -> 60, 10%-50% -> 80, >50% -> 100)
     $rows[] = ['ratio','<',10,null,60,10,1];
     $rows[] = ['ratio','between',10,50,80,20,1];
     $rows[] = ['ratio','>',50,null,100,30,1];
-    // realization (percent)
-    $rows[] = ['realization','<',10,null,60,10,1];
-    $rows[] = ['realization','between',10,50,80,20,1];
-    $rows[] = ['realization','>',50,null,100,30,1];
-    // tindak (percent)
-    $rows[] = ['tindak','<',10,null,60,10,1];
-    $rows[] = ['tindak','between',10,50,80,20,1];
-    $rows[] = ['tindak','>',50,null,100,30,1];
-    // disability
+    // realization (percent) (≤0% -> 0, ≤33% -> 60, ≤66% -> 80, >66% -> 100)
+    $rows[] = ['realization','<=',0,null,0,10,1];
+    $rows[] = ['realization','<=',33,null,60,20,1];
+    $rows[] = ['realization','<=',66,null,80,30,1];
+    $rows[] = ['realization','>',66,null,100,40,1];
+    // tindak (percent) (≤0% -> 0, ≤33% -> 60, ≤66% -> 80, >66% -> 100)
+    $rows[] = ['tindak','<=',0,null,0,10,1];
+    $rows[] = ['tindak','<=',33,null,60,20,1];
+    $rows[] = ['tindak','<=',66,null,80,30,1];
+    $rows[] = ['tindak','>',66,null,100,40,1];
+    // disability (=0 -> 0, 1-3 -> 60, 4-7 -> 80, >7 -> 100)
     $rows[] = ['disability','==',0,null,0,10,1];
-    $rows[] = ['disability','between',1,5,60,20,1];
-    $rows[] = ['disability','between',6,10,80,30,1];
-    $rows[] = ['disability','>',10,null,100,40,1];
+    $rows[] = ['disability','between',1,3,60,20,1];
+    $rows[] = ['disability','between',4,7,80,30,1];
+    $rows[] = ['disability','>',7,null,100,40,1];
 
     $stmt = $conn->prepare('INSERT INTO naker_award_intervals (indicator, operator, min_value, max_value, nilai_akhir, sort_order, active) VALUES (?,?,?,?,?,?,?)');
     foreach ($rows as $r) {
