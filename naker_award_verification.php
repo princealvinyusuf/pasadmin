@@ -16,6 +16,12 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_second_mandatory (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uniq_assessment (assessment_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+// Backfill new column in second_mandatory if missing to support detail modal
+$colCheckSqlV = "SELECT COUNT(*) AS cnt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'naker_award_second_mandatory' AND COLUMN_NAME = 'clearance_industrial_dispute_doc_path'";
+$colCheckResV = $conn->query($colCheckSqlV);
+if ($colCheckResV && ($rowV = $colCheckResV->fetch_assoc()) && intval($rowV['cnt']) === 0) {
+    $conn->query("ALTER TABLE naker_award_second_mandatory ADD COLUMN clearance_industrial_dispute_doc_path VARCHAR(255) DEFAULT NULL");
+}
 $conn->query("CREATE TABLE IF NOT EXISTS naker_award_third_general (
     id INT AUTO_INCREMENT PRIMARY KEY,
     assessment_id INT NOT NULL,

@@ -20,6 +20,12 @@ $stmt->fetch();
 $stmt->close();
 
 // Load Mandatory Data
+// Ensure new column exists for older deployments
+$colCheckSqlD = "SELECT COUNT(*) AS cnt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'naker_award_second_mandatory' AND COLUMN_NAME = 'clearance_industrial_dispute_doc_path'";
+$colCheckResD = $conn->query($colCheckSqlD);
+if ($colCheckResD && ($rowD = $colCheckResD->fetch_assoc()) && intval($rowD['cnt']) === 0) {
+    $conn->query("ALTER TABLE naker_award_second_mandatory ADD COLUMN clearance_industrial_dispute_doc_path VARCHAR(255) DEFAULT NULL");
+}
 $m = $conn->query('SELECT * FROM naker_award_second_mandatory WHERE assessment_id=' . intval($assessmentId))->fetch_assoc() ?: [];
 // Load General Data
 $g = $conn->query('SELECT * FROM naker_award_third_general WHERE assessment_id=' . intval($assessmentId))->fetch_assoc() ?: [];
@@ -36,6 +42,7 @@ header('Content-Type: text/html; charset=utf-8');
                     <li class="list-group-item"><strong>Status WLKP:</strong> <?php echo htmlspecialchars($m['wlkp_status'] ?? '-'); ?></li>
                     <li class="list-group-item"><strong>Kode WLKP:</strong> <?php echo htmlspecialchars($m['wlkp_code'] ?? '-'); ?></li>
                     <li class="list-group-item"><strong>Clearance Hukum:</strong> <?php echo !empty($m['clearance_no_law_path'])?'<a target="_blank" href="'.htmlspecialchars($m['clearance_no_law_path']).'">View</a>':'-'; ?></li>
+                    <li class="list-group-item"><strong>Tidak dalam proses PHI:</strong> <?php echo !empty($m['clearance_industrial_dispute_doc_path'])?'<a target="_blank" href="'.htmlspecialchars($m['clearance_industrial_dispute_doc_path']).'">View</a>':'-'; ?></li>
                     <li class="list-group-item"><strong>BPJS-TK:</strong> <?php echo !empty($m['bpjstk_membership_doc_path'])?'<a target="_blank" href="'.htmlspecialchars($m['bpjstk_membership_doc_path']).'">View</a>':'-'; ?></li>
                     <li class="list-group-item"><strong>Upah Minimum:</strong> <?php echo !empty($m['minimum_wage_doc_path'])?'<a target="_blank" href="'.htmlspecialchars($m['minimum_wage_doc_path']).'">View</a>':'-'; ?></li>
                     <li class="list-group-item"><strong>Clearance SMK3:</strong> <?php echo !empty($m['clearance_smk3_status_doc_path'])?'<a target="_blank" href="'.htmlspecialchars($m['clearance_smk3_status_doc_path']).'">View</a>':'-'; ?></li>
