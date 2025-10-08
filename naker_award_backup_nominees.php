@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/access_helper.php';
-if (!(current_user_can('naker_award_backup_nominees') || current_user_can('naker_award_manage_assessment') || current_user_can('manage_settings'))) { http_response_code(403); echo 'Forbidden'; exit; }
+if (!current_user_can('naker_award_backup_nominees')) { http_response_code(403); echo 'Forbidden'; exit; }
 
 // Ensure metadata table exists
 $conn->query("CREATE TABLE IF NOT EXISTS naker_award_backup_runs (
