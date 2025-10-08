@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/access_helper.php';
-if (!current_user_can('manage_settings')) { http_response_code(403); echo 'Forbidden'; exit; }
+if (!(current_user_can('naker_award_manage_weights') || current_user_can('manage_settings'))) { http_response_code(403); echo 'Forbidden'; exit; }
 
 // Ensure weights table exists and a single row is present
 $conn->query("CREATE TABLE IF NOT EXISTS naker_award_weights (

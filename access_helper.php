@@ -78,6 +78,9 @@ function ac_seed_permissions(mysqli $conn): void {
 		['naker_award_manage_third','Naker Award: Manage Third Assessment','Naker Award'],
 		['naker_award_verify','Naker Award: Verification','Naker Award'],
 		['naker_award_final_nominees','Naker Award: Final Nominees','Naker Award'],
+		['naker_award_manage_weights','Naker Award: Manage Weights','Naker Award'],
+		['naker_award_manage_intervals','Naker Award: Manage Intervals','Naker Award'],
+		['naker_award_backup_nominees','Naker Award: Backup Nominees','Naker Award'],
 		// AsMen (Asset Management) permissions
 		['asmen_manage_assets','AsMen: Manage Assets','AsMen'],
 		['asmen_view_services','AsMen: View Services','AsMen'],
