@@ -207,6 +207,7 @@
                         <?php if ($canNakerThird): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_third_assessment.php">Third Assessment</a></li><?php endif; ?>
                         <?php if ($canNakerVerify): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_verification.php">Verification</a></li><?php endif; ?>
                         <?php if ($canNakerFinal): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_final_nominees.php">Final Nominees</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canNakerAssessment): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_backup_nominees.php">Backup Data Nominees</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
