@@ -101,7 +101,8 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
     <style>
         /* Sticky page header and table header */
         .sticky-page-header { position: sticky; top: 0; z-index: 1030; background: #f8f9fa; }
-        .table-sticky thead th { position: sticky; top: 0; z-index: 2; background: #f8f9fa; }
+        .table-sticky { border-collapse: separate; border-spacing: 0; }
+        .table-sticky thead th { position: sticky; top: 56px; z-index: 2; background: #f8f9fa; }
     </style>
 </head>
 <body class="bg-light">
@@ -117,7 +118,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 
     <div class="card">
                     <div class="table-responsive">
-            <table class="table table-striped mb-0 table-sticky">
+            <table class="table table-striped mb-0 table-sticky table-bordered">
                 <thead>
                     <tr>
                         <th>#</th>
