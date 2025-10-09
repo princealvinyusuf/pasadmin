@@ -84,7 +84,7 @@ $WEIGHT_DISABILITY = intval($w['weight_disability'] ?? 15);
 $WEIGHT_TINDAK = intval($w['weight_tindak'] ?? 0);
 
 // Fetch all results sorted by total indeks desc
-$res = $conn->query('SELECT * FROM naker_award_assessments ORDER BY total_indeks DESC, company_name ASC LIMIT 60');
+$res = $conn->query('SELECT * FROM naker_award_assessments ORDER BY total_indeks DESC, company_name ASC LIMIT 64');
 $rows = [];
 while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 ?>
