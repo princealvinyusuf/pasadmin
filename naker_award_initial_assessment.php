@@ -85,6 +85,10 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
     nilai_akhir_disability VARCHAR(100) NOT NULL DEFAULT '0',
     indeks_disability VARCHAR(100) NOT NULL DEFAULT '0',
     total_indeks VARCHAR(100) NOT NULL DEFAULT '0',
+    kbli1 VARCHAR(100) DEFAULT NULL,
+    kbli5 VARCHAR(100) DEFAULT NULL,
+    kab_kota VARCHAR(200) DEFAULT NULL,
+    provinsi VARCHAR(200) DEFAULT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_company_created (company_name(100), created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
@@ -95,6 +99,10 @@ try {
     $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS tindak_lanjut_percent VARCHAR(100) NOT NULL DEFAULT '0'");
     $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS nilai_akhir_tindak VARCHAR(100) NOT NULL DEFAULT '0'");
     $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS indeks_tindak VARCHAR(100) NOT NULL DEFAULT '0'");
+    $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS kbli1 VARCHAR(100) DEFAULT NULL");
+    $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS kbli5 VARCHAR(100) DEFAULT NULL");
+    $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS kab_kota VARCHAR(200) DEFAULT NULL");
+    $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS provinsi VARCHAR(200) DEFAULT NULL");
 } catch (Throwable $e) {
     try {
         $check = $conn->query("SHOW COLUMNS FROM naker_award_assessments LIKE 'tindak_lanjut_total'");
@@ -120,6 +128,10 @@ try {
             $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN indeks_tindak VARCHAR(100) NOT NULL DEFAULT '0'");
         }
     } catch (Throwable $e5) {}
+    try { $chkA = $conn->query("SHOW COLUMNS FROM naker_award_assessments LIKE 'kbli1'"); if ($chkA && $chkA->num_rows === 0) { $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN kbli1 VARCHAR(100) DEFAULT NULL"); } } catch (Throwable $e6) {}
+    try { $chkB = $conn->query("SHOW COLUMNS FROM naker_award_assessments LIKE 'kbli5'"); if ($chkB && $chkB->num_rows === 0) { $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN kbli5 VARCHAR(100) DEFAULT NULL"); } } catch (Throwable $e7) {}
+    try { $chkC = $conn->query("SHOW COLUMNS FROM naker_award_assessments LIKE 'kab_kota'"); if ($chkC && $chkC->num_rows === 0) { $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN kab_kota VARCHAR(200) DEFAULT NULL"); } } catch (Throwable $e8) {}
+    try { $chkD = $conn->query("SHOW COLUMNS FROM naker_award_assessments LIKE 'provinsi'"); if ($chkD && $chkD->num_rows === 0) { $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN provinsi VARCHAR(200) DEFAULT NULL"); } } catch (Throwable $e9) {}
 }
 
 // Lightweight migration: convert numeric columns to VARCHAR to accept flexible inputs
@@ -233,6 +245,22 @@ $resultRow = null; $message = isset($_GET['msg']) ? (string)$_GET['msg'] : '';
                     <input type="text" name="company_name" class="form-control" required>
                 </div>
                 <div class="col-12 col-md-3">
+                    <label class="form-label">KBLI1</label>
+                    <input type="text" name="kbli1" class="form-control">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">KBLI5</label>
+                    <input type="text" name="kbli5" class="form-control">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Kabupaten/Kota</label>
+                    <input type="text" name="kab_kota" class="form-control">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Provinsi</label>
+                    <input type="text" name="provinsi" class="form-control">
+                </div>
+                <div class="col-12 col-md-3">
                     <label class="form-label">Jumlah Postingan Lowongan</label>
                     <input type="number" name="postings_count" id="postings_count" min="0" class="form-control" required>
                 </div>
@@ -295,6 +323,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($rows as $idx => $r) {
             $company = trim((string)($r['company_name'] ?? ''));
             if ($company === '') { $errors[] = ['row'=>$idx+1,'error'=>'Missing company_name']; continue; }
+            $kbli1 = trim((string)($r['kbli1'] ?? ''));
+            $kbli5 = trim((string)($r['kbli5'] ?? ''));
+            $kabKota = trim((string)($r['kab_kota'] ?? ''));
+            $provinsi = trim((string)($r['provinsi'] ?? ''));
             $postings = intval($r['postings_count'] ?? 0);
             $quota = intval($r['quota_count'] ?? 0);
             // Normalize decimals with commas for rencana and angka_realisasi
@@ -328,8 +360,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 company_name, postings_count, quota_count, ratio_wlkp_percent, realization_percent, tindak_lanjut_total, tindak_lanjut_percent, disability_need_count,
                 nilai_akhir_postings, indeks_postings, nilai_akhir_quota, indeks_quota, nilai_akhir_ratio, indeks_ratio,
                 nilai_akhir_realization, indeks_realization, nilai_akhir_disability, indeks_disability, total_indeks,
-                nilai_akhir_tindak, indeks_tindak
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+                nilai_akhir_tindak, indeks_tindak, kbli1, kbli5, kab_kota, provinsi
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
             if (!$stmt) { $errors[] = ['row'=>$idx+1,'error'=>'Prepare failed: ' . $conn->error]; continue; }
             $s_company = $company;
             $s_postings = (string)$postings;
@@ -354,7 +386,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $s_idx_tindak = (string)number_format($idx_tindak, 2, '.', '');
 
             $okBind = $stmt->bind_param(
-                'sssssssssssssssssssss',
+                'ssssssssssssssssssssssss',
                 $s_company,
                 $s_postings,
                 $s_quota,
@@ -375,7 +407,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $s_idx_disability,
                 $s_total_indeks,
                 $s_na_tindak,
-                $s_idx_tindak
+                $s_idx_tindak,
+                $kbli1,
+                $kbli5,
+                $kabKota,
+                $provinsi
             );
             if (!$okBind) {
                 $errors[] = ['row'=>$idx+1,'error'=>'Bind failed: ' . $stmt->error];
@@ -418,6 +454,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // Redo calculations for binding and save
     $company = trim($_POST['company_name'] ?? '');
+    $kbli1 = trim($_POST['kbli1'] ?? '');
+    $kbli5 = trim($_POST['kbli5'] ?? '');
+    $kabKota = trim($_POST['kab_kota'] ?? '');
+    $provinsi = trim($_POST['provinsi'] ?? '');
     $postings = intval($_POST['postings_count'] ?? 0);
     $quota = intval($_POST['quota_count'] ?? 0);
     $rencanaRaw = $_POST['rencana_kebutuhan_wlkp'] ?? '0';
@@ -449,8 +489,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         company_name, postings_count, quota_count, ratio_wlkp_percent, realization_percent, tindak_lanjut_total, tindak_lanjut_percent, disability_need_count,
         nilai_akhir_postings, indeks_postings, nilai_akhir_quota, indeks_quota, nilai_akhir_ratio, indeks_ratio,
         nilai_akhir_realization, indeks_realization, nilai_akhir_disability, indeks_disability, total_indeks,
-        nilai_akhir_tindak, indeks_tindak
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+        nilai_akhir_tindak, indeks_tindak, kbli1, kbli5, kab_kota, provinsi
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
     $s_company = $company;
     $s_postings = (string)$postings;
     $s_quota = (string)$quota;
@@ -474,7 +514,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $s_idx_tindak = (string)number_format($idx_tindak, 2, '.', '');
 
     $stmt->bind_param(
-        'sssssssssssssssssssss',
+        'ssssssssssssssssssssssss',
         $s_company,
         $s_postings,
         $s_quota,
@@ -495,7 +535,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $s_idx_disability,
         $s_total_indeks,
         $s_na_tindak,
-        $s_idx_tindak
+        $s_idx_tindak,
+        $kbli1,
+        $kbli5,
+        $kabKota,
+        $provinsi
     );
     $stmt->execute();
     $stmt->close();
@@ -770,7 +814,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     rencana_kebutuhan_wlkp: normalizeNumber(r.rencana_kebutuhan_wlkp || r.Rencana || r['Rencana Kebutuhan Tenaga Kerja WLKP'] || '0'),
                     angka_realisasi: normalizeNumber(r.angka_realisasi || r.Realisasi || r['Angka Realisasi'] || '0'),
                     tindak_lanjut_total: parseInt(r.tindak_lanjut_total || r['Total Postingan Dengan Tindak Lanjut'] || '0', 10) || 0,
-                    disability_need_count: parseInt(r.disability_need_count || r.Disability || r['Jumlah Kebutuhan Disabilitas'] || '0', 10) || 0
+                    disability_need_count: parseInt(r.disability_need_count || r.Disability || r['Jumlah Kebutuhan Disabilitas'] || '0', 10) || 0,
+                    kbli1: r.kbli1 || r.KBLI1 || '',
+                    kbli5: r.kbli5 || r.KBLI5 || '',
+                    kab_kota: r.kab_kota || r['Kabupaten/Kota'] || r.KabKota || '',
+                    provinsi: r.provinsi || r.Provinsi || ''
                 };
             }).filter(function(r){ return (r.company_name || '').trim() !== ''; });
             await importRows(rows);
