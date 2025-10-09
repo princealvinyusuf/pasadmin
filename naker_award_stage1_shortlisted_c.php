@@ -102,14 +102,17 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
         /* Sticky page header and table header */
         .sticky-page-header { position: sticky; top: 0; z-index: 1030; background: #f8f9fa; }
         .table-sticky { border-collapse: separate; border-spacing: 0; }
-        .table-sticky thead th { position: sticky; top: 56px; z-index: 2; background: #f8f9fa; }
+        .table-sticky thead th { position: sticky; top: 0; z-index: 2; background: #f8f9fa; }
     </style>
 </head>
 <body class="bg-light">
 <?php include 'navbar.php'; ?>
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3 sticky-page-header py-2">
-        <h2 class="mb-0">WLLP Award - Stage 1 Shortlisted C</h2>
+        <div class="d-flex flex-column">
+            <h2 class="mb-0">WLLP Award - Stage 1 Shortlisted C</h2>
+            <div class="text-muted small">All data is under authority of Datin</div>
+        </div>
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary" href="naker_award_initial_assessment.php">Add Assessment</a>
             <a class="btn btn-primary" href="naker_award_stage1_shortlisted_c.php?all=1">Show All Data</a>
@@ -118,7 +121,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 
     <div class="card">
                     <div class="table-responsive">
-            <table class="table table-striped mb-0 table-sticky table-bordered">
+            <table class="table table-striped mb-0 table-sticky">
                 <thead>
                     <tr>
                         <th>#</th>
