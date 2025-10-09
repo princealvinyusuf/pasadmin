@@ -98,11 +98,16 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
     <title>WLLP Award - Stage 1 Shortlisted C</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        /* Sticky page header and table header */
+        .sticky-page-header { position: sticky; top: 0; z-index: 1030; background: #f8f9fa; }
+        .table-sticky thead th { position: sticky; top: 0; z-index: 2; background: #f8f9fa; }
+    </style>
 </head>
 <body class="bg-light">
 <?php include 'navbar.php'; ?>
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 sticky-page-header py-2">
         <h2 class="mb-0">WLLP Award - Stage 1 Shortlisted C</h2>
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary" href="naker_award_initial_assessment.php">Add Assessment</a>
@@ -112,7 +117,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 
     <div class="card">
                     <div class="table-responsive">
-            <table class="table table-striped mb-0">
+            <table class="table table-striped mb-0 table-sticky">
                 <thead>
                     <tr>
                         <th>#</th>
