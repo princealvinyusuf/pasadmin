@@ -325,7 +325,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($company === '') { $errors[] = ['row'=>$idx+1,'error'=>'Missing company_name']; continue; }
             $kbli1 = trim((string)($r['kbli1'] ?? ''));
             $kbli5 = trim((string)($r['kbli5'] ?? ''));
-            $kabKota = trim((string)($r['kab_kota'] ?? ''));
+            // accept either kab_kota or kabupaten_kota from excel JSON
+            $kabKota = trim((string)($r['kab_kota'] ?? ($r['kabupaten_kota'] ?? '')));
             $provinsi = trim((string)($r['provinsi'] ?? ''));
             $postings = intval($r['postings_count'] ?? 0);
             $quota = intval($r['quota_count'] ?? 0);
@@ -817,7 +818,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     disability_need_count: parseInt(r.disability_need_count || r.Disability || r['Jumlah Kebutuhan Disabilitas'] || '0', 10) || 0,
                     kbli1: r.kbli1 || r.KBLI1 || '',
                     kbli5: r.kbli5 || r.KBLI5 || '',
-                    kab_kota: r.kab_kota || r['Kabupaten/Kota'] || r.KabKota || '',
+                    kab_kota: r.kab_kota || r.kabupaten_kota || r['Kabupaten/Kota'] || r.KabKota || '',
                     provinsi: r.provinsi || r.Provinsi || ''
                 };
             }).filter(function(r){ return (r.company_name || '').trim() !== ''; });
