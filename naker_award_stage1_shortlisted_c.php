@@ -59,8 +59,25 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
     nilai_akhir_disability VARCHAR(100) NOT NULL DEFAULT '0',
     indeks_disability VARCHAR(100) NOT NULL DEFAULT '0',
     total_indeks VARCHAR(100) NOT NULL DEFAULT '0',
+    kbli1 VARCHAR(100) DEFAULT NULL,
+    kbli5 VARCHAR(100) DEFAULT NULL,
+    kab_kota VARCHAR(200) DEFAULT NULL,
+    provinsi VARCHAR(200) DEFAULT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// Backfill new text columns if missing
+try {
+    $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS kbli1 VARCHAR(100) DEFAULT NULL");
+    $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS kbli5 VARCHAR(100) DEFAULT NULL");
+    $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS kab_kota VARCHAR(200) DEFAULT NULL");
+    $conn->query("ALTER TABLE naker_award_assessments ADD COLUMN IF NOT EXISTS provinsi VARCHAR(200) DEFAULT NULL");
+} catch (Throwable $e) {
+    try { $c=$conn->query("SHOW COLUMNS FROM naker_award_assessments LIKE 'kbli1'"); if($c&&$c->num_rows===0){$conn->query("ALTER TABLE naker_award_assessments ADD COLUMN kbli1 VARCHAR(100) DEFAULT NULL");} } catch (Throwable $e1) {}
+    try { $c=$conn->query("SHOW COLUMNS FROM naker_award_assessments LIKE 'kbli5'"); if($c&&$c->num_rows===0){$conn->query("ALTER TABLE naker_award_assessments ADD COLUMN kbli5 VARCHAR(100) DEFAULT NULL");} } catch (Throwable $e2) {}
+    try { $c=$conn->query("SHOW COLUMNS FROM naker_award_assessments LIKE 'kab_kota'"); if($c&&$c->num_rows===0){$conn->query("ALTER TABLE naker_award_assessments ADD COLUMN kab_kota VARCHAR(200) DEFAULT NULL");} } catch (Throwable $e3) {}
+    try { $c=$conn->query("SHOW COLUMNS FROM naker_award_assessments LIKE 'provinsi'"); if($c&&$c->num_rows===0){$conn->query("ALTER TABLE naker_award_assessments ADD COLUMN provinsi VARCHAR(200) DEFAULT NULL");} } catch (Throwable $e4) {}
+}
 
 // Ensure weights table and load dynamic weights
 $conn->query("CREATE TABLE IF NOT EXISTS naker_award_weights (
@@ -156,6 +173,10 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 								data-ratio="<?php echo number_format((float)$row['ratio_wlkp_percent'], 2, '.', ''); ?>"
 								data-realization="<?php echo number_format((float)$row['realization_percent'], 2, '.', ''); ?>"
 							data-disability="<?php echo intval($row['disability_need_count']); ?>"
+							data-kbli1="<?php echo htmlspecialchars($row['kbli1'] ?? ''); ?>"
+							data-kbli5="<?php echo htmlspecialchars($row['kbli5'] ?? ''); ?>"
+							data-kabkota="<?php echo htmlspecialchars($row['kab_kota'] ?? ''); ?>"
+							data-provinsi="<?php echo htmlspecialchars($row['provinsi'] ?? ''); ?>"
 							data-tindak-actual="<?php echo number_format((float)($row['tindak_lanjut_percent'] ?? 0), 2, '.', ''); ?>"
 							data-na-tindak="<?php echo intval($row['nilai_akhir_tindak'] ?? 0); ?>"
 							data-idx-tindak="<?php echo number_format((float)($row['indeks_tindak'] ?? 0), 2, '.', ''); ?>"
@@ -188,7 +209,15 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 					<h5 class="modal-title">Hasil Penilaian: <span id="dm_company"></span></h5>
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
-				<div class="modal-body">
+                <div class="modal-body">
+                    <div class="mb-3 small">
+                        <div class="row g-2">
+                            <div class="col-12 col-md-3"><strong>KBLI1:</strong> <span id="dm_kbli1"></span></div>
+                            <div class="col-12 col-md-3"><strong>KBLI5:</strong> <span id="dm_kbli5"></span></div>
+                            <div class="col-12 col-md-3"><strong>Kab/Kota:</strong> <span id="dm_kabkota"></span></div>
+                            <div class="col-12 col-md-3"><strong>Provinsi:</strong> <span id="dm_provinsi"></span></div>
+                        </div>
+                    </div>
 					<div class="table-responsive">
 						<table class="table table-bordered align-middle">
 							<thead>
@@ -410,6 +439,10 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 		btn.addEventListener('click', function(){
 			const d = this.dataset;
 			setText('dm_company', d.company || '');
+            setText('dm_kbli1', d.kbli1 || '');
+            setText('dm_kbli5', d.kbli5 || '');
+            setText('dm_kabkota', d.kabkota || '');
+            setText('dm_provinsi', d.provinsi || '');
 			setText('dm_postings_actual', fmtInt(d.postings));
 			setText('dm_postings_na', fmtInt(d.naPostings));
 			setText('dm_postings_idx', fmtDec(d.idxPostings));
