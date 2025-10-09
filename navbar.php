@@ -195,7 +195,7 @@
                 <?php if ($hasNakerAward): ?>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="nakerAwardDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Naker Award
+                        WLLP Award
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="nakerAwardDropdown">
                         <?php if ($canNakerAssessment || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_initial_assessment.php">Initial Assessment</a></li><?php endif; ?>

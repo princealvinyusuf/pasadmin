@@ -194,7 +194,7 @@ $resultRow = null; $message = isset($_GET['msg']) ? (string)$_GET['msg'] : '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Naker Award - Initial Assessment</title>
+    <title>WLLP Award - Initial Assessment</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -207,7 +207,7 @@ $resultRow = null; $message = isset($_GET['msg']) ? (string)$_GET['msg'] : '';
 <?php include 'navbar.php'; ?>
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Naker Award - Initial Assessment</h2>
+        <h2 class="mb-0">WLLP Award - Initial Assessment</h2>
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary" href="naker_award_stage1_shortlisted_c.php">View Stage 1 Shortlisted C</a>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bulkImportModal"><i class="bi bi-file-earmark-excel"></i> Import Excel</button>

@@ -63,7 +63,7 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Naker Award - Second Assessment</title>
+    <title>WLLP Award - Second Assessment</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
@@ -71,7 +71,7 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
 <?php include 'navbar.php'; ?>
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Naker Award - Second Assessment</h2>
+        <h2 class="mb-0">WLLP Award - Second Assessment</h2>
         <a class="btn btn-outline-secondary" href="naker_award_stage1_shortlisted_c.php">Back to Stage 1</a>
     </div>
 
