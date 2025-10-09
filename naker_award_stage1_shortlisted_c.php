@@ -396,7 +396,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 	function setText(id, text){ var el = document.getElementById(id); if (el) el.textContent = text; }
 	function fmtInt(v){ return parseInt(v || 0, 10); }
 	function fmtDec(v){ return Number(v || 0).toFixed(2); }
-	function fmtPct(v){ return Number(v || 0).toFixed(2) + '%'; }
+    function fmtPct(v){ return parseInt(Number(v || 0), 10) + '%'; }
 	for (const btn of document.querySelectorAll('.detail-btn')){
 		btn.addEventListener('click', function(){
 			const d = this.dataset;
