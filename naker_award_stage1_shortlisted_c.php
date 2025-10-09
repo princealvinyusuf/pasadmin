@@ -83,8 +83,10 @@ $WEIGHT_REALIZATION = intval($w['weight_realization'] ?? 20);
 $WEIGHT_DISABILITY = intval($w['weight_disability'] ?? 15);
 $WEIGHT_TINDAK = intval($w['weight_tindak'] ?? 0);
 
-// Fetch all results sorted by total indeks desc
-$res = $conn->query('SELECT * FROM naker_award_assessments ORDER BY total_indeks DESC, company_name ASC LIMIT 64');
+// Fetch results sorted by total indeks desc; allow showing all via query param
+$showAll = isset($_GET['all']) && $_GET['all'] === '1';
+$sqlList = 'SELECT * FROM naker_award_assessments ORDER BY total_indeks DESC, company_name ASC' . ($showAll ? '' : ' LIMIT 64');
+$res = $conn->query($sqlList);
 $rows = [];
 while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 ?>
@@ -102,7 +104,10 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">WLLP Award - Stage 1 Shortlisted C</h2>
-        <a class="btn btn-outline-secondary" href="naker_award_initial_assessment.php">Add Assessment</a>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary" href="naker_award_initial_assessment.php">Add Assessment</a>
+            <a class="btn btn-primary" href="naker_award_stage1_shortlisted_c.php?all=1">Show All Data</a>
+        </div>
     </div>
 
     <div class="card">
