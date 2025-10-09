@@ -118,7 +118,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                         <th>#</th>
                         <th>Nama Perusahaan</th>
                         <th>Total Indeks WLLP</th>
-						<th>Nilai Akhir (Postingan, Kuota, Ratio, Realisasi, Tindak, Disabilitas)</th>
+                        <th>Nilai Akhir (Postingan, Kuota, Rasio, Penempatan, Tindak Lanjut, Disabilitas)</th>
 						<th>Actions</th>
                         <th>Tanggal</th>
                     </tr>
