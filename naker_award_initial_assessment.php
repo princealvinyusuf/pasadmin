@@ -237,7 +237,7 @@ $resultRow = null; $message = isset($_GET['msg']) ? (string)$_GET['msg'] : '';
                     <input type="number" name="postings_count" id="postings_count" min="0" class="form-control" required>
                 </div>
                 <div class="col-12 col-md-3">
-                    <label class="form-label">Jumlah Kuota Lowongan</label>
+                    <label class="form-label">Jumlah Kuota Loker</label>
                     <input type="number" name="quota_count" id="quota_count" min="0" class="form-control" required>
                 </div>
                 <div class="col-12 col-md-3">
@@ -245,7 +245,7 @@ $resultRow = null; $message = isset($_GET['msg']) ? (string)$_GET['msg'] : '';
                     <input type="number" step="0.01" min="0" name="rencana_kebutuhan_wlkp" id="rencana_kebutuhan_wlkp" class="form-control" required>
                 </div>
                 <div class="col-12 col-md-3">
-                    <label class="form-label">Ratio Lowongan Terhadap WLKP (%)</label>
+                    <label class="form-label">Rasio Loker Karirhub terhadap RTK WLKP (%)</label>
                     <input type="number" step="0.01" min="0" name="ratio_wlkp_percent" id="ratio_wlkp_percent" class="form-control" readonly>
                 </div>
                 <div class="col-12 col-md-3">

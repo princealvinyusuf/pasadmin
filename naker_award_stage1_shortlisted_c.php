@@ -200,14 +200,14 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 									<td id="dm_postings_idx"></td>
 								</tr>
 								<tr>
-									<td>Jumlah Kuota Lowongan</td>
+                            <td>Jumlah Kuota Loker</td>
                                     <td><?php echo intval($WEIGHT_QUOTA); ?>%</td>
 									<td id="dm_quota_actual"></td>
 									<td id="dm_quota_na"></td>
 									<td id="dm_quota_idx"></td>
 								</tr>
 								<tr>
-									<td>Ratio Lowongan Terhadap WLKP</td>
+                            <td>Rasio Loker Karirhub terhadap RTK WLKP</td>
                                     <td><?php echo intval($WEIGHT_RATIO); ?>%</td>
 									<td id="dm_ratio_actual"></td>
 									<td id="dm_ratio_na"></td>
