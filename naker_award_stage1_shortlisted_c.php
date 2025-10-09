@@ -263,12 +263,14 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                                     <td>
                                         <?php
                                         $op = $it['operator']; $min = $it['min_value']; $max = $it['max_value'];
-                                        if ($op === 'between') { echo htmlspecialchars($min) . ' - ' . htmlspecialchars($max); }
-                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($min); }
-                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($min); }
-                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($min); }
-                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($min); }
-                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($min); }
+                                        $minI = ($min === null || $min === '') ? '' : (string)intval($min);
+                                        $maxI = ($max === null || $max === '') ? '' : (string)intval($max);
+                                        if ($op === 'between') { echo htmlspecialchars($minI) . ' - ' . htmlspecialchars($maxI); }
+                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($minI); }
+                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($minI); }
+                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($minI); }
+                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($minI); }
+                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($minI); }
                                         ?>
                                     </td>
                                     <td><?php echo intval($it['nilai_akhir']); ?></td>
@@ -282,12 +284,14 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                                     <td>
                                         <?php
                                         $op = $it['operator']; $min = $it['min_value']; $max = $it['max_value'];
-                                        if ($op === 'between') { echo htmlspecialchars($min) . ' - ' . htmlspecialchars($max); }
-                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($min); }
-                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($min); }
-                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($min); }
-                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($min); }
-                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($min); }
+                                        $minI = ($min === null || $min === '') ? '' : (string)intval($min);
+                                        $maxI = ($max === null || $max === '') ? '' : (string)intval($max);
+                                        if ($op === 'between') { echo htmlspecialchars($minI) . ' - ' . htmlspecialchars($maxI); }
+                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($minI); }
+                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($minI); }
+                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($minI); }
+                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($minI); }
+                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($minI); }
                                         ?>
                                     </td>
                                     <td><?php echo intval($it['nilai_akhir']); ?></td>
@@ -301,12 +305,14 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                                     <td>
                                         <?php
                                         $op = $it['operator']; $min = $it['min_value']; $max = $it['max_value'];
-                                        if ($op === 'between') { echo htmlspecialchars($min) . '% - ' . htmlspecialchars($max) . '%'; }
-                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($min) . '%'; }
-                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($min) . '%'; }
-                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($min) . '%'; }
-                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($min) . '%'; }
-                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($min) . '%'; }
+                                        $minI = ($min === null || $min === '') ? '' : (string)intval($min);
+                                        $maxI = ($max === null || $max === '') ? '' : (string)intval($max);
+                                        if ($op === 'between') { echo htmlspecialchars($minI) . '% - ' . htmlspecialchars($maxI) . '%'; }
+                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($minI) . '%'; }
+                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($minI) . '%'; }
+                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($minI) . '%'; }
+                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($minI) . '%'; }
+                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($minI) . '%'; }
                                         ?>
                                     </td>
                                     <td><?php echo intval($it['nilai_akhir']); ?></td>
@@ -320,12 +326,14 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                                     <td>
                                         <?php
                                         $op = $it['operator']; $min = $it['min_value']; $max = $it['max_value'];
-                                        if ($op === 'between') { echo htmlspecialchars($min) . '% - ' . htmlspecialchars($max) . '%'; }
-                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($min) . '%'; }
-                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($min) . '%'; }
-                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($min) . '%'; }
-                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($min) . '%'; }
-                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($min) . '%'; }
+                                        $minI = ($min === null || $min === '') ? '' : (string)intval($min);
+                                        $maxI = ($max === null || $max === '') ? '' : (string)intval($max);
+                                        if ($op === 'between') { echo htmlspecialchars($minI) . '% - ' . htmlspecialchars($maxI) . '%'; }
+                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($minI) . '%'; }
+                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($minI) . '%'; }
+                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($minI) . '%'; }
+                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($minI) . '%'; }
+                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($minI) . '%'; }
                                         ?>
                                     </td>
                                     <td><?php echo intval($it['nilai_akhir']); ?></td>
@@ -339,12 +347,14 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                                     <td>
                                         <?php
                                         $op = $it['operator']; $min = $it['min_value']; $max = $it['max_value'];
-                                        if ($op === 'between') { echo htmlspecialchars($min) . '% - ' . htmlspecialchars($max) . '%'; }
-                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($min) . '%'; }
-                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($min) . '%'; }
-                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($min) . '%'; }
-                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($min) . '%'; }
-                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($min) . '%'; }
+                                        $minI = ($min === null || $min === '') ? '' : (string)intval($min);
+                                        $maxI = ($max === null || $max === '') ? '' : (string)intval($max);
+                                        if ($op === 'between') { echo htmlspecialchars($minI) . '% - ' . htmlspecialchars($maxI) . '%'; }
+                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($minI) . '%'; }
+                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($minI) . '%'; }
+                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($minI) . '%'; }
+                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($minI) . '%'; }
+                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($minI) . '%'; }
                                         ?>
                                     </td>
                                     <td><?php echo intval($it['nilai_akhir']); ?></td>
@@ -358,12 +368,14 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                                     <td>
                                         <?php
                                         $op = $it['operator']; $min = $it['min_value']; $max = $it['max_value'];
-                                        if ($op === 'between') { echo htmlspecialchars($min) . ' - ' . htmlspecialchars($max); }
-                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($min); }
-                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($min); }
-                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($min); }
-                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($min); }
-                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($min); }
+                                        $minI = ($min === null || $min === '') ? '' : (string)intval($min);
+                                        $maxI = ($max === null || $max === '') ? '' : (string)intval($max);
+                                        if ($op === 'between') { echo htmlspecialchars($minI) . ' - ' . htmlspecialchars($maxI); }
+                                        elseif ($op === '<') { echo '&lt; ' . htmlspecialchars($minI); }
+                                        elseif ($op === '<=') { echo '&le; ' . htmlspecialchars($minI); }
+                                        elseif ($op === '>') { echo '&gt; ' . htmlspecialchars($minI); }
+                                        elseif ($op === '>=') { echo '&ge; ' . htmlspecialchars($minI); }
+                                        elseif ($op === '==') { echo '= ' . htmlspecialchars($minI); }
                                         ?>
                                     </td>
                                     <td><?php echo intval($it['nilai_akhir']); ?></td>
