@@ -386,7 +386,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $s_idx_tindak = (string)number_format($idx_tindak, 2, '.', '');
 
             $okBind = $stmt->bind_param(
-                'ssssssssssssssssssssssss',
+                'ssssssssssssssssssssssssss',
                 $s_company,
                 $s_postings,
                 $s_quota,
@@ -514,7 +514,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $s_idx_tindak = (string)number_format($idx_tindak, 2, '.', '');
 
     $stmt->bind_param(
-        'ssssssssssssssssssssssss',
+        'ssssssssssssssssssssssssss',
         $s_company,
         $s_postings,
         $s_quota,
