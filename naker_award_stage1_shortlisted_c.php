@@ -248,13 +248,13 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 					<p class="small text-muted mb-3">Nilai Akhir ditentukan dari Nilai Aktual berdasarkan kriteria pada tabel di bawah. Indeks WLLP dihitung dengan rumus: <strong>(Bobot &times; Nilai Akhir) / 100</strong>. Total Indeks WLLP adalah penjumlahan seluruh indeks indikator.</p>
 					<div class="table-responsive">
 						<table class="table table-bordered table-sm align-middle">
-							<thead>
-								<tr>
-									<th>Indikator</th>
-									<th>Range</th>
-									<th>Nilai</th>
-								</tr>
-							</thead>
+                            <thead>
+                                <tr>
+                                    <th>Indikator</th>
+                                    <th>Interval</th>
+                                    <th>Nilai</th>
+                                </tr>
+                            </thead>
 							<tbody>
                                 <tr class="table-light"><th colspan="3">Jumlah Postingan Lowongan (Bobot <?php echo intval($WEIGHT_POSTINGS); ?>%)</th></tr>
                                 <?php foreach (($intervals['postings'] ?? []) as $it): ?>
