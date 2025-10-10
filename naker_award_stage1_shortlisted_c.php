@@ -231,7 +231,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 							</thead>
 							<tbody>
 								<tr>
-									<td>Jumlah Postingan Lowongan</td>
+									<td>Jumlah Postingan Loker</td>
                                     <td><?php echo intval($WEIGHT_POSTINGS); ?>%</td>
 									<td id="dm_postings_actual"></td>
 									<td id="dm_postings_na"></td>
@@ -266,7 +266,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                                     <td id="dm_real_idx"></td>
                                 </tr>
 								<tr>
-									<td>Jumlah Kebutuhan Disabilitas</td>
+									<td>Jumlah Kebutuhan Loker Disabilitas</td>
                                     <td><?php echo intval($WEIGHT_DISABILITY); ?>%</td>
 									<td id="dm_disab_actual"></td>
 									<td id="dm_disab_na"></td>
@@ -294,7 +294,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                                 </tr>
                             </thead>
 							<tbody>
-                                <tr class="table-light"><th colspan="3">Jumlah Postingan Lowongan (Bobot <?php echo intval($WEIGHT_POSTINGS); ?>%)</th></tr>
+								<tr class="table-light"><th colspan="3">Jumlah Postingan Loker (Bobot <?php echo intval($WEIGHT_POSTINGS); ?>%)</th></tr>
                                 <?php foreach (($intervals['postings'] ?? []) as $it): ?>
                                 <tr>
                                     <td></td>
@@ -399,7 +399,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                                 </tr>
                                 <?php endforeach; ?>
 
-                                <tr class="table-light"><th colspan="3">Jumlah Kebutuhan Disabilitas (Bobot <?php echo intval($WEIGHT_DISABILITY); ?>%)</th></tr>
+								<tr class="table-light"><th colspan="3">Jumlah Kebutuhan Loker Disabilitas (Bobot <?php echo intval($WEIGHT_DISABILITY); ?>%)</th></tr>
                                 <?php foreach (($intervals['disability'] ?? []) as $it): ?>
                                 <tr>
                                     <td></td>

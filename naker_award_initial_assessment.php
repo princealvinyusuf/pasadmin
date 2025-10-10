@@ -287,7 +287,7 @@ $resultRow = null; $message = isset($_GET['msg']) ? (string)$_GET['msg'] : '';
                     <input type="text" name="provinsi" class="form-control">
                 </div>
                 <div class="col-12 col-md-3">
-                    <label class="form-label">Jumlah Postingan Lowongan</label>
+					<label class="form-label">Jumlah Postingan Loker</label>
                     <input type="number" name="postings_count" id="postings_count" min="0" class="form-control" required>
                 </div>
                 <div class="col-12 col-md-3">
@@ -319,7 +319,7 @@ $resultRow = null; $message = isset($_GET['msg']) ? (string)$_GET['msg'] : '';
         <input type="number" step="0.01" min="0" name="tindak_lanjut_percent" id="tindak_lanjut_percent" class="form-control" readonly>
     </div>
                 <div class="col-12 col-md-3">
-                    <label class="form-label">Jumlah Kebutuhan Disabilitas</label>
+					<label class="form-label">Jumlah Kebutuhan Loker Disabilitas</label>
                     <input type="number" min="0" name="disability_need_count" class="form-control" required>
                 </div>
                 <div class="col-12">
@@ -626,7 +626,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Jumlah Postingan Lowongan</td>
+							<td>Jumlah Postingan Loker</td>
                             <td><?php echo intval($WEIGHT_POSTINGS); ?>%</td>
                             <td><?php echo intval($resultRow['postings_count']); ?></td>
                             <td><?php echo intval($resultRow['na_postings']); ?></td>
@@ -661,7 +661,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <td><?php echo isset($resultRow['idx_tindak']) ? number_format($resultRow['idx_tindak'], 2) : number_format(compute_indeks($WEIGHT_TINDAK, calculate_nilai_akhir_for_tindak($resultRow['tindak_lanjut_percent'] ?? 0)), 2); ?></td>
                         </tr>
                         <tr>
-                            <td>Jumlah Kebutuhan Disabilitas</td>
+							<td>Jumlah Kebutuhan Loker Disabilitas</td>
                             <td><?php echo intval($WEIGHT_DISABILITY); ?>%</td>
                             <td><?php echo intval($resultRow['disability_need_count']); ?></td>
                             <td><?php echo intval($resultRow['na_disability']); ?></td>
@@ -694,7 +694,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="mb-3">
                     <label class="form-label">Choose Excel File (.xlsx)</label>
                     <input type="file" id="bulkFile" accept=".xlsx,.xls" class="form-control">
-                    <div class="form-text">Expected columns: company_name, postings_count, quota_count, rencana_kebutuhan_wlkp, angka_realisasi, tindak_lanjut_total, disability_need_count.</div>
+                    <div class="form-text">Expected columns: company_name, postings_count (or "Jumlah Postingan Loker"), quota_count, rencana_kebutuhan_wlkp, angka_realisasi, tindak_lanjut_total, disability_need_count (or "Jumlah Kebutuhan Loker Disabilitas").</div>
                 </div>
                 <div id="bulkStatus" class="small text-muted"></div>
                 <div class="progress mt-2" role="progressbar" aria-label="Bulk import" aria-valuemin="0" aria-valuemax="100">
@@ -869,12 +869,12 @@ document.addEventListener('DOMContentLoaded', function() {
             var rows = json.map(function(r){
                 return {
                     company_name: r.company_name || r.Company || r['Nama Perusahaan'] || '',
-                    postings_count: parseInt(r.postings_count || r.Postings || r['Jumlah Postingan Lowongan'] || '0', 10) || 0,
+                    postings_count: parseInt(r.postings_count || r.Postings || r['Jumlah Postingan Loker'] || r['Jumlah Postingan Lowongan'] || '0', 10) || 0,
                     quota_count: parseInt(r.quota_count || r.Quota || r['Jumlah Kuota Lowongan'] || '0', 10) || 0,
                     rencana_kebutuhan_wlkp: normalizeNumber(r.rencana_kebutuhan_wlkp || r.Rencana || r['Rencana Kebutuhan Tenaga Kerja WLKP'] || '0'),
                     angka_realisasi: normalizeNumber(r.angka_realisasi || r.Realisasi || r['Angka Realisasi'] || '0'),
                     tindak_lanjut_total: parseInt(r.tindak_lanjut_total || r['Total Postingan Dengan Tindak Lanjut'] || '0', 10) || 0,
-                    disability_need_count: parseInt(r.disability_need_count || r.Disability || r['Jumlah Kebutuhan Disabilitas'] || '0', 10) || 0,
+                    disability_need_count: parseInt(r.disability_need_count || r.Disability || r['Jumlah Kebutuhan Loker Disabilitas'] || r['Jumlah Kebutuhan Disabilitas'] || '0', 10) || 0,
                     kbli1: r.kbli1 || r.KBLI1 || '',
                     kbli5: r.kbli5 || r.KBLI5 || '',
                     kab_kota: r.kab_kota || r.kabupaten_kota || r['Kabupaten/Kota'] || r.KabKota || '',
