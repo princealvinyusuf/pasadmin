@@ -102,7 +102,7 @@ $WEIGHT_TINDAK = intval($w['weight_tindak'] ?? 0);
 
 // Fetch results sorted by total indeks desc; allow showing all via query param
 $showAll = isset($_GET['all']) && $_GET['all'] === '1';
-$sqlList = 'SELECT * FROM naker_award_assessments ORDER BY total_indeks DESC, company_name ASC' . ($showAll ? '' : ' LIMIT 64');
+$sqlList = 'SELECT * FROM naker_award_assessments ORDER BY total_indeks DESC, company_name ASC' . ($showAll ? '' : ' LIMIT 72');
 $res = $conn->query($sqlList);
 $rows = [];
 while ($r = $res->fetch_assoc()) { $rows[] = $r; }
