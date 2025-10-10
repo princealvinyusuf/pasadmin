@@ -102,7 +102,41 @@ $WEIGHT_TINDAK = intval($w['weight_tindak'] ?? 0);
 
 // Fetch results sorted by total indeks desc; allow showing all via query param
 $showAll = isset($_GET['all']) && $_GET['all'] === '1';
-$sqlList = 'SELECT * FROM naker_award_assessments ORDER BY total_indeks DESC, company_name ASC' . ($showAll ? '' : ' LIMIT 72');
+$useCriteria = isset($_GET['criteria']) && $_GET['criteria'] === '1';
+
+// Build SQL based on criteria flag
+if ($useCriteria) {
+    // Map kriteria1..6 to our fields (as numeric > 0):
+    // k1=postings_count, k2=quota_count, k3=ratio_wlkp_percent, k4=tindak_lanjut_percent, k5=realisasi (realization_percent), k6=disability_need_count
+    $k1 = "(CAST(IFNULL(NULLIF(postings_count,''),'0') AS DECIMAL(15,4)) > 0)";
+    $k2 = "(CAST(IFNULL(NULLIF(quota_count,''),'0') AS DECIMAL(15,4)) > 0)";
+    $k3 = "(CAST(IFNULL(NULLIF(ratio_wlkp_percent,''),'0') AS DECIMAL(15,4)) > 0)";
+    $k4 = "(CAST(IFNULL(NULLIF(tindak_lanjut_percent,''),'0') AS DECIMAL(15,4)) > 0)";
+    $k5 = "(CAST(IFNULL(NULLIF(realization_percent,''),'0') AS DECIMAL(15,4)) > 0)";
+    $k6 = "(CAST(IFNULL(NULLIF(disability_need_count,''),'0') AS DECIMAL(15,4)) > 0)";
+
+    $all6    = "(($k1) AND ($k2) AND ($k3) AND ($k4) AND ($k5) AND ($k6))";
+    $first5  = "(($k1) AND ($k2) AND ($k3) AND ($k4) AND ($k5))";
+    $m1234   = "(($k1) AND ($k2) AND ($k3) AND ($k4))";
+    $m1236   = "(($k1) AND ($k2) AND ($k3) AND ($k6))";
+    $cntNZ   = "( ($k1) + ($k2) + ($k3) + ($k4) + ($k5) + ($k6) )";
+
+    $tierCase = "CASE\n"
+        . "    WHEN $all6 THEN 1\n"
+        . "    WHEN (NOT $all6 AND $first5) THEN 2\n"
+        . "    WHEN (NOT $all6 AND NOT $first5 AND $m1234) THEN 3\n"
+        . "    WHEN (NOT $all6 AND NOT $first5 AND NOT $m1234 AND $m1236) THEN 4\n"
+        . "    WHEN (NOT $all6 AND NOT $first5 AND NOT $m1234 AND NOT $m1236 AND $cntNZ = 3) THEN 5\n"
+        . "    ELSE 6\n"
+        . "END";
+
+    $sqlList = 'SELECT *, ' . $tierCase . ' AS tier FROM naker_award_assessments '
+        . ' ORDER BY tier ASC, CAST(IFNULL(NULLIF(total_indeks,\'\'),\'0\') AS DECIMAL(15,4)) DESC, '
+        . ' CAST(IFNULL(NULLIF(postings_count,\'\'),\'0\') AS DECIMAL(15,4)) DESC '
+        . ' LIMIT 72';
+} else {
+    $sqlList = 'SELECT * FROM naker_award_assessments ORDER BY total_indeks DESC, company_name ASC' . ($showAll ? '' : ' LIMIT 72');
+}
 $res = $conn->query($sqlList);
 $rows = [];
 while ($r = $res->fetch_assoc()) { $rows[] = $r; }
@@ -133,6 +167,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary" href="naker_award_initial_assessment.php">Add Assessment</a>
             <a class="btn btn-primary" href="naker_award_stage1_shortlisted_c.php?all=1">Show All Data</a>
+            <a class="btn btn-warning" href="naker_award_stage1_shortlisted_c.php?criteria=1">Filter Top 72 Indeks By Criteria</a>
         </div>
     </div>
 
