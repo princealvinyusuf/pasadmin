@@ -169,7 +169,11 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary" href="naker_award_initial_assessment.php">Add Assessment</a>
             <a class="btn btn-primary" href="naker_award_stage1_shortlisted_c.php?all=1">Show All Data</a>
+            <?php if ($useCriteria): ?>
+            <a class="btn btn-outline-warning" href="naker_award_stage1_shortlisted_c.php">Clear Criteria Filter</a>
+            <?php else: ?>
             <a class="btn btn-warning" href="naker_award_stage1_shortlisted_c.php?criteria=1">Filter Top 72 Indeks By Criteria</a>
+            <?php endif; ?>
         </div>
     </div>
 
