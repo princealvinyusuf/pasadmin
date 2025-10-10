@@ -64,7 +64,7 @@ function naker_eval_interval(array $items, float $value): int {
 // Ensure table exists
 $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    company_name VARCHAR(200) NOT NULL,
+    company_name VARCHAR(1000) NOT NULL,
     postings_count VARCHAR(100) NOT NULL DEFAULT '0',
     quota_count VARCHAR(100) NOT NULL DEFAULT '0',
     ratio_wlkp_percent VARCHAR(100) NOT NULL DEFAULT '0',
@@ -85,10 +85,10 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_assessments (
     nilai_akhir_disability VARCHAR(100) NOT NULL DEFAULT '0',
     indeks_disability VARCHAR(100) NOT NULL DEFAULT '0',
     total_indeks VARCHAR(100) NOT NULL DEFAULT '0',
-    kbli1 VARCHAR(100) DEFAULT NULL,
-    kbli5 VARCHAR(100) DEFAULT NULL,
-    kab_kota VARCHAR(200) DEFAULT NULL,
-    provinsi VARCHAR(200) DEFAULT NULL,
+    kbli1 VARCHAR(1000) DEFAULT NULL,
+    kbli5 VARCHAR(1000) DEFAULT NULL,
+    kab_kota VARCHAR(1000) DEFAULT NULL,
+    provinsi VARCHAR(1000) DEFAULT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_company_created (company_name(100), created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
@@ -157,6 +157,14 @@ try {
     MODIFY nilai_akhir_disability VARCHAR(100) NOT NULL DEFAULT '0',
     MODIFY indeks_disability VARCHAR(100) NOT NULL DEFAULT '0',
     MODIFY total_indeks VARCHAR(100) NOT NULL DEFAULT '0'");
+
+// Expand text columns to 1000 characters to accommodate longer values
+@$conn->query("ALTER TABLE naker_award_assessments 
+    MODIFY company_name VARCHAR(1000) NOT NULL,
+    MODIFY kbli1 VARCHAR(1000) DEFAULT NULL,
+    MODIFY kbli5 VARCHAR(1000) DEFAULT NULL,
+    MODIFY kab_kota VARCHAR(1000) DEFAULT NULL,
+    MODIFY provinsi VARCHAR(1000) DEFAULT NULL");
 
 // Dynamic Weights: load from settings table with safe defaults
 @$conn->query("CREATE TABLE IF NOT EXISTS naker_award_weights (
@@ -347,11 +355,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $kabKota = trim((string)($r['kab_kota'] ?? ($r['kabupaten_kota'] ?? '')));
             $provinsi = trim((string)($r['provinsi'] ?? ''));
             // enforce DB column limits to avoid "Data too long" errors
-            $company = naker_safe_truncate($company, 200);
-            $kbli1 = naker_safe_truncate($kbli1, 100);
-            $kbli5 = naker_safe_truncate($kbli5, 100);
-            $kabKota = naker_safe_truncate($kabKota, 200);
-            $provinsi = naker_safe_truncate($provinsi, 200);
+            $company = naker_safe_truncate($company, 1000);
+            $kbli1 = naker_safe_truncate($kbli1, 1000);
+            $kbli5 = naker_safe_truncate($kbli5, 1000);
+            $kabKota = naker_safe_truncate($kabKota, 1000);
+            $provinsi = naker_safe_truncate($provinsi, 1000);
             $postings = intval($r['postings_count'] ?? 0);
             $quota = intval($r['quota_count'] ?? 0);
             // Normalize decimals with commas for rencana and angka_realisasi
@@ -484,11 +492,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $kabKota = trim($_POST['kab_kota'] ?? '');
     $provinsi = trim($_POST['provinsi'] ?? '');
     // enforce DB column limits to avoid "Data too long" errors
-    $company = naker_safe_truncate($company, 200);
-    $kbli1 = naker_safe_truncate($kbli1, 100);
-    $kbli5 = naker_safe_truncate($kbli5, 100);
-    $kabKota = naker_safe_truncate($kabKota, 200);
-    $provinsi = naker_safe_truncate($provinsi, 200);
+    $company = naker_safe_truncate($company, 1000);
+    $kbli1 = naker_safe_truncate($kbli1, 1000);
+    $kbli5 = naker_safe_truncate($kbli5, 1000);
+    $kabKota = naker_safe_truncate($kabKota, 1000);
+    $provinsi = naker_safe_truncate($provinsi, 1000);
     $postings = intval($_POST['postings_count'] ?? 0);
     $quota = intval($_POST['quota_count'] ?? 0);
     $rencanaRaw = $_POST['rencana_kebutuhan_wlkp'] ?? '0';
