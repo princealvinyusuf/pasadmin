@@ -197,6 +197,24 @@ function compute_indeks(float $weightPercent, int $nilaiAkhir): float {
     return round(($weightPercent * $nilaiAkhir) / 100.0, 2);
 }
 
+/**
+ * Safely truncate UTF-8 strings to avoid exceeding column sizes.
+ */
+function naker_safe_truncate(string $value, int $maxLen): string {
+    $value = trim($value);
+    if ($maxLen <= 0) { return ''; }
+    if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+        if (mb_strlen($value, 'UTF-8') > $maxLen) {
+            return mb_substr($value, 0, $maxLen, 'UTF-8');
+        }
+        return $value;
+    }
+    if (strlen($value) > $maxLen) {
+        return substr($value, 0, $maxLen);
+    }
+    return $value;
+}
+
 $intervals = naker_get_intervals($conn);
 $resultRow = null; $message = isset($_GET['msg']) ? (string)$_GET['msg'] : '';
 
@@ -328,6 +346,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // accept either kab_kota or kabupaten_kota from excel JSON
             $kabKota = trim((string)($r['kab_kota'] ?? ($r['kabupaten_kota'] ?? '')));
             $provinsi = trim((string)($r['provinsi'] ?? ''));
+            // enforce DB column limits to avoid "Data too long" errors
+            $company = naker_safe_truncate($company, 200);
+            $kbli1 = naker_safe_truncate($kbli1, 100);
+            $kbli5 = naker_safe_truncate($kbli5, 100);
+            $kabKota = naker_safe_truncate($kabKota, 200);
+            $provinsi = naker_safe_truncate($provinsi, 200);
             $postings = intval($r['postings_count'] ?? 0);
             $quota = intval($r['quota_count'] ?? 0);
             // Normalize decimals with commas for rencana and angka_realisasi
@@ -459,6 +483,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $kbli5 = trim($_POST['kbli5'] ?? '');
     $kabKota = trim($_POST['kab_kota'] ?? '');
     $provinsi = trim($_POST['provinsi'] ?? '');
+    // enforce DB column limits to avoid "Data too long" errors
+    $company = naker_safe_truncate($company, 200);
+    $kbli1 = naker_safe_truncate($kbli1, 100);
+    $kbli5 = naker_safe_truncate($kbli5, 100);
+    $kabKota = naker_safe_truncate($kabKota, 200);
+    $provinsi = naker_safe_truncate($provinsi, 200);
     $postings = intval($_POST['postings_count'] ?? 0);
     $quota = intval($_POST['quota_count'] ?? 0);
     $rencanaRaw = $_POST['rencana_kebutuhan_wlkp'] ?? '0';
@@ -771,6 +801,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function importRows(rows){
         var total = rows.length, ok = 0, fail = 0;
+        var allErrors = [];
         setProgress(0, total);
         bulkStatus.textContent = 'Uploading ' + total + ' rows...';
         // Chunk to reduce payload size per request
@@ -785,17 +816,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 const data = await res.json();
                 ok += (data.inserted || 0);
-                fail += (data.errors ? data.errors.length : 0);
                 if (data.errors && data.errors.length) {
-                    const firstErr = data.errors[0];
-                    bulkStatus.textContent = 'Error at row ' + firstErr.row + ': ' + firstErr.error;
+                    fail += data.errors.length;
+                    // Map chunk-local row numbers to global positions
+                    data.errors.forEach(function(e){
+                        var globalRow = i + (parseInt(e.row, 10) || 0);
+                        allErrors.push({ row: globalRow, error: e.error });
+                    });
                 }
+                bulkStatus.textContent = 'Uploading ' + total + ' rows... Inserted so far: ' + ok + ', Failures so far: ' + fail + '.';
             } catch(err){
                 fail += chunk.length;
             }
             setProgress(Math.min(i+chunk.length, total), total);
         }
-        bulkStatus.textContent = 'Done. Inserted: ' + ok + ', Success: ' + fail + '.';
+        if (fail > 0) {
+            try {
+                var csv = 'row,error\n' + allErrors.map(function(e){
+                    var r = (e.row !== undefined && e.row !== null) ? e.row : '';
+                    var msg = String(e.error || '').replace(/"/g, '""');
+                    return r + ',"' + msg + '"';
+                }).join('\n');
+                var blob = new Blob([csv], {type: 'text/csv'});
+                var url = URL.createObjectURL(blob);
+                bulkStatus.innerHTML = 'Done. Inserted: ' + ok + ', Failures: ' + fail + '. ' +
+                    '<a href="' + url + '" download="bulk_import_errors.csv">Download errors</a>';
+            } catch(e) {
+                bulkStatus.textContent = 'Done. Inserted: ' + ok + ', Failures: ' + fail + '.';
+            }
+        } else {
+            bulkStatus.textContent = 'Done. Inserted: ' + ok + ', Failures: ' + fail + '.';
+        }
     }
 
     startImportBtn && startImportBtn.addEventListener('click', async function(){
