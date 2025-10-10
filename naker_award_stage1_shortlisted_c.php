@@ -144,7 +144,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                         <th>#</th>
                         <th>Nama Perusahaan</th>
                         <th>Total Indeks WLLP</th>
-                        <th>Nilai Akhir (Postingan, Kuota, Rasio, Penempatan, Tindak Lanjut, Disabilitas)</th>
+                        <th>Nilai Akhir (Postingan, Kuota, Rasio, Tindak Lanjut, Penempatan, Disabilitas)</th>
 						<th>Actions</th>
                         <th>Tanggal</th>
                     </tr>
@@ -160,8 +160,8 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                             echo intval($row['nilai_akhir_postings']) . ', ' .
                                  intval($row['nilai_akhir_quota']) . ', ' .
                                  intval($row['nilai_akhir_ratio']) . ', ' .
-                                 intval($row['nilai_akhir_realization']) . ', ' .
                                  intval($row['nilai_akhir_tindak']) . ', ' .
+                                 intval($row['nilai_akhir_realization']) . ', ' .
                                  intval($row['nilai_akhir_disability']);
                             ?>
                         </td>
@@ -251,19 +251,19 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 									<td id="dm_ratio_na"></td>
 									<td id="dm_ratio_idx"></td>
 								</tr>
-								<tr>
-									<td>Realisasi Penempatan TK</td>
-                                    <td><?php echo intval($WEIGHT_REALIZATION); ?>%</td>
-									<td id="dm_real_actual"></td>
-									<td id="dm_real_na"></td>
-									<td id="dm_real_idx"></td>
-								</tr>
                                 <tr>
                                     <td>Tindak Lanjut Lamaran</td>
                                     <td><?php echo intval($WEIGHT_TINDAK); ?>%</td>
                                     <td id="dm_tindak_actual"></td>
                                     <td id="dm_tindak_na"></td>
                                     <td id="dm_tindak_idx"></td>
+                                </tr>
+                                <tr>
+                                    <td>Realisasi Penempatan TK</td>
+                                    <td><?php echo intval($WEIGHT_REALIZATION); ?>%</td>
+                                    <td id="dm_real_actual"></td>
+                                    <td id="dm_real_na"></td>
+                                    <td id="dm_real_idx"></td>
                                 </tr>
 								<tr>
 									<td>Jumlah Kebutuhan Disabilitas</td>
@@ -357,8 +357,8 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                                 </tr>
                                 <?php endforeach; ?>
 
-                                <tr class="table-light"><th colspan="3">Realisasi Penempatan Tenaga Kerja (Bobot <?php echo intval($WEIGHT_REALIZATION); ?>%)</th></tr>
-                                <?php foreach (($intervals['realization'] ?? []) as $it): ?>
+                                <tr class="table-light"><th colspan="3">Tindak Lanjut Lamaran (Bobot <?php echo intval($WEIGHT_TINDAK); ?>%)</th></tr>
+                                <?php foreach (($intervals['tindak'] ?? []) as $it): ?>
                                 <tr>
                                     <td></td>
                                     <td>
@@ -378,8 +378,8 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                                 </tr>
                                 <?php endforeach; ?>
 
-                                <tr class="table-light"><th colspan="3">Tindak Lanjut Lamaran (Bobot <?php echo intval($WEIGHT_TINDAK); ?>%)</th></tr>
-                                <?php foreach (($intervals['tindak'] ?? []) as $it): ?>
+                                <tr class="table-light"><th colspan="3">Realisasi Penempatan Tenaga Kerja (Bobot <?php echo intval($WEIGHT_REALIZATION); ?>%)</th></tr>
+                                <?php foreach (($intervals['realization'] ?? []) as $it): ?>
                                 <tr>
                                     <td></td>
                                     <td>
