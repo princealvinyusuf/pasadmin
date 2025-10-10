@@ -131,6 +131,7 @@ if ($useCriteria) {
         . "END";
 
     $sqlList = 'SELECT *, ' . $tierCase . ' AS tier FROM naker_award_assessments '
+        . ' WHERE CAST(IFNULL(NULLIF(total_indeks,\'\'),\'0\') AS DECIMAL(15,4)) >= 60 '
         . ' ORDER BY tier ASC, CAST(IFNULL(NULLIF(total_indeks,\'\'),\'0\') AS DECIMAL(15,4)) DESC, '
         . ' CAST(IFNULL(NULLIF(postings_count,\'\'),\'0\') AS DECIMAL(15,4)) DESC, '
         . ' CAST(IFNULL(NULLIF(quota_count,\'\'),\'0\') AS DECIMAL(15,4)) DESC '
