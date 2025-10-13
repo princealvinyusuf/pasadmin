@@ -161,7 +161,6 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
                         <th>#</th>
                         <th>Nama Perusahaan</th>
                         <th>Total Indeks WLLP</th>
-                        <th>Tier</th>
                         <th>Tanggal</th>
                         <th>Status</th>
                         <th>Action</th>
@@ -173,7 +172,6 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
                         <td><?php echo $i++; ?></td>
                         <td><?php echo htmlspecialchars($row['company_name']); ?></td>
                         <td><strong><?php echo number_format((float)$row['total_indeks'], 2); ?></strong></td>
-                        <td><?php echo intval($row['tier']); ?></td>
                         <td><?php echo htmlspecialchars($row['created_at']); ?></td>
                         <td>
                             <?php
