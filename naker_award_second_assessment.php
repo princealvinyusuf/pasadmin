@@ -48,12 +48,39 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_second_mandatory (
     UNIQUE KEY uniq_assessment (assessment_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-// Top 15 by total_indeks with second-stage status
-$sql = "SELECT a.id, a.company_name, a.total_indeks, a.created_at, m.final_submitted, m.id AS m_id
-        FROM naker_award_assessments a
-        LEFT JOIN naker_award_second_mandatory m ON m.assessment_id = a.id
-        ORDER BY CAST(a.total_indeks AS DECIMAL(10,2)) DESC, a.company_name ASC
-        LIMIT 15";
+// Criteria-style ranking (same as Stage 1 criteria filter): tiering and >= 60 filter, top 72
+$k1 = "(CAST(IFNULL(NULLIF(a.postings_count,''),'0') AS DECIMAL(15,4)) > 0)";
+$k2 = "(CAST(IFNULL(NULLIF(a.quota_count,''),'0') AS DECIMAL(15,4)) > 0)";
+$k3 = "(CAST(IFNULL(NULLIF(a.ratio_wlkp_percent,''),'0') AS DECIMAL(15,4)) > 0)";
+$k4 = "(CAST(IFNULL(NULLIF(a.tindak_lanjut_percent,''),'0') AS DECIMAL(15,4)) > 0)";
+$k5 = "(CAST(IFNULL(NULLIF(a.realization_percent,''),'0') AS DECIMAL(15,4)) > 0)";
+$k6 = "(CAST(IFNULL(NULLIF(a.disability_need_count,''),'0') AS DECIMAL(15,4)) > 0)";
+
+$all6   = "((" . $k1 . ") AND (" . $k2 . ") AND (" . $k3 . ") AND (" . $k4 . ") AND (" . $k5 . ") AND (" . $k6 . "))";
+$first5 = "((" . $k1 . ") AND (" . $k2 . ") AND (" . $k3 . ") AND (" . $k4 . ") AND (" . $k5 . "))";
+$m1234  = "((" . $k1 . ") AND (" . $k2 . ") AND (" . $k3 . ") AND (" . $k4 . "))";
+$m1236  = "((" . $k1 . ") AND (" . $k2 . ") AND (" . $k3 . ") AND (" . $k6 . "))";
+$cntNZ  = "( (" . $k1 . ") + (" . $k2 . ") + (" . $k3 . ") + (" . $k4 . ") + (" . $k5 . ") + (" . $k6 . ") )";
+
+$tierCase = "CASE\n"
+    . "    WHEN " . $all6 . " THEN 1\n"
+    . "    WHEN (NOT " . $all6 . " AND " . $first5 . ") THEN 2\n"
+    . "    WHEN (NOT " . $all6 . " AND NOT " . $first5 . " AND " . $m1234 . ") THEN 3\n"
+    . "    WHEN (NOT " . $all6 . " AND NOT " . $first5 . " AND NOT " . $m1234 . " AND " . $m1236 . ") THEN 4\n"
+    . "    WHEN (NOT " . $all6 . " AND NOT " . $first5 . " AND NOT " . $m1234 . " AND NOT " . $m1236 . " AND " . $cntNZ . " = 3) THEN 5\n"
+    . "    ELSE 6\n"
+    . "END";
+
+$sql = 'SELECT a.id, a.company_name, a.total_indeks, a.created_at, m.final_submitted, m.id AS m_id, '
+    . $tierCase . ' AS tier '
+    . ' FROM naker_award_assessments a '
+    . ' LEFT JOIN naker_award_second_mandatory m ON m.assessment_id = a.id '
+    . " WHERE CAST(IFNULL(NULLIF(a.total_indeks,'') ,'0') AS DECIMAL(15,4)) >= 60 "
+    . ' ORDER BY tier ASC, '
+    . " CAST(IFNULL(NULLIF(a.total_indeks,'') ,'0') AS DECIMAL(15,4)) DESC, "
+    . " CAST(IFNULL(NULLIF(a.postings_count,'') ,'0') AS DECIMAL(15,4)) DESC, "
+    . " CAST(IFNULL(NULLIF(a.quota_count,'') ,'0') AS DECIMAL(15,4)) DESC "
+    . ' LIMIT 72';
 $result = $conn->query($sql);
 $rows = [];
 while ($r = $result->fetch_assoc()) { $rows[] = $r; }
@@ -75,6 +102,10 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
         <a class="btn btn-outline-secondary" href="naker_award_stage1_shortlisted_c.php">Back to Stage 1</a>
     </div>
 
+    <div class="mb-3">
+        <span class="badge bg-warning text-dark">Criteria ranking active: Top 72 • Total Indeks ≥ 60</span>
+    </div>
+
     <div class="card">
         <div class="table-responsive">
             <table class="table table-striped mb-0">
@@ -83,6 +114,7 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
                         <th>#</th>
                         <th>Nama Perusahaan</th>
                         <th>Total Indeks WLLP</th>
+                        <th>Tier</th>
                         <th>Tanggal</th>
                         <th>Status</th>
                         <th>Action</th>
@@ -94,6 +126,7 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
                         <td><?php echo $i++; ?></td>
                         <td><?php echo htmlspecialchars($row['company_name']); ?></td>
                         <td><strong><?php echo number_format((float)$row['total_indeks'], 2); ?></strong></td>
+                        <td><?php echo intval($row['tier']); ?></td>
                         <td><?php echo htmlspecialchars($row['created_at']); ?></td>
                         <td>
                             <?php
