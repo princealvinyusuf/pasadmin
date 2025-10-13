@@ -81,6 +81,50 @@ $sql = 'SELECT a.id, a.company_name, a.total_indeks, a.created_at, m.final_submi
     . " CAST(IFNULL(NULLIF(a.postings_count,'') ,'0') AS DECIMAL(15,4)) DESC, "
     . " CAST(IFNULL(NULLIF(a.quota_count,'') ,'0') AS DECIMAL(15,4)) DESC "
     . ' LIMIT 72';
+
+// Export CSV handler using the same criteria-ranked query
+if (isset($_GET['export']) && $_GET['export'] === '1') {
+    $exportSql = 'SELECT a.*, ' . $tierCase . ' AS tier '
+        . ' FROM naker_award_assessments a '
+        . ' LEFT JOIN naker_award_second_mandatory m ON m.assessment_id = a.id '
+        . " WHERE CAST(IFNULL(NULLIF(a.total_indeks,'') ,'0') AS DECIMAL(15,4)) >= 60 "
+        . ' ORDER BY tier ASC, '
+        . " CAST(IFNULL(NULLIF(a.total_indeks,'') ,'0') AS DECIMAL(15,4)) DESC, "
+        . " CAST(IFNULL(NULLIF(a.postings_count,'') ,'0') AS DECIMAL(15,4)) DESC, "
+        . " CAST(IFNULL(NULLIF(a.quota_count,'') ,'0') AS DECIMAL(15,4)) DESC "
+        . ' LIMIT 72';
+    $exportRes = $conn->query($exportSql);
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="second_assessment_criteria_top72.csv"');
+    $out = fopen('php://output', 'w');
+    fputcsv($out, [
+        'final_rank','tier','company_name','total_indeks',
+        'postings_count','quota_count','ratio_wlkp_percent',
+        'tindak_lanjut_percent','realization_percent','disability_need_count',
+        'created_at'
+    ]);
+    $rank = 1;
+    if ($exportRes) {
+        while ($er = $exportRes->fetch_assoc()) {
+            fputcsv($out, [
+                $rank++,
+                intval($er['tier'] ?? 0),
+                $er['company_name'] ?? '',
+                $er['total_indeks'] ?? '0',
+                $er['postings_count'] ?? '0',
+                $er['quota_count'] ?? '0',
+                $er['ratio_wlkp_percent'] ?? '0',
+                $er['tindak_lanjut_percent'] ?? '0',
+                $er['realization_percent'] ?? '0',
+                $er['disability_need_count'] ?? '0',
+                $er['created_at'] ?? ''
+            ]);
+        }
+    }
+    fclose($out);
+    exit;
+}
+
 $result = $conn->query($sql);
 $rows = [];
 while ($r = $result->fetch_assoc()) { $rows[] = $r; }
@@ -99,7 +143,10 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">WLLP Award - Second Assessment</h2>
-        <a class="btn btn-outline-secondary" href="naker_award_stage1_shortlisted_c.php">Back to Stage 1</a>
+        <div class="d-flex gap-2">
+            <a class="btn btn-success" href="naker_award_second_assessment.php?export=1">Export Top 72 (criteria) CSV</a>
+            <a class="btn btn-outline-secondary" href="naker_award_stage1_shortlisted_c.php">Back to Stage 1</a>
+        </div>
     </div>
 
     <div class="mb-3">
