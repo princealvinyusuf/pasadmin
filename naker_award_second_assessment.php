@@ -48,6 +48,13 @@ $conn->query("CREATE TABLE IF NOT EXISTS naker_award_second_mandatory (
     UNIQUE KEY uniq_assessment (assessment_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+// Backfill new column for industrial dispute clearance if missing (compatibility with older deployments)
+$colCheckSqlS = "SELECT COUNT(*) AS cnt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'naker_award_second_mandatory' AND COLUMN_NAME = 'clearance_industrial_dispute_doc_path'";
+$colCheckResS = $conn->query($colCheckSqlS);
+if ($colCheckResS && ($rowS = $colCheckResS->fetch_assoc()) && intval($rowS['cnt']) === 0) {
+    $conn->query("ALTER TABLE naker_award_second_mandatory ADD COLUMN clearance_industrial_dispute_doc_path VARCHAR(255) DEFAULT NULL");
+}
+
 // Criteria-style ranking (same as Stage 1 criteria filter): tiering and >= 60 filter, top 72
 $k1 = "(CAST(IFNULL(NULLIF(a.postings_count,''),'0') AS DECIMAL(15,4)) > 0)";
 $k2 = "(CAST(IFNULL(NULLIF(a.quota_count,''),'0') AS DECIMAL(15,4)) > 0)";
@@ -79,7 +86,7 @@ $from   = ' FROM naker_award_assessments a LEFT JOIN naker_award_second_mandator
 $where  = " WHERE CAST(IFNULL(NULLIF(a.total_indeks,'') ,'0') AS DECIMAL(15,4)) >= 60";
 if ($criteria1Active) {
     $where .= " AND m.minimum_wage_doc_path IS NOT NULL AND m.minimum_wage_doc_path <> ''"
-            . " AND m.clearance_no_law_path IS NOT NULL AND m.clearance_no_law_path <> ''";
+            . " AND m.clearance_industrial_dispute_doc_path IS NOT NULL AND m.clearance_industrial_dispute_doc_path <> ''";
 }
 $order  = ' ORDER BY tier ASC,'
         . " CAST(IFNULL(NULLIF(a.total_indeks,'') ,'0') AS DECIMAL(15,4)) DESC,"
@@ -163,7 +170,7 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
     <div class="mb-3">
         <span class="badge bg-warning text-dark">Criteria ranking active: Top 72 • Total Indeks ≥ 60</span>
         <?php if ($criteria1Active): ?>
-            <span class="badge bg-info text-dark ms-2">Criteria 1: Upah Minimum + Clearance PHI uploaded</span>
+            <span class="badge bg-info text-dark ms-2">Criteria 1: Upah Minimum + Clearance Perselisihan HI uploaded</span>
         <?php endif; ?>
     </div>
 
