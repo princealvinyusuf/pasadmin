@@ -19,6 +19,8 @@
     $asmenPrefix = $asmenUrl;
     $jejaringPrefix = $jejaringUrl;
 ?>
+<?php // Ensure favicon is set on pages that include the navbar ?>
+<link rel="icon" href="https://paskerid.kemnaker.go.id/paskerid/public/images/services/logo.png" type="image/png">
 <!-- Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container">
