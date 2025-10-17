@@ -80,6 +80,7 @@ $tierCase = "CASE\n"
 
 // Criteria 1 filter: only companies with both Minimum Wage doc and Industrial Dispute Clearance uploaded
 $criteria1Active = (isset($_GET['criteria1']) && $_GET['criteria1'] === '1');
+$criteria2Active = (isset($_GET['criteria2']) && $_GET['criteria2'] === '1');
 
 $select = 'SELECT a.id, a.company_name, a.total_indeks, a.created_at, m.final_submitted, m.id AS m_id, ' . $tierCase . ' AS tier';
 $from   = ' FROM naker_award_assessments a LEFT JOIN naker_award_second_mandatory m ON m.assessment_id = a.id';
@@ -87,6 +88,12 @@ $where  = " WHERE CAST(IFNULL(NULLIF(a.total_indeks,'') ,'0') AS DECIMAL(15,4)) 
 if ($criteria1Active) {
     $where .= " AND m.minimum_wage_doc_path IS NOT NULL AND m.minimum_wage_doc_path <> ''"
             . " AND m.clearance_industrial_dispute_doc_path IS NOT NULL AND m.clearance_industrial_dispute_doc_path <> ''";
+}
+if ($criteria2Active) {
+    $where .= " AND m.clearance_no_law_path IS NOT NULL AND m.clearance_no_law_path <> ''"
+            . " AND m.clearance_smk3_status_doc_path IS NOT NULL AND m.clearance_smk3_status_doc_path <> ''"
+            . " AND m.smk3_certificate_copy_path IS NOT NULL AND m.smk3_certificate_copy_path <> ''"
+            . " AND m.clearance_zero_accident_doc_path IS NOT NULL AND m.clearance_zero_accident_doc_path <> ''";
 }
 $order  = ' ORDER BY tier ASC,'
         . " CAST(IFNULL(NULLIF(a.total_indeks,'') ,'0') AS DECIMAL(15,4)) DESC,"
@@ -159,9 +166,14 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
         <div class="d-flex gap-2">
             <a class="btn btn-success" href="naker_award_second_assessment.php?export=1">Export Top 72 (criteria) CSV</a>
             <?php if ($criteria1Active): ?>
-                <a class="btn btn-warning" href="naker_award_second_assessment.php">Criteria 1 Active (Clear)</a>
+                <a class="btn btn-warning" href="naker_award_second_assessment.php<?php echo $criteria2Active ? '?criteria2=1' : ''; ?>">Criteria 1 Active (Clear)</a>
             <?php else: ?>
-                <a class="btn btn-outline-primary" href="naker_award_second_assessment.php?criteria1=1">Criteria 1</a>
+                <a class="btn btn-outline-primary" href="naker_award_second_assessment.php?criteria1=1<?php echo $criteria2Active ? '&criteria2=1' : ''; ?>">Criteria 1</a>
+            <?php endif; ?>
+            <?php if ($criteria2Active): ?>
+                <a class="btn btn-warning" href="naker_award_second_assessment.php<?php echo $criteria1Active ? '?criteria1=1' : ''; ?>">Criteria 2 Active (Clear)</a>
+            <?php else: ?>
+                <a class="btn btn-outline-secondary" href="naker_award_second_assessment.php?criteria2=1<?php echo $criteria1Active ? '&criteria1=1' : ''; ?>">Criteria 2</a>
             <?php endif; ?>
             <a class="btn btn-outline-secondary" href="naker_award_stage1_shortlisted_c.php">Back to Stage 1</a>
         </div>
@@ -171,6 +183,9 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
         <span class="badge bg-warning text-dark">Criteria ranking active: Top 72 • Total Indeks ≥ 60</span>
         <?php if ($criteria1Active): ?>
             <span class="badge bg-info text-dark ms-2">Criteria 1: Upah Minimum + Clearance Perselisihan HI uploaded</span>
+        <?php endif; ?>
+        <?php if ($criteria2Active): ?>
+            <span class="badge bg-info text-dark ms-2">Criteria 2: Clearance Hukum, Clearance SMK3, Sertifikat SMK3, Zero Accident 2025 uploaded</span>
         <?php endif; ?>
     </div>
 
