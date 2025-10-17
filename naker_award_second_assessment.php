@@ -81,6 +81,7 @@ $tierCase = "CASE\n"
 // Criteria 1 filter: only companies with both Minimum Wage doc and Industrial Dispute Clearance uploaded
 $criteria1Active = (isset($_GET['criteria1']) && $_GET['criteria1'] === '1');
 $criteria2Active = (isset($_GET['criteria2']) && $_GET['criteria2'] === '1');
+$bothCriteriaActive = ($criteria1Active && $criteria2Active);
 
 $select = 'SELECT a.id, a.company_name, a.total_indeks, a.created_at, m.final_submitted, m.id AS m_id, ' . $tierCase . ' AS tier';
 $from   = ' FROM naker_award_assessments a LEFT JOIN naker_award_second_mandatory m ON m.assessment_id = a.id';
@@ -175,6 +176,11 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
             <?php else: ?>
                 <a class="btn btn-outline-secondary" href="naker_award_second_assessment.php?criteria2=1<?php echo $criteria1Active ? '&criteria1=1' : ''; ?>">Criteria 2</a>
             <?php endif; ?>
+            <?php if ($bothCriteriaActive): ?>
+                <a class="btn btn-warning" href="naker_award_second_assessment.php">Both Criteria Active (Clear)</a>
+            <?php else: ?>
+                <a class="btn btn-outline-dark" href="naker_award_second_assessment.php?criteria1=1&criteria2=1">Both Criteria</a>
+            <?php endif; ?>
             <a class="btn btn-outline-secondary" href="naker_award_stage1_shortlisted_c.php">Back to Stage 1</a>
         </div>
     </div>
@@ -186,6 +192,9 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
         <?php endif; ?>
         <?php if ($criteria2Active): ?>
             <span class="badge bg-info text-dark ms-2">Criteria 2: Clearance Hukum, Clearance SMK3, Sertifikat SMK3, Zero Accident 2025 uploaded</span>
+        <?php endif; ?>
+        <?php if ($bothCriteriaActive): ?>
+            <span class="badge bg-primary text-light ms-2">Both Criteria active</span>
         <?php endif; ?>
     </div>
 
