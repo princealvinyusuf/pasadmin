@@ -22,7 +22,10 @@
 <!-- Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container">
-        <a class="navbar-brand" href="<?php echo isset($rootPrefix) ? $rootPrefix : ''; ?>index.php"><i class="bi bi-briefcase me-2"></i>Job Admin</a>
+        <a class="navbar-brand d-flex align-items-center" href="<?php echo isset($rootPrefix) ? $rootPrefix : ''; ?>index.php">
+            <img src="https://paskerid.kemnaker.go.id/paskerid/public/images/services/logo.png" alt="Logo" style="height:24px; width:auto;" class="me-2">
+            Job Admin
+        </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>

@@ -28,6 +28,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     </head>
     <body>
         <div class="login-container">
+            <div style="text-align:center; margin-bottom: 12px;">
+                <img src="https://paskerid.kemnaker.go.id/paskerid/public/images/services/logo.png" alt="Logo" style="height:40px; width:auto;">
+            </div>
             <h2>Login</h2>
             <form action="login.php" method="post">
                 <label for="username">Username:</label>
