@@ -71,16 +71,22 @@ $tierCase = "CASE\n"
     . "    ELSE 6\n"
     . "END";
 
-$sql = 'SELECT a.id, a.company_name, a.total_indeks, a.created_at, m.final_submitted, m.id AS m_id, '
-    . $tierCase . ' AS tier '
-    . ' FROM naker_award_assessments a '
-    . ' LEFT JOIN naker_award_second_mandatory m ON m.assessment_id = a.id '
-    . " WHERE CAST(IFNULL(NULLIF(a.total_indeks,'') ,'0') AS DECIMAL(15,4)) >= 60 "
-    . ' ORDER BY tier ASC, '
-    . " CAST(IFNULL(NULLIF(a.total_indeks,'') ,'0') AS DECIMAL(15,4)) DESC, "
-    . " CAST(IFNULL(NULLIF(a.postings_count,'') ,'0') AS DECIMAL(15,4)) DESC, "
-    . " CAST(IFNULL(NULLIF(a.quota_count,'') ,'0') AS DECIMAL(15,4)) DESC "
-    . ' LIMIT 72';
+// Criteria 1 filter: only companies with both Minimum Wage doc and Industrial Dispute Clearance uploaded
+$criteria1Active = (isset($_GET['criteria1']) && $_GET['criteria1'] === '1');
+
+$select = 'SELECT a.id, a.company_name, a.total_indeks, a.created_at, m.final_submitted, m.id AS m_id, ' . $tierCase . ' AS tier';
+$from   = ' FROM naker_award_assessments a LEFT JOIN naker_award_second_mandatory m ON m.assessment_id = a.id';
+$where  = " WHERE CAST(IFNULL(NULLIF(a.total_indeks,'') ,'0') AS DECIMAL(15,4)) >= 60";
+if ($criteria1Active) {
+    $where .= " AND m.minimum_wage_doc_path IS NOT NULL AND m.minimum_wage_doc_path <> ''"
+            . " AND m.clearance_no_law_path IS NOT NULL AND m.clearance_no_law_path <> ''";
+}
+$order  = ' ORDER BY tier ASC,'
+        . " CAST(IFNULL(NULLIF(a.total_indeks,'') ,'0') AS DECIMAL(15,4)) DESC,"
+        . " CAST(IFNULL(NULLIF(a.postings_count,'') ,'0') AS DECIMAL(15,4)) DESC,"
+        . " CAST(IFNULL(NULLIF(a.quota_count,'') ,'0') AS DECIMAL(15,4)) DESC";
+$limit  = ' LIMIT 72';
+$sql    = $select . $from . $where . $order . $limit;
 
 // Export CSV handler using the same criteria-ranked query
 if (isset($_GET['export']) && $_GET['export'] === '1') {
@@ -145,12 +151,20 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
         <h2 class="mb-0">WLLP Award - Second Assessment</h2>
         <div class="d-flex gap-2">
             <a class="btn btn-success" href="naker_award_second_assessment.php?export=1">Export Top 72 (criteria) CSV</a>
+            <?php if ($criteria1Active): ?>
+                <a class="btn btn-warning" href="naker_award_second_assessment.php">Criteria 1 Active (Clear)</a>
+            <?php else: ?>
+                <a class="btn btn-outline-primary" href="naker_award_second_assessment.php?criteria1=1">Criteria 1</a>
+            <?php endif; ?>
             <a class="btn btn-outline-secondary" href="naker_award_stage1_shortlisted_c.php">Back to Stage 1</a>
         </div>
     </div>
 
     <div class="mb-3">
         <span class="badge bg-warning text-dark">Criteria ranking active: Top 72 • Total Indeks ≥ 60</span>
+        <?php if ($criteria1Active): ?>
+            <span class="badge bg-info text-dark ms-2">Criteria 1: Upah Minimum + Clearance PHI uploaded</span>
+        <?php endif; ?>
     </div>
 
     <div class="card">
