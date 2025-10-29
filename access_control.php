@@ -120,6 +120,14 @@ $permissions = [];
 $res = $conn->query('SELECT id, code, label, category FROM access_permissions ORDER BY category, code');
 while ($r = $res->fetch_assoc()) { $permissions[] = $r; }
 
+// Permissions tied to features removed from the UI (kept in DB for stability)
+$deprecatedCodes = [
+	'view_dashboard_jobs',
+	'view_dashboard_job_seekers',
+	'manage_job_seekers',
+	'manage_jobs',
+];
+
 $groupIdToPermissionIds = [];
 $res = $conn->query('SELECT group_id, permission_id FROM group_permissions');
 while ($r = $res->fetch_assoc()) {
@@ -249,7 +257,7 @@ while ($r = $res->fetch_assoc()) { $userAccessRows[] = $r; }
 								<div class="col-12 col-md-6">
 									<div class="form-check">
 										<input class="form-check-input perm-checkbox" type="checkbox" name="permissions[]" value="<?php echo $p['id']; ?>" id="perm_<?php echo $p['id']; ?>">
-										<label class="form-check-label" for="perm_<?php echo $p['id']; ?>"><?php echo htmlspecialchars($p['label']); ?> <span class="text-muted small">(<?php echo htmlspecialchars($p['code']); ?>)</span></label>
+							<label class="form-check-label" for="perm_<?php echo $p['id']; ?>"><?php echo htmlspecialchars($p['label']); ?> <span class="text-muted small">(<?php echo htmlspecialchars($p['code']); ?>)</span><?php if (in_array($p['code'], $deprecatedCodes, true)): ?><span class="badge bg-warning text-dark ms-1">deprecated</span><?php endif; ?></label>
 									</div>
 								</div>
 								<?php endforeach; endforeach; ?>
@@ -318,7 +326,7 @@ while ($r = $res->fetch_assoc()) { $userAccessRows[] = $r; }
 						<input type="hidden" name="action" value="add_permission">
 						<div class="mb-2">
 							<label class="form-label">Code</label>
-							<input class="form-control" type="text" name="code" placeholder="e.g. manage_jobs" required>
+						<input class="form-control" type="text" name="code" placeholder="e.g. use_broadcast" required>
 						</div>
 						<div class="mb-2">
 							<label class="form-label">Label</label>
@@ -341,7 +349,7 @@ while ($r = $res->fetch_assoc()) { $userAccessRows[] = $r; }
 						<tbody>
 						<?php foreach ($permissions as $p): ?>
 						<tr>
-							<td><code><?php echo htmlspecialchars($p['code']); ?></code></td>
+						<td><code><?php echo htmlspecialchars($p['code']); ?></code><?php if (in_array($p['code'], $deprecatedCodes, true)): ?><span class="badge bg-warning text-dark ms-1">deprecated</span><?php endif; ?></td>
 							<td><?php echo htmlspecialchars($p['label']); ?></td>
 							<td><?php echo htmlspecialchars($p['category'] ?? ''); ?></td>
 						</tr>
