@@ -33,7 +33,6 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
 <?php
-    $canDashSeekers = current_user_can('view_dashboard_job_seekers');
     $canDashKebutuhan = current_user_can('view_dashboard_kebutuhan_tk');
     $canDashPersediaan = current_user_can('view_dashboard_persediaan_tk');
     $canJobs = current_user_can('manage_jobs');
@@ -66,7 +65,7 @@
     $canAsmenQR = current_user_can('asmen_use_qr') || $canAsmenAssets;
 
     // Show Dashboard if user can view any dashboard or manage settings
-    $hasDashboard = ($canDashSeekers || $canDashKebutuhan || $canDashPersediaan || current_user_can('manage_settings'));
+    $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || current_user_can('manage_settings'));
     $hasMasterData = ($canJobs || $canJobSeekers);
     $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canAccessControl || $canBroadcast);
     $hasLayanan = ($canManageSettings || $canMitraKerja || $canPartnershipType || $canMitraSubmission || $canKemitraanBooked || $canPaskerRoom);
@@ -101,7 +100,7 @@
                         </a>
                     <ul class="dropdown-menu" aria-labelledby="dashboardDropdown">
                             
-                            <?php if ($canDashSeekers || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_job_seekers.php">Dashboard Job Seekers</a></li><?php endif; ?>
+                            
                         <li><hr class="dropdown-divider"></li>
                             <?php if ($canDashKebutuhan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_kebutuhan_tenaga_kerja.php">Dashboard Kebutuhan Tenaga Kerja</a></li><?php endif; ?>
                             <?php if ($canDashPersediaan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_persediaan_tenaga_kerja.php">Dashboard Persediaan Tenaga Kerja</a></li><?php endif; ?>
