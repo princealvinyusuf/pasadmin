@@ -36,7 +36,6 @@
     $canDashKebutuhan = current_user_can('view_dashboard_kebutuhan_tk');
     $canDashPersediaan = current_user_can('view_dashboard_persediaan_tk');
     $canJobs = current_user_can('manage_jobs');
-    $canJobSeekers = current_user_can('manage_job_seekers');
     $canManageSettings = current_user_can('manage_settings');
     $canChart = current_user_can('settings_chart_manage');
     $canContribution = current_user_can('settings_contribution_manage');
@@ -66,7 +65,7 @@
 
     // Show Dashboard if user can view any dashboard or manage settings
     $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || current_user_can('manage_settings'));
-    $hasMasterData = ($canJobs || $canJobSeekers);
+    $hasMasterData = ($canJobs);
     $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canAccessControl || $canBroadcast);
     $hasLayanan = ($canManageSettings || $canMitraKerja || $canPartnershipType || $canMitraSubmission || $canKemitraanBooked || $canPaskerRoom);
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
@@ -125,7 +124,7 @@
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
                             <?php if ($canJobs || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>jobs.php">Jobs</a></li><?php endif; ?>
-                            <?php if ($canJobSeekers || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>job_seekers.php">Job Seekers</a></li><?php endif; ?>
+                            
                     </ul>
                 </li>
                 <?php endif; ?>
