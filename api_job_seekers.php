@@ -54,12 +54,32 @@ if (!in_array('job_seekers_read', $scopes, true)) {
 // Update last_used_at
 $conn->query('UPDATE api_keys SET last_used_at=NOW() WHERE id=' . intval($row['id']));
 
-// Fetch all job_seekers
-$data = [];
-$result = $conn->query('SELECT * FROM job_seekers ORDER BY id DESC');
-while ($r = $result->fetch_assoc()) { $data[] = $r; }
+// Pagination to prevent memory exhaustion
+$limit = isset($_GET['limit']) ? intval($_GET['limit']) : 100;
+if ($limit < 1) { $limit = 1; }
+if ($limit > 1000) { $limit = 1000; }
+$offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
+if ($offset < 0) { $offset = 0; }
 
-echo json_encode([ 'data' => $data ]);
+$stmt = $conn->prepare('SELECT * FROM job_seekers ORDER BY id DESC LIMIT ? OFFSET ?');
+$stmt->bind_param('ii', $limit, $offset);
+$stmt->execute();
+$res2 = $stmt->get_result();
+$data = [];
+while ($r = $res2->fetch_assoc()) { $data[] = $r; }
+$stmt->close();
+
+$hasMore = count($data) === $limit; // heuristic without COUNT(*)
+
+echo json_encode([
+    'data' => $data,
+    'pagination' => [
+        'limit' => $limit,
+        'offset' => $offset,
+        'next_offset' => $offset + $limit,
+        'has_more' => $hasMore
+    ]
+]);
 exit;
 
 
