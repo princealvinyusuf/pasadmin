@@ -55,25 +55,55 @@ if (!in_array('job_seekers_read', $scopes, true)) {
 $conn->query('UPDATE api_keys SET last_used_at=NOW() WHERE id=' . intval($row['id']));
 
 // Build safe filters (whitelisted fields only)
-$allowed = [
+// Type hints: int | string | date | datetime
+$allowedTypes = [
 	'id' => 'int',
 	'provinsi' => 'string',
 	'kab_kota' => 'string',
 	'kecamatan' => 'string',
 	'kelurahan' => 'string',
+	'umur' => 'string',
+	'kelompok_umur' => 'string',
 	'jenis_kelamin' => 'string',
+	'kondisi_fisik' => 'string',
+	'marital' => 'string',
 	'status_bekerja' => 'string',
 	'tanggal_daftar' => 'date',
 	'tanggal_kedaluwarsa' => 'date',
 	'status_profil' => 'string',
 	'status_pencaker' => 'string',
 	'pendidikan' => 'string',
+	'kelompok_pengalaman' => 'string',
+	'durasi_pengalaman' => 'string',
+	'sertifikasi' => 'string',
+	'lembaga' => 'string',
+	'progpel' => 'string',
+	'keahlian' => 'string',
+	'rencana_kerja_luar_negeri' => 'string',
+	'negara_tujuan' => 'string',
+	'lamaran_diajukan' => 'string',
+	'jurusan' => 'string',
+	'lembaga_pendidikan' => 'string',
+	'bulan_daftar' => 'string',
+	'created_date' => 'datetime',
 	'id_pencaker' => 'string',
 	'jenis_disabilitas' => 'string',
 	'tahun_input' => 'string',
-	'created_date' => 'datetime',
-	'nik' => 'string'
+	'pengalaman' => 'string',
+	'nik' => 'string',
+	'alamat' => 'string',
+	'tanggal_perubahan_status_pencaker' => 'date'
 ];
+
+// Intersect with existing table columns to avoid SQL errors if schema differs
+$existingCols = [];
+if ($resCols = $conn->query('SHOW COLUMNS FROM job_seekers')) {
+	while ($c = $resCols->fetch_assoc()) { $existingCols[] = $c['Field']; }
+}
+$allowed = [];
+foreach ($allowedTypes as $col => $t) {
+	if (in_array($col, $existingCols, true)) { $allowed[$col] = $t; }
+}
 
 function sanitize_like_val(string $s): string {
 	return '%' . str_replace(['%', '_'], ['\\%', '\\_'], $s) . '%';
