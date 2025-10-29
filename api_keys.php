@@ -17,8 +17,12 @@ $conn->query("CREATE TABLE IF NOT EXISTS api_keys (
     scopes VARCHAR(255) NOT NULL DEFAULT 'job_seekers_read',
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    last_used_at TIMESTAMP NULL DEFAULT NULL
+    last_used_at TIMESTAMP NULL DEFAULT NULL,
+    expires_at DATETIME NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// Ensure expires_at exists on older installs (ignore error if already exists)
+try { $conn->query("ALTER TABLE api_keys ADD COLUMN expires_at DATETIME NULL DEFAULT NULL"); } catch (Throwable $e) {}
 
 function generate_api_key(): string {
     return bin2hex(random_bytes(32)); // 64 hex chars
@@ -30,10 +34,12 @@ if ($action === 'create') {
     $name = trim($_POST['name'] ?? '');
     $scopes = ['job_seekers_read']; // fixed for now
     $apiKey = generate_api_key();
+    $expiresAt = trim($_POST['expires_at'] ?? '');
+    if ($expiresAt !== '') { $expiresAt = str_replace('T', ' ', substr($expiresAt, 0, 19)); }
     if ($name !== '') {
-        $stmt = $conn->prepare('INSERT INTO api_keys (name, api_key, scopes, is_active) VALUES (?, ?, ?, 1)');
+        $stmt = $conn->prepare('INSERT INTO api_keys (name, api_key, scopes, is_active, expires_at) VALUES (?, ?, ?, 1, ?)');
         $scopesCsv = implode(',', $scopes);
-        $stmt->bind_param('sss', $name, $apiKey, $scopesCsv);
+        $stmt->bind_param('ssss', $name, $apiKey, $scopesCsv, $expiresAt);
         $stmt->execute();
         $stmt->close();
     }
@@ -75,9 +81,32 @@ if ($action === 'delete') {
     exit;
 }
 
+if ($action === 'set_expiry') {
+    $id = intval($_POST['id'] ?? 0);
+    $expiresAt = trim($_POST['expires_at'] ?? '');
+    if ($id > 0) {
+        if ($expiresAt !== '') { $expiresAt = str_replace('T', ' ', substr($expiresAt, 0, 19)); }
+        $stmt = $conn->prepare('UPDATE api_keys SET expires_at=? WHERE id=?');
+        $stmt->bind_param('si', $expiresAt, $id);
+        $stmt->execute();
+        $stmt->close();
+    }
+    header('Location: api_keys.php');
+    exit;
+}
+
+if ($action === 'clear_expiry') {
+    $id = intval($_POST['id'] ?? 0);
+    if ($id > 0) {
+        $conn->query('UPDATE api_keys SET expires_at=NULL WHERE id=' . $id);
+    }
+    header('Location: api_keys.php');
+    exit;
+}
+
 // Fetch keys
 $rows = [];
-$res = $conn->query('SELECT id, name, api_key, scopes, is_active, created_at, last_used_at FROM api_keys ORDER BY id DESC');
+$res = $conn->query('SELECT id, name, api_key, scopes, is_active, created_at, last_used_at, expires_at FROM api_keys ORDER BY id DESC');
 while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 ?>
 <!DOCTYPE html>
@@ -110,6 +139,10 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 					<input class="form-control" type="text" name="name" placeholder="e.g. Reporting Integration" required>
 				</div>
 				<div class="col-12 col-md-6">
+					<label class="form-label">Expires At (optional)</label>
+					<input class="form-control" type="datetime-local" name="expires_at" placeholder="YYYY-MM-DDTHH:MM">
+				</div>
+				<div class="col-12 col-md-6">
 					<label class="form-label">Scope</label>
 					<input class="form-control" type="text" value="job_seekers_read" disabled>
 					<div class="form-text">This key can read all data from job_seekers table via API.</div>
@@ -132,6 +165,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 						<th>Scope</th>
 						<th>Status</th>
 						<th>Created</th>
+						<th>Expires</th>
 						<th>Last Used</th>
 						<th>Actions</th>
 					</tr>
@@ -143,8 +177,15 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 						<td><?php echo htmlspecialchars($r['name']); ?></td>
 						<td class="key-mask"><code><?php echo htmlspecialchars($r['api_key']); ?></code></td>
 						<td><span class="badge bg-secondary">job_seekers_read</span></td>
-						<td><?php echo intval($r['is_active']) ? '<span class="badge bg-success">active</span>' : '<span class="badge bg-secondary">inactive</span>'; ?></td>
+						<td>
+							<?php
+								$expired = false;
+								if (!empty($r['expires_at'])) { $expired = strtotime($r['expires_at']) <= time(); }
+								echo intval($r['is_active']) ? ($expired ? '<span class="badge bg-warning text-dark">expired</span>' : '<span class="badge bg-success">active</span>') : '<span class="badge bg-secondary">inactive</span>';
+							?>
+						</td>
 						<td><?php echo htmlspecialchars($r['created_at']); ?></td>
+						<td><?php echo htmlspecialchars($r['expires_at'] ?? ''); ?></td>
 						<td><?php echo htmlspecialchars($r['last_used_at'] ?? ''); ?></td>
 						<td>
 							<form method="post" class="d-inline">
@@ -156,6 +197,17 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 								<input type="hidden" name="action" value="regenerate">
 								<input type="hidden" name="id" value="<?php echo intval($r['id']); ?>">
 								<button class="btn btn-sm btn-outline-primary" type="submit">Regenerate</button>
+							</form>
+							<form method="post" class="d-inline">
+								<input type="hidden" name="action" value="set_expiry">
+								<input type="hidden" name="id" value="<?php echo intval($r['id']); ?>">
+								<input type="datetime-local" class="form-control d-inline w-auto" name="expires_at" value="<?php echo !empty($r['expires_at']) ? str_replace(' ', 'T', substr($r['expires_at'], 0, 16)) : '';?>">
+								<button class="btn btn-sm btn-outline-success" type="submit">Save Expiry</button>
+							</form>
+							<form method="post" class="d-inline" onsubmit="return confirm('Clear expiry for this key?');">
+								<input type="hidden" name="action" value="clear_expiry">
+								<input type="hidden" name="id" value="<?php echo intval($r['id']); ?>">
+								<button class="btn btn-sm btn-outline-warning" type="submit">Clear Expiry</button>
 							</form>
 							<form method="post" class="d-inline" onsubmit="return confirm('Delete this API key?');">
 								<input type="hidden" name="action" value="delete">

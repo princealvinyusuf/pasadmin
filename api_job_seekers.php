@@ -30,7 +30,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS api_keys (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
 // Validate key
-$stmt = $conn->prepare("SELECT id, scopes FROM api_keys WHERE api_key=? AND is_active=1 LIMIT 1");
+$stmt = $conn->prepare("SELECT id, scopes, expires_at FROM api_keys WHERE api_key=? AND is_active=1 LIMIT 1");
 $stmt->bind_param('s', $apiKey);
 $stmt->execute();
 $res = $stmt->get_result();
@@ -40,6 +40,13 @@ $stmt->close();
 if (!$row) {
     http_response_code(401);
     echo json_encode(['error' => 'invalid_api_key']);
+    exit;
+}
+
+// Expiry check
+if (!empty($row['expires_at']) && strtotime($row['expires_at']) <= time()) {
+    http_response_code(401);
+    echo json_encode(['error' => 'expired_api_key']);
     exit;
 }
 
