@@ -56,6 +56,7 @@
     $canAccessControl = current_user_can('manage_access_control');
     $canBroadcast = current_user_can('use_broadcast');
     $canExtensions = current_user_can('view_extensions');
+    $canApiKeys = current_user_can('manage_api_keys');
     $canAsmenDashboard = current_user_can('asmen_view_dashboard');
     $canAsmenAssets = current_user_can('asmen_manage_assets');
     $canAsmenServices = current_user_can('asmen_view_services');
@@ -66,6 +67,7 @@
     $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || current_user_can('manage_settings'));
     
     $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canAccessControl || $canBroadcast);
+    $hasApiKeys = ($canManageSettings || $canApiKeys);
     $hasLayanan = ($canManageSettings || $canMitraKerja || $canPartnershipType || $canMitraSubmission || $canKemitraanBooked || $canPaskerRoom);
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
     $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan);
@@ -113,6 +115,16 @@
                     <ul class="dropdown-menu" aria-labelledby="jejaringDropdown">
                         <?php if ($canManageSettings || $canDatabaseContact): ?><li><a class="dropdown-item" href="<?php echo $jejaringUrl; ?>database_contact.php">Database Contact</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canJejaringTahapan): ?><li><a class="dropdown-item" href="<?php echo $jejaringUrl; ?>tahapan/index.php">Tahapan Kerjasama</a></li><?php endif; ?>
+                    </ul>
+                </li>
+                <?php endif; ?>
+                <?php if ($hasApiKeys): ?>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="apiKeyDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        API Key
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="apiKeyDropdown">
+                        <li><a class="dropdown-item" href="<?php echo $rootUrl; ?>api_keys.php">API Key Job Seekers</a></li>
                     </ul>
                 </li>
                 <?php endif; ?>
