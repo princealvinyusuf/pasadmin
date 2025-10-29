@@ -54,6 +54,76 @@ if (!in_array('job_seekers_read', $scopes, true)) {
 // Update last_used_at
 $conn->query('UPDATE api_keys SET last_used_at=NOW() WHERE id=' . intval($row['id']));
 
+// Build safe filters (whitelisted fields only)
+$allowed = [
+	'id' => 'int',
+	'provinsi' => 'string',
+	'kab_kota' => 'string',
+	'kecamatan' => 'string',
+	'kelurahan' => 'string',
+	'jenis_kelamin' => 'string',
+	'status_bekerja' => 'string',
+	'tanggal_daftar' => 'date',
+	'tanggal_kedaluwarsa' => 'date',
+	'status_profil' => 'string',
+	'status_pencaker' => 'string',
+	'pendidikan' => 'string',
+	'id_pencaker' => 'string',
+	'jenis_disabilitas' => 'string',
+	'tahun_input' => 'string',
+	'created_date' => 'datetime',
+	'nik' => 'string'
+];
+
+function sanitize_like_val(string $s): string {
+	return '%' . str_replace(['%', '_'], ['\\%', '\\_'], $s) . '%';
+}
+
+$whereParts = [];
+$types = '';
+$params = [];
+
+// Support: ids=1,2,3 (ID IN (...))
+if (!empty($_GET['ids'])) {
+	$ids = array_values(array_filter(array_map('intval', explode(',', (string)$_GET['ids'])), fn($v) => $v > 0));
+	if (!empty($ids)) {
+		$in = implode(',', array_fill(0, count($ids), '?'));
+		$whereParts[] = 'id IN (' . $in . ')';
+		$types .= str_repeat('i', count($ids));
+		$params = array_merge($params, $ids);
+	}
+}
+
+// Exact match and LIKE match per field
+foreach ($allowed as $col => $t) {
+	if (isset($_GET[$col]) && $_GET[$col] !== '') {
+		$whereParts[] = "$col = ?";
+		$types .= ($t === 'int') ? 'i' : 's';
+		$params[] = $t === 'int' ? intval($_GET[$col]) : (string)$_GET[$col];
+	}
+	$likeKey = $col . '_like';
+	if (isset($_GET[$likeKey]) && $_GET[$likeKey] !== '') {
+		$whereParts[] = "$col LIKE ?";
+		$types .= 's';
+		$params[] = sanitize_like_val((string)$_GET[$likeKey]);
+	}
+	// Date/time ranges: field_from, field_to
+	if (($t === 'date' || $t === 'datetime')) {
+		$fromKey = $col . '_from';
+		$toKey = $col . '_to';
+		if (isset($_GET[$fromKey]) && $_GET[$fromKey] !== '') {
+			$whereParts[] = "$col >= ?";
+			$types .= 's';
+			$params[] = (string)$_GET[$fromKey];
+		}
+		if (isset($_GET[$toKey]) && $_GET[$toKey] !== '') {
+			$whereParts[] = "$col <= ?";
+			$types .= 's';
+			$params[] = (string)$_GET[$toKey];
+		}
+	}
+}
+
 // Pagination to prevent memory exhaustion
 $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 100;
 if ($limit < 1) { $limit = 1; }
@@ -61,8 +131,18 @@ if ($limit > 1000) { $limit = 1000; }
 $offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
 if ($offset < 0) { $offset = 0; }
 
-$stmt = $conn->prepare('SELECT * FROM job_seekers ORDER BY id DESC LIMIT ? OFFSET ?');
-$stmt->bind_param('ii', $limit, $offset);
+$sql = 'SELECT * FROM job_seekers';
+if (!empty($whereParts)) { $sql .= ' WHERE ' . implode(' AND ', $whereParts); }
+$sql .= ' ORDER BY id DESC LIMIT ? OFFSET ?';
+
+// Bind dynamic filters + limit/offset
+$typesWithPage = $types . 'ii';
+$stmt = $conn->prepare($sql);
+if ($types !== '') {
+	$stmt->bind_param($typesWithPage, ...array_merge($params, [$limit, $offset]));
+} else {
+	$stmt->bind_param('ii', $limit, $offset);
+}
 $stmt->execute();
 $res2 = $stmt->get_result();
 $data = [];
