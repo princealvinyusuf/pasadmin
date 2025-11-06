@@ -4,16 +4,48 @@ ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/auth_guard.php';
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/access_helper.php';
 
-// Get URLs from query parameters or use defaults
-$url1 = isset($_GET['url1']) ? $_GET['url1'] : 'https://paskerid.kemnaker.go.id/paske';
-$url2 = isset($_GET['url2']) ? $_GET['url2'] : 'https://karirhub.kemnaker.go.id/';
-$url3 = isset($_GET['url3']) ? $_GET['url3'] : '';
-$url4 = isset($_GET['url4']) ? $_GET['url4'] : '';
+// Ensure split_screen_settings table exists
+$conn->query("CREATE TABLE IF NOT EXISTS split_screen_settings (
+    id INT PRIMARY KEY DEFAULT 1,
+    url1 VARCHAR(500) NOT NULL DEFAULT 'https://paskerid.kemnaker.go.id/paske',
+    url2 VARCHAR(500) NOT NULL DEFAULT 'https://karirhub.kemnaker.go.id/',
+    url3 VARCHAR(500) NOT NULL DEFAULT '',
+    url4 VARCHAR(500) NOT NULL DEFAULT '',
+    vertical_ratio DECIMAL(5,2) NOT NULL DEFAULT 50.00,
+    horizontal_ratio DECIMAL(5,2) NOT NULL DEFAULT 50.00,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-// Get split ratios (for vertical and horizontal splits)
-$verticalRatio = isset($_GET['vratio']) ? floatval($_GET['vratio']) : 50.0;
-$horizontalRatio = isset($_GET['hratio']) ? floatval($_GET['hratio']) : 50.0;
+// Initialize default row if not exists
+$res = $conn->query('SELECT COUNT(*) AS c FROM split_screen_settings WHERE id=1');
+$row = $res ? $res->fetch_assoc() : ['c' => 0];
+if (intval($row['c'] ?? 0) === 0) {
+    $conn->query("INSERT INTO split_screen_settings (id) VALUES (1)");
+}
+
+// Load URLs from database
+$dbSettings = $conn->query('SELECT url1, url2, url3, url4, vertical_ratio, horizontal_ratio FROM split_screen_settings WHERE id=1');
+$dbRow = $dbSettings ? $dbSettings->fetch_assoc() : null;
+$defaultUrl1 = $dbRow['url1'] ?? 'https://paskerid.kemnaker.go.id/paske';
+$defaultUrl2 = $dbRow['url2'] ?? 'https://karirhub.kemnaker.go.id/';
+$defaultUrl3 = $dbRow['url3'] ?? '';
+$defaultUrl4 = $dbRow['url4'] ?? '';
+$defaultVerticalRatio = isset($dbRow['vertical_ratio']) ? floatval($dbRow['vertical_ratio']) : 50.0;
+$defaultHorizontalRatio = isset($dbRow['horizontal_ratio']) ? floatval($dbRow['horizontal_ratio']) : 50.0;
+
+// Get URLs from query parameters (override database values) or use database defaults
+$url1 = isset($_GET['url1']) && $_GET['url1'] !== '' ? $_GET['url1'] : $defaultUrl1;
+$url2 = isset($_GET['url2']) && $_GET['url2'] !== '' ? $_GET['url2'] : $defaultUrl2;
+$url3 = isset($_GET['url3']) && $_GET['url3'] !== '' ? $_GET['url3'] : $defaultUrl3;
+$url4 = isset($_GET['url4']) && $_GET['url4'] !== '' ? $_GET['url4'] : $defaultUrl4;
+
+// Get split ratios (for vertical and horizontal splits) - query params override database
+$verticalRatio = isset($_GET['vratio']) ? floatval($_GET['vratio']) : $defaultVerticalRatio;
+$horizontalRatio = isset($_GET['hratio']) ? floatval($_GET['hratio']) : $defaultHorizontalRatio;
 
 // Ensure ratios are valid (between 0 and 100)
 $verticalRatio = max(0, min(100, $verticalRatio));
@@ -129,7 +161,14 @@ $bottomPercent = 100 - $horizontalRatio;
 
 <div class="control-panel" id="controlPanel">
 	<div class="container">
-		<h5 class="mb-3">Split Screen Tool</h5>
+		<div class="d-flex justify-content-between align-items-center mb-3">
+			<h5 class="mb-0">Split Screen Tool</h5>
+			<?php if (current_user_can('manage_settings')): ?>
+				<a href="split_screen_settings.php" class="btn btn-sm btn-outline-primary">
+					<i class="bi bi-gear me-1"></i>Configure Default URLs
+				</a>
+			<?php endif; ?>
+		</div>
 		<p class="text-muted small mb-3">Enter the URLs of four different web sites that you would like to display. After clicking the View button, copy the browser's URL and use that as the URL for your test. (Some websites won't work with this tool as they block being displayed within a frame.)</p>
 		
 		<form method="get" id="splitForm">
