@@ -3,9 +3,26 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-require_once __DIR__ . '/auth_guard.php';
+// Start session but don't require login
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+
 require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/access_helper.php';
+
+// Conditionally load access_helper if user is logged in
+// For non-logged-in users, create a safe wrapper function
+$userIsLoggedIn = !empty($_SESSION['user_id']);
+if ($userIsLoggedIn) {
+    require_once __DIR__ . '/access_helper.php';
+} else {
+    // Create a safe wrapper that always returns false for non-logged-in users
+    if (!function_exists('current_user_can')) {
+        function current_user_can(string $code): bool {
+            return false;
+        }
+    }
+}
 
 // Ensure split_screen_settings table exists
 $conn->query("CREATE TABLE IF NOT EXISTS split_screen_settings (
@@ -182,7 +199,41 @@ $isYoutube4 = (strpos($embedUrl4, 'youtube.com/embed') !== false);
 	</style>
 </head>
 <body class="bg-light">
-<?php include 'navbar.php'; ?>
+<?php 
+// Include navbar with proper error handling for non-logged-in users
+if ($userIsLoggedIn) {
+    // User is logged in, include full navbar
+    include 'navbar.php';
+} else {
+    // User not logged in, show minimal navbar
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    $appRootMarker = '/pasadmin/';
+    $posApp = strpos($scriptName, $appRootMarker);
+    $appBaseUrl = ($posApp !== false) ? substr($scriptName, 0, $posApp + strlen($appRootMarker)) : '/';
+    $rootUrl = $appBaseUrl;
+?>
+<!-- Minimal Navigation Bar for Public Access -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="<?php echo $rootUrl; ?>split_screen.php">
+            <img src="https://paskerid.kemnaker.go.id/paskerid/public/images/services/logo.png" alt="Logo" style="height:24px; width:auto;" class="me-2">
+            Job Admin - Split Screen
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>login.php">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<?php } ?>
 
 <button class="toggle-controls" onclick="toggleControls()" title="Toggle Controls">
 	<i class="bi bi-gear"></i>
@@ -192,7 +243,7 @@ $isYoutube4 = (strpos($embedUrl4, 'youtube.com/embed') !== false);
 	<div class="container">
 		<div class="d-flex justify-content-between align-items-center mb-3">
 			<h5 class="mb-0">Split Screen Tool</h5>
-			<?php if (current_user_can('manage_settings')): ?>
+			<?php if (!empty($_SESSION['user_id']) && function_exists('current_user_can') && current_user_can('manage_settings')): ?>
 				<a href="split_screen_settings.php" class="btn btn-sm btn-outline-primary">
 					<i class="bi bi-gear me-1"></i>Configure Default URLs
 				</a>
