@@ -56,6 +56,35 @@ $leftPercent = $verticalRatio;
 $rightPercent = 100 - $verticalRatio;
 $topPercent = $horizontalRatio;
 $bottomPercent = 100 - $horizontalRatio;
+
+// Function to convert YouTube URL to embed format
+function convertYoutubeUrl($url) {
+    if (empty($url)) {
+        return $url;
+    }
+    
+    // Check if already in embed format
+    if (preg_match('/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/', $url, $matches)) {
+        return 'https://www.youtube.com/embed/' . $matches[1] . '?rel=0';
+    }
+    
+    // Check for youtube.com/watch?v= format
+    if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/', $url, $matches)) {
+        return 'https://www.youtube.com/embed/' . $matches[1] . '?rel=0';
+    }
+    
+    // Check for youtube.com/watch? format with additional parameters
+    if (preg_match('/youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]+)/', $url, $matches)) {
+        return 'https://www.youtube.com/embed/' . $matches[1] . '?rel=0';
+    }
+    
+    // Not a YouTube URL, return as is
+    return $url;
+}
+
+// Convert URL4 to YouTube embed if it's a YouTube URL
+$embedUrl4 = convertYoutubeUrl($url4);
+$isYoutube4 = (strpos($embedUrl4, 'youtube.com/embed') !== false);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -274,7 +303,15 @@ $bottomPercent = 100 - $horizontalRatio;
 		</div>
 		<div class="split-pane" style="width: <?php echo $rightPercent; ?>%;">
 			<?php if (!empty($url4)): ?>
-				<iframe src="<?php echo htmlspecialchars($url4); ?>" title="URL4"></iframe>
+				<iframe 
+					src="<?php echo htmlspecialchars($embedUrl4); ?>" 
+					title="URL4" 
+					allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+					allowfullscreen
+					<?php if ($isYoutube4): ?>
+						frameborder="0"
+					<?php endif; ?>
+				></iframe>
 			<?php else: ?>
 				<div class="d-flex align-items-center justify-content-center h-100 text-muted">
 					<div class="text-center">

@@ -46,11 +46,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     $horizontalRatio = max(0, min(100, floatval($_POST['horizontal_ratio'] ?? 50.0)));
     
     // Validate URLs (basic validation)
+    // Note: YouTube URLs are valid even if they don't pass filter_var check
     $urls = [$url1, $url2, $url3, $url4];
     $invalidUrls = [];
     foreach ($urls as $index => $url) {
-        if ($url !== '' && !filter_var($url, FILTER_VALIDATE_URL)) {
-            $invalidUrls[] = 'URL' . ($index + 1);
+        if ($url !== '') {
+            // Check if it's a YouTube URL (more lenient validation)
+            $isYoutube = (strpos($url, 'youtube.com') !== false || strpos($url, 'youtu.be') !== false);
+            // If not YouTube and fails standard URL validation, mark as invalid
+            if (!$isYoutube && !filter_var($url, FILTER_VALIDATE_URL)) {
+                $invalidUrls[] = 'URL' . ($index + 1);
+            }
         }
     }
     
@@ -143,8 +149,8 @@ if (!$settings) {
 					</div>
 					<div class="col-md-6 mb-3">
 						<label class="form-label">URL 4 (Bottom Right)</label>
-						<input class="form-control" type="url" name="url4" value="<?php echo htmlspecialchars($settings['url4']); ?>" placeholder="https://example.com">
-						<div class="form-text">URL displayed in the bottom-right quadrant</div>
+						<input class="form-control" type="url" name="url4" value="<?php echo htmlspecialchars($settings['url4']); ?>" placeholder="https://example.com or https://youtube.com/watch?v=...">
+						<div class="form-text">URL displayed in the bottom-right quadrant. Supports YouTube URLs (will be auto-converted to embed format).</div>
 					</div>
 				</div>
 
