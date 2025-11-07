@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Login</title>
-        <link rel="icon" href="https://paskerid.kemnaker.go.id/paskerid/public/images/services/logo.png" type="image/png">
+        <link rel="icon" href="https://paskerid.kemnaker.go.id/images/services/logo.png" type="image/png">
         <style>
             body { font-family: Arial, sans-serif; background: #f4f4f4; }
             .login-container { max-width: 400px; margin: 60px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     <body>
         <div class="login-container">
             <div style="text-align:center; margin-bottom: 12px;">
-                <img src="https://paskerid.kemnaker.go.id/paskerid/public/images/services/logo.png" alt="Logo" style="height:40px; width:auto;">
+                <img src="https://paskerid.kemnaker.go.id/images/services/logo.png" alt="Logo" style="height:40px; width:auto;">
             </div>
             <h2>Login</h2>
             <form action="login.php" method="post">

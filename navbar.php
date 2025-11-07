@@ -20,12 +20,12 @@
     $jejaringPrefix = $jejaringUrl;
 ?>
 <?php // Ensure favicon is set on pages that include the navbar ?>
-<link rel="icon" href="https://paskerid.kemnaker.go.id/paskerid/public/images/services/logo.png" type="image/png">
+<link rel="icon" href="https://paskerid.kemnaker.go.id/images/services/logo.png" type="image/png">
 <!-- Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center" href="<?php echo isset($rootPrefix) ? $rootPrefix : ''; ?>index.php">
-            <img src="https://paskerid.kemnaker.go.id/paskerid/public/images/services/logo.png" alt="Logo" style="height:24px; width:auto;" class="me-2">
+            <img src="https://paskerid.kemnaker.go.id/images/services/logo.png" alt="Logo" style="height:24px; width:auto;" class="me-2">
             Job Admin
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
