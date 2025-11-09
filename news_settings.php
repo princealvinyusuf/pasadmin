@@ -27,17 +27,22 @@ if (!file_exists($upload_base_dir)) {
 // Helper function to get correct image URL for display
 function getImageDisplayUrl($image_path) {
     if (empty($image_path)) return '';
-    
-    // If the path is already absolute and starts with /paskerid/public/, use it as is
-    if (strpos($image_path, '/paskerid/public/') === 0) {
+
+    // If the image path starts with /paskerid/public/images/contents/, convert to /images/contents/
+    if (strpos($image_path, '/paskerid/public/images/contents/') === 0) {
+        return str_replace('/paskerid/public/images/contents/', '/images/contents/', $image_path);
+    }
+
+    // If it's in the format images/contents/filename.jpg (from DB), prepend /images/contents/
+    if (strpos($image_path, 'images/contents/') === 0) {
+        return '/' . $image_path;
+    }
+
+    // If the image path starts with /images/contents/ already, just return it
+    if (strpos($image_path, '/images/contents/') === 0) {
         return $image_path;
     }
-    
-    // If it's in the format images/contents/filename.jpg (from DB), prepend /paskerid/public/
-    if (strpos($image_path, 'images/contents/') === 0) {
-        return '/paskerid/public/' . $image_path;
-    }
-    
+
     return $image_path;
 }
 
