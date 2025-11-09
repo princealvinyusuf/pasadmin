@@ -15,7 +15,7 @@ if ($conn->connect_error) {
 }
 
 // Create images directory if it doesn't exist
-$upload_base_dir = $_SERVER['DOCUMENT_ROOT'] . '/paskerid/public/images/contents/';
+$upload_base_dir = $_SERVER['DOCUMENT_ROOT'] . '/images/contents/';
 $db_image_path_prefix = 'images/contents/';
 
 if (!file_exists($upload_base_dir)) {
@@ -52,7 +52,7 @@ function getImageFilePath($image_path) {
     
     // If the image_path from DB is like 'images/contents/filename.jpg'
     // prepend DOCUMENT_ROOT and the application base path
-    return $_SERVER['DOCUMENT_ROOT'] . '/paskerid/public/' . $image_path;
+    return $_SERVER['DOCUMENT_ROOT'] . '/' . $image_path;
 }
 
 // Handle Create
