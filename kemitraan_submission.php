@@ -66,12 +66,10 @@ if (isset($_GET['delete'])) {
     if (!empty($filePath)) {
         $publicDir = dirname(__DIR__); // .../public
         $laravelRoot = dirname($publicDir); // project root
-        $absStoragePath = $laravelRoot . '/storage/app/public/' . ltrim($filePath, '/');
-        $absPublicStoragePath = $publicDir . '/storage/' . ltrim($filePath, '/');
-        if (is_file($absStoragePath)) {
-            @unlink($absStoragePath);
-        } elseif (is_file($absPublicStoragePath)) {
-            @unlink($absPublicStoragePath);
+        // Only allow deletion inside /storage/kemitraan_letters for safety
+        $storagePath = $_SERVER['DOCUMENT_ROOT'] . '/storage/' . ltrim($filePath, '/');
+        if (is_file($storagePath)) {
+            @unlink($storagePath);
         }
     }
 
@@ -572,10 +570,10 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               const requestLetter = cells[17].innerText.trim();
               const downloadContainer = document.getElementById('downloadLetterContainer');
               if (requestLetter && requestLetter !== '-') {
-                // Base path: set window.LARAVEL_PUBLIC_BASE to override, default to '/paskerid/public'
-                const basePath = (window.LARAVEL_PUBLIC_BASE || '/paskerid/public');
-                const url = basePath.replace(/\/$/, '') + '/storage/' + requestLetter;
-                downloadContainer.innerHTML = `<a href="${url}" class="btn btn-success" target="_blank" download>Download Letter</a>`;
+                  // Always use '/storage/' as base path for download links (no /paskerid/public/ prefix)
+                  const cleanPath = requestLetter.replace(/^storage[\\\/]/, '');
+                  const url = '/storage/' + cleanPath;
+                  downloadContainer.innerHTML = `<a href="${url}" class="btn btn-success" target="_blank" download>Download Letter</a>`;
               } else {
                 downloadContainer.innerHTML = '';
               }
