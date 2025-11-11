@@ -160,6 +160,8 @@
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>split_screen_settings.php">Split Screen Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>cron_settings.php">Other Settings</a></li><?php endif; ?>
+                        <li><hr class="dropdown-divider"></li>
+                        <?php if (current_user_is_super_admin()): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>backup/">Backup</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -213,11 +215,6 @@
                         <?php if ($canNakerFinal): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_final_nominees.php">Final Nominees</a></li><?php endif; ?>
                         <?php if (current_user_can('naker_award_backup_nominees')): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_backup_nominees.php">Backup Data Nominees</a></li><?php endif; ?>
                     </ul>
-                </li>
-                <?php endif; ?>
-                <?php if (current_user_is_super_admin()): ?>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootUrl; ?>backup/">Backup</a>
                 </li>
                 <?php endif; ?>
                 <?php if ($canExtensions || $canManageSettings): ?>
