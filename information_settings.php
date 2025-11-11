@@ -199,11 +199,9 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
         }
         .main-content {
             display: flex;
-            flex-wrap: wrap;
+            flex-direction: column;
             gap: 24px;
-            align-items: flex-start;
             width: 100%;
-            height: 100%;
         }
         .modern-card {
             background: #fff;
@@ -211,20 +209,25 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
             box-shadow: 0 4px 24px rgba(44,62,80,0.10);
             padding: 32px 28px 24px 28px;
             width: 100%;
-            flex: 0 0 400px;
-            max-height: calc(100vh - 120px);
-            overflow-y: auto;
         }
         .modern-table-card {
             background: #fff;
             border-radius: 16px;
             box-shadow: 0 4px 24px rgba(44,62,80,0.10);
             padding: 24px 18px 18px 18px;
-            flex: 1 1 600px;
-            min-width: 0;
-            max-height: calc(100vh - 120px);
+            width: 100%;
+            flex: 1;
+            min-height: 400px;
             display: flex;
             flex-direction: column;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .form-grid .full-width {
+            grid-column: 1 / -1;
         }
         form label {
             display: block;
@@ -239,12 +242,13 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
             width: 100%;
             padding: 10px 12px;
             margin-top: 4px;
-            margin-bottom: 18px;
+            margin-bottom: 0;
             border: 1px solid #d1d5db;
             border-radius: 8px;
             font-size: 1rem;
             background: #f9fafb;
             transition: border 0.2s;
+            box-sizing: border-box;
         }
         form input:focus, form textarea:focus {
             border: 1.5px solid #1976d2;
@@ -282,13 +286,15 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
             padding: 12px;
             margin-bottom: 18px;
             font-size: 0.9rem;
+            width: 100%;
         }
         .file-info {
             background: #e8f5e9;
             border: 1px solid #c8e6c9;
             border-radius: 8px;
             padding: 12px;
-            margin-bottom: 18px;
+            margin-top: 8px;
+            margin-bottom: 0;
             font-size: 0.9rem;
             color: #2e7d32;
         }
@@ -297,7 +303,7 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
             border: 1px solid #ffcc02;
             border-radius: 8px;
             padding: 12px;
-            margin-bottom: 18px;
+            margin-bottom: 0;
             font-size: 0.9rem;
             color: #f57c00;
         }
@@ -356,14 +362,6 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
             background: #ffcdd2;
             color: #b71c1c;
         }
-        @media (min-width: 1200px) {
-            .modern-card {
-                flex: 0 0 450px;
-            }
-            .modern-table-card {
-                flex: 1 1 auto;
-            }
-        }
         @media (max-width: 900px) {
             .page-wrapper {
                 padding: 16px;
@@ -372,13 +370,13 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                 gap: 16px; 
             }
             .modern-card { 
-                flex: 1 1 100%;
-                max-height: none;
                 padding: 24px 20px 20px 20px; 
             }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
             .modern-table-card { 
-                flex: 1 1 100%;
-                max-height: calc(100vh - 200px);
+                max-height: calc(100vh - 300px);
                 padding: 20px 16px 16px 16px; 
             }
             table { 
@@ -390,15 +388,17 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                 padding: 12px;
             }
             .main-content { 
-                flex-direction: column; 
                 gap: 12px; 
             }
             .modern-card, .modern-table-card { 
                 padding: 16px 12px 12px 12px; 
-                max-height: none;
             }
             .modern-table-card {
-                max-height: calc(100vh - 250px);
+                max-height: calc(100vh - 350px);
+                min-height: 300px;
+            }
+            .form-grid {
+                gap: 16px;
             }
             th, td { 
                 padding: 8px 6px; 
@@ -435,58 +435,61 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                     <?php if ($edit_mode): ?>
                         <input type="hidden" name="id" value="<?php echo htmlspecialchars($id); ?>">
                     <?php endif; ?>
-                    <label>Title:
-                        <input type="text" name="title" value="<?php echo htmlspecialchars($title); ?>" required>
-                    </label>
-                    <label>Description:
-                        <textarea name="description" rows="3" required><?php echo htmlspecialchars($description); ?></textarea>
-                    </label>
-                    <label>Date:
-                        <input type="date" name="date" value="<?php echo htmlspecialchars($date); ?>" required>
-                    </label>
-                    <label>Type:
-                        <input type="text" name="type" value="<?php echo htmlspecialchars($type); ?>" required>
-                    </label>
-                    <label>Subject:
-                        <input type="text" name="subject" value="<?php echo htmlspecialchars($subject); ?>" required>
-                    </label>
-                    <label>Status:
-                        <input type="text" name="status" value="<?php echo htmlspecialchars($status); ?>" required>
-                    </label>
-                    
-                    <label>File Upload:
-                        <input type="file" name="file_upload" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt">
-                        <div class="file-info">
-                            <strong>Allowed file types:</strong> PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT<br>
-                            <strong>Maximum file size:</strong> 10MB
-                        </div>
-                    </label>
-                    
-                    <?php if ($edit_mode && !empty($file_url)): ?>
-                        <div class="current-file">
-                            <strong>Current file:</strong> <?php echo htmlspecialchars($file_url); ?><br>
-                            <small>Upload a new file to replace the current one, or leave empty to keep the existing file.</small>
-                        </div>
-                        <input type="hidden" name="file_url" value="<?php echo htmlspecialchars($file_url); ?>">
-                    <?php endif; ?>
-                    
-                    <label>Iframe URL:
-                        <input type="text" name="iframe_url" value="<?php echo htmlspecialchars($iframe_url); ?>">
-                    </label>
-                    <?php if ($edit_mode): ?>
-                        <label>Created At:
-                            <input type="text" value="<?php echo htmlspecialchars($created_at); ?>" readonly>
+                    <div class="form-grid">
+                        <label>Title:
+                            <input type="text" name="title" value="<?php echo htmlspecialchars($title); ?>" required>
                         </label>
-                        <label>Updated At:
-                            <input type="text" value="<?php echo htmlspecialchars($updated_at); ?>" readonly>
+                        <label>Date:
+                            <input type="date" name="date" value="<?php echo htmlspecialchars($date); ?>" required>
                         </label>
-                    <?php endif; ?>
-                    <?php if ($edit_mode): ?>
-                        <button type="submit" name="update">Update</button>
-                        <a href="information_settings.php" class="btn btn-cancel">Cancel</a>
-                    <?php else: ?>
-                        <button type="submit" name="save">Add</button>
-                    <?php endif; ?>
+                        <label>Type:
+                            <input type="text" name="type" value="<?php echo htmlspecialchars($type); ?>" required>
+                        </label>
+                        <label>Subject:
+                            <input type="text" name="subject" value="<?php echo htmlspecialchars($subject); ?>" required>
+                        </label>
+                        <label>Status:
+                            <input type="text" name="status" value="<?php echo htmlspecialchars($status); ?>" required>
+                        </label>
+                        <label class="full-width">Description:
+                            <textarea name="description" rows="3" required><?php echo htmlspecialchars($description); ?></textarea>
+                        </label>
+                        <label class="full-width">File Upload:
+                            <input type="file" name="file_upload" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt">
+                            <div class="file-info">
+                                <strong>Allowed file types:</strong> PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT<br>
+                                <strong>Maximum file size:</strong> 10MB
+                            </div>
+                        </label>
+                        
+                        <?php if ($edit_mode && !empty($file_url)): ?>
+                            <div class="current-file full-width">
+                                <strong>Current file:</strong> <?php echo htmlspecialchars($file_url); ?><br>
+                                <small>Upload a new file to replace the current one, or leave empty to keep the existing file.</small>
+                            </div>
+                            <input type="hidden" name="file_url" value="<?php echo htmlspecialchars($file_url); ?>">
+                        <?php endif; ?>
+                        
+                        <label class="full-width">Iframe URL:
+                            <input type="text" name="iframe_url" value="<?php echo htmlspecialchars($iframe_url); ?>">
+                        </label>
+                        <?php if ($edit_mode): ?>
+                            <label>Created At:
+                                <input type="text" value="<?php echo htmlspecialchars($created_at); ?>" readonly>
+                            </label>
+                            <label>Updated At:
+                                <input type="text" value="<?php echo htmlspecialchars($updated_at); ?>" readonly>
+                            </label>
+                        <?php endif; ?>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <?php if ($edit_mode): ?>
+                            <button type="submit" name="update">Update</button>
+                            <a href="information_settings.php" class="btn btn-cancel">Cancel</a>
+                        <?php else: ?>
+                            <button type="submit" name="save">Add</button>
+                        <?php endif; ?>
+                    </div>
                 </form>
             </div>
             <div class="modern-table-card">
