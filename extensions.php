@@ -80,10 +80,6 @@
         <h1>Extensions</h1>
         <div class="card-grid">
             <div class="card">
-                <div class="card-title">Laporan</div>
-                <a class="card-btn" href="http://psid.run.place/paskerid/public/pasadmin/information_settings.php" target="_blank">Go to Laporan</a>
-            </div>
-            <div class="card">
                 <div class="card-title">Kaloka</div>
                 <a class="card-btn" href="https://jobcodes.kemnaker.go.id/login" target="_blank">Go to Kaloka</a>
             </div>
