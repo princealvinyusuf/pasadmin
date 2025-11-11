@@ -117,7 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param('ssssssss', $title, $description, $date, $type, $subject, $file_url, $iframe_url, $status);
             $stmt->execute();
             $stmt->close();
-            header('Location: information_settings.php');
+            // Redirect to page 1 since new record appears at the top
+            header('Location: information_settings.php?page=1');
             exit();
         } elseif (isset($_POST['update'])) {
             // Update record, set updated_at to NOW()
@@ -125,7 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param('ssssssssi', $title, $description, $date, $type, $subject, $file_url, $iframe_url, $status, $id);
             $stmt->execute();
             $stmt->close();
-            header('Location: information_settings.php');
+            // Preserve current page after update
+            $current_page_param = isset($_GET['page']) ? '?page=' . intval($_GET['page']) : '';
+            header('Location: information_settings.php' . $current_page_param);
             exit();
         }
     }
@@ -134,6 +137,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Handle Delete
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
+    $current_page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+    
     // Get file URL before deleting to remove the file
     $result = $conn->query("SELECT file_url FROM information WHERE id=$id");
     if ($result && $row = $result->fetch_assoc()) {
@@ -148,7 +153,14 @@ if (isset($_GET['delete'])) {
         }
     }
     $conn->query("DELETE FROM information WHERE id=$id");
-    header('Location: information_settings.php');
+    
+    // After delete, check if current page still exists
+    $total_after_delete = $conn->query("SELECT COUNT(*) as total FROM information")->fetch_assoc()['total'];
+    $total_pages_after = ceil($total_after_delete / 20);
+    
+    // If current page is beyond total pages, go to last page
+    $redirect_page = min($current_page, max(1, $total_pages_after));
+    header('Location: information_settings.php?page=' . $redirect_page);
     exit();
 }
 
@@ -171,8 +183,49 @@ if (isset($_GET['edit'])) {
     }
 }
 
-// Fetch all records
-$records = $conn->query("SELECT * FROM information ORDER BY id DESC");
+// Helper function to build URL with query parameters
+function build_url($params = array()) {
+    $base_url = 'information_settings.php';
+    $query_parts = array();
+    foreach ($params as $key => $value) {
+        if ($value !== null && $value !== '') {
+            $query_parts[] = urlencode($key) . '=' . urlencode($value);
+        }
+    }
+    return $base_url . (!empty($query_parts) ? '?' . implode('&', $query_parts) : '');
+}
+
+// Helper function to build pagination URL
+function pagination_url($page, $edit = null) {
+    $params = array('page' => $page);
+    if ($edit !== null) {
+        $params['edit'] = $edit;
+    }
+    return build_url($params);
+}
+
+// Pagination settings
+$records_per_page = 20;
+
+// Get total number of records first
+$total_records_result = $conn->query("SELECT COUNT(*) as total FROM information");
+$total_records = $total_records_result->fetch_assoc()['total'];
+$total_pages = ceil($total_records / $records_per_page);
+
+// Get current page and validate it
+$current_page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+if ($total_pages > 0 && $current_page > $total_pages) {
+    // Redirect to last valid page if current page is beyond total pages
+    header('Location: information_settings.php?page=' . $total_pages);
+    exit();
+} elseif ($total_pages == 0) {
+    // If no records, ensure we're on page 1
+    $current_page = 1;
+}
+$offset = ($current_page - 1) * $records_per_page;
+
+// Fetch records for current page
+$records = $conn->query("SELECT * FROM information ORDER BY id DESC LIMIT $records_per_page OFFSET $offset");
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -362,6 +415,62 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
             background: #ffcdd2;
             color: #b71c1c;
         }
+        .pagination-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            padding: 20px;
+            gap: 12px;
+        }
+        .pagination {
+            display: flex;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .pagination li {
+            display: inline-block;
+        }
+        .pagination a,
+        .pagination span {
+            display: inline-block;
+            padding: 8px 14px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            background: #fff;
+        }
+        .pagination a:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+            color: #1f2937;
+        }
+        .pagination .active span {
+            background: #1976d2;
+            color: #fff;
+            border-color: #1976d2;
+            cursor: default;
+        }
+        .pagination .disabled span {
+            background: #f9fafb;
+            color: #9ca3af;
+            border-color: #e5e7eb;
+            cursor: not-allowed;
+        }
+        .pagination-info {
+            margin: 0 16px;
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
         @media (max-width: 900px) {
             .page-wrapper {
                 padding: 16px;
@@ -485,7 +594,7 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                     <div style="margin-top: 20px;">
                         <?php if ($edit_mode): ?>
                             <button type="submit" name="update">Update</button>
-                            <a href="information_settings.php" class="btn btn-cancel">Cancel</a>
+                            <a href="<?php echo build_url(array('page' => $current_page)); ?>" class="btn btn-cancel">Cancel</a>
                         <?php else: ?>
                             <button type="submit" name="save">Add</button>
                         <?php endif; ?>
@@ -527,8 +636,8 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                                     <?php if (!empty($row['file_url'])): ?>
                                         <a href="<?php echo htmlspecialchars($row['file_url']); ?>" target="_blank" class="btn" style="background:#e8f5e9;color:#388e3c;margin-bottom:4px;">See Document</a>
                                     <?php endif; ?>
-                                    <a href="information_settings.php?edit=<?php echo $row['id']; ?>">Edit</a>
-                                    <a href="information_settings.php?delete=<?php echo $row['id']; ?>" onclick="return confirm('Are you sure you want to delete this record?');">Delete</a>
+                                    <a href="<?php echo build_url(array('edit' => $row['id'], 'page' => $current_page)); ?>">Edit</a>
+                                    <a href="<?php echo build_url(array('delete' => $row['id'], 'page' => $current_page)); ?>" onclick="return confirm('Are you sure you want to delete this record?');">Delete</a>
                                 </td>
                             </tr>
                         <?php endwhile; ?>
@@ -536,6 +645,66 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                         <tr><td colspan="12">No records found.</td></tr>
                     <?php endif; ?>
                 </table>
+                </div>
+                <div class="pagination-container">
+                    <?php if ($total_pages > 1): ?>
+                    <ul class="pagination">
+                        <?php
+                        // Get edit parameter if exists
+                        $edit_param = isset($_GET['edit']) ? intval($_GET['edit']) : null;
+                        ?>
+                        <?php if ($current_page > 1): ?>
+                            <li><a href="<?php echo pagination_url($current_page - 1, $edit_param); ?>">&laquo; Prev</a></li>
+                        <?php else: ?>
+                            <li class="disabled"><span>&laquo; Prev</span></li>
+                        <?php endif; ?>
+                        
+                        <?php
+                        // Calculate page range to show
+                        $start_page = max(1, $current_page - 2);
+                        $end_page = min($total_pages, $current_page + 2);
+                        
+                        // Show first page if not in range
+                        if ($start_page > 1): ?>
+                            <li><a href="<?php echo pagination_url(1, $edit_param); ?>">1</a></li>
+                            <?php if ($start_page > 2): ?>
+                                <li><span>...</span></li>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                        
+                        <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                            <?php if ($i == $current_page): ?>
+                                <li class="active"><span><?php echo $i; ?></span></li>
+                            <?php else: ?>
+                                <li><a href="<?php echo pagination_url($i, $edit_param); ?>"><?php echo $i; ?></a></li>
+                            <?php endif; ?>
+                        <?php endfor; ?>
+                        
+                        <?php
+                        // Show last page if not in range
+                        if ($end_page < $total_pages): ?>
+                            <?php if ($end_page < $total_pages - 1): ?>
+                                <li><span>...</span></li>
+                            <?php endif; ?>
+                            <li><a href="<?php echo pagination_url($total_pages, $edit_param); ?>"><?php echo $total_pages; ?></a></li>
+                        <?php endif; ?>
+                        
+                        <?php if ($current_page < $total_pages): ?>
+                            <li><a href="<?php echo pagination_url($current_page + 1, $edit_param); ?>">Next &raquo;</a></li>
+                        <?php else: ?>
+                            <li class="disabled"><span>Next &raquo;</span></li>
+                        <?php endif; ?>
+                    </ul>
+                    <?php endif; ?>
+                    <?php if ($total_records > 0): ?>
+                    <div class="pagination-info">
+                        Showing <?php echo ($offset + 1); ?> - <?php echo min($offset + $records_per_page, $total_records); ?> of <?php echo $total_records; ?> records
+                    </div>
+                    <?php else: ?>
+                    <div class="pagination-info">
+                        No records found
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
