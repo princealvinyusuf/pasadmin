@@ -111,11 +111,7 @@
       />
       <div class="iframe-text">
         <h3><b>Karirhub Kemnaker</b></h3>
-        <p>
-          Portal digital resmi dari Kementerian Ketenagakerjaan yang mempertemukan pencari kerja
-          dan pemberi kerja di seluruh Indonesia. Temukan peluang karier terbaik dengan mudah,
-          cepat, dan terpercaya melalui Karirhub.
-        </p>
+        <p>Portal resmi Kemnaker yang menghubungkan pencari kerja dan pemberi kerja di seluruh Indonesia dalam satu ekosistem tenaga kerja terintegrasi.</p>
       </div>
     </div>
   </div>
