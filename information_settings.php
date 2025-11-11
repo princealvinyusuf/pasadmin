@@ -189,33 +189,42 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
             background: #f6f8fa;
             margin: 0;
             padding: 0;
+            min-height: 100vh;
+        }
+        .page-wrapper {
+            width: 100%;
+            min-height: calc(100vh - 56px);
+            padding: 20px;
+            box-sizing: border-box;
         }
         .main-content {
             display: flex;
             flex-wrap: wrap;
-            gap: 32px;
-            justify-content: center;
+            gap: 24px;
             align-items: flex-start;
-            margin-top: 40px;
+            width: 100%;
+            height: 100%;
         }
         .modern-card {
             background: #fff;
             border-radius: 16px;
             box-shadow: 0 4px 24px rgba(44,62,80,0.10);
             padding: 32px 28px 24px 28px;
-            margin-bottom: 32px;
             width: 100%;
-            max-width: 480px;
+            flex: 0 0 400px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
         }
         .modern-table-card {
             background: #fff;
             border-radius: 16px;
             box-shadow: 0 4px 24px rgba(44,62,80,0.10);
             padding: 24px 18px 18px 18px;
-            margin-bottom: 32px;
-            width: 100%;
-            max-width: 1200px;
-            overflow-x: auto;
+            flex: 1 1 600px;
+            min-width: 0;
+            max-height: calc(100vh - 120px);
+            display: flex;
+            flex-direction: column;
         }
         form label {
             display: block;
@@ -292,9 +301,16 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
             font-size: 0.9rem;
             color: #f57c00;
         }
+        .table-container {
+            flex: 1;
+            min-height: 0;
+            overflow: auto;
+            width: 100%;
+        }
         table {
             border-collapse: collapse;
             width: 100%;
+            min-width: 1000px;
             background: #fff;
             border-radius: 10px;
             overflow: hidden;
@@ -340,39 +356,61 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
             background: #ffcdd2;
             color: #b71c1c;
         }
-        @media (min-width: 1000px) {
-            .main-content {
-                flex-wrap: nowrap;
-                align-items: flex-start;
-            }
+        @media (min-width: 1200px) {
             .modern-card {
-                flex: 1 1 350px;
-                max-width: 400px;
+                flex: 0 0 450px;
             }
             .modern-table-card {
-                flex: 2 1 700px;
-                max-width: 900px;
+                flex: 1 1 auto;
             }
         }
         @media (max-width: 900px) {
-            .main-content { gap: 16px; }
-            .modern-card, .modern-table-card { max-width: 100vw; }
-            .modern-card { padding: 18px 8px 16px 8px; }
-            .modern-table-card { padding: 10px 2px 8px 2px; }
-            table { font-size: 0.97rem; }
+            .page-wrapper {
+                padding: 16px;
+            }
+            .main-content { 
+                gap: 16px; 
+            }
+            .modern-card { 
+                flex: 1 1 100%;
+                max-height: none;
+                padding: 24px 20px 20px 20px; 
+            }
+            .modern-table-card { 
+                flex: 1 1 100%;
+                max-height: calc(100vh - 200px);
+                padding: 20px 16px 16px 16px; 
+            }
+            table { 
+                font-size: 0.97rem; 
+            }
         }
         @media (max-width: 600px) {
-            .main-content { flex-direction: column; gap: 8px; }
-            .modern-card, .modern-table-card { padding: 8px 2px; }
-            th, td { padding: 7px 4px; }
+            .page-wrapper {
+                padding: 12px;
+            }
+            .main-content { 
+                flex-direction: column; 
+                gap: 12px; 
+            }
+            .modern-card, .modern-table-card { 
+                padding: 16px 12px 12px 12px; 
+                max-height: none;
+            }
+            .modern-table-card {
+                max-height: calc(100vh - 250px);
+            }
+            th, td { 
+                padding: 8px 6px; 
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
 <body class="bg-light">
       <?php include 'navbar.php'; ?>
       <!-- End Navigation Bar -->
-    <!-- <div class="header">Information Settings</div> -->
-    <div class="container">
+    <div class="page-wrapper">
         <div class="main-content">
             <div class="modern-card">
                 <?php if (!empty($upload_error)): ?>
@@ -452,6 +490,7 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                 </form>
             </div>
             <div class="modern-table-card">
+                <div class="table-container">
                 <table>
                     <tr>
                         <th>ID</th>
@@ -494,6 +533,7 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC");
                         <tr><td colspan="12">No records found.</td></tr>
                     <?php endif; ?>
                 </table>
+                </div>
             </div>
         </div>
     </div>
