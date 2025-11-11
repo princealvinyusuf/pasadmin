@@ -67,13 +67,12 @@
     // Show Dashboard if user can view any dashboard or manage settings
     $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || current_user_can('manage_settings'));
     
-    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canAccessControl || $canBroadcast);
+    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canAccessControl || $canBroadcast || $canIframe);
     $hasApiKeys = ($canManageSettings || $canApiKeys);
     $hasLayanan = ($canManageSettings || $canMitraKerja || $canPartnershipType || $canMitraSubmission || $canKemitraanBooked || $canPaskerRoom);
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
     $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan);
     $hasAsmen = ($canAsmenDashboard || $canAsmenAssets || $canAsmenServices || $canAsmenCalendar || $canAsmenQR);
-    $hasIframe = ($canManageSettings || $canIframe);
     // Naker Award flags
     $canNakerAssessment = current_user_can('naker_award_manage_assessment');
     $canNakerStage1 = current_user_can('naker_award_view_stage1') || $canNakerAssessment || $canManageSettings;
@@ -160,6 +159,7 @@
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>karirhub_ads_settings.php">KarirHub Ads Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>split_screen_settings.php">Split Screen Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canIframe): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>iframe_settings.php">iFrame Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>cron_settings.php">Other Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
@@ -170,13 +170,6 @@
                 <?php if (current_user_can('view_audit_trails') || $canManageSettings): ?>
                 <li class="nav-item">
                     <a class="nav-link" href="<?php echo $rootUrl; ?>audit_trails.php">Audit Trails</a>
-                </li>
-                <?php endif; ?>
-                <?php if ($hasIframe): ?>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootUrl; ?>iframe_settings.php">
-                        <i class="bi bi-window me-1"></i>iFrame
-                    </a>
                 </li>
                 <?php endif; ?>
                 <?php if ($hasLayanan): ?>
