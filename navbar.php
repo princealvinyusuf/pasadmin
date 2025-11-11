@@ -53,6 +53,7 @@
     $canKemitraanBooked = current_user_can('settings_kemitraan_booked_manage');
     $canPaskerRoom = current_user_can('settings_pasker_room_manage');
     $canDatabaseContact = current_user_can('settings_database_contact_manage');
+    $canIframe = current_user_can('settings_iframe_manage');
     $canAccessControl = current_user_can('manage_access_control');
     $canBroadcast = current_user_can('use_broadcast');
     $canExtensions = current_user_can('view_extensions');
@@ -72,6 +73,7 @@
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
     $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan);
     $hasAsmen = ($canAsmenDashboard || $canAsmenAssets || $canAsmenServices || $canAsmenCalendar || $canAsmenQR);
+    $hasIframe = ($canManageSettings || $canIframe);
     // Naker Award flags
     $canNakerAssessment = current_user_can('naker_award_manage_assessment');
     $canNakerStage1 = current_user_can('naker_award_view_stage1') || $canNakerAssessment || $canManageSettings;
@@ -168,6 +170,13 @@
                 <?php if (current_user_can('view_audit_trails') || $canManageSettings): ?>
                 <li class="nav-item">
                     <a class="nav-link" href="<?php echo $rootUrl; ?>audit_trails.php">Audit Trails</a>
+                </li>
+                <?php endif; ?>
+                <?php if ($hasIframe): ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>iframe_settings.php">
+                        <i class="bi bi-window me-1"></i>iFrame
+                    </a>
                 </li>
                 <?php endif; ?>
                 <?php if ($hasLayanan): ?>
