@@ -22,9 +22,9 @@
   /* Card dengan gradient border biru khas Karirhub */
   .card {
     position: relative;
-    width: 340px;
+    width: 360px; /* sedikit diperlebar agar proporsional */
     border-radius: 20px;
-    padding: 2.5px; /* ketebalan border tipis dan elegan */
+    padding: 3px; /* ketebalan border tipis dan elegan */
     background: linear-gradient(135deg, #388FE8, #4FA3F7, #9CC2FF);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     cursor: pointer;
@@ -39,14 +39,15 @@
   .card-content {
     background: #ffffff;
     border-radius: 18px;
-    padding: 28px 22px 36px 22px;
+    padding: 36px 24px 48px 24px; /* tambah ruang untuk logo besar */
     text-align: center;
   }
 
   .card img {
     display: block;
-    width: 220px;
-    margin: 0 auto 18px auto;
+    width: 300px; /* ✅ diperbesar dari 220px */
+    max-width: 100%;
+    margin: 0 auto 22px auto;
     filter:
       drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.25))
       drop-shadow(-2px -2px 3px rgba(255, 255, 255, 0.5));
@@ -69,8 +70,8 @@
 
   .card-footer {
     position: absolute;
-    bottom: 10px;
-    right: 16px;
+    bottom: 12px;
+    right: 18px;
     font-size: 11px;
     color: #696969;
     font-weight: 500;
@@ -81,8 +82,11 @@
     .card {
       width: 90%;
     }
+    .card-content {
+      padding: 30px 20px 42px 20px;
+    }
     .card img {
-      width: 170px;
+      width: 180px; /* tetap proporsional di mobile */
     }
   }
 </style>
@@ -92,7 +96,7 @@
     <div class="card-content">
       <img src="https://karirhub.kemnaker.go.id/assets/images/logo/products/karirhub-lower.svg"
            alt="Karirhub Kemnaker Logo">
-      <p>Portal resmi Kemnaker yang menghubungkan pencari kerja dan pemberi kerja di seluruh Indonesia dalam satu ekosistem tenaga kerja terintegrasi.</p>
+      <strong>Wujudkan karier impianmu bersama Karirhub Kemnaker.</strong>
       <div class="card-footer">Karirhub oleh Kemnaker</div>
     </div>
   </div>

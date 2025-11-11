@@ -47,9 +47,9 @@
       gap: 20px;
     }
 
-    /* Logo di kiri dengan efek timbul */
+    /* Logo kiri diperbesar dan proporsional */
     .iframe-inner img {
-      width: 150px;
+      width: 190px; /* ✅ Diperbesar dari 150px ke 190px */
       height: auto;
       flex-shrink: 0;
       filter:
@@ -65,7 +65,7 @@
         drop-shadow(-3px -3px 6px rgba(255, 255, 255, 0.95));
     }
 
-    /* Bagian teks di kanan */
+    /* Bagian teks kanan */
     .iframe-text {
       flex: 1;
       text-align: left;
@@ -80,8 +80,8 @@
 
     .iframe-text p {
       color: #444;
-      font-size: 14px;
-      line-height: 1.6;
+      font-size: 15px;
+      line-height: 1.7;
       margin: 0;
     }
 
@@ -94,7 +94,7 @@
         text-align: center;
       }
       .iframe-inner img {
-        width: 130px;
+        width: 200px; /* versi mobile tetap proporsional */
       }
     }
   </style>
@@ -111,7 +111,7 @@
       />
       <div class="iframe-text">
         <h3><b>Karirhub Kemnaker</b></h3>
-        <p>Portal resmi Kemnaker yang menghubungkan pencari kerja dan pemberi kerja di seluruh Indonesia dalam satu ekosistem tenaga kerja terintegrasi.</p>
+        <strong>Wujudkan karier impianmu bersama Karirhub Kemnaker.</strong>
       </div>
     </div>
   </div>

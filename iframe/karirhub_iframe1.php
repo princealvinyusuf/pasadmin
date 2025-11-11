@@ -22,7 +22,7 @@
         .iframe-container {
             position: relative;
             width: 100%;
-            max-width: 420px;
+            max-width: 460px; /* ✅ sedikit dilebarkan agar logo besar tetap proporsional */
             margin: 25px auto;
             border-radius: 20px;
             overflow: hidden;
@@ -41,48 +41,47 @@
             background: white;
             border-radius: 18px;
             text-align: center;
-            padding: 25px 20px;
+            padding: 35px 24px; /* ✅ tambahan ruang untuk logo besar */
         }
 
-        /* ✨ Efek timbul pada logo SVG */
+        /* ✨ Logo Karirhub diperbesar dengan efek timbul */
         .iframe-inner img {
-            width: 120px;
+            width: 300px; /* ✅ diperbesar dari 120px menjadi 180px */
             height: auto;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             filter:
-                drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.3)) /* bayangan bawah */
-                drop-shadow(-2px -2px 3px rgba(255, 255, 255, 0.6)); /* sorotan atas */
+                drop-shadow(3px 3px 5px rgba(0, 0, 0, 0.35))
+                drop-shadow(-3px -3px 5px rgba(255, 255, 255, 0.6));
             transition: transform 0.4s ease, filter 0.4s ease;
         }
 
-        /* Saat hover — logo tampak lebih timbul */
+        /* Efek saat hover */
         .iframe-container:hover img {
-            transform: scale(1.05);
+            transform: scale(1.07);
             filter:
-                drop-shadow(3px 3px 5px rgba(0, 0, 0, 0.35))
-                drop-shadow(-3px -3px 4px rgba(255, 255, 255, 0.7));
-        }
-
-        .iframe-inner h3 {
-            color: #388FE8;
-            margin: 0;
-            font-size: 18px;
-            font-weight: 600;
+                drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.35))
+                drop-shadow(-3px -3px 6px rgba(255, 255, 255, 0.75));
         }
 
         .iframe-inner p {
             color: #555;
-            font-size: 14px;
-            line-height: 1.6;
-            margin-top: 8px;
+            font-size: 15px;
+            line-height: 1.7;
+            margin-top: 10px;
+            max-width: 360px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         @media (max-width: 480px) {
             .iframe-container {
                 max-width: 90%;
             }
+            .iframe-inner {
+                padding: 28px 18px;
+            }
             .iframe-inner img {
-                width: 100px;
+                width: 180px; /* tetap proporsional di mobile */
             }
         }
     </style>
@@ -91,8 +90,7 @@
     <div class="iframe-container" onclick="window.open('https://karirhub.kemnaker.go.id/lowongan-dalam-negeri/lowongan', '_blank')">
         <div class="iframe-inner">
             <img src="https://karirhub.kemnaker.go.id/assets/images/logo/products/karirhub-lower.svg" alt="Karirhub Kemnaker Logo">
-            <!--<h3>Karirhub Kemnaker</h3>-->
-            <p>Portal resmi Kemnaker yang menghubungkan pencari kerja dan pemberi kerja di seluruh Indonesia dalam satu ekosistem tenaga kerja terintegrasi.</p>
+            <p><b>Wujudkan karier impianmu bersama Karirhub Kemnaker.</b></p>
         </div>
     </div>
 </body>
