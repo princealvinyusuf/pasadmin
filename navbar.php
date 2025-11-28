@@ -54,6 +54,7 @@
     $canPaskerRoom = current_user_can('settings_pasker_room_manage');
     $canDatabaseContact = current_user_can('settings_database_contact_manage');
     $canIframe = current_user_can('settings_iframe_manage');
+    $canRegistrasiKehadiran = current_user_can('registrasi_kehadiran_manage');
     $canAccessControl = current_user_can('manage_access_control');
     $canBroadcast = current_user_can('use_broadcast');
     $canExtensions = current_user_can('view_extensions');
@@ -183,6 +184,13 @@
                         <?php if ($canManageSettings || $canKemitraanBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_booked.php">Kemitraan Booked</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canPaskerRoom): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>pasker_room_settings.php">Pasker Room Settings</a></li><?php endif; ?>
                     </ul>
+                </li>
+                <?php endif; ?>
+                <?php if ($canManageSettings || $canRegistrasiKehadiran): ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>registrasi_kehadiran.php">
+                        Registrasi Kehadiran
+                    </a>
                 </li>
                 <?php endif; ?>
                 <?php if ($hasAsmen): ?>
