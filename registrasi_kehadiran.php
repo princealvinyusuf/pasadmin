@@ -144,6 +144,21 @@ if (isset($_GET['edit'])) {
     $stmt->close();
 }
 
+// Global statistics (all data, not affected by search filter)
+$totalAll   = 0;
+$totalYa    = 0;
+$totalTidak = 0;
+$statRes = $conn->query("SELECT 
+    COUNT(*) AS total,
+    SUM(kehadiran = 'YA') AS total_ya,
+    SUM(kehadiran = 'TIDAK') AS total_tidak
+FROM registrasi_kehadiran");
+if ($statRes && $statRow = $statRes->fetch_assoc()) {
+    $totalAll   = (int)($statRow['total'] ?? 0);
+    $totalYa    = (int)($statRow['total_ya'] ?? 0);
+    $totalTidak = (int)($statRow['total_tidak'] ?? 0);
+}
+
 // Search handling
 $search      = isset($_GET['q']) ? trim($_GET['q']) : '';
 $filterKehad = isset($_GET['f_kehadiran']) ? trim($_GET['f_kehadiran']) : '';
@@ -310,6 +325,56 @@ if ($types !== '') {
             padding-inline: 0.75rem;
             font-size: 0.78rem;
         }
+        .stats-card {
+            border-radius: 0.9rem;
+            padding: 1rem 1.2rem;
+            background: linear-gradient(135deg, #eff6ff, #eef2ff);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+        }
+        .stats-card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #2563eb15;
+            color: #1d4ed8;
+        }
+        .stats-card-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #6b7280;
+            margin-bottom: 0.1rem;
+        }
+        .stats-card-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        .stats-card-sub {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        .stats-card.success {
+            background: linear-gradient(135deg, #ecfdf3, #dcfce7);
+        }
+        .stats-card.success .stats-card-icon {
+            background: #22c55e20;
+            color: #16a34a;
+        }
+        .stats-card.danger {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+        }
+        .stats-card.danger .stats-card-icon {
+            background: #f9737320;
+            color: #b91c1c;
+        }
         .search-row {
             margin-bottom: 1rem;
         }
@@ -345,6 +410,58 @@ if ($types !== '') {
         </div>
 
         <div class="row g-4">
+            <div class="col-12 mb-1">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="stats-card">
+                            <div class="stats-card-icon">
+                                <i class="bi bi-people"></i>
+                            </div>
+                            <div>
+                                <div class="stats-card-title">Total Registrasi</div>
+                                <div class="stats-card-value">
+                                    <?php echo number_format($totalAll); ?>
+                                </div>
+                                <div class="stats-card-sub">
+                                    Seluruh data yang pernah terdaftar
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stats-card success">
+                            <div class="stats-card-icon">
+                                <i class="bi bi-check2-circle"></i>
+                            </div>
+                            <div>
+                                <div class="stats-card-title">Hadir (YA)</div>
+                                <div class="stats-card-value">
+                                    <?php echo number_format($totalYa); ?>
+                                </div>
+                                <div class="stats-card-sub">
+                                    Peserta yang terkonfirmasi hadir
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stats-card danger">
+                            <div class="stats-card-icon">
+                                <i class="bi bi-x-circle"></i>
+                            </div>
+                            <div>
+                                <div class="stats-card-title">Tidak Hadir</div>
+                                <div class="stats-card-value">
+                                    <?php echo number_format($totalTidak); ?>
+                                </div>
+                                <div class="stats-card-sub">
+                                    Peserta yang tidak hadir / batal
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="col-lg-5">
                 <div class="card-modern mb-3">
                     <div class="card-modern-header">
