@@ -144,8 +144,44 @@ if (isset($_GET['edit'])) {
     $stmt->close();
 }
 
-// Fetch all rows (newest first)
-$rows = $conn->query('SELECT * FROM registrasi_kehadiran ORDER BY created_at DESC, id DESC');
+// Search handling
+$search      = isset($_GET['q']) ? trim($_GET['q']) : '';
+$filterKehad = isset($_GET['f_kehadiran']) ? trim($_GET['f_kehadiran']) : '';
+if ($filterKehad !== 'YA' && $filterKehad !== 'TIDAK') {
+    $filterKehad = '';
+}
+
+// Build query with optional filters (newest first)
+$baseSql = 'FROM registrasi_kehadiran WHERE 1=1';
+$params  = [];
+$types   = '';
+
+if ($search !== '') {
+    $baseSql .= ' AND (nama LIKE ? OR email LIKE ? OR jabatan LIKE ? OR asal_instansi LIKE ? OR nama_instansi LIKE ? OR lokasi LIKE ? OR nomor_handphone LIKE ?)';
+    $like = '%' . $search . '%';
+    // 7 placeholders
+    for ($i = 0; $i < 7; $i++) {
+        $params[] = $like;
+        $types   .= 's';
+    }
+}
+
+if ($filterKehad !== '') {
+    $baseSql .= ' AND kehadiran = ?';
+    $params[] = $filterKehad;
+    $types   .= 's';
+}
+
+// Fetch rows
+$sqlList = 'SELECT * ' . $baseSql . ' ORDER BY created_at DESC, id DESC';
+if ($types !== '') {
+    $stmtList = $conn->prepare($sqlList);
+    $stmtList->bind_param($types, ...$params);
+    $stmtList->execute();
+    $rows = $stmtList->get_result();
+} else {
+    $rows = $conn->query('SELECT * FROM registrasi_kehadiran ORDER BY created_at DESC, id DESC');
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -274,6 +310,16 @@ $rows = $conn->query('SELECT * FROM registrasi_kehadiran ORDER BY created_at DES
             padding-inline: 0.75rem;
             font-size: 0.78rem;
         }
+        .search-row {
+            margin-bottom: 1rem;
+        }
+        .search-row .form-control,
+        .search-row .form-select {
+            font-size: 0.9rem;
+        }
+        .search-row .btn {
+            font-size: 0.9rem;
+        }
         @media (max-width: 991.98px) {
             .page-header {
                 flex-direction: column;
@@ -392,10 +438,41 @@ $rows = $conn->query('SELECT * FROM registrasi_kehadiran ORDER BY created_at DES
                     <div class="card-modern-header d-flex justify-content-between align-items-center">
                         <div>
                             <h5 class="mb-1">Daftar Registrasi Kehadiran</h5>
-                            <small class="text-muted">Total data: <?php echo (int)$rows->num_rows; ?></small>
+                            <small class="text-muted">
+                                Total data: <?php echo (int)$rows->num_rows; ?>
+                                <?php if ($search !== '' || $filterKehad !== ''): ?>
+                                    &middot; Filter aktif
+                                <?php endif; ?>
+                            </small>
                         </div>
                     </div>
                     <div class="card-modern-body">
+                        <form method="get" class="row align-items-end g-2 search-row">
+                            <div class="col-md-6">
+                                <label class="form-label mb-1">Cari Peserta / Instansi / Lokasi</label>
+                                <input type="text" name="q" class="form-control"
+                                       placeholder="Ketik nama, email, instansi, lokasi, atau no. HP"
+                                       value="<?php echo htmlspecialchars($search, ENT_QUOTES); ?>">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label mb-1">Kehadiran</label>
+                                <select name="f_kehadiran" class="form-select">
+                                    <option value="">Semua</option>
+                                    <option value="YA" <?php echo ($filterKehad === 'YA') ? 'selected' : ''; ?>>YA</option>
+                                    <option value="TIDAK" <?php echo ($filterKehad === 'TIDAK') ? 'selected' : ''; ?>>TIDAK</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-search me-1"></i>Cari
+                                </button>
+                                <?php if ($search !== '' || $filterKehad !== ''): ?>
+                                    <a href="registrasi_kehadiran.php" class="btn btn-outline-secondary">
+                                        Reset
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        </form>
                         <div class="table-responsive table-modern">
                             <table class="table mb-0 align-middle">
                                 <thead>
