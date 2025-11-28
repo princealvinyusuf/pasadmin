@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS registrasi_kehadiran (
     nama_instansi VARCHAR(255) DEFAULT NULL,
     nomor_handphone VARCHAR(50) DEFAULT NULL,
     lokasi VARCHAR(255) DEFAULT NULL,
+    waktu_kedatangan DATETIME DEFAULT NULL,
     kehadiran ENUM('YA','TIDAK') NOT NULL DEFAULT 'YA',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -40,10 +41,29 @@ CREATE TABLE IF NOT EXISTS registrasi_kehadiran (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 ");
 
+// Ensure new column exists on existing installations
+$chkCol = $conn->query("SHOW COLUMNS FROM registrasi_kehadiran LIKE 'waktu_kedatangan'");
+if ($chkCol && $chkCol->num_rows === 0) {
+    $conn->query("ALTER TABLE registrasi_kehadiran ADD COLUMN waktu_kedatangan DATETIME NULL AFTER lokasi");
+}
+
 // Simple helpers
 function rk_post($key, $default = '')
 {
     return isset($_POST[$key]) ? trim($_POST[$key]) : $default;
+}
+
+function rk_parse_datetime_local(?string $val): ?string
+{
+    if ($val === null) { return null; }
+    $val = trim($val);
+    if ($val === '') { return null; }
+    // Convert HTML datetime-local (YYYY-MM-DDTHH:MM) to MySQL DATETIME
+    $val = str_replace('T', ' ', $val);
+    if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/', $val)) {
+        $val .= ':00';
+    }
+    return $val;
 }
 
 // Handle Create
@@ -55,6 +75,7 @@ if (isset($_POST['add'])) {
     $nama_instansi   = rk_post('nama_instansi');
     $nomor_handphone = rk_post('nomor_handphone');
     $lokasi          = rk_post('lokasi');
+    $waktu_kedatangan = rk_parse_datetime_local($_POST['waktu_kedatangan'] ?? null);
     $kehadiran       = rk_post('kehadiran', 'YA');
     if ($kehadiran !== 'YA' && $kehadiran !== 'TIDAK') {
         $kehadiran = 'YA';
@@ -62,11 +83,11 @@ if (isset($_POST['add'])) {
 
     $stmt = $conn->prepare("
         INSERT INTO registrasi_kehadiran
-        (nama, email, jabatan, asal_instansi, nama_instansi, nomor_handphone, lokasi, kehadiran, created_at, updated_at)
-        VALUES (?,?,?,?,?,?,?,?,NOW(),NOW())
+        (nama, email, jabatan, asal_instansi, nama_instansi, nomor_handphone, lokasi, waktu_kedatangan, kehadiran, created_at, updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,NOW(),NOW())
     ");
     $stmt->bind_param(
-        'ssssssss',
+        'sssssssss',
         $nama,
         $email,
         $jabatan,
@@ -74,6 +95,7 @@ if (isset($_POST['add'])) {
         $nama_instansi,
         $nomor_handphone,
         $lokasi,
+        $waktu_kedatangan,
         $kehadiran
     );
     $stmt->execute();
@@ -92,6 +114,7 @@ if (isset($_POST['update'])) {
     $nama_instansi   = rk_post('nama_instansi');
     $nomor_handphone = rk_post('nomor_handphone');
     $lokasi          = rk_post('lokasi');
+    $waktu_kedatangan = rk_parse_datetime_local($_POST['waktu_kedatangan'] ?? null);
     $kehadiran       = rk_post('kehadiran', 'YA');
     if ($kehadiran !== 'YA' && $kehadiran !== 'TIDAK') {
         $kehadiran = 'YA';
@@ -100,11 +123,11 @@ if (isset($_POST['update'])) {
     $stmt = $conn->prepare("
         UPDATE registrasi_kehadiran
         SET nama=?, email=?, jabatan=?, asal_instansi=?, nama_instansi=?,
-            nomor_handphone=?, lokasi=?, kehadiran=?, updated_at=NOW()
+            nomor_handphone=?, lokasi=?, waktu_kedatangan=?, kehadiran=?, updated_at=NOW()
         WHERE id=?
     ");
     $stmt->bind_param(
-        'ssssssssi',
+        'sssssssssi',
         $nama,
         $email,
         $jabatan,
@@ -112,6 +135,7 @@ if (isset($_POST['update'])) {
         $nama_instansi,
         $nomor_handphone,
         $lokasi,
+        $waktu_kedatangan,
         $kehadiran,
         $id
     );
@@ -522,6 +546,19 @@ if ($types !== '') {
                             </div>
 
                             <div class="mb-3">
+                                <label class="form-label">Waktu Kedatangan</label>
+                                <input
+                                        type="datetime-local"
+                                        name="waktu_kedatangan"
+                                        class="form-control"
+                                        value="<?php
+                                            if (!empty($edit_row['waktu_kedatangan'])) {
+                                                echo htmlspecialchars(date('Y-m-d\\TH:i', strtotime($edit_row['waktu_kedatangan'])));
+                                            }
+                                        ?>">
+                            </div>
+
+                            <div class="mb-3">
                                 <label class="form-label">Kehadiran</label>
                                 <select name="kehadiran" class="form-select">
                                     <?php
@@ -673,7 +710,16 @@ if ($types !== '') {
                                                     <?php endif; ?>
                                                 </td>
                                                 <td class="small">
-                                                    <?php echo htmlspecialchars($r['created_at']); ?>
+                                                    <div>
+                                                        <span class="text-muted">Dibuat:</span>
+                                                        <?php echo htmlspecialchars($r['created_at']); ?>
+                                                    </div>
+                                                    <?php if (!empty($r['waktu_kedatangan'])): ?>
+                                                        <div>
+                                                            <span class="text-muted">Datang:</span>
+                                                            <?php echo htmlspecialchars($r['waktu_kedatangan']); ?>
+                                                        </div>
+                                                    <?php endif; ?>
                                                 </td>
                                                 <td class="text-end actions">
                                                     <a href="registrasi_kehadiran.php?edit=<?php echo (int)$r['id']; ?>"
