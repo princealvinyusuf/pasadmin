@@ -346,7 +346,6 @@ if ($types !== '') {
         }
         .table-modern {
             border-radius: 0.75rem;
-            overflow: hidden;
             border: 1px solid rgba(148, 163, 184, 0.35);
             background: #ffffff;
         }
@@ -680,13 +679,13 @@ if ($types !== '') {
                                 <thead>
                                     <tr>
                                         <th>#</th>
+                                        <th class="text-end">Aksi</th>
+                                        <th>Kehadiran</th>
                                         <th>Peserta</th>
                                         <th>Instansi</th>
                                         <th>Kontak</th>
                                         <th>Lokasi</th>
-                                        <th>Kehadiran</th>
                                         <th>Timestamp</th>
-                                        <th class="text-end">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -701,6 +700,28 @@ if ($types !== '') {
                                         <?php while ($r = $rows->fetch_assoc()): ?>
                                             <tr>
                                                 <td><?php echo $i++; ?></td>
+                                                <td class="text-end actions">
+                                                    <a href="registrasi_kehadiran.php?edit=<?php echo (int)$r['id']; ?>"
+                                                       class="btn btn-sm btn-outline-primary me-1">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </a>
+                                                    <a href="registrasi_kehadiran.php?delete=<?php echo (int)$r['id']; ?>"
+                                                       class="btn btn-sm btn-outline-danger"
+                                                       onclick="return confirm('Hapus data ini?');">
+                                                        <i class="bi bi-trash"></i>
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <?php if ($r['kehadiran'] === 'YA'): ?>
+                                                        <span class="badge-ya">
+                                                            <i class="bi bi-check2-circle me-1"></i>YA
+                                                        </span>
+                                                    <?php else: ?>
+                                                        <span class="badge-tidak">
+                                                            <i class="bi bi-x-circle me-1"></i>TIDAK
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </td>
                                                 <td>
                                                     <div class="fw-semibold">
                                                         <?php echo htmlspecialchars($r['nama']); ?>
@@ -746,17 +767,6 @@ if ($types !== '') {
                                                         <span class="text-muted small">-</span>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td>
-                                                    <?php if ($r['kehadiran'] === 'YA'): ?>
-                                                        <span class="badge-ya">
-                                                            <i class="bi bi-check2-circle me-1"></i>YA
-                                                        </span>
-                                                    <?php else: ?>
-                                                        <span class="badge-tidak">
-                                                            <i class="bi bi-x-circle me-1"></i>TIDAK
-                                                        </span>
-                                                    <?php endif; ?>
-                                                </td>
                                                 <td class="small">
                                                     <div>
                                                         <span class="text-muted">Dibuat:</span>
@@ -768,17 +778,6 @@ if ($types !== '') {
                                                             <?php echo htmlspecialchars($r['waktu_kedatangan']); ?>
                                                         </div>
                                                     <?php endif; ?>
-                                                </td>
-                                                <td class="text-end actions">
-                                                    <a href="registrasi_kehadiran.php?edit=<?php echo (int)$r['id']; ?>"
-                                                       class="btn btn-sm btn-outline-primary me-1">
-                                                        <i class="bi bi-pencil-square"></i>
-                                                    </a>
-                                                    <a href="registrasi_kehadiran.php?delete=<?php echo (int)$r['id']; ?>"
-                                                       class="btn btn-sm btn-outline-danger"
-                                                       onclick="return confirm('Hapus data ini?');">
-                                                        <i class="bi bi-trash"></i>
-                                                    </a>
                                                 </td>
                                             </tr>
                                         <?php endwhile; ?>
