@@ -190,6 +190,11 @@ if ($filterKehad !== 'YA' && $filterKehad !== 'TIDAK') {
     $filterKehad = '';
 }
 
+// Pagination settings
+$perPage = 25;
+$page    = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset  = 0;
+
 // Build query with optional filters (newest first)
 $baseSql = 'FROM registrasi_kehadiran WHERE 1=1';
 $params  = [];
@@ -211,15 +216,56 @@ if ($filterKehad !== '') {
     $types   .= 's';
 }
 
-// Fetch rows
-$sqlList = 'SELECT * ' . $baseSql . ' ORDER BY created_at DESC, id DESC';
+// Count total rows for current filter (for pagination)
+$totalFiltered = 0;
+$totalPages    = 1;
 if ($types !== '') {
-    $stmtList = $conn->prepare($sqlList);
-    $stmtList->bind_param($types, ...$params);
+    $sqlCount  = 'SELECT COUNT(*) AS cnt ' . $baseSql;
+    $stmtCount = $conn->prepare($sqlCount);
+    $stmtCount->bind_param($types, ...$params);
+    $stmtCount->execute();
+    $resCount = $stmtCount->get_result();
+    if ($resCount && $rowCount = $resCount->fetch_assoc()) {
+        $totalFiltered = (int)($rowCount['cnt'] ?? 0);
+    }
+    $stmtCount->close();
+} else {
+    $resCount = $conn->query('SELECT COUNT(*) AS cnt FROM registrasi_kehadiran');
+    if ($resCount && $rowCount = $resCount->fetch_assoc()) {
+        $totalFiltered = (int)($rowCount['cnt'] ?? 0);
+    }
+}
+
+if ($totalFiltered > 0) {
+    $totalPages = (int)ceil($totalFiltered / $perPage);
+    if ($page > $totalPages) {
+        $page = $totalPages;
+    }
+    $offset = ($page - 1) * $perPage;
+} else {
+    $page   = 1;
+    $offset = 0;
+    $totalPages = 1;
+}
+
+// Fetch rows (current page)
+if ($types !== '') {
+    $sqlList   = 'SELECT * ' . $baseSql . ' ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?';
+    $stmtList  = $conn->prepare($sqlList);
+    $typesList = $types . 'ii';
+    $paramsList = $params;
+    $paramsList[] = $perPage;
+    $paramsList[] = $offset;
+    $stmtList->bind_param($typesList, ...$paramsList);
     $stmtList->execute();
     $rows = $stmtList->get_result();
 } else {
-    $rows = $conn->query('SELECT * FROM registrasi_kehadiran ORDER BY created_at DESC, id DESC');
+    $sqlList = sprintf(
+        'SELECT * FROM registrasi_kehadiran ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d',
+        (int)$perPage,
+        (int)$offset
+    );
+    $rows = $conn->query($sqlList);
 }
 ?>
 <!DOCTYPE html>
@@ -593,7 +639,9 @@ if ($types !== '') {
                         <div>
                             <h5 class="mb-1">Daftar Registrasi Kehadiran</h5>
                             <small class="text-muted">
-                                Total data: <?php echo (int)$rows->num_rows; ?>
+                                Total data: <?php echo (int)$totalFiltered; ?>
+                                &middot;
+                                Halaman <?php echo (int)$page; ?> dari <?php echo (int)$totalPages; ?>
                                 <?php if ($search !== '' || $filterKehad !== ''): ?>
                                     &middot; Filter aktif
                                 <?php endif; ?>
@@ -738,6 +786,57 @@ if ($types !== '') {
                                 </tbody>
                             </table>
                         </div>
+                        <?php if ($totalPages > 1): ?>
+                        <nav class="mt-3">
+                            <ul class="pagination justify-content-end mb-0">
+                                <?php
+                                    // Previous button
+                                    $prevDisabled = ($page <= 1) ? ' disabled' : '';
+                                    $prevPage = max(1, $page - 1);
+                                ?>
+                                <li class="page-item<?php echo $prevDisabled; ?>">
+                                    <a class="page-link" href="<?php
+                                        $params = [];
+                                        if ($search !== '') { $params['q'] = $search; }
+                                        if ($filterKehad !== '') { $params['f_kehadiran'] = $filterKehad; }
+                                        $params['page'] = $prevPage;
+                                        echo 'registrasi_kehadiran.php?' . http_build_query($params);
+                                    ?>">
+                                        &laquo;
+                                    </a>
+                                </li>
+                                <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                                    <li class="page-item <?php echo ($p === $page) ? 'active' : ''; ?>">
+                                        <a class="page-link" href="<?php
+                                            $params = [];
+                                            if ($search !== '') { $params['q'] = $search; }
+                                            if ($filterKehad !== '') { $params['f_kehadiran'] = $filterKehad; }
+                                            $params['page'] = $p;
+                                            echo 'registrasi_kehadiran.php?' . http_build_query($params);
+                                        ?>">
+                                            <?php echo $p; ?>
+                                        </a>
+                                    </li>
+                                <?php endfor; ?>
+                                <?php
+                                    // Next button
+                                    $nextDisabled = ($page >= $totalPages) ? ' disabled' : '';
+                                    $nextPage = min($totalPages, $page + 1);
+                                ?>
+                                <li class="page-item<?php echo $nextDisabled; ?>">
+                                    <a class="page-link" href="<?php
+                                        $params = [];
+                                        if ($search !== '') { $params['q'] = $search; }
+                                        if ($filterKehad !== '') { $params['f_kehadiran'] = $filterKehad; }
+                                        $params['page'] = $nextPage;
+                                        echo 'registrasi_kehadiran.php?' . http_build_query($params);
+                                    ?>">
+                                        &raquo;
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
