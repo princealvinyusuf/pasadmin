@@ -3,8 +3,6 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-require __DIR__ . '/../vendor/autoload.php'; // ← coba pakai ../ dulu
-
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 
@@ -54,7 +52,7 @@ function getQuestionsFromExcel(string $filePath, string $sheetName): array {
         if ($firstRow) {
             foreach ($row as $col => $value) {
                 if (!$value) continue;
-                $key = mb_strtolower(trim($value), 'UTF-8');
+                $key = mb_strtolower(trim($value), 'UTF-8'); // misal "Comment" jadi "comment"
                 $headerMap[$key] = $col;
             }
             $firstRow = false;
@@ -137,94 +135,106 @@ function classifyQuestion(string $question): string {
 $errorMsg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel'])) {
-    if ($_FILES['excel']['error'] === UPLOAD_ERR_OK) {
-
-        $tmpPath   = $_FILES['excel']['tmp_name'];
-        $sheetName = "tiket aduan peserta_november";
-
-        try {
-            $questions = getQuestionsFromExcel($tmpPath, $sheetName);
-
-            if (empty($questions)) {
-                $errorMsg = "Tidak ada data pada kolom 'Comment' di sheet '$sheetName'.";
-            } else {
-
-                $keywordFreq    = getKeywordFrequency($questions);
-                $classifiedData = [];
-
-                foreach ($questions as $q) {
-                    $classifiedData[] = [
-                        'question' => $q,
-                        'kategori' => classifyQuestion($q)
-                    ];
-                }
-
-                // ---- BUAT EXCEL HASIL ----
-                $spreadsheet = new Spreadsheet();
-
-                // SHEET 1
-                $sheet1 = $spreadsheet->getActiveSheet();
-                $sheet1->setTitle('Klasifikasi');
-
-                $sheet1->setCellValue('A1', 'No');
-                $sheet1->setCellValue('B1', 'Comment');
-                $sheet1->setCellValue('C1', 'Kategori');
-
-                $rowNum = 2;
-                foreach ($classifiedData as $idx => $row) {
-                    $sheet1->setCellValue('A' . $rowNum, $idx + 1);
-                    $sheet1->setCellValue('B' . $rowNum, $row['question']);
-                    $sheet1->setCellValue('C' . $rowNum, $row['kategori']);
-                    $rowNum++;
-                }
-
-                foreach (range('A', 'C') as $col) {
-                    $sheet1->getColumnDimension($col)->setAutoSize(true);
-                }
-
-                // SHEET 2
-                $sheet2 = $spreadsheet->createSheet();
-                $sheet2->setTitle('Keyword');
-
-                $sheet2->setCellValue('A1', 'Keyword');
-                $sheet2->setCellValue('B1', 'Frekuensi');
-
-                $rowNum = 2;
-                foreach ($keywordFreq as $kw => $count) {
-                    $sheet2->setCellValue('A' . $rowNum, $kw);
-                    $sheet2->setCellValue('B' . $rowNum, $count);
-                    $rowNum++;
-                }
-
-                $sheet2->getColumnDimension('A')->setAutoSize(true);
-                $sheet2->getColumnDimension('B')->setAutoSize(true);
-
-                // ---- DOWNLOAD ----
-                $filename = 'hasil_klasifikasi_' . date('Ymd_His') . '.xlsx';
-
-                header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-                header('Content-Disposition: attachment; filename="' . $filename . '"');
-                header('Cache-Control: max-age=0');
-                ob_end_clean();
-
-                $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
-                $writer->save('php://output');
-                exit;
-
-            }
-
-        } catch (Exception $e) {
-            $errorMsg = $e->getMessage();
+    try {
+        if ($_FILES['excel']['error'] !== UPLOAD_ERR_OK) {
+            throw new Exception("Error upload file: " . $_FILES['excel']['error']);
         }
 
-    } else {
-        $errorMsg = "Error upload file: " . $_FILES['excel']['error'];
+        $tmpPath = $_FILES['excel']['tmp_name'];
+        if (!is_uploaded_file($tmpPath)) {
+            throw new Exception("File upload tidak valid.");
+        }
+
+        $sheetName = "tiket aduan peserta_november";
+
+        // 1. Baca semua comment dari Excel
+        $questions = getQuestionsFromExcel($tmpPath, $sheetName);
+
+        if (empty($questions)) {
+            throw new Exception("Tidak ada data pada kolom 'Comment' di sheet '$sheetName'.");
+        }
+
+        // 2. Hitung keyword & klasifikasikan
+        $keywordFreq    = getKeywordFrequency($questions);
+        $classifiedData = [];
+
+        foreach ($questions as $q) {
+            $classifiedData[] = [
+                'question' => $q,
+                'kategori' => classifyQuestion($q)
+            ];
+        }
+
+        // 3. Buat Excel hasil
+        $spreadsheet = new Spreadsheet();
+
+        // SHEET 1: Klasifikasi
+        $sheet1 = $spreadsheet->getActiveSheet();
+        $sheet1->setTitle('Klasifikasi');
+
+        $sheet1->setCellValue('A1', 'No');
+        $sheet1->setCellValue('B1', 'Comment');
+        $sheet1->setCellValue('C1', 'Kategori');
+
+        $rowNum = 2;
+        foreach ($classifiedData as $idx => $row) {
+            $sheet1->setCellValue('A' . $rowNum, $idx + 1);
+            $sheet1->setCellValue('B' . $rowNum, $row['question']);
+            $sheet1->setCellValue('C' . $rowNum, $row['kategori']);
+            $rowNum++;
+        }
+
+        foreach (range('A', 'C') as $col) {
+            $sheet1->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // SHEET 2: Keyword
+        $sheet2 = $spreadsheet->createSheet();
+        $sheet2->setTitle('Keyword');
+
+        $sheet2->setCellValue('A1', 'Keyword');
+        $sheet2->setCellValue('B1', 'Frekuensi');
+
+        $rowNum = 2;
+        foreach ($keywordFreq as $kw => $count) {
+            $sheet2->setCellValue('A' . $rowNum, $kw);
+            $sheet2->setCellValue('B' . $rowNum, $count);
+            $rowNum++;
+        }
+
+        $sheet2->getColumnDimension('A')->setAutoSize(true);
+        $sheet2->getColumnDimension('B')->setAutoSize(true);
+
+        // 4. Kirim sebagai download
+        $filename = 'hasil_klasifikasi_' . date('Ymd_His') . '.xlsx';
+
+        // Pastikan belum ada output sama sekali sebelum header
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+        $writer->save('php://output');
+        exit;
+
+    } catch (Throwable $e) {
+        // TANGKAP SEMUA ERROR DI SINI → tidak 500 lagi, tapi tampil ke layar
+        $errorMsg = 'Terjadi error: ' . $e->getMessage();
+
+        // Optional: tulis ke log file sendiri
+        file_put_contents(
+            __DIR__ . '/classification_magang_error.log',
+            date('Y-m-d H:i:s') . ' ' . $e->getMessage() . PHP_EOL . $e->getTraceAsString() . PHP_EOL . '----' . PHP_EOL,
+            FILE_APPEND
+        );
     }
 }
 
 ?>
-
-<!-- FORM UPLOAD -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -233,7 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel'])) {
     <style>
         body { font-family: Arial; margin: 40px; }
         .box { border: 1px solid #ccc; padding: 20px; border-radius: 8px; max-width: 500px; }
-        .error { color: red; }
+        .error { color: red; white-space: pre-line; }
     </style>
 </head>
 <body>
@@ -241,7 +251,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel'])) {
 <h1>Klasifikasi Komentar Client → Auto Download Excel</h1>
 
 <div class="box">
-
     <p>Upload file Excel yang memiliki kolom <strong>"Comment"</strong> pada sheet <strong>"tiket aduan peserta_november"</strong>.</p>
 
     <?php if (!empty($errorMsg)): ?>
@@ -253,7 +262,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel'])) {
         <input type="file" name="excel" required><br><br>
         <button type="submit">Upload & Proses → Download</button>
     </form>
-
 </div>
 
 </body>
