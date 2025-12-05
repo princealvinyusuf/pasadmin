@@ -3,10 +3,12 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-// Jika di sistemmu butuh login dulu, aktifkan ini
+// ====== SESUAIKAN BAGIAN INI DENGAN STRUKTUR PROJECTMU ======
+// Jika di sistemmu butuh login:
 require __DIR__ . '/auth.php';
 
-// Koneksi database (harus ada $conn = new mysqli(...))
+// Koneksi database, pastikan file ini mendefinisikan $conn (mysqli)
+// Jika db.php berada di folder lain, sesuaikan path-nya.
 require __DIR__ . '/db.php';
 
 // Library XLSX satu file (BUKAN composer)
@@ -19,7 +21,7 @@ $targetSheetName = 'tiket aduan peserta_november';
 $targetColumn    = 'Comment';
 
 // ========================================
-// 1. GET → tampilkan form upload
+// 1. GET → tampilkan form upload + sedikit info tabel
 // ========================================
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     ?>
@@ -27,17 +29,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     <html lang="id">
     <head>
         <meta charset="UTF-8">
-        <title>Import Tiket Aduan</title>
+        <title>Import Tiket Aduan Magang</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     </head>
     <body class="bg-light">
-    <div class="container py-5" style="max-width:800px;">
-        <h1 class="h4 mb-3">Import Tiket Aduan dari Excel</h1>
+    <div class="container py-5" style="max-width:900px;">
+        <h1 class="h4 mb-3">Import Tiket Aduan (Magang) dari Excel</h1>
         <p class="text-muted">
             File Excel yang diupload akan dibaca dari sheet:
             <code><?= htmlspecialchars($targetSheetName, ENT_QUOTES, 'UTF-8') ?></code><br>
             dan hanya kolom dengan header:
-            <code><?= htmlspecialchars($targetColumn, ENT_QUOTES, 'UTF-8') ?></code> yang disimpan.
+            <code><?= htmlspecialchars($targetColumn, ENT_QUOTES, 'UTF-8') ?></code> yang disimpan ke tabel
+            <code><?= htmlspecialchars($tableName, ENT_QUOTES, 'UTF-8') ?></code>.
         </p>
 
         <div class="card shadow-sm mb-4">
@@ -57,7 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         <div class="card shadow-sm">
             <div class="card-body">
-                <h2 class="h5 mb-3">Data terbaru di tabel <code><?= htmlspecialchars($tableName) ?></code></h2>
+                <h2 class="h5 mb-3">
+                    Data terbaru di tabel <code><?= htmlspecialchars($tableName, ENT_QUOTES, 'UTF-8') ?></code>
+                </h2>
                 <?php
                 // Coba tampilkan 20 data terakhir jika tabel sudah ada
                 $existsRes = $conn->query("SHOW TABLES LIKE '$tableName'");
@@ -75,10 +80,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                         }
                         echo '</tbody></table></div>';
                     } else {
-                        echo '<p class="text-muted mb-0">Belum ada data di tabel.</p>';
+                        echo '<p class="text-muted mb-0">Tabel sudah ada, tetapi belum ada data.</p>';
                     }
                 } else {
-                    echo '<p class="text-muted mb-0">Tabel belum ada. Akan dibuat otomatis saat pertama kali import.</p>';
+                    echo '<p class="text-muted mb-0">Tabel belum ada. Akan dibuat otomatis saat import pertama.</p>';
                 }
                 ?>
             </div>
@@ -106,7 +111,7 @@ if ($ext !== 'xlsx') {
     die('Untuk contoh ini hanya mendukung file .xlsx (bukan .xls).');
 }
 
-// Simpan di folder uploads
+// Simpan di folder uploads (di dalam pasadmin)
 $uploadDir = __DIR__ . '/uploads';
 if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0777, true);
@@ -124,7 +129,7 @@ if (!$xlsx = SimpleXLSX::parse($newName)) {
     die('Gagal membaca file XLSX: ' . SimpleXLSX::parseError());
 }
 
-// Cari index sheet "tiket aduan peserta_november"
+// Cari index sheet target
 $sheetNames = $xlsx->sheetNames();
 $sheetIndex = array_search($targetSheetName, $sheetNames);
 
@@ -190,6 +195,22 @@ if (!$conn->query($createSql)) {
 }
 
 // ========================================
+// 3b. Jika tabel sudah ada isi → TRUNCATE
+// ========================================
+$hasData = 0;
+if ($result = $conn->query("SELECT COUNT(*) AS cnt FROM `$tableName`")) {
+    $row = $result->fetch_assoc();
+    $hasData = (int)($row['cnt'] ?? 0);
+    $result->free();
+}
+
+if ($hasData > 0) {
+    if (!$conn->query("TRUNCATE TABLE `$tableName`")) {
+        die('Gagal truncate tabel `'.$tableName.'`: ' . $conn->error);
+    }
+}
+
+// ========================================
 // 4. Insert data ke tabel
 // ========================================
 $insertedCount = 0;
@@ -219,20 +240,27 @@ if (!empty($comments)) {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Hasil Import Tiket Aduan</title>
+    <title>Hasil Import Tiket Aduan Magang</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
-<div class="container py-5" style="max-width:800px;">
-    <h1 class="h4 mb-3">Hasil Import Tiket Aduan</h1>
+<div class="container py-5" style="max-width:900px;">
+    <h1 class="h4 mb-3">Hasil Import Tiket Aduan (Magang)</h1>
 
     <div class="alert alert-info">
         <div><strong>File:</strong> <?= htmlspecialchars($uploadedName, ENT_QUOTES, 'UTF-8') ?></div>
         <div><strong>Sheet:</strong> <?= htmlspecialchars($targetSheetName, ENT_QUOTES, 'UTF-8') ?></div>
         <div><strong>Kolom:</strong> <?= htmlspecialchars($targetColumn, ENT_QUOTES, 'UTF-8') ?></div>
         <div><strong>Jumlah komentar terbaca:</strong> <?= count($comments) ?></div>
-        <div><strong>Jumlah baris yang berhasil disimpan ke DB:</strong> <?= $insertedCount ?></div>
+        <div><strong>Jumlah baris yang disimpan ke DB:</strong> <?= $insertedCount ?></div>
         <div><strong>Nama tabel:</strong> <code><?= htmlspecialchars($tableName, ENT_QUOTES, 'UTF-8') ?></code></div>
+        <div><strong>Aksi pada tabel:</strong>
+            <?php if ($hasData > 0): ?>
+                Tabel sebelumnya berisi <?= $hasData ?> baris dan telah di-<code>TRUNCATE</code> sebelum import.
+            <?php else: ?>
+                Import pertama (tabel sebelumnya kosong atau baru dibuat).
+            <?php endif; ?>
+        </div>
     </div>
 
     <div class="card shadow-sm mb-3">
@@ -250,7 +278,7 @@ if (!empty($comments)) {
         </div>
     </div>
 
-    <a href="import_tiket.php" class="btn btn-primary">← Kembali ke halaman import</a>
+    <a href="classification_magang.php" class="btn btn-primary">← Kembali ke halaman import</a>
 </div>
 </body>
 </html>
