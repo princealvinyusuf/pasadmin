@@ -1,268 +1,256 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
+// Jika di sistemmu butuh login dulu, aktifkan ini
+require __DIR__ . '/auth.php';
 
-// ----------------- FUNGSI BANTUAN -----------------
+// Koneksi database (harus ada $conn = new mysqli(...))
+require __DIR__ . '/db.php';
 
-function normalizeText(string $text): string {
-    $text = mb_strtolower($text, 'UTF-8');
-    $text = preg_replace('/[^a-z0-9áéíóúàèìòùâêîôûäëïöüçñ\s]/u', ' ', $text);
-    $text = preg_replace('/\s+/', ' ', $text);
-    return trim($text);
+// Library XLSX satu file (BUKAN composer)
+require __DIR__ . '/SimpleXLSX.php';
+
+// Nama tabel untuk menyimpan data komentar
+$tableName       = 'tiket_aduan';
+// Nama sheet & kolom di Excel
+$targetSheetName = 'tiket aduan peserta_november';
+$targetColumn    = 'Comment';
+
+// ========================================
+// 1. GET → tampilkan form upload
+// ========================================
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    ?>
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+        <meta charset="UTF-8">
+        <title>Import Tiket Aduan</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-light">
+    <div class="container py-5" style="max-width:800px;">
+        <h1 class="h4 mb-3">Import Tiket Aduan dari Excel</h1>
+        <p class="text-muted">
+            File Excel yang diupload akan dibaca dari sheet:
+            <code><?= htmlspecialchars($targetSheetName, ENT_QUOTES, 'UTF-8') ?></code><br>
+            dan hanya kolom dengan header:
+            <code><?= htmlspecialchars($targetColumn, ENT_QUOTES, 'UTF-8') ?></code> yang disimpan.
+        </p>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <form action="" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">File Excel (.xlsx)</label>
+                        <input type="file" name="file_excel" accept=".xlsx" class="form-control" required>
+                        <div class="form-text">Gunakan format .xlsx (bukan .xls).</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        Upload & Import
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Data terbaru di tabel <code><?= htmlspecialchars($tableName) ?></code></h2>
+                <?php
+                // Coba tampilkan 20 data terakhir jika tabel sudah ada
+                $existsRes = $conn->query("SHOW TABLES LIKE '$tableName'");
+                if ($existsRes && $existsRes->num_rows > 0) {
+                    $res = $conn->query("SELECT id, comment, created_at FROM `$tableName` ORDER BY id DESC LIMIT 20");
+                    if ($res && $res->num_rows > 0) {
+                        echo '<div class="table-responsive"><table class="table table-sm table-striped align-middle">';
+                        echo '<thead><tr><th>ID</th><th>Comment</th><th>Created At</th></tr></thead><tbody>';
+                        while ($row = $res->fetch_assoc()) {
+                            echo '<tr>';
+                            echo '<td>' . (int)$row['id'] . '</td>';
+                            echo '<td>' . htmlspecialchars($row['comment'], ENT_QUOTES, 'UTF-8') . '</td>';
+                            echo '<td>' . htmlspecialchars($row['created_at'], ENT_QUOTES, 'UTF-8') . '</td>';
+                            echo '</tr>';
+                        }
+                        echo '</tbody></table></div>';
+                    } else {
+                        echo '<p class="text-muted mb-0">Belum ada data di tabel.</p>';
+                    }
+                } else {
+                    echo '<p class="text-muted mb-0">Tabel belum ada. Akan dibuat otomatis saat pertama kali import.</p>';
+                }
+                ?>
+            </div>
+        </div>
+    </div>
+    </body>
+    </html>
+    <?php
+    exit;
 }
 
-function extractTokens(string $text): array {
-    $stopwords = [
-        'yang','dan','atau','di','ke','dari','untuk','pada','dengan','saya','kami',
-        'itu','ini','ada','tidak','bisa','apakah','bagaimana','kenapa','mengapa',
-        'karena','dalam','atas','akan','jadi','kalau','kalo','kok','sih','ya','kan'
-    ];
+// ========================================
+// 2. POST → proses upload & import
+// ========================================
 
-    $text    = normalizeText($text);
-    $tokens  = explode(' ', $text);
-    $tokens  = array_filter($tokens, function ($t) use ($stopwords) {
-        return $t !== '' && !in_array($t, $stopwords);
-    });
-
-    return array_values($tokens);
+// Validasi upload
+if (!isset($_FILES['file_excel']) || $_FILES['file_excel']['error'] !== UPLOAD_ERR_OK) {
+    die('Upload file gagal. Pastikan kamu memilih file .xlsx');
 }
 
-/**
- * Ambil data kolom "Comment" dari sheet tertentu.
- */
-function getQuestionsFromExcel(string $filePath, string $sheetName): array {
-    $spreadsheet = IOFactory::load($filePath);
+$uploadedName = $_FILES['file_excel']['name'];
+$ext          = strtolower(pathinfo($uploadedName, PATHINFO_EXTENSION));
 
-    if (!$spreadsheet->sheetNameExists($sheetName)) {
-        throw new Exception("Sheet '$sheetName' tidak ditemukan di file Excel.");
-    }
-
-    $sheet = $spreadsheet->getSheetByName($sheetName);
-    $rows  = $sheet->toArray(null, true, true, true);
-
-    $questions = [];
-    $headerMap = [];
-
-    $firstRow = true;
-    foreach ($rows as $row) {
-        if ($firstRow) {
-            foreach ($row as $col => $value) {
-                if (!$value) continue;
-                $key = mb_strtolower(trim($value), 'UTF-8'); // misal "Comment" jadi "comment"
-                $headerMap[$key] = $col;
-            }
-            $firstRow = false;
-            continue;
-        }
-
-        if (isset($headerMap['comment'])) {
-            $colKey = $headerMap['comment'];
-            $question = isset($row[$colKey]) ? trim($row[$colKey]) : '';
-
-            if ($question !== '') {
-                $questions[] = $question;
-            }
-        }
-    }
-
-    return $questions;
+if ($ext !== 'xlsx') {
+    die('Untuk contoh ini hanya mendukung file .xlsx (bukan .xls).');
 }
 
-function getKeywordFrequency(array $questions, int $minLength = 3): array {
-    $freq = [];
-
-    foreach ($questions as $q) {
-        $tokens = extractTokens($q);
-        foreach ($tokens as $t) {
-            if (mb_strlen($t, 'UTF-8') < $minLength) continue;
-
-            if (!isset($freq[$t])) {
-                $freq[$t] = 0;
-            }
-            $freq[$t]++;
-        }
-    }
-
-    arsort($freq);
-    return $freq;
+// Simpan di folder uploads
+$uploadDir = __DIR__ . '/uploads';
+if (!is_dir($uploadDir)) {
+    mkdir($uploadDir, 0777, true);
 }
 
-function classifyQuestion(string $question): string {
-    $q = mb_strtolower($question, 'UTF-8');
+$tempName = $_FILES['file_excel']['tmp_name'];
+$newName  = $uploadDir . '/' . time() . '_' . preg_replace('/[^a-zA-Z0-9\._-]/', '_', $uploadedName);
 
-    $rules = [
-        'Perubahan Akun' => [
-            'ubah akun','ganti akun','ubah email','ganti email','ubah nomor',
-            'ganti nomor','reset password','lupa password','ganti password',
-            'ubah username','ganti username','update profil','ubah profil'
-        ],
-        'Error Sistem' => [
-            'error','bug','gagal','tidak bisa','nggak bisa','blank','hang',
-            'lemot','lambat','tidak muncul','tidak loading','down',
-            'server error','500','404','504'
-        ],
-        'Permasalahan Login' => [
-            'tidak bisa login','nggak bisa login','login gagal',
-            'akun terkunci','akun diblokir','akun tidak aktif'
-        ],
-        'Pembayaran / Tagihan' => [
-            'bayar','pembayaran','tagihan','invoice','biaya','harga',
-            'refund','pengembalian dana'
-        ],
-        'Fitur / Permintaan Baru' => [
-            'bisa ditambahkan','tolong tambahkan','fitur baru',
-            'request fitur','penambahan fitur'
-        ]
-    ];
-
-    foreach ($rules as $category => $keywords) {
-        foreach ($keywords as $kw) {
-            if (mb_strpos($q, $kw) !== false) {
-                return $category;
-            }
-        }
-    }
-
-    return 'Lainnya';
+if (!move_uploaded_file($tempName, $newName)) {
+    die('Gagal memindahkan file upload.');
 }
 
-// ----------------- LOGIKA: PROSES & AUTO DOWNLOAD -----------------
+// Parse file dengan SimpleXLSX
+if (!$xlsx = SimpleXLSX::parse($newName)) {
+    die('Gagal membaca file XLSX: ' . SimpleXLSX::parseError());
+}
 
-$errorMsg = '';
+// Cari index sheet "tiket aduan peserta_november"
+$sheetNames = $xlsx->sheetNames();
+$sheetIndex = array_search($targetSheetName, $sheetNames);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel'])) {
-    try {
-        if ($_FILES['excel']['error'] !== UPLOAD_ERR_OK) {
-            throw new Exception("Error upload file: " . $_FILES['excel']['error']);
-        }
+if ($sheetIndex === false) {
+    die(
+        'Sheet "' . htmlspecialchars($targetSheetName, ENT_QUOTES, 'UTF-8') . '" tidak ditemukan.<br>' .
+        'Sheet yang ada: ' . htmlspecialchars(implode(', ', $sheetNames), ENT_QUOTES, 'UTF-8')
+    );
+}
 
-        $tmpPath = $_FILES['excel']['tmp_name'];
-        if (!is_uploaded_file($tmpPath)) {
-            throw new Exception("File upload tidak valid.");
-        }
+// Ambil semua baris pada sheet tersebut (array 2D)
+$rows = $xlsx->rows($sheetIndex);
 
-        $sheetName = "tiket aduan peserta_november";
+if (empty($rows)) {
+    die('Sheet kosong atau tidak ada data.');
+}
 
-        // 1. Baca semua comment dari Excel
-        $questions = getQuestionsFromExcel($tmpPath, $sheetName);
+// Baris pertama = header
+$header          = $rows[0];
+$commentColIndex = null;
 
-        if (empty($questions)) {
-            throw new Exception("Tidak ada data pada kolom 'Comment' di sheet '$sheetName'.");
-        }
-
-        // 2. Hitung keyword & klasifikasikan
-        $keywordFreq    = getKeywordFrequency($questions);
-        $classifiedData = [];
-
-        foreach ($questions as $q) {
-            $classifiedData[] = [
-                'question' => $q,
-                'kategori' => classifyQuestion($q)
-            ];
-        }
-
-        // 3. Buat Excel hasil
-        $spreadsheet = new Spreadsheet();
-
-        // SHEET 1: Klasifikasi
-        $sheet1 = $spreadsheet->getActiveSheet();
-        $sheet1->setTitle('Klasifikasi');
-
-        $sheet1->setCellValue('A1', 'No');
-        $sheet1->setCellValue('B1', 'Comment');
-        $sheet1->setCellValue('C1', 'Kategori');
-
-        $rowNum = 2;
-        foreach ($classifiedData as $idx => $row) {
-            $sheet1->setCellValue('A' . $rowNum, $idx + 1);
-            $sheet1->setCellValue('B' . $rowNum, $row['question']);
-            $sheet1->setCellValue('C' . $rowNum, $row['kategori']);
-            $rowNum++;
-        }
-
-        foreach (range('A', 'C') as $col) {
-            $sheet1->getColumnDimension($col)->setAutoSize(true);
-        }
-
-        // SHEET 2: Keyword
-        $sheet2 = $spreadsheet->createSheet();
-        $sheet2->setTitle('Keyword');
-
-        $sheet2->setCellValue('A1', 'Keyword');
-        $sheet2->setCellValue('B1', 'Frekuensi');
-
-        $rowNum = 2;
-        foreach ($keywordFreq as $kw => $count) {
-            $sheet2->setCellValue('A' . $rowNum, $kw);
-            $sheet2->setCellValue('B' . $rowNum, $count);
-            $rowNum++;
-        }
-
-        $sheet2->getColumnDimension('A')->setAutoSize(true);
-        $sheet2->getColumnDimension('B')->setAutoSize(true);
-
-        // 4. Kirim sebagai download
-        $filename = 'hasil_klasifikasi_' . date('Ymd_His') . '.xlsx';
-
-        // Pastikan belum ada output sama sekali sebelum header
-        if (ob_get_length()) {
-            ob_end_clean();
-        }
-
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
-
-        $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
-        $writer->save('php://output');
-        exit;
-
-    } catch (Throwable $e) {
-        // TANGKAP SEMUA ERROR DI SINI → tidak 500 lagi, tapi tampil ke layar
-        $errorMsg = 'Terjadi error: ' . $e->getMessage();
-
-        // Optional: tulis ke log file sendiri
-        file_put_contents(
-            __DIR__ . '/classification_magang_error.log',
-            date('Y-m-d H:i:s') . ' ' . $e->getMessage() . PHP_EOL . $e->getTraceAsString() . PHP_EOL . '----' . PHP_EOL,
-            FILE_APPEND
-        );
+// Cari indeks kolom dengan header "Comment" (case-insensitive)
+foreach ($header as $idx => $colName) {
+    if (strcasecmp(trim((string)$colName), $targetColumn) === 0) {
+        $commentColIndex = $idx;
+        break;
     }
 }
 
+if ($commentColIndex === null) {
+    die('Kolom "' . htmlspecialchars($targetColumn, ENT_QUOTES, 'UTF-8') . '" tidak ditemukan di baris header.');
+}
+
+// Loop mulai baris index 1 (0 = header), ambil nilai Comment
+$comments = [];
+for ($i = 1; $i < count($rows); $i++) {
+    $row = $rows[$i];
+
+    // Antisipasi baris pendek / kolom kosong
+    $comment = isset($row[$commentColIndex]) ? trim((string)$row[$commentColIndex]) : '';
+
+    if ($comment === '') {
+        continue;
+    }
+
+    $comments[] = $comment;
+}
+
+// ========================================
+// 3. Pastikan tabel ada (CREATE TABLE IF NOT EXISTS)
+// ========================================
+$createSql = "
+    CREATE TABLE IF NOT EXISTS `$tableName` (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        comment TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if (!$conn->query($createSql)) {
+    die('Gagal membuat tabel `'.$tableName.'`: ' . $conn->error);
+}
+
+// ========================================
+// 4. Insert data ke tabel
+// ========================================
+$insertedCount = 0;
+
+if (!empty($comments)) {
+    $stmt = $conn->prepare("INSERT INTO `$tableName` (comment) VALUES (?)");
+    if (!$stmt) {
+        die('Gagal prepare statement: ' . $conn->error);
+    }
+
+    foreach ($comments as $comment) {
+        $stmt->bind_param('s', $comment);
+        $stmt->execute();
+        if ($stmt->affected_rows > 0) {
+            $insertedCount++;
+        }
+    }
+
+    $stmt->close();
+}
+
+// ========================================
+// 5. Tampilkan ringkasan hasil import
+// ========================================
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Klasifikasi Komentar Client</title>
-    <style>
-        body { font-family: Arial; margin: 40px; }
-        .box { border: 1px solid #ccc; padding: 20px; border-radius: 8px; max-width: 500px; }
-        .error { color: red; white-space: pre-line; }
-    </style>
+    <title>Hasil Import Tiket Aduan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
+<body class="bg-light">
+<div class="container py-5" style="max-width:800px;">
+    <h1 class="h4 mb-3">Hasil Import Tiket Aduan</h1>
 
-<h1>Klasifikasi Komentar Client → Auto Download Excel</h1>
+    <div class="alert alert-info">
+        <div><strong>File:</strong> <?= htmlspecialchars($uploadedName, ENT_QUOTES, 'UTF-8') ?></div>
+        <div><strong>Sheet:</strong> <?= htmlspecialchars($targetSheetName, ENT_QUOTES, 'UTF-8') ?></div>
+        <div><strong>Kolom:</strong> <?= htmlspecialchars($targetColumn, ENT_QUOTES, 'UTF-8') ?></div>
+        <div><strong>Jumlah komentar terbaca:</strong> <?= count($comments) ?></div>
+        <div><strong>Jumlah baris yang berhasil disimpan ke DB:</strong> <?= $insertedCount ?></div>
+        <div><strong>Nama tabel:</strong> <code><?= htmlspecialchars($tableName, ENT_QUOTES, 'UTF-8') ?></code></div>
+    </div>
 
-<div class="box">
-    <p>Upload file Excel yang memiliki kolom <strong>"Comment"</strong> pada sheet <strong>"tiket aduan peserta_november"</strong>.</p>
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Preview komentar yang diimport</h2>
+            <?php if (empty($comments)): ?>
+                <p class="text-muted mb-0">Tidak ada komentar yang bisa diimport.</p>
+            <?php else: ?>
+                <ol class="mb-0">
+                    <?php foreach ($comments as $c): ?>
+                        <li><?= htmlspecialchars($c, ENT_QUOTES, 'UTF-8') ?></li>
+                    <?php endforeach; ?>
+                </ol>
+            <?php endif; ?>
+        </div>
+    </div>
 
-    <?php if (!empty($errorMsg)): ?>
-        <p class="error"><?= htmlspecialchars($errorMsg) ?></p>
-    <?php endif; ?>
-
-    <form method="post" enctype="multipart/form-data">
-        <label>Pilih File Excel:</label><br><br>
-        <input type="file" name="excel" required><br><br>
-        <button type="submit">Upload & Proses → Download</button>
-    </form>
+    <a href="import_tiket.php" class="btn btn-primary">← Kembali ke halaman import</a>
 </div>
-
 </body>
 </html>
