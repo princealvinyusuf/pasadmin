@@ -13,7 +13,7 @@ require __DIR__ . '/db.php';
 require __DIR__ . '/SimpleXLSX.php';
 
 // Nama tabel untuk menyimpan data komentar
-$tableName       = 'tiket_aduan';
+$tableName       = 'classification_magang';
 // Nama sheet & kolom di Excel
 $targetSheetName = 'tiket aduan peserta_november';
 $targetColumn    = 'Comment';
