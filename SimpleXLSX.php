@@ -1,5 +1,6 @@
 <?php /** @noinspection MultiAssignmentUsageInspection */
 
+
 namespace Shuchkin;
 
 use SimpleXMLElement;
