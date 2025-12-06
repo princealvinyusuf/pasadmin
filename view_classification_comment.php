@@ -23,7 +23,7 @@ require __DIR__ . '/auth.php'; // atau auth_guard.php sesuai proyekmu
 <div class="container py-5" style="max-width: 1100px;">
     <h1 class="h4 mb-3">Daftar Tiket & Klasifikasi Otomatis</h1>
     <p class="text-muted">
-        Data diambil dari <code>classify_comments.php</code> (JSON) lalu ditampilkan dalam tabel.
+        Data diambil dari <code>keyword Extractior</code> (JSON) lalu ditampilkan dalam tabel.
         Kolom berisi nomor urut, isi <code>comment</code>, dan hasil <code>category</code> (klasifikasi).
     </p>
 
@@ -34,9 +34,16 @@ require __DIR__ . '/auth.php'; // atau auth_guard.php sesuai proyekmu
                 <input type="text" id="searchInput" class="form-control form-control-sm" style="min-width: 260px;"
                        placeholder="Cari di comment atau kategori...">
             </div>
-            <div class="text-end small text-muted">
-                <div>Total data: <span id="totalCount">0</span></div>
-                <div>Ditampilkan: <span id="shownCount">0</span></div>
+
+            <!-- 🔹 TOMBOL EXPORT EXCEL -->
+            <div class="d-flex flex-column align-items-end">
+                <button id="btnExportExcel" class="btn btn-success btn-sm mb-2">
+                    ⬇ Export ke Excel
+                </button>
+                <div class="text-end small text-muted">
+                    <div>Total data: <span id="totalCount">0</span></div>
+                    <div>Ditampilkan: <span id="shownCount">0</span></div>
+                </div>
             </div>
         </div>
     </div>
@@ -65,6 +72,9 @@ require __DIR__ . '/auth.php'; // atau auth_guard.php sesuai proyekmu
 <!-- Bootstrap JS (opsional) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
+<!-- 🔹 SheetJS (XLSX) untuk export Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
 <script>
 (function() {
     const API_URL   = 'keyword_extractor.php'; // pastikan path-nya benar relatif ke file ini
@@ -73,6 +83,7 @@ require __DIR__ . '/auth.php'; // atau auth_guard.php sesuai proyekmu
     const searchInp = document.getElementById('searchInput');
     const totalEl   = document.getElementById('totalCount');
     const shownEl   = document.getElementById('shownCount');
+    const btnExport = document.getElementById('btnExportExcel'); // ⬅ tombol export
 
     let rawData = [];   // semua data dari API
     let filtered = [];  // data setelah filter
@@ -173,6 +184,33 @@ require __DIR__ . '/auth.php'; // atau auth_guard.php sesuai proyekmu
 
     searchInp.addEventListener('input', function() {
         applyFilter();
+    });
+
+    // 🔹 EVENT: Export ke Excel (pakai data yang sedang ditampilkan = filtered)
+    btnExport.addEventListener('click', function () {
+        // kalau belum ada data
+        if (!rawData || rawData.length === 0) {
+            alert('Belum ada data untuk diekspor.');
+            return;
+        }
+
+        // gunakan data yang sedang ditampilkan (filtered), fallback ke rawData
+        const dataToExport = (filtered && filtered.length > 0) ? filtered : rawData;
+
+        // bentuk data sebagai array of object untuk JSON-to-sheet
+        const exportRows = dataToExport.map((item, index) => ({
+            No: index + 1,
+            Comment: item.comment || '',
+            Klasifikasi: item.category || 'Uncategorized'
+        }));
+
+        // buat worksheet & workbook
+        const ws = XLSX.utils.json_to_sheet(exportRows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Klasifikasi');
+
+        // download file
+        XLSX.writeFile(wb, 'klasifikasi_tiket.xlsx');
     });
 
     // initial load
