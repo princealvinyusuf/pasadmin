@@ -67,7 +67,7 @@ require __DIR__ . '/auth.php'; // atau auth_guard.php sesuai proyekmu
 
 <script>
 (function() {
-    const API_URL   = 'classify_comments.php'; // pastikan path-nya benar relatif ke file ini
+    const API_URL   = 'keyword_extractor.php'; // pastikan path-nya benar relatif ke file ini
     const statusEl  = document.getElementById('status');
     const dataBody  = document.getElementById('dataBody');
     const searchInp = document.getElementById('searchInput');
