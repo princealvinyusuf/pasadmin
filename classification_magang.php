@@ -328,6 +328,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             btnNext.disabled = false;
         });
     });
+
+    btnNext.addEventListener('click', function(){
+        window.location.href = 'view_classification_comment.php';
+    });
 })();
 </script>
 </body>
