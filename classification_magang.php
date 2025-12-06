@@ -191,6 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     const excelInput  = document.getElementById('excelFile');
     const btnPreview  = document.getElementById('btnPreview');
     const btnSend     = document.getElementById('btnSend');
+    const btnNext     = document.getElementById('btnNext');
     const previewList = document.getElementById('previewList');
     const statusEl    = document.getElementById('status');
 
@@ -218,6 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setStatus('Membaca file di browser...', 'info');
         btnPreview.disabled = true;
         btnSend.disabled = true;
+        btnNext.disabled = true;
         previewList.innerHTML = '';
         cachedComments = [];
 
@@ -323,6 +325,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         })
         .finally(() => {
             btnSend.disabled = false;
+            btnNext.disabled = false;
         });
     });
 })();
