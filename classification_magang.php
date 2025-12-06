@@ -166,6 +166,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button id="btnSend" class="btn btn-primary" type="button" disabled>
                     2. Kirim ke Server & Simpan ke DB
                 </button>
+                <button id="btnNext" class="btn btn-success" type="button" disabled>
+                    3. Lihat Klasifikasi
+                </button>
             </div>
 
             <div id="status" class="mt-3 small text-muted"></div>
