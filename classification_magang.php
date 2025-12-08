@@ -139,6 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
+ <?php include 'navbar.php'; ?>    
 <div class="container py-5" style="max-width: 960px;">
     <h1 class="h4 mb-3">Import Tiket Aduan (Magang) dari Excel</h1>
     <p class="text-muted mb-4">
