@@ -239,7 +239,7 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="<?php echo $rootUrl; ?>classification_magang.php">
-                        <i class="bi bi-layout-split me-1"></i>Magang
+                        Magang
                     </a>
                 </li>
                 <li class="nav-item">
