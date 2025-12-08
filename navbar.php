@@ -238,6 +238,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>classification_magang.php">
+                        <i class="bi bi-layout-split me-1"></i>Magang
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="<?php echo $rootUrl; ?>logout.php"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
                 </li>
             </ul>
