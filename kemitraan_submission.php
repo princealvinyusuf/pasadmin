@@ -426,6 +426,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 <th>Business Sector</th>
                 <th>Institution Address</th>
                 <th>Partnership Type</th>
+                <th>Tipe Penyelenggara</th>
                 <th>Room</th>
                 <th>Other Room</th>
                 <th>Facility</th>
@@ -458,6 +459,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 <td><?php echo htmlspecialchars($row['business_sector']); ?></td>
                 <td><?php echo htmlspecialchars($row['institution_address']); ?></td>
                 <td><?php echo htmlspecialchars($row['partnership_type_name'] ?? ''); ?></td>
+                <td><?php echo htmlspecialchars($row['tipe_penyelenggara'] ?? '-'); ?></td>
                 <td><?php echo htmlspecialchars(($row['rooms_concat'] ?? '') !== '' ? $row['rooms_concat'] : ($row['room_name'] ?? '')); ?></td>
                 <td><?php echo htmlspecialchars($row['other_pasker_room'] ?? ''); ?></td>
                 <td><?php echo htmlspecialchars(($row['facilities_concat'] ?? '') !== '' ? $row['facilities_concat'] : ($row['facility_name'] ?? '')); ?></td>
@@ -480,7 +482,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
             </tr>
             <?php endwhile; ?>
             <?php else: ?>
-            <tr><td colspan="20" class="text-center">No submissions found or query failed.</td></tr>
+            <tr><td colspan="21" class="text-center">No submissions found or query failed.</td></tr>
             <?php endif; ?>
         </table>
         </div>
@@ -559,7 +561,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               const headers = [
                 'ID', 'PIC Name', 'PIC Position', 'PIC Email', 'PIC Whatsapp', 'Company Sector',
                 'Institution Name', 'Business Sector', 'Institution Address', 'Partnership Type',
-                'Room', 'Other Room', 'Facility', 'Other Facility', 'Schedule', 'Time', 'Request Letter', 'Status', 'Created At', 'Updated At'
+                'Tipe Penyelenggara', 'Room', 'Other Room', 'Facility', 'Other Facility', 'Schedule', 'Time', 'Request Letter', 'Status', 'Created At', 'Updated At'
               ];
               let html = '';
               for (let i = 1; i < headers.length + 1; i++) {
@@ -567,7 +569,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               }
               document.getElementById('detailModalBody').innerHTML = html;
               // Download Letter button logic
-              const requestLetter = cells[17].innerText.trim();
+              const requestLetter = cells[18].innerText.trim();
               const downloadContainer = document.getElementById('downloadLetterContainer');
               if (requestLetter && requestLetter !== '-') {
                   // Always use '/storage/' as base path for download links (no /paskerid/public/ prefix)
