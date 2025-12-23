@@ -9,41 +9,6 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>OVO Prototype</title>
-	<style>
-		/* Minimal layout helpers for the sidebar-driven app shell */
-		.ovo-app-shell {
-			min-height: calc(100vh - 56px); /* account for navbar height */
-		}
-		.ovo-sidebar {
-			border-right: 1px solid #e5e7eb;
-			background-color: #ffffff;
-		}
-		.ovo-sidebar .nav-link {
-			cursor: pointer;
-		}
-		.ovo-sidebar .nav-link.active {
-			background-color: #f3f4f6;
-			font-weight: 600;
-		}
-		.ovo-header {
-			border-bottom: 1px solid #e5e7eb;
-			background-color: #ffffff;
-		}
-		.ovo-section {
-			display: none;
-		}
-		.ovo-section.active {
-			display: block;
-		}
-		.badge-soft {
-			background-color: #f3f4f6;
-			color: #374151;
-			font-weight: 500;
-		}
-		.table-sm td, .table-sm th {
-			padding: .5rem .5rem;
-		}
-	</style>
 </head>
 <body>
 <?php require_once __DIR__ . '/navbar.php'; ?>
@@ -101,10 +66,10 @@ $NAV_ITEMS = [
 ];
 ?>
 
-<div class="container-fluid ovo-app-shell">
+<div class="container-fluid">
 	<div class="row h-100">
 		<!-- Sidebar -->
-		<aside class="col-12 col-md-3 col-lg-2 p-0 ovo-sidebar">
+		<aside class="col-12 col-md-3 col-lg-2 p-0 border-end bg-white">
 			<div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
 				<div class="d-flex align-items-center">
 					<div class="fs-4 me-2">OVO</div>
@@ -126,7 +91,7 @@ $NAV_ITEMS = [
 
 		<!-- Main content -->
 		<main class="col-12 col-md-9 col-lg-10 p-0">
-			<header class="ovo-header px-3 py-2 d-flex align-items-center justify-content-between">
+			<header class="px-3 py-2 d-flex align-items-center justify-content-between border-bottom bg-white">
 				<div class="d-flex align-items-center gap-3">
 					<h1 class="h6 mb-0" id="ovo-page-title">DASHBOARD</h1>
 					<span class="text-muted small">Connected: Staging</span>
@@ -139,7 +104,7 @@ $NAV_ITEMS = [
 
 			<section class="p-3">
 				<!-- Dashboard -->
-				<div class="ovo-section" data-ovo-page="dashboard">
+				<div class="ovo-section d-none" data-ovo-page="dashboard">
 					<h2 class="h4 mb-3">OVO Dashboard</h2>
 					<div class="row g-3 mb-3">
 						<div class="col-12 col-md-4">
@@ -172,9 +137,9 @@ $NAV_ITEMS = [
 							<div class="border rounded p-3 h-100">
 								<h5 class="mb-2">Recent transform jobs</h5>
 								<ul class="list-unstyled small mb-0">
-									<li>2025-12-03 12:50 — Transform batch #342 — <span class="badge badge-soft">Success</span></li>
-									<li>2025-12-03 11:20 — Deduplication run — <span class="badge badge-soft">Success</span></li>
-									<li>2025-12-03 10:01 — NLP classification — <span class="badge badge-soft">Warning</span></li>
+									<li>2025-12-03 12:50 — Transform batch #342 — <span class="badge bg-success">Success</span></li>
+									<li>2025-12-03 11:20 — Deduplication run — <span class="badge bg-success">Success</span></li>
+									<li>2025-12-03 10:01 — NLP classification — <span class="badge bg-warning text-dark">Warning</span></li>
 								</ul>
 							</div>
 						</div>
@@ -188,7 +153,7 @@ $NAV_ITEMS = [
 				</div>
 
 				<!-- Scrapers -->
-				<div class="ovo-section" data-ovo-page="scrapers">
+				<div class="ovo-section d-none" data-ovo-page="scrapers">
 					<div class="d-flex align-items-center justify-content-between mb-3">
 						<h2 class="h4 mb-0">Scraping Manager</h2>
 						<div>
@@ -205,7 +170,7 @@ $NAV_ITEMS = [
 								<div class="d-flex align-items-center gap-2">
 									<input type="text" class="form-control form-control-sm" style="width: 150px;" value="<?php echo htmlspecialchars($s['cron']); ?>" disabled>
 									<?php if ($s['enabled']): ?>
-										button class="btn btn-danger btn-sm" disabled>Disable</button>
+										<button class="btn btn-danger btn-sm" disabled>Disable</button>
 									<?php else: ?>
 										<button class="btn btn-success btn-sm" disabled>Enable</button>
 									<?php endif; ?>
@@ -246,7 +211,7 @@ $NAV_ITEMS = [
 				</div>
 
 				<!-- Raw DB -->
-				<div class="ovo-section" data-ovo-page="raw">
+				<div class="ovo-section d-none" data-ovo-page="raw">
 					<h2 class="h4 mb-3">Raw Database (staging)</h2>
 					<div class="d-flex align-items-center gap-2 mb-3">
 						<input class="form-control" style="max-width: 320px;" placeholder="Search raw records..." disabled>
@@ -289,7 +254,7 @@ $NAV_ITEMS = [
 				</div>
 
 				<!-- Transform -->
-				<div class="ovo-section" data-ovo-page="transform">
+				<div class="ovo-section d-none" data-ovo-page="transform">
 					<h2 class="h4 mb-3">Data Transformation Pipeline</h2>
 					<div class="border rounded p-3 mb-3">
 						<h6 class="mb-2">Pipeline steps (suggested)</h6>
@@ -337,7 +302,7 @@ $NAV_ITEMS = [
 				</div>
 
 				<!-- Clean DB -->
-				<div class="ovo-section" data-ovo-page="clean">
+				<div class="ovo-section d-none" data-ovo-page="clean">
 					<h2 class="h4 mb-3">Database Clean (canonical)</h2>
 					<div class="text-muted small mb-3">This is the canonical dataset used by reporting and publishing systems (Tableau, APIs)</div>
 					<div class="table-responsive border rounded">
@@ -380,7 +345,7 @@ $NAV_ITEMS = [
 				</div>
 
 				<!-- Reports -->
-				<div class="ovo-section" data-ovo-page="reports">
+				<div class="ovo-section d-none" data-ovo-page="reports">
 					<h2 class="h4 mb-3">Reports & Publication</h2>
 					<div class="row g-3">
 						<div class="col-12 col-md-6">
@@ -401,7 +366,7 @@ $NAV_ITEMS = [
 				</div>
 
 				<!-- Settings -->
-				<div class="ovo-section" data-ovo-page="settings">
+				<div class="ovo-section d-none" data-ovo-page="settings">
 					<h2 class="h4 mb-3">Settings & Users</h2>
 					<div class="row g-3">
 						<div class="col-12 col-md-6">
@@ -420,7 +385,7 @@ $NAV_ITEMS = [
 				</div>
 
 				<!-- Logs -->
-				<div class="ovo-section" data-ovo-page="logs">
+				<div class="ovo-section d-none" data-ovo-page="logs">
 					<h2 class="h4 mb-3">System Logs & Audits</h2>
 					<div class="border rounded p-3">
 						<p class="small text-muted mb-0">Search logs, filter by source (scraper, transform, publish), and export for audits. This view is critical for anti-corruption transparency — keep immutable logs and RBAC for access.</p>
@@ -440,7 +405,8 @@ $NAV_ITEMS = [
 
 	function setActive(pageId) {
 		sections.forEach(s => {
-			s.classList.toggle('active', s.getAttribute('data-ovo-page') === pageId);
+			const isActive = s.getAttribute('data-ovo-page') === pageId;
+			s.classList.toggle('d-none', !isActive);
 		});
 		sidebarLinks.forEach(a => {
 			a.classList.toggle('active', a.getAttribute('data-ovo-link') === pageId);
