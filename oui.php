@@ -9,6 +9,41 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>OVO Prototype</title>
+	<style>
+		/* Minimal layout helpers for the sidebar-driven app shell */
+		.ovo-app-shell {
+			min-height: calc(100vh - 56px); /* account for navbar height */
+		}
+		.ovo-sidebar {
+			border-right: 1px solid #e5e7eb;
+			background-color: #ffffff;
+		}
+		.ovo-sidebar .nav-link {
+			cursor: pointer;
+		}
+		.ovo-sidebar .nav-link.active {
+			background-color: #f3f4f6;
+			font-weight: 600;
+		}
+		.ovo-header {
+			border-bottom: 1px solid #e5e7eb;
+			background-color: #ffffff;
+		}
+		.ovo-section {
+			display: none;
+		}
+		.ovo-section.active {
+			display: block;
+		}
+		.badge-soft {
+			background-color: #f3f4f6;
+			color: #374151;
+			font-weight: 500;
+		}
+		.table-sm td, .table-sm th {
+			padding: .5rem .5rem;
+		}
+	</style>
 </head>
 <body>
 <?php require_once __DIR__ . '/navbar.php'; ?>
@@ -66,10 +101,10 @@ $NAV_ITEMS = [
 ];
 ?>
 
-<div class="container-fluid">
+<div class="container-fluid ovo-app-shell">
 	<div class="row h-100">
 		<!-- Sidebar -->
-		<aside class="col-12 col-md-3 col-lg-2 p-0 border-end bg-white">
+		<aside class="col-12 col-md-3 col-lg-2 p-0 ovo-sidebar">
 			<div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
 				<div class="d-flex align-items-center">
 					<div class="fs-4 me-2">OVO</div>
@@ -91,7 +126,7 @@ $NAV_ITEMS = [
 
 		<!-- Main content -->
 		<main class="col-12 col-md-9 col-lg-10 p-0">
-			<header class="px-3 py-2 d-flex align-items-center justify-content-between border-bottom bg-white">
+			<header class="ovo-header px-3 py-2 d-flex align-items-center justify-content-between">
 				<div class="d-flex align-items-center gap-3">
 					<h1 class="h6 mb-0" id="ovo-page-title">DASHBOARD</h1>
 					<span class="text-muted small">Connected: Staging</span>
@@ -104,7 +139,7 @@ $NAV_ITEMS = [
 
 			<section class="p-3">
 				<!-- Dashboard -->
-				<div class="ovo-section d-none" data-ovo-page="dashboard">
+				<div class="ovo-section" data-ovo-page="dashboard">
 					<h2 class="h4 mb-3">OVO Dashboard</h2>
 					<div class="row g-3 mb-3">
 						<div class="col-12 col-md-4">
@@ -137,9 +172,9 @@ $NAV_ITEMS = [
 							<div class="border rounded p-3 h-100">
 								<h5 class="mb-2">Recent transform jobs</h5>
 								<ul class="list-unstyled small mb-0">
-									<li>2025-12-03 12:50 — Transform batch #342 — <span class="badge bg-success">Success</span></li>
-									<li>2025-12-03 11:20 — Deduplication run — <span class="badge bg-success">Success</span></li>
-									<li>2025-12-03 10:01 — NLP classification — <span class="badge bg-warning text-dark">Warning</span></li>
+									<li>2025-12-03 12:50 — Transform batch #342 — <span class="badge badge-soft">Success</span></li>
+									<li>2025-12-03 11:20 — Deduplication run — <span class="badge badge-soft">Success</span></li>
+									<li>2025-12-03 10:01 — NLP classification — <span class="badge badge-soft">Warning</span></li>
 								</ul>
 							</div>
 						</div>
@@ -153,33 +188,14 @@ $NAV_ITEMS = [
 				</div>
 
 				<!-- Scrapers -->
-				<div class="ovo-section d-none" data-ovo-page="scrapers">
+				<div class="ovo-section" data-ovo-page="scrapers">
 					<div class="d-flex align-items-center justify-content-between mb-3">
 						<h2 class="h4 mb-0">Scraping Manager</h2>
 						<div>
-							<button class="btn btn-primary btn-sm" disabled>Add Scraper</button>
+							<button class="btn btn-primary btn-sm" id="btn-add-scraper">Add Scraper</button>
 						</div>
 					</div>
-					<div class="vstack gap-2">
-						<?php foreach ($mockScrapers as $s): ?>
-							<div class="d-flex align-items-center justify-content-between border rounded p-2">
-								<div>
-									<div class="fw-semibold"><?php echo htmlspecialchars($s['name']); ?></div>
-									<div class="text-muted small">Cron: <?php echo $s['cron'] !== '' ? htmlspecialchars($s['cron']) : '—'; ?> · Last: <?php echo htmlspecialchars($s['lastRun']); ?> · <?php echo htmlspecialchars($s['lastStatus']); ?></div>
-								</div>
-								<div class="d-flex align-items-center gap-2">
-									<input type="text" class="form-control form-control-sm" style="width: 150px;" value="<?php echo htmlspecialchars($s['cron']); ?>" disabled>
-									<?php if ($s['enabled']): ?>
-										<button class="btn btn-danger btn-sm" disabled>Disable</button>
-									<?php else: ?>
-										<button class="btn btn-success btn-sm" disabled>Enable</button>
-									<?php endif; ?>
-									<button class="btn btn-outline-secondary btn-sm" disabled>Run now</button>
-									<button class="btn btn-outline-secondary btn-sm" disabled>Edit</button>
-								</div>
-							</div>
-						<?php endforeach; ?>
-					</div>
+					<div id="scraper-list" class="vstack gap-2"></div>
 
 					<div class="mt-4 border rounded p-3">
 						<h5 class="mb-2">Manual Input (Karihub / other)</h5>
@@ -211,7 +227,7 @@ $NAV_ITEMS = [
 				</div>
 
 				<!-- Raw DB -->
-				<div class="ovo-section d-none" data-ovo-page="raw">
+				<div class="ovo-section" data-ovo-page="raw">
 					<h2 class="h4 mb-3">Raw Database (staging)</h2>
 					<div class="d-flex align-items-center gap-2 mb-3">
 						<input class="form-control" style="max-width: 320px;" placeholder="Search raw records..." disabled>
@@ -254,7 +270,7 @@ $NAV_ITEMS = [
 				</div>
 
 				<!-- Transform -->
-				<div class="ovo-section d-none" data-ovo-page="transform">
+				<div class="ovo-section" data-ovo-page="transform">
 					<h2 class="h4 mb-3">Data Transformation Pipeline</h2>
 					<div class="border rounded p-3 mb-3">
 						<h6 class="mb-2">Pipeline steps (suggested)</h6>
@@ -270,25 +286,9 @@ $NAV_ITEMS = [
 					<div class="mb-3">
 						<div class="d-flex align-items-center justify-content-between mb-2">
 							<h6 class="mb-0">Transformation rules</h6>
-							<button class="btn btn-primary btn-sm" disabled>Add rule</button>
+							<button class="btn btn-primary btn-sm" id="btn-add-rule">Add rule</button>
 						</div>
-						<div class="vstack gap-2">
-							<?php foreach ($mockTransformRules as $rule): ?>
-								<div class="border rounded p-2 d-flex align-items-center justify-content-between">
-									<div>
-										<div class="fw-semibold"><?php echo htmlspecialchars($rule['name']); ?></div>
-										<div class="text-muted small"><?php echo htmlspecialchars($rule['description']); ?></div>
-									</div>
-									<div class="d-flex align-items-center">
-										<div class="form-check form-switch">
-											<input class="form-check-input" type="checkbox" <?php echo $rule['enabled'] ? 'checked' : ''; ?> disabled>
-											<label class="form-check-label small ms-2">Enabled</label>
-										</div>
-										<button class="btn btn-outline-secondary btn-sm ms-2" disabled>Edit</button>
-									</div>
-								</div>
-							<?php endforeach; ?>
-						</div>
+						<div id="rules-list" class="vstack gap-2"></div>
 					</div>
 
 					<div class="border rounded p-3">
@@ -302,7 +302,7 @@ $NAV_ITEMS = [
 				</div>
 
 				<!-- Clean DB -->
-				<div class="ovo-section d-none" data-ovo-page="clean">
+				<div class="ovo-section" data-ovo-page="clean">
 					<h2 class="h4 mb-3">Database Clean (canonical)</h2>
 					<div class="text-muted small mb-3">This is the canonical dataset used by reporting and publishing systems (Tableau, APIs)</div>
 					<div class="table-responsive border rounded">
@@ -345,7 +345,7 @@ $NAV_ITEMS = [
 				</div>
 
 				<!-- Reports -->
-				<div class="ovo-section d-none" data-ovo-page="reports">
+				<div class="ovo-section" data-ovo-page="reports">
 					<h2 class="h4 mb-3">Reports & Publication</h2>
 					<div class="row g-3">
 						<div class="col-12 col-md-6">
@@ -366,7 +366,7 @@ $NAV_ITEMS = [
 				</div>
 
 				<!-- Settings -->
-				<div class="ovo-section d-none" data-ovo-page="settings">
+				<div class="ovo-section" data-ovo-page="settings">
 					<h2 class="h4 mb-3">Settings & Users</h2>
 					<div class="row g-3">
 						<div class="col-12 col-md-6">
@@ -385,7 +385,7 @@ $NAV_ITEMS = [
 				</div>
 
 				<!-- Logs -->
-				<div class="ovo-section d-none" data-ovo-page="logs">
+				<div class="ovo-section" data-ovo-page="logs">
 					<h2 class="h4 mb-3">System Logs & Audits</h2>
 					<div class="border rounded p-3">
 						<p class="small text-muted mb-0">Search logs, filter by source (scraper, transform, publish), and export for audits. This view is critical for anti-corruption transparency — keep immutable logs and RBAC for access.</p>
@@ -405,8 +405,7 @@ $NAV_ITEMS = [
 
 	function setActive(pageId) {
 		sections.forEach(s => {
-			const isActive = s.getAttribute('data-ovo-page') === pageId;
-			s.classList.toggle('d-none', !isActive);
+			s.classList.toggle('active', s.getAttribute('data-ovo-page') === pageId);
 		});
 		sidebarLinks.forEach(a => {
 			a.classList.toggle('active', a.getAttribute('data-ovo-link') === pageId);
@@ -422,6 +421,144 @@ $NAV_ITEMS = [
 
 	// default
 	setActive('dashboard');
+})();
+
+// React-like client-side logic for Scrapers and Transform Rules
+(function(){
+	// Seed from PHP mocks
+	const scrapers = <?php echo json_encode($mockScrapers); ?>;
+	const transformRules = <?php echo json_encode($mockTransformRules); ?>;
+
+	// -------- Scrapers UI --------
+	const scraperListEl = document.getElementById('scraper-list');
+	const addScraperBtn = document.getElementById('btn-add-scraper');
+
+	function renderScrapers() {
+		if (!scraperListEl) return;
+		scraperListEl.innerHTML = scrapers.map(s => {
+			return `
+				<div class="d-flex align-items-center justify-content-between border rounded p-2" data-id="${s.id}">
+					<div>
+						<div class="fw-semibold">${escapeHtml(s.name)}</div>
+						<div class="text-muted small">Cron: ${s.cron ? escapeHtml(s.cron) : '—'} · Last: ${escapeHtml(s.lastRun)} · ${escapeHtml(s.lastStatus)}</div>
+					</div>
+					<div class="d-flex align-items-center gap-2">
+						<input type="text" class="form-control form-control-sm" style="width: 150px;" value="${escapeAttr(s.cron)}" disabled>
+						${s.enabled
+							? `<button class="btn btn-danger btn-sm" data-action="toggle">Disable</button>`
+							: `<button class="btn btn-success btn-sm" data-action="toggle">Enable</button>`
+						}
+						<button class="btn btn-outline-secondary btn-sm" data-action="run">Run now</button>
+						<button class="btn btn-outline-secondary btn-sm" data-action="edit">Edit</button>
+					</div>
+				</div>
+			`;
+		}).join('');
+	}
+
+	function addScraper() {
+		const nextId = 's' + (scrapers.length + 1);
+		scrapers.push({ id: nextId, name: 'New Portal', enabled: false, cron: '0 0 * * *', lastRun: '-', lastStatus: 'Never' });
+		renderScrapers();
+	}
+
+	function toggleScraper(id) {
+		const idx = scrapers.findIndex(s => s.id === id);
+		if (idx >= 0) {
+			scrapers[idx].enabled = !scrapers[idx].enabled;
+			renderScrapers();
+		}
+	}
+
+	// Event delegation for scraper actions
+	if (scraperListEl) {
+		scraperListEl.addEventListener('click', function(e){
+			const btn = e.target.closest('button');
+			if (!btn) return;
+			const card = btn.closest('[data-id]');
+			const id = card ? card.getAttribute('data-id') : null;
+			const action = btn.getAttribute('data-action');
+			if (action === 'toggle' && id) {
+				toggleScraper(id);
+			} else if (action === 'run') {
+				alert('Trigger immediate run (stub).');
+			} else if (action === 'edit') {
+				alert('Open edit dialog (stub).');
+			}
+		});
+	}
+	if (addScraperBtn) {
+		addScraperBtn.addEventListener('click', addScraper);
+	}
+
+	// -------- Transform Rules UI --------
+	const rulesListEl = document.getElementById('rules-list');
+	const addRuleBtn = document.getElementById('btn-add-rule');
+
+	function renderRules() {
+		if (!rulesListEl) return;
+		rulesListEl.innerHTML = transformRules.map(r => {
+			return `
+				<div class="border rounded p-2 d-flex align-items-center justify-content-between" data-id="${r.id}">
+					<div>
+						<div class="fw-semibold">${escapeHtml(r.name)}</div>
+						<div class="text-muted small">${escapeHtml(r.description || '')}</div>
+					</div>
+					<div class="d-flex align-items-center">
+						<div class="form-check form-switch">
+							<input class="form-check-input" type="checkbox" data-action="toggle" ${r.enabled ? 'checked' : ''}>
+							<label class="form-check-label small ms-2">Enabled</label>
+						</div>
+						<button class="btn btn-outline-secondary btn-sm ms-2" data-action="edit">Edit</button>
+					</div>
+				</div>
+			`;
+		}).join('');
+	}
+
+	function addRule() {
+		const nextId = 'r' + (transformRules.length + 1);
+		transformRules.push({ id: nextId, name: 'New Rule', description: '', enabled: false });
+		renderRules();
+	}
+
+	function toggleRuleByEl(el) {
+		const wrap = el.closest('[data-id]');
+		const id = wrap ? wrap.getAttribute('data-id') : null;
+		if (!id) return;
+		const idx = transformRules.findIndex(r => r.id === id);
+		if (idx >= 0) {
+			transformRules[idx].enabled = !!el.checked;
+		}
+	}
+
+	if (rulesListEl) {
+		rulesListEl.addEventListener('change', function(e){
+			const input = e.target.closest('input[data-action="toggle"]');
+			if (input) toggleRuleByEl(input);
+		});
+		rulesListEl.addEventListener('click', function(e){
+			const btn = e.target.closest('button[data-action="edit"]');
+			if (btn) alert('Open rule editor (stub).');
+		});
+	}
+	if (addRuleBtn) {
+		addRuleBtn.addEventListener('click', addRule);
+	}
+
+	// Utility
+	function escapeHtml(str) {
+		return String(str ?? '').replace(/[&<>"']/g, s => ({
+			'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+		}[s]));
+	}
+	function escapeAttr(str) {
+		return escapeHtml(str).replace(/"/g, '&quot;');
+	}
+
+	// Initial renders
+	renderScrapers();
+	renderRules();
 })();
 </script>
 </body>
