@@ -14,38 +14,31 @@
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 	<style>
 		/* Minimal layout helpers for the sidebar-driven app shell */
-		.ovo-app-shell {
-			min-height: calc(100vh - 56px); /* account for navbar height */
+		:root {
+			--ovo-primary: #4f46e5;
+			--ovo-surface: #ffffff;
+			--ovo-muted: #6b7280;
 		}
-		.ovo-sidebar {
-			border-right: 1px solid #e5e7eb;
-			background-color: #ffffff;
-		}
-		.ovo-sidebar .nav-link {
-			cursor: pointer;
-		}
-		.ovo-sidebar .nav-link.active {
-			background-color: #f3f4f6;
-			font-weight: 600;
-		}
-		.ovo-header {
-			border-bottom: 1px solid #e5e7eb;
-			background-color: #ffffff;
-		}
-		.ovo-section {
-			display: none;
-		}
-		.ovo-section.active {
-			display: block;
-		}
-		.badge-soft {
-			background-color: #f3f4f6;
-			color: #374151;
-			font-weight: 500;
-		}
-		.table-sm td, .table-sm th {
-			padding: .5rem .5rem;
-		}
+		.ovo-app-shell { min-height: calc(100vh - 56px); }
+		.ovo-sidebar { border-right: 1px solid #e5e7eb; background-color: var(--ovo-surface); }
+		.ovo-sidebar .nav-link { cursor: pointer; transition: background-color .15s ease; }
+		.ovo-sidebar .nav-link.active { background-color: #eef2ff; font-weight: 600; color: #312e81; }
+		.ovo-header { border-bottom: 1px solid #e5e7eb; background-color: var(--ovo-surface); position: sticky; top: 0; z-index: 10; }
+		.ovo-section { display: none; }
+		.ovo-section.active { display: block; }
+		.badge-soft { background-color: #f3f4f6; color: #111827; font-weight: 500; }
+		.table-sm td, .table-sm th { padding: .55rem .6rem; vertical-align: middle; }
+		.ovo-card { border: 1px solid #e5e7eb; border-radius: 12px; background: var(--ovo-surface); box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06); }
+		.ovo-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; background: #eef2ff; color: #312e81; }
+		.ovo-pill.success { background: #ecfdf3; color: #166534; }
+		.ovo-pill.warn { background: #fef3c7; color: #92400e; }
+		.ovo-pill.neutral { background: #e5e7eb; color: #374151; }
+		.ovo-stat { display: flex; flex-direction: column; gap: 4px; }
+		.ovo-stat .label { color: var(--ovo-muted); font-size: 13px; }
+		.ovo-stat .value { font-size: 24px; font-weight: 700; }
+		.ovo-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+		.ovo-progress { height: 8px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
+		.ovo-progress > div { height: 100%; background: linear-gradient(90deg, #4f46e5, #22d3ee); }
 	</style>
 </head>
 <body class="bg-light">
@@ -143,48 +136,95 @@ $NAV_ITEMS = [
 			<section class="p-3">
 				<!-- Dashboard -->
 				<div class="ovo-section" data-ovo-page="dashboard">
-					<h2 class="h4 mb-3">OVO Dashboard</h2>
-					<div class="row g-3 mb-3">
-						<div class="col-12 col-md-4">
-							<div class="border rounded p-3 h-100">
-								<div class="text-muted small">Raw vacancies</div>
-								<div class="fs-3 fw-semibold"><?php echo count($mockRawRecords); ?></div>
-								<div class="text-muted small">Updated: 2025-12-03 13:00</div>
+					<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 gap-2">
+						<div>
+							<h2 class="h4 mb-1">OVO Dashboard</h2>
+							<div class="text-muted small">Realtime view of vacancy ingestion, quality, and publication</div>
+						</div>
+						<div class="d-flex gap-2">
+							<button class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-repeat me-1"></i>Refresh</button>
+							<button class="btn btn-primary btn-sm"><i class="bi bi-cloud-upload me-1"></i>Publish snapshot</button>
+						</div>
+					</div>
+
+					<div class="ovo-card p-3 mb-3">
+						<div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+							<div class="d-flex align-items-center gap-2">
+								<span class="ovo-pill success"><i class="bi bi-check-circle"></i>Healthy</span>
+								<span class="text-muted small">Last sync: 2025-12-03 13:10 (staging)</span>
+							</div>
+							<div class="d-flex align-items-center gap-3">
+								<div class="text-muted small">Data quality</div>
+								<div class="ovo-progress" style="width: 180px;">
+									<div style="width: 86%;"></div>
+								</div>
+								<div class="fw-semibold small">86%</div>
 							</div>
 						</div>
-						<div class="col-12 col-md-4">
-							<div class="border rounded p-3 h-100">
-								<div class="text-muted small">Clean vacancies</div>
-								<div class="fs-3 fw-semibold"><?php echo count($mockCleanRecords); ?></div>
+					</div>
+
+					<div class="ovo-kpi-grid mb-3">
+						<div class="ovo-card p-3">
+							<div class="ovo-stat">
+								<div class="label">Raw vacancies</div>
+								<div class="value"><?php echo count($mockRawRecords); ?></div>
+								<div class="text-muted small">Updated 13:00 · 8 sources</div>
+							</div>
+						</div>
+						<div class="ovo-card p-3">
+							<div class="ovo-stat">
+								<div class="label">Clean vacancies</div>
+								<div class="value"><?php echo count($mockCleanRecords); ?></div>
 								<div class="text-muted small">Processed today: 5</div>
 							</div>
 						</div>
-						<div class="col-12 col-md-4">
-							<div class="border rounded p-3 h-100">
-								<div class="text-muted small">Active scrapers</div>
-								<div class="fs-3 fw-semibold">
+						<div class="ovo-card p-3">
+							<div class="ovo-stat">
+								<div class="label">Active scrapers</div>
+								<div class="value">
 									<?php echo count(array_filter($mockScrapers, fn($s) => $s['enabled'])); ?>
 								</div>
-								<div class="text-muted small">Next run: in 50m</div>
+								<div class="text-muted small">Next run in 50m</div>
+							</div>
+						</div>
+						<div class="ovo-card p-3">
+							<div class="ovo-stat">
+								<div class="label">Publishing</div>
+								<div class="value">Tableau</div>
+								<div class="text-muted small">Last publish: 2025-12-02 18:00</div>
 							</div>
 						</div>
 					</div>
 
 					<div class="row g-3">
-						<div class="col-12 col-md-6">
-							<div class="border rounded p-3 h-100">
-								<h5 class="mb-2">Recent transform jobs</h5>
+						<div class="col-12 col-lg-6">
+							<div class="ovo-card p-3 h-100">
+								<div class="d-flex align-items-center justify-content-between mb-2">
+									<h5 class="mb-0">Recent transform jobs</h5>
+									<span class="ovo-pill neutral"><i class="bi bi-activity"></i>Last 24h</span>
+								</div>
 								<ul class="list-unstyled small mb-0">
-									<li>2025-12-03 12:50 — Transform batch #342 — <span class="badge badge-soft">Success</span></li>
-									<li>2025-12-03 11:20 — Deduplication run — <span class="badge badge-soft">Success</span></li>
+									<li class="pb-1">2025-12-03 12:50 — Transform batch #342 — <span class="badge badge-soft">Success</span></li>
+									<li class="pb-1">2025-12-03 11:20 — Deduplication run — <span class="badge badge-soft">Success</span></li>
 									<li>2025-12-03 10:01 — NLP classification — <span class="badge badge-soft">Warning</span></li>
 								</ul>
 							</div>
 						</div>
-						<div class="col-12 col-md-6">
-							<div class="border rounded p-3 h-100">
-								<h5 class="mb-2">Publish status</h5>
-								<p class="small text-muted mb-0">Last published report to Tableau: 2025-12-02 18:00</p>
+						<div class="col-12 col-lg-6">
+							<div class="ovo-card p-3 h-100">
+								<div class="d-flex align-items-center justify-content-between mb-2">
+									<h5 class="mb-0">Quality & actions</h5>
+									<span class="ovo-pill warn"><i class="bi bi-exclamation-triangle"></i>Attention</span>
+								</div>
+								<ul class="small mb-3">
+									<li>2 sources paused: Karihub manual, Portal C — review credentials</li>
+									<li>Classification warnings: 3 titles need KBJI confirmation</li>
+									<li>Exports: Daily Tableau extract scheduled 18:00</li>
+								</ul>
+								<div class="d-flex gap-2">
+									<button class="btn btn-outline-secondary btn-sm">View paused sources</button>
+									<button class="btn btn-outline-secondary btn-sm">Open warnings</button>
+								</div>
 							</div>
 						</div>
 					</div>
