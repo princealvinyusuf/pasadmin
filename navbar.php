@@ -56,6 +56,7 @@
     $canIframe = current_user_can('settings_iframe_manage');
     $canRegistrasiKehadiran = current_user_can('registrasi_kehadiran_manage');
     $canSplitScreen = true; // Split Screen was previously always visible
+    $canAuditTrails = current_user_can('view_audit_trails');
     $canAccessControl = current_user_can('manage_access_control');
     $canBroadcast = current_user_can('use_broadcast');
     $canExtensions = current_user_can('view_extensions');
@@ -69,7 +70,7 @@
     // Show Dashboard if user can view any dashboard or manage settings
     $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || current_user_can('manage_settings'));
     
-    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canAccessControl || $canBroadcast || $canIframe);
+    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canAccessControl || $canBroadcast || $canIframe || $canAuditTrails);
     $hasApiKeys = ($canManageSettings || $canApiKeys);
     $hasLayanan = ($canManageSettings || $canMitraKerja || $canPartnershipType || $canMitraSubmission || $canKemitraanBooked || $canPaskerRoom);
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
@@ -157,6 +158,7 @@
                         <?php if ($canManageSettings || $canMitraKerja): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>mitra_kerja_settings.php">Mitra Kerja Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings || $canAccessControl): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>access_control.php">Access Control</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canAuditTrails): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>audit_trails.php">Audit Trails</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings || $canBroadcast): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>broadcast.php">Broadcast</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
@@ -168,11 +170,6 @@
                         <li><hr class="dropdown-divider"></li>
                         <?php if (current_user_is_super_admin()): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>backup/">Backup</a></li><?php endif; ?>
                     </ul>
-                </li>
-                <?php endif; ?>
-                <?php if (current_user_can('view_audit_trails') || $canManageSettings): ?>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootUrl; ?>audit_trails.php">Audit Trails</a>
                 </li>
                 <?php endif; ?>
                 <?php if ($hasLayanan): ?>
