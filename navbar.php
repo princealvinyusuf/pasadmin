@@ -55,6 +55,7 @@
     $canDatabaseContact = current_user_can('settings_database_contact_manage');
     $canIframe = current_user_can('settings_iframe_manage');
     $canRegistrasiKehadiran = current_user_can('registrasi_kehadiran_manage');
+    $canSplitScreen = true; // Split Screen was previously always visible
     $canAccessControl = current_user_can('manage_access_control');
     $canBroadcast = current_user_can('use_broadcast');
     $canExtensions = current_user_can('view_extensions');
@@ -74,7 +75,7 @@
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
     $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan);
     $hasAsmen = ($canAsmenDashboard || $canAsmenAssets || $canAsmenServices || $canAsmenCalendar || $canAsmenQR);
-    $hasExtensionsMenu = ($canExtensions || $canManageSettings || $canRegistrasiKehadiran);
+    $hasExtensionsMenu = ($canExtensions || $canManageSettings || $canRegistrasiKehadiran || $canSplitScreen);
     // Naker Award flags
     $canNakerAssessment = current_user_can('naker_award_manage_assessment');
     $canNakerStage1 = current_user_can('naker_award_view_stage1') || $canNakerAssessment || $canManageSettings;
@@ -229,16 +230,12 @@
                     <ul class="dropdown-menu" aria-labelledby="extensionsDropdown">
                         <?php if ($canExtensions || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>extensions.php">Extensions</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canRegistrasiKehadiran): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>registrasi_kehadiran.php">Registrasi Kehadiran</a></li><?php endif; ?>
+                        <?php if ($canSplitScreen): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>split_screen.php"><i class="bi bi-layout-split me-1"></i>Split Screen</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
                 <li class="nav-item">
                     <a class="nav-link" href="<?php echo $rootUrl; ?>oui.php">OUI</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootUrl; ?>split_screen.php">
-                        <i class="bi bi-layout-split me-1"></i>Split Screen
-                    </a>
                 </li>
                 <!-- <li class="nav-item">
                     <a class="nav-link" href="<?php echo $rootUrl; ?>classification_magang.php">
