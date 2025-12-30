@@ -47,9 +47,9 @@
 <?php
 // ---------- Mock data (replace with real queries/API) ----------
 $mockScrapers = [
-	[ 'id' => 's1', 'name' => 'JobPortal A', 'enabled' => true,  'cron' => '0 */1 * * *', 'lastRun' => '2025-12-03 12:10', 'lastStatus' => 'OK' ],
-	[ 'id' => 's2', 'name' => 'JobPortal B', 'enabled' => true,  'cron' => '0 0 */3 * *', 'lastRun' => '2025-12-03 09:00', 'lastStatus' => 'OK' ],
-	[ 'id' => 's3', 'name' => 'Karihub Manual Upload', 'enabled' => false, 'cron' => '', 'lastRun' => '-', 'lastStatus' => 'Manual' ],
+	[ 'id' => 's1', 'name' => 'JobPortal A', 'enabled' => true,  'cron' => '0 */1 * * *', 'lastRun' => '2025-12-03 12:10', 'lastStatus' => 'OK', 'successRate' => 97, 'medianRuntime' => 42, 'lastError' => '' ],
+	[ 'id' => 's2', 'name' => 'JobPortal B', 'enabled' => true,  'cron' => '0 0 */3 * *', 'lastRun' => '2025-12-03 09:00', 'lastStatus' => 'OK', 'successRate' => 91, 'medianRuntime' => 55, 'lastError' => '' ],
+	[ 'id' => 's3', 'name' => 'Karihub Manual Upload', 'enabled' => false, 'cron' => '', 'lastRun' => '-', 'lastStatus' => 'Manual', 'successRate' => 100, 'medianRuntime' => 12, 'lastError' => 'Missing CSV mapping' ],
 ];
 
 $cities = ['Jakarta', 'Surabaya', 'Bandung', 'Medan'];
@@ -90,9 +90,18 @@ for ($i = 0; $i < 5; $i++) {
 		'standardized_title' => strtolower($r['title']),
 		'kbli' => '6201',
 		'kbji' => 'X',
+		'normalized_location' => $r['location'].', ID',
+		'confidence' => 82 + ($i * 3),
+		'review_needed' => $i === 2,
 		'cleaned_at' => '2025-12-03 13:'.(10+$i),
 	];
 }
+
+$mockTransformJobs = [
+	[ 'id' => 'tj-342', 'started_at' => '2025-12-03 12:50', 'duration' => '1m22s', 'status' => 'success', 'in_count' => 180, 'out_count' => 178, 'errors' => 0 ],
+	[ 'id' => 'tj-341', 'started_at' => '2025-12-03 11:20', 'duration' => '56s', 'status' => 'success', 'in_count' => 210, 'out_count' => 209, 'errors' => 1 ],
+	[ 'id' => 'tj-340', 'started_at' => '2025-12-03 10:01', 'duration' => '2m10s', 'status' => 'warning', 'in_count' => 190, 'out_count' => 185, 'errors' => 5 ],
+];
 
 $NAV_ITEMS = [
 	[ 'id' => 'dashboard', 'label' => 'Dashboard', 'icon' => '📊' ],
@@ -249,6 +258,18 @@ $NAV_ITEMS = [
 					</div>
 					<div id="scraper-list" class="vstack gap-2"></div>
 
+					<div class="mt-4 ovo-card p-3">
+						<div class="d-flex align-items-center justify-content-between mb-2">
+							<h6 class="mb-0">Run history (last 3)</h6>
+							<span class="ovo-pill neutral"><i class="bi bi-clock-history"></i>Staging</span>
+						</div>
+						<ul class="list-unstyled small mb-0">
+							<li>2025-12-03 12:10 — JobPortal A — 180 rows — OK</li>
+							<li>2025-12-03 09:00 — JobPortal B — 210 rows — OK</li>
+							<li>2025-12-03 08:00 — Karihub Manual — 42 rows — Manual</li>
+						</ul>
+					</div>
+
 					<div class="mt-4 border rounded p-3">
 						<h5 class="mb-2">Manual Input (Karihub / other)</h5>
 						<form class="row g-2">
@@ -358,6 +379,7 @@ $NAV_ITEMS = [
 									<th>Posted</th>
 									<th>Fetched</th>
 									<th>Salary</th>
+									<th>Dup score</th>
 									<th>Status</th>
 									<th>Quality</th>
 									<th class="text-end">Actions</th>
@@ -374,6 +396,7 @@ $NAV_ITEMS = [
 										<td class="small"><?php echo htmlspecialchars($r['posted_at']); ?></td>
 										<td class="small"><?php echo htmlspecialchars($r['fetched_at']); ?></td>
 										<td class="small"><?php echo $r['salary'] !== '' ? htmlspecialchars($r['salary']) : '—'; ?></td>
+										<td class="small"><?php echo htmlspecialchars($r['duplicate_score']); ?>%</td>
 										<td class="small">
 											<span class="badge rounded-pill text-bg-<?php echo $r['status'] === 'flagged' ? 'warning' : ($r['status'] === 'parsed' ? 'success' : 'secondary'); ?>">
 												<?php echo htmlspecialchars($r['status']); ?>
@@ -389,6 +412,7 @@ $NAV_ITEMS = [
 											<div class="btn-group btn-group-sm">
 												<button class="btn btn-outline-secondary" data-action="view-raw">View raw</button>
 												<button class="btn btn-outline-secondary" data-action="flag">Flag</button>
+												<button class="btn btn-outline-secondary" data-action="send-transform">Send</button>
 											</div>
 										</td>
 									</tr>
@@ -401,7 +425,7 @@ $NAV_ITEMS = [
 				<!-- Transform -->
 				<div class="ovo-section" data-ovo-page="transform">
 					<h2 class="h4 mb-3">Data Transformation Pipeline</h2>
-					<div class="border rounded p-3 mb-3">
+					<div class="ovo-card p-3 mb-3">
 						<h6 class="mb-2">Pipeline steps (suggested)</h6>
 						<ol class="small mb-0 ps-3">
 							<li>Cleansing (remove HTML, normalize whitespace)</li>
@@ -418,6 +442,52 @@ $NAV_ITEMS = [
 							<button class="btn btn-primary btn-sm" id="btn-add-rule">Add rule</button>
 						</div>
 						<div id="rules-list" class="vstack gap-2"></div>
+					</div>
+
+					<div class="ovo-card p-3 mb-3">
+						<div class="d-flex align-items-center justify-content-between mb-2">
+							<h6 class="mb-0">Recent transform jobs</h6>
+							<span class="ovo-pill neutral"><i class="bi bi-activity"></i>Last 24h</span>
+						</div>
+						<div class="table-responsive">
+							<table class="table table-sm mb-0">
+								<thead class="table-light">
+									<tr>
+										<th>ID</th>
+										<th>Started</th>
+										<th>Duration</th>
+										<th>Status</th>
+										<th>In</th>
+										<th>Out</th>
+										<th>Errors</th>
+										<th class="text-end">Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									<?php foreach ($mockTransformJobs as $job): ?>
+										<tr>
+											<td class="small"><?php echo htmlspecialchars($job['id']); ?></td>
+											<td class="small"><?php echo htmlspecialchars($job['started_at']); ?></td>
+											<td class="small"><?php echo htmlspecialchars($job['duration']); ?></td>
+											<td class="small">
+												<span class="badge rounded-pill text-bg-<?php echo $job['status'] === 'success' ? 'success' : ($job['status'] === 'warning' ? 'warning' : 'secondary'); ?>">
+													<?php echo htmlspecialchars($job['status']); ?>
+												</span>
+											</td>
+											<td class="small"><?php echo htmlspecialchars($job['in_count']); ?></td>
+											<td class="small"><?php echo htmlspecialchars($job['out_count']); ?></td>
+											<td class="small"><?php echo htmlspecialchars($job['errors']); ?></td>
+											<td class="small text-end">
+												<div class="btn-group btn-group-sm">
+													<button class="btn btn-outline-secondary" disabled>Logs</button>
+													<button class="btn btn-outline-secondary" disabled>Rerun</button>
+												</div>
+											</td>
+										</tr>
+									<?php endforeach; ?>
+								</tbody>
+							</table>
+						</div>
 					</div>
 
 					<div class="border rounded p-3">
@@ -442,6 +512,10 @@ $NAV_ITEMS = [
 									<th>Title</th>
 									<th>Std Title</th>
 									<th>KBLI</th>
+									<th>KBJI</th>
+									<th>Location</th>
+									<th>Conf.</th>
+									<th>Review</th>
 									<th>Cleaned at</th>
 									<th>Actions</th>
 								</tr>
@@ -453,6 +527,16 @@ $NAV_ITEMS = [
 										<td class="small"><?php echo htmlspecialchars($c['title']); ?></td>
 										<td class="small"><?php echo htmlspecialchars($c['standardized_title']); ?></td>
 										<td class="small"><?php echo htmlspecialchars($c['kbli']); ?></td>
+										<td class="small"><?php echo htmlspecialchars($c['kbji']); ?></td>
+										<td class="small"><?php echo htmlspecialchars($c['normalized_location']); ?></td>
+										<td class="small"><?php echo htmlspecialchars($c['confidence']); ?>%</td>
+										<td class="small">
+											<?php if ($c['review_needed']): ?>
+												<span class="badge rounded-pill text-bg-warning">Needs review</span>
+											<?php else: ?>
+												<span class="badge rounded-pill text-bg-success">OK</span>
+											<?php endif; ?>
+										</td>
 										<td class="small"><?php echo htmlspecialchars($c['cleaned_at']); ?></td>
 										<td class="small">
 											<button class="btn btn-outline-secondary btn-sm" disabled>Re-classify</button>
@@ -476,19 +560,44 @@ $NAV_ITEMS = [
 				<!-- Reports -->
 				<div class="ovo-section" data-ovo-page="reports">
 					<h2 class="h4 mb-3">Reports & Publication</h2>
+					<div class="ovo-card p-3 mb-3">
+						<div class="row g-3">
+							<div class="col-12 col-md-4">
+								<div class="small text-muted">Last snapshot</div>
+								<div class="fw-semibold">2025-12-02 18:00</div>
+								<div class="text-muted small">Rows: 12,430 · Size: 18 MB</div>
+							</div>
+							<div class="col-12 col-md-4">
+								<div class="small text-muted">Next publish</div>
+								<div class="fw-semibold">Today 18:00</div>
+								<div class="text-muted small">Destination: Tableau, S3</div>
+							</div>
+							<div class="col-12 col-md-4">
+								<div class="small text-muted">API availability</div>
+								<div class="fw-semibold">v1 / v2 (beta)</div>
+								<div class="text-muted small">Rate limit: 200 rpm</div>
+							</div>
+						</div>
+					</div>
 					<div class="row g-3">
 						<div class="col-12 col-md-6">
 							<div class="border rounded p-3 h-100">
 								<h6 class="mb-2">Tools / Dashboard</h6>
 								<p class="small text-muted">Link: Tableau / Looker / internal BI. Provide scheduled extracts and row-level security for public vs internal dashboards.</p>
-								<button class="btn btn-primary btn-sm" disabled>Open Tableau</button>
+								<div class="d-flex gap-2">
+									<button class="btn btn-primary btn-sm" disabled>Open Tableau</button>
+									<button class="btn btn-outline-secondary btn-sm" disabled>Download extract</button>
+								</div>
 							</div>
 						</div>
 						<div class="col-12 col-md-6">
 							<div class="border rounded p-3 h-100">
 								<h6 class="mb-2">OVO Report Builder</h6>
 								<p class="small text-muted">Create scheduled OVO public reports (CSV / PDF) and set publication cadence.</p>
-								<button class="btn btn-outline-secondary btn-sm" disabled>New scheduled report</button>
+								<div class="d-flex gap-2">
+									<button class="btn btn-outline-secondary btn-sm" disabled>New scheduled report</button>
+									<button class="btn btn-outline-secondary btn-sm" disabled>History</button>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -516,8 +625,47 @@ $NAV_ITEMS = [
 				<!-- Logs -->
 				<div class="ovo-section" data-ovo-page="logs">
 					<h2 class="h4 mb-3">System Logs & Audits</h2>
+					<div class="ovo-card p-3 mb-3">
+						<div class="row g-3">
+							<div class="col-12 col-md-4">
+								<label class="form-label small text-muted mb-1">Source</label>
+								<select class="form-select form-select-sm" disabled>
+									<option>All</option>
+									<option>Scraper</option>
+									<option>Transform</option>
+									<option>Publish</option>
+									<option>Auth</option>
+								</select>
+							</div>
+							<div class="col-6 col-md-2">
+								<label class="form-label small text-muted mb-1">Level</label>
+								<select class="form-select form-select-sm" disabled>
+									<option>All</option>
+									<option>Info</option>
+									<option>Warn</option>
+									<option>Error</option>
+								</select>
+							</div>
+							<div class="col-6 col-md-2">
+								<label class="form-label small text-muted mb-1">From</label>
+								<input type="date" class="form-control form-control-sm" disabled>
+							</div>
+							<div class="col-6 col-md-2">
+								<label class="form-label small text-muted mb-1">To</label>
+								<input type="date" class="form-control form-control-sm" disabled>
+							</div>
+							<div class="col-12 col-md-2 d-flex align-items-end">
+								<button class="btn btn-outline-secondary btn-sm w-100" disabled>Export CSV</button>
+							</div>
+						</div>
+					</div>
 					<div class="border rounded p-3">
-						<p class="small text-muted mb-0">Search logs, filter by source (scraper, transform, publish), and export for audits. This view is critical for anti-corruption transparency — keep immutable logs and RBAC for access.</p>
+						<p class="small text-muted mb-2">Search logs, filter by source (scraper, transform, publish), and export for audits. This view is critical for anti-corruption transparency — keep immutable logs and RBAC for access.</p>
+						<ul class="small mb-0">
+							<li>2025-12-03 12:50 — transform — job tj-342 — status=success</li>
+							<li>2025-12-03 12:12 — scraper — JobPortal A — fetched=180 — status=ok</li>
+							<li>2025-12-03 10:02 — transform — job tj-340 — warnings=5 (classification)</li>
+						</ul>
 					</div>
 				</div>
 			</section>
@@ -784,6 +932,7 @@ $NAV_ITEMS = [
 						<div class="btn-group btn-group-sm">
 							<button class="btn btn-outline-secondary" data-action="view-raw">View raw</button>
 							<button class="btn btn-outline-secondary" data-action="flag">Flag</button>
+							<button class="btn btn-outline-secondary" data-action="send-transform">Send</button>
 						</div>
 					</td>
 				</tr>
@@ -864,6 +1013,8 @@ $NAV_ITEMS = [
 				showRawModal(id);
 			} else if (action === 'flag') {
 				alert('Flagging stub.');
+			} else if (action === 'send-transform') {
+				alert('Send to transform stub.');
 			}
 		});
 	}
