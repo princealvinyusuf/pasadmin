@@ -54,16 +54,25 @@ $mockScrapers = [
 
 $cities = ['Jakarta', 'Surabaya', 'Bandung', 'Medan'];
 $titles = ['Sales', 'Software Engineer', 'Driver', 'Teacher'];
+$companies = ['PT Nusantara', 'PT Digital Karya', 'PT Logistik Maju', 'PT Edu Prima'];
 $mockRawRecords = [];
 for ($i = 0; $i < 8; $i++) {
 	$mockRawRecords[] = [
 		'id' => 'raw-'.($i+1),
 		'source' => ($i % 2 === 0) ? 'JobPortal A' : 'JobPortal B',
+		'company' => $companies[$i % count($companies)],
+		'source_id' => 'SRC-10'.($i+1),
 		'title' => $titles[$i % 4],
 		'location' => $cities[$i % 4],
 		'posted_at' => '2025-12-0'.(($i % 9)+1),
+		'fetched_at' => '2025-12-03 1'.($i % 6).':0'.$i,
+		'status' => ($i % 3 === 0) ? 'flagged' : (($i % 3 === 1) ? 'parsed' : 'new'),
+		'flags' => ($i % 3 === 0) ? 'salary_missing' : '',
+		'duplicate_score' => 12 + $i * 3,
+		'completeness' => 72 + ($i % 5) * 5,
 		'salary' => ($i % 3 === 0) ? '' : strval((3 + $i) * 1000000),
 		'raw_html_snippet' => '<div>Job content snippet...</div>',
+		'quality_notes' => ($i % 3 === 0) ? 'Missing salary' : 'OK',
 	];
 }
 
@@ -271,39 +280,116 @@ $NAV_ITEMS = [
 
 				<!-- Raw DB -->
 				<div class="ovo-section" data-ovo-page="raw">
-					<h2 class="h4 mb-3">Raw Database (staging)</h2>
-					<div class="d-flex align-items-center gap-2 mb-3">
-						<input class="form-control" style="max-width: 320px;" placeholder="Search raw records..." disabled>
-						<select class="form-select" style="max-width: 200px;" disabled>
-							<option>All sources</option>
-							<option>JobPortal A</option>
-							<option>JobPortal B</option>
-						</select>
-						<button class="btn btn-outline-secondary btn-sm" disabled>Export CSV</button>
+					<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 gap-2">
+						<div>
+							<h2 class="h4 mb-1">Raw Database (staging)</h2>
+							<div class="text-muted small">Search, filter, and inspect raw scrapes before transformation</div>
+						</div>
+						<div class="d-flex gap-2">
+							<button class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Export CSV</button>
+							<button class="btn btn-outline-secondary btn-sm" id="raw-reset"><i class="bi bi-funnel me-1"></i>Reset filters</button>
+						</div>
 					</div>
+
+					<div class="ovo-card p-3 mb-3">
+						<div class="row g-3">
+							<div class="col-12 col-md-3">
+								<div class="small text-muted">Total records</div>
+								<div class="fw-semibold" id="raw-total-count"><?php echo count($mockRawRecords); ?></div>
+							</div>
+							<div class="col-12 col-md-3">
+								<div class="small text-muted">Filtered</div>
+								<div class="fw-semibold" id="raw-filtered-count"><?php echo count($mockRawRecords); ?></div>
+							</div>
+							<div class="col-12 col-md-3">
+								<div class="small text-muted">Avg completeness</div>
+								<div class="fw-semibold" id="raw-completeness">–</div>
+							</div>
+							<div class="col-12 col-md-3">
+								<div class="small text-muted">Warnings</div>
+								<div class="fw-semibold">Salary missing: 2</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="ovo-card p-3 mb-3">
+						<div class="row g-3">
+							<div class="col-12 col-lg-4">
+								<label class="form-label small text-muted mb-1">Search</label>
+								<input id="raw-search" class="form-control" placeholder="Title, company, location">
+							</div>
+							<div class="col-6 col-lg-2">
+								<label class="form-label small text-muted mb-1">Source</label>
+								<select id="raw-source" class="form-select">
+									<option value="">All sources</option>
+									<option>JobPortal A</option>
+									<option>JobPortal B</option>
+								</select>
+							</div>
+							<div class="col-6 col-lg-2">
+								<label class="form-label small text-muted mb-1">Status</label>
+								<select id="raw-status" class="form-select">
+									<option value="">All</option>
+									<option value="new">New</option>
+									<option value="parsed">Parsed</option>
+									<option value="flagged">Flagged</option>
+								</select>
+							</div>
+							<div class="col-6 col-lg-2">
+								<label class="form-label small text-muted mb-1">Posted from</label>
+								<input id="raw-date-from" type="date" class="form-control">
+							</div>
+							<div class="col-6 col-lg-2">
+								<label class="form-label small text-muted mb-1">Posted to</label>
+								<input id="raw-date-to" type="date" class="form-control">
+							</div>
+						</div>
+					</div>
+
 					<div class="table-responsive border rounded">
-						<table class="table table-sm mb-0">
+						<table class="table table-sm mb-0" id="raw-table">
 							<thead class="table-light">
 								<tr>
 									<th>ID</th>
 									<th>Source</th>
+									<th>Company</th>
 									<th>Title</th>
 									<th>Location</th>
+									<th>Posted</th>
+									<th>Fetched</th>
 									<th>Salary</th>
-									<th>Actions</th>
+									<th>Status</th>
+									<th>Quality</th>
+									<th class="text-end">Actions</th>
 								</tr>
 							</thead>
-							<tbody>
+							<tbody id="raw-tbody">
 								<?php foreach ($mockRawRecords as $r): ?>
-									<tr>
+									<tr data-id="<?php echo htmlspecialchars($r['id']); ?>">
 										<td class="small"><?php echo htmlspecialchars($r['id']); ?></td>
 										<td class="small"><?php echo htmlspecialchars($r['source']); ?></td>
+										<td class="small"><?php echo htmlspecialchars($r['company']); ?></td>
 										<td class="small"><?php echo htmlspecialchars($r['title']); ?></td>
 										<td class="small"><?php echo htmlspecialchars($r['location']); ?></td>
+										<td class="small"><?php echo htmlspecialchars($r['posted_at']); ?></td>
+										<td class="small"><?php echo htmlspecialchars($r['fetched_at']); ?></td>
 										<td class="small"><?php echo $r['salary'] !== '' ? htmlspecialchars($r['salary']) : '—'; ?></td>
 										<td class="small">
-											<button class="btn btn-outline-secondary btn-sm" disabled>View</button>
-											<button class="btn btn-outline-secondary btn-sm" disabled>Flag</button>
+											<span class="badge rounded-pill text-bg-<?php echo $r['status'] === 'flagged' ? 'warning' : ($r['status'] === 'parsed' ? 'success' : 'secondary'); ?>">
+												<?php echo htmlspecialchars($r['status']); ?>
+											</span>
+										</td>
+										<td class="small">
+											<div class="d-flex align-items-center gap-1">
+												<div class="ovo-progress" style="width: 80px;"><div style="width: <?php echo $r['completeness']; ?>%;"></div></div>
+												<span class="text-muted"><?php echo $r['completeness']; ?>%</span>
+											</div>
+										</td>
+										<td class="small text-end">
+											<div class="btn-group btn-group-sm">
+												<button class="btn btn-outline-secondary" data-action="view-raw">View raw</button>
+												<button class="btn btn-outline-secondary" data-action="flag">Flag</button>
+											</div>
 										</td>
 									</tr>
 								<?php endforeach; ?>
@@ -439,6 +525,61 @@ $NAV_ITEMS = [
 	</div>
 </div>
 
+<!-- Raw record modal -->
+<div class="modal fade" id="rawModal" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-lg modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header">
+				<div>
+					<div class="small text-muted">Raw record</div>
+					<h6 class="modal-title mb-0" id="rawModalTitle">—</h6>
+				</div>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				<div class="mb-3">
+					<div class="small text-muted">Source</div>
+					<div id="rawModalSource" class="fw-semibold">—</div>
+				</div>
+				<div class="row g-3 mb-3">
+					<div class="col-md-6">
+						<div class="small text-muted">Company</div>
+						<div id="rawModalCompany" class="fw-semibold">—</div>
+					</div>
+					<div class="col-md-6">
+						<div class="small text-muted">Location</div>
+						<div id="rawModalLocation" class="fw-semibold">—</div>
+					</div>
+					<div class="col-md-4">
+						<div class="small text-muted">Posted at</div>
+						<div id="rawModalPosted">—</div>
+					</div>
+					<div class="col-md-4">
+						<div class="small text-muted">Fetched at</div>
+						<div id="rawModalFetched">—</div>
+					</div>
+					<div class="col-md-4">
+						<div class="small text-muted">Salary</div>
+						<div id="rawModalSalary">—</div>
+					</div>
+				</div>
+				<div class="mb-3">
+					<div class="small text-muted">Flags / Notes</div>
+					<div id="rawModalFlags">—</div>
+				</div>
+				<div class="mb-3">
+					<div class="small text-muted">Raw HTML snippet</div>
+					<pre class="bg-light p-3 rounded small" id="rawModalSnippet" style="white-space: pre-wrap;">—</pre>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+				<button type="button" class="btn btn-primary btn-sm">Send to transform</button>
+			</div>
+		</div>
+	</div>
+</div>
+
 <script>
 // Simple client-side navigation for sections
 (function(){
@@ -471,6 +612,8 @@ $NAV_ITEMS = [
 	// Seed from PHP mocks
 	const scrapers = <?php echo json_encode($mockScrapers); ?>;
 	const transformRules = <?php echo json_encode($mockTransformRules); ?>;
+	const rawRecords = <?php echo json_encode($mockRawRecords); ?>;
+	let rawFiltered = [...rawRecords];
 
 	// -------- Scrapers UI --------
 	const scraperListEl = document.getElementById('scraper-list');
@@ -588,6 +731,155 @@ $NAV_ITEMS = [
 	if (addRuleBtn) {
 		addRuleBtn.addEventListener('click', addRule);
 	}
+
+	// -------- Raw Records UI --------
+	const rawEls = {
+		search: document.getElementById('raw-search'),
+		source: document.getElementById('raw-source'),
+		status: document.getElementById('raw-status'),
+		dateFrom: document.getElementById('raw-date-from'),
+		dateTo: document.getElementById('raw-date-to'),
+		reset: document.getElementById('raw-reset'),
+		tbody: document.getElementById('raw-tbody'),
+		totalCount: document.getElementById('raw-total-count'),
+		filteredCount: document.getElementById('raw-filtered-count'),
+		completeness: document.getElementById('raw-completeness'),
+		modal: document.getElementById('rawModal'),
+		modalTitle: document.getElementById('rawModalTitle'),
+		modalSource: document.getElementById('rawModalSource'),
+		modalCompany: document.getElementById('rawModalCompany'),
+		modalLocation: document.getElementById('rawModalLocation'),
+		modalPosted: document.getElementById('rawModalPosted'),
+		modalFetched: document.getElementById('rawModalFetched'),
+		modalSalary: document.getElementById('rawModalSalary'),
+		modalFlags: document.getElementById('rawModalFlags'),
+		modalSnippet: document.getElementById('rawModalSnippet'),
+	};
+
+	let rawModalInstance = (window.bootstrap && rawEls.modal) ? new window.bootstrap.Modal(rawEls.modal) : null;
+
+	function renderRawTable(list) {
+		if (!rawEls.tbody) return;
+		rawEls.tbody.innerHTML = list.map(r => {
+			const statusColor = r.status === 'flagged' ? 'warning' : (r.status === 'parsed' ? 'success' : 'secondary');
+			const salary = r.salary ? escapeHtml(r.salary) : '—';
+			return `
+				<tr data-id="${escapeAttr(r.id)}">
+					<td class="small">${escapeHtml(r.id)}</td>
+					<td class="small">${escapeHtml(r.source)}</td>
+					<td class="small">${escapeHtml(r.company)}</td>
+					<td class="small">${escapeHtml(r.title)}</td>
+					<td class="small">${escapeHtml(r.location)}</td>
+					<td class="small">${escapeHtml(r.posted_at)}</td>
+					<td class="small">${escapeHtml(r.fetched_at)}</td>
+					<td class="small">${salary}</td>
+					<td class="small"><span class="badge rounded-pill text-bg-${statusColor}">${escapeHtml(r.status)}</span></td>
+					<td class="small">
+						<div class="d-flex align-items-center gap-1">
+							<div class="ovo-progress" style="width: 80px;"><div style="width: ${r.completeness}%;"></div></div>
+							<span class="text-muted">${r.completeness}%</span>
+						</div>
+					</td>
+					<td class="small text-end">
+						<div class="btn-group btn-group-sm">
+							<button class="btn btn-outline-secondary" data-action="view-raw">View raw</button>
+							<button class="btn btn-outline-secondary" data-action="flag">Flag</button>
+						</div>
+					</td>
+				</tr>
+			`;
+		}).join('');
+	}
+
+	function avgCompleteness(list) {
+		if (!list.length) return 0;
+		return Math.round(list.reduce((sum, r) => sum + (r.completeness || 0), 0) / list.length);
+	}
+
+	function applyRawFilters() {
+		const term = (rawEls.search?.value || '').toLowerCase();
+		const source = rawEls.source?.value || '';
+		const status = rawEls.status?.value || '';
+		const from = rawEls.dateFrom?.value ? new Date(rawEls.dateFrom.value) : null;
+		const to = rawEls.dateTo?.value ? new Date(rawEls.dateTo.value) : null;
+
+		rawFiltered = rawRecords.filter(r => {
+			const matchesTerm = term
+				? [r.title, r.company, r.location].some(v => String(v).toLowerCase().includes(term))
+				: true;
+			const matchesSource = source ? r.source === source : true;
+			const matchesStatus = status ? r.status === status : true;
+			const posted = new Date(r.posted_at);
+			const matchesFrom = from ? posted >= from : true;
+			const matchesTo = to ? posted <= to : true;
+			return matchesTerm && matchesSource && matchesStatus && matchesFrom && matchesTo;
+		});
+
+		renderRawTable(rawFiltered);
+		updateRawStats();
+	}
+
+	function updateRawStats() {
+		if (rawEls.totalCount) rawEls.totalCount.textContent = rawRecords.length;
+		if (rawEls.filteredCount) rawEls.filteredCount.textContent = rawFiltered.length;
+		if (rawEls.completeness) rawEls.completeness.textContent = rawFiltered.length ? `${avgCompleteness(rawFiltered)}%` : '–';
+	}
+
+	function resetRawFilters() {
+		if (rawEls.search) rawEls.search.value = '';
+		if (rawEls.source) rawEls.source.value = '';
+		if (rawEls.status) rawEls.status.value = '';
+		if (rawEls.dateFrom) rawEls.dateFrom.value = '';
+		if (rawEls.dateTo) rawEls.dateTo.value = '';
+		applyRawFilters();
+	}
+
+	function showRawModal(id) {
+		if (!rawModalInstance && window.bootstrap && rawEls.modal) {
+			rawModalInstance = new window.bootstrap.Modal(rawEls.modal);
+		}
+		if (!rawModalInstance) return;
+		const rec = rawRecords.find(r => r.id === id);
+		if (!rec) return;
+		rawEls.modalTitle.textContent = `${rec.title} (${rec.id})`;
+		rawEls.modalSource.textContent = `${rec.source} · ${rec.source_id || '-'}`;
+		rawEls.modalCompany.textContent = `${rec.company || '-'}`;
+		rawEls.modalLocation.textContent = `${rec.location || '-'}`;
+		rawEls.modalPosted.textContent = rec.posted_at || '-';
+		rawEls.modalFetched.textContent = rec.fetched_at || '-';
+		rawEls.modalSalary.textContent = rec.salary || '—';
+		rawEls.modalFlags.textContent = rec.flags || rec.quality_notes || '—';
+		rawEls.modalSnippet.textContent = rec.raw_html_snippet || '—';
+		rawModalInstance.show();
+	}
+
+	if (rawEls.tbody) {
+		rawEls.tbody.addEventListener('click', function(e){
+			const btn = e.target.closest('button[data-action]');
+			if (!btn) return;
+			const row = btn.closest('tr[data-id]');
+			const id = row ? row.getAttribute('data-id') : null;
+			const action = btn.getAttribute('data-action');
+			if (action === 'view-raw' && id) {
+				showRawModal(id);
+			} else if (action === 'flag') {
+				alert('Flagging stub.');
+			}
+		});
+	}
+
+	['input', 'change'].forEach(ev => {
+		if (rawEls.search) rawEls.search.addEventListener(ev, applyRawFilters);
+	});
+	if (rawEls.source) rawEls.source.addEventListener('change', applyRawFilters);
+	if (rawEls.status) rawEls.status.addEventListener('change', applyRawFilters);
+	if (rawEls.dateFrom) rawEls.dateFrom.addEventListener('change', applyRawFilters);
+	if (rawEls.dateTo) rawEls.dateTo.addEventListener('change', applyRawFilters);
+	if (rawEls.reset) rawEls.reset.addEventListener('click', resetRawFilters);
+
+	// Initial renders
+	renderRawTable(rawFiltered);
+	updateRawStats();
 
 	// Utility
 	function escapeHtml(str) {
