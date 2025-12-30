@@ -74,6 +74,7 @@
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
     $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan);
     $hasAsmen = ($canAsmenDashboard || $canAsmenAssets || $canAsmenServices || $canAsmenCalendar || $canAsmenQR);
+    $hasExtensionsMenu = ($canExtensions || $canManageSettings || $canRegistrasiKehadiran);
     // Naker Award flags
     $canNakerAssessment = current_user_can('naker_award_manage_assessment');
     $canNakerStage1 = current_user_can('naker_award_view_stage1') || $canNakerAssessment || $canManageSettings;
@@ -186,13 +187,6 @@
                     </ul>
                 </li>
                 <?php endif; ?>
-                <?php if ($canManageSettings || $canRegistrasiKehadiran): ?>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootUrl; ?>registrasi_kehadiran.php">
-                        Registrasi Kehadiran
-                    </a>
-                </li>
-                <?php endif; ?>
                 <?php if ($hasAsmen): ?>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="asmenDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -227,9 +221,15 @@
                     </ul>
                 </li>
                 <?php endif; ?>
-                <?php if ($canExtensions || $canManageSettings): ?>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootUrl; ?>extensions.php">Extensions</a>
+                <?php if ($hasExtensionsMenu): ?>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="extensionsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Extensions
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="extensionsDropdown">
+                        <?php if ($canExtensions || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>extensions.php">Extensions</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canRegistrasiKehadiran): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>registrasi_kehadiran.php">Registrasi Kehadiran</a></li><?php endif; ?>
+                    </ul>
                 </li>
                 <?php endif; ?>
                 <li class="nav-item">
