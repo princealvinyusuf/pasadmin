@@ -421,6 +421,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 <th>PIC Position</th>
                 <th>PIC Email</th>
                 <th>PIC Whatsapp</th>
+                <th>Foto Kartu Pegawai PIC</th>
                 <th>Company Sector</th>
                 <th>Institution Name</th>
                 <th>Business Sector</th>
@@ -454,6 +455,15 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 <td><?php echo htmlspecialchars($row['pic_position']); ?></td>
                 <td><?php echo htmlspecialchars($row['pic_email']); ?></td>
                 <td><?php echo htmlspecialchars($row['pic_whatsapp']); ?></td>
+                <td style="max-width:110px">
+                    <?php if (!empty($row['foto_kartu_pegawai_pic'])): ?>
+                        <a href="/storage/<?php echo ltrim($row['foto_kartu_pegawai_pic'], '/'); ?>" target="_blank">
+                            <img src="/storage/<?php echo ltrim($row['foto_kartu_pegawai_pic'], '/'); ?>" alt="Kartu Pegawai PIC" class="img-thumbnail" style="max-width:90px;max-height:60px">
+                        </a>
+                    <?php else: ?>
+                        <span class="text-muted">-</span>
+                    <?php endif; ?>
+                </td>
                 <td><?php echo htmlspecialchars($row['sector_name'] ?? ''); ?></td>
                 <td><?php echo htmlspecialchars($row['institution_name']); ?></td>
                 <td><?php echo htmlspecialchars($row['business_sector']); ?></td>
@@ -559,13 +569,25 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               const cells = row.querySelectorAll('td');
               // skip the first cell (actions)
               const headers = [
-                'ID', 'PIC Name', 'PIC Position', 'PIC Email', 'PIC Whatsapp', 'Company Sector',
+                'ID', 'PIC Name', 'PIC Position', 'PIC Email', 'PIC Whatsapp', 'Foto Kartu Pegawai PIC', 'Company Sector',
                 'Institution Name', 'Business Sector', 'Institution Address', 'Partnership Type',
                 'Tipe Penyelenggara', 'Room', 'Other Room', 'Facility', 'Other Facility', 'Schedule', 'Time', 'Request Letter', 'Status', 'Created At', 'Updated At'
               ];
               let html = '';
               for (let i = 1; i < headers.length + 1; i++) {
-                html += `<tr><th>${headers[i-1]}</th><td>${cells[i].innerHTML}</td></tr>`;
+                if (headers[i-1] === 'Foto Kartu Pegawai PIC') {
+                  const td = cells[i];
+                  const img = td.querySelector('img,img-thumbnail');
+                  if (img) {
+                    html += `<tr><th>${headers[i-1]}</th><td><a href="${img.parentNode.href}" target="_blank">` + img.outerHTML + `</a></td></tr>`;
+                  } else if (td.innerText.trim() !== '-') {
+                    html += `<tr><th>${headers[i-1]}</th><td><span class='text-muted'>-</span></td></tr>`;
+                  } else {
+                    html += `<tr><th>${headers[i-1]}</th><td><span class='text-muted'>-</span></td></tr>`;
+                  }
+                } else {
+                  html += `<tr><th>${headers[i-1]}</th><td>${cells[i].innerHTML}</td></tr>`;
+                }
               }
               document.getElementById('detailModalBody').innerHTML = html;
               // Download Letter button logic
