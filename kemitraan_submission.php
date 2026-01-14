@@ -460,8 +460,6 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                         <a href="/storage/<?php echo ltrim($row['foto_kartu_pegawai_pic'], '/'); ?>" target="_blank">
     <img src="/storage/<?php echo ltrim($row['foto_kartu_pegawai_pic'], '/'); ?>" alt="Kartu Pegawai PIC" class="img-thumbnail" style="max-width:90px;max-height:60px">
 </a>
-<br>
-<a href="/storage/<?php echo ltrim($row['foto_kartu_pegawai_pic'], '/'); ?>" download class="btn btn-success btn-sm mt-1">Download Image</a>
                     <?php else: ?>
                         <span class="text-muted">-</span>
                     <?php endif; ?>
