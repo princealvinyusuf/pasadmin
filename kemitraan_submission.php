@@ -441,7 +441,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
             </tr>
             <?php if ($kemitraans && $kemitraans->num_rows > 0): ?>
             <?php while ($row = $kemitraans->fetch_assoc()): ?>
-            <tr>
+            <tr data-request-letter="<?php echo htmlspecialchars($row['request_letter'] ?? '', ENT_QUOTES); ?>">
                 <td class="actions">
                     <button type="button" class="btn btn-detail btn-sm detail-btn mb-1" data-id="<?php echo $row['id']; ?>">Detail</button>
                     <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn btn-delete btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
@@ -587,17 +587,22 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                     html += `<tr><th>${headers[i-1]}</th><td><span class='text-muted'>-</span></td></tr>`;
                   }
                 } else {
-                  html += `<tr><th>${headers[i-1]}</th><td>${cells[i].innerHTML}</td></tr>`;
+                html += `<tr><th>${headers[i-1]}</th><td>${cells[i].innerHTML}</td></tr>`;
                 }
               }
               document.getElementById('detailModalBody').innerHTML = html;
-              // Download Letter button logic
-              const requestLetter = cells[18].innerText.trim();
+              // Download Letter button logic - use data attribute for reliability
+              const requestLetter = row.getAttribute('data-request-letter');
               const downloadContainer = document.getElementById('downloadLetterContainer');
-              if (requestLetter && requestLetter !== '-') {
-                  // Always use '/storage/' as base path for download links (no /paskerid/public/ prefix)
-                  const cleanPath = requestLetter.replace(/^storage[\\\/]/, '');
-                  const url = '/storage/' + cleanPath;
+              if (requestLetter && requestLetter.trim() !== '' && requestLetter.trim() !== '-') {
+                  // Clean the path: remove leading slashes, storage/, or storage\ prefixes
+                  let cleanPath = requestLetter.trim().replace(/^[\/\\]/, '').replace(/^storage[\\\/]/, '');
+                  // Ensure it starts with kemitraan_letters/ if it's just a filename
+                  if (!cleanPath.includes('/') && !cleanPath.includes('\\')) {
+                      cleanPath = 'kemitraan_letters/' + cleanPath;
+                  }
+                  // Construct the final URL - normalize backslashes to forward slashes
+                  const url = '/storage/' + cleanPath.replace(/\\/g, '/');
                   downloadContainer.innerHTML = `<a href="${url}" class="btn btn-success" target="_blank" download>Download Letter</a>`;
               } else {
                 downloadContainer.innerHTML = '';
