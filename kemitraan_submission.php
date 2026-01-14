@@ -458,8 +458,10 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 <td style="max-width:110px">
                     <?php if (!empty($row['foto_kartu_pegawai_pic'])): ?>
                         <a href="/storage/<?php echo ltrim($row['foto_kartu_pegawai_pic'], '/'); ?>" target="_blank">
-                            <img src="/storage/<?php echo ltrim($row['foto_kartu_pegawai_pic'], '/'); ?>" alt="Kartu Pegawai PIC" class="img-thumbnail" style="max-width:90px;max-height:60px">
-                        </a>
+    <img src="/storage/<?php echo ltrim($row['foto_kartu_pegawai_pic'], '/'); ?>" alt="Kartu Pegawai PIC" class="img-thumbnail" style="max-width:90px;max-height:60px">
+</a>
+<br>
+<a href="/storage/<?php echo ltrim($row['foto_kartu_pegawai_pic'], '/'); ?>" download class="btn btn-success btn-sm mt-1">Download Image</a>
                     <?php else: ?>
                         <span class="text-muted">-</span>
                     <?php endif; ?>
@@ -579,8 +581,9 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                   const td = cells[i];
                   const img = td.querySelector('img,img-thumbnail');
                   if (img) {
-                    html += `<tr><th>${headers[i-1]}</th><td><a href="${img.parentNode.href}" target="_blank">` + img.outerHTML + `</a></td></tr>`;
-                  } else if (td.innerText.trim() !== '-') {
+    const url = img.parentNode.href;
+    html += `<tr><th>${headers[i-1]}</th><td><a href="${url}" target="_blank">` + img.outerHTML + `</a><br><a href="${url}" class='btn btn-success btn-sm mt-1' download>Download Image</a></td></tr>`;
+} else if (td.innerText.trim() !== '-') {
                     html += `<tr><th>${headers[i-1]}</th><td><span class='text-muted'>-</span></td></tr>`;
                   } else {
                     html += `<tr><th>${headers[i-1]}</th><td><span class='text-muted'>-</span></td></tr>`;
