@@ -30,31 +30,70 @@ if (!table_exists($conn, 'walkin_gallery_items')) {
 }
 
 // Storage target:
-// - When pasadmin is deployed under /public/pasadmin, dirname(__DIR__) points to /public (not laravel root).
-// - Prefer Laravel root: <root>/storage/app/public
+// - Prefer absolute known path if present (XAMPP/Linux deployment)
+// - Else try to resolve Laravel root relative to /public/pasadmin
 // - Fallback: <public>/storage (symlink created by `php artisan storage:link`)
 $publicDir = realpath(__DIR__ . DIRECTORY_SEPARATOR . '..'); // .../public
 $laravelRoot = $publicDir ? realpath($publicDir . DIRECTORY_SEPARATOR . '..') : null; // .../<root>
 $projectRoot = $laravelRoot ?: dirname(__DIR__); // fallback for repo layout
 
-$storageAppPublic = $projectRoot . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'public';
+$preferredStorageAppPublic = '/opt/lampp/htdocs/paskerid/storage/app/public';
+$storageAppPublic = is_dir($preferredStorageAppPublic)
+    ? $preferredStorageAppPublic
+    : ($projectRoot . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'public');
 $publicStorage = ($publicDir ?: $projectRoot) . DIRECTORY_SEPARATOR . 'storage';
 $storageBase = is_dir($storageAppPublic) ? $storageAppPublic : $publicStorage;
-$uploadDir = $storageBase . DIRECTORY_SEPARATOR . 'walkin_gallery';
+
+$relativeDir = 'kemitraan_galeri';
+$uploadDir = $storageBase . DIRECTORY_SEPARATOR . $relativeDir;
 if (!is_dir($uploadDir)) {
     @mkdir($uploadDir, 0775, true);
 }
 
-function store_upload(array $file, string $uploadDir, array $allowedExt): ?string {
-    if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) return null;
+function store_upload(array $file, string $uploadDir, array $allowedExt, ?string &$errorMsg = null, string $relativeDir = 'kemitraan_galeri'): ?string {
+    $errorMsg = null;
+    if (!isset($file['tmp_name'])) {
+        $errorMsg = 'File tidak ditemukan.';
+        return null;
+    }
+    if (isset($file['error']) && (int)$file['error'] !== UPLOAD_ERR_OK) {
+        $code = (int)$file['error'];
+        $map = [
+            UPLOAD_ERR_INI_SIZE => 'Ukuran file melebihi batas upload_max_filesize.',
+            UPLOAD_ERR_FORM_SIZE => 'Ukuran file melebihi batas MAX_FILE_SIZE.',
+            UPLOAD_ERR_PARTIAL => 'File terupload sebagian.',
+            UPLOAD_ERR_NO_FILE => 'Tidak ada file yang dipilih.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Folder temporary tidak ada.',
+            UPLOAD_ERR_CANT_WRITE => 'Gagal menulis file ke disk.',
+            UPLOAD_ERR_EXTENSION => 'Upload diblokir oleh ekstensi PHP.',
+        ];
+        $errorMsg = $map[$code] ?? ('Upload error code: ' . $code);
+        return null;
+    }
+    if (!is_uploaded_file($file['tmp_name'])) {
+        $errorMsg = 'Upload gagal (tmp_name tidak valid).';
+        return null;
+    }
     $name = $file['name'] ?? '';
     $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-    if (!in_array($ext, $allowedExt, true)) return null;
+    if (!in_array($ext, $allowedExt, true)) {
+        $errorMsg = 'Format file tidak didukung.';
+        return null;
+    }
+    if (!is_dir($uploadDir) && !@mkdir($uploadDir, 0775, true)) {
+        $errorMsg = 'Gagal membuat folder upload. Periksa permission server.';
+        return null;
+    }
+    if (!is_writable($uploadDir)) {
+        $errorMsg = 'Folder upload tidak writable. Periksa permission server.';
+        return null;
+    }
     $safe = bin2hex(random_bytes(8)) . '_' . time() . '.' . $ext;
     $dest = $uploadDir . DIRECTORY_SEPARATOR . $safe;
     if (@move_uploaded_file($file['tmp_name'], $dest)) {
-        return 'walkin_gallery/' . $safe; // relative to /storage
+        return rtrim($relativeDir, '/\\') . '/' . $safe; // relative to /storage
     }
+    $errorMsg = 'move_uploaded_file gagal. Periksa permission dan batas upload.';
     return null;
 }
 
@@ -77,22 +116,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
 
     $media_path = null;
     $thumb_path = null;
+    $uploadError = null;
+    $thumbError = null;
 
     if ($type === 'photo') {
-        $media_path = store_upload($_FILES['media_file'] ?? [], $uploadDir, ['jpg','jpeg','png','webp']);
+        $media_path = store_upload($_FILES['media_file'] ?? [], $uploadDir, ['jpg','jpeg','png','webp'], $uploadError, $relativeDir);
         if (!$media_path) {
-            $_SESSION['error'] = 'Upload foto gagal. Pastikan file dipilih dan formatnya JPG/PNG/WEBP.';
+            $_SESSION['error'] = 'Upload foto gagal: ' . ($uploadError ?: 'unknown error');
             header('Location: walkin_gallery.php');
             exit();
         }
     } elseif ($type === 'video_upload') {
-        $media_path = store_upload($_FILES['media_file'] ?? [], $uploadDir, ['mp4','webm','ogg']);
+        $media_path = store_upload($_FILES['media_file'] ?? [], $uploadDir, ['mp4','webm','ogg'], $uploadError, $relativeDir);
         if (!$media_path) {
-            $_SESSION['error'] = 'Upload video gagal. Pastikan file dipilih dan formatnya MP4/WEBM/OGG.';
+            $_SESSION['error'] = 'Upload video gagal: ' . ($uploadError ?: 'unknown error');
             header('Location: walkin_gallery.php');
             exit();
         }
-        $thumb_path = store_upload($_FILES['thumbnail_file'] ?? [], $uploadDir, ['jpg','jpeg','png','webp']);
+        $thumb_path = store_upload($_FILES['thumbnail_file'] ?? [], $uploadDir, ['jpg','jpeg','png','webp'], $thumbError, $relativeDir);
     } elseif ($type === 'video_embed') {
         if ($embed_url === '') {
             $_SESSION['error'] = 'Embed URL wajib diisi untuk video_embed.';
