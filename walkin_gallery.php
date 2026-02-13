@@ -86,17 +86,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
     }
 
     if ($action === 'create') {
+        $titleVal = ($title !== '' ? $title : null);
+        $captionVal = ($caption !== '' ? $caption : null);
+        $embedVal = ($embed_url !== '' ? $embed_url : null);
+        $embedThumbVal = ($embed_thumb !== '' ? $embed_thumb : null);
+
         $stmt = $conn->prepare("INSERT INTO walkin_gallery_items (type, title, caption, media_path, thumbnail_path, embed_url, embed_thumbnail_url, is_published, sort_order, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,NOW(),NOW())");
         if ($stmt) {
             $stmt->bind_param(
                 "sssssssii",
                 $type,
-                ($title !== '' ? $title : null),
-                ($caption !== '' ? $caption : null),
+                $titleVal,
+                $captionVal,
                 $media_path,
                 $thumb_path,
-                ($embed_url !== '' ? $embed_url : null),
-                ($embed_thumb !== '' ? $embed_thumb : null),
+                $embedVal,
+                $embedThumbVal,
                 $is_published,
                 $sort_order
             );
