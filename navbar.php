@@ -52,6 +52,7 @@
     $canMitraSubmission = current_user_can('settings_mitra_submission_manage');
     $canKemitraanBooked = current_user_can('settings_kemitraan_booked_manage');
     $canPaskerRoom = current_user_can('settings_pasker_room_manage');
+    $canWalkinGallery = current_user_can('manage_settings');
     $canDatabaseContact = current_user_can('settings_database_contact_manage');
     $canIframe = current_user_can('settings_iframe_manage');
     $canRegistrasiKehadiran = current_user_can('registrasi_kehadiran_manage');
@@ -182,6 +183,8 @@
                         <?php if ($canManageSettings || $canMitraSubmission): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_submission.php">Mitra Kerja Submission</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canKemitraanBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_booked.php">Kemitraan Booked</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canPaskerRoom): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>pasker_room_settings.php">Pasker Room Settings</a></li><?php endif; ?>
+                        <?php if ($canWalkinGallery): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
+                        <?php if ($canWalkinGallery): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_gallery.php"><i class="bi bi-images me-1"></i>Walk-in Gallery</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
