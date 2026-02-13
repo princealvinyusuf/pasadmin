@@ -29,10 +29,16 @@ if (!table_exists($conn, 'walkin_gallery_items')) {
     $_SESSION['error'] = 'Tabel walkin_gallery_items belum ada. Jalankan migration di Laravel terlebih dahulu.';
 }
 
-// Storage target: prefer storage/app/public
-$projectRoot = dirname(__DIR__);
+// Storage target:
+// - When pasadmin is deployed under /public/pasadmin, dirname(__DIR__) points to /public (not laravel root).
+// - Prefer Laravel root: <root>/storage/app/public
+// - Fallback: <public>/storage (symlink created by `php artisan storage:link`)
+$publicDir = realpath(__DIR__ . DIRECTORY_SEPARATOR . '..'); // .../public
+$laravelRoot = $publicDir ? realpath($publicDir . DIRECTORY_SEPARATOR . '..') : null; // .../<root>
+$projectRoot = $laravelRoot ?: dirname(__DIR__); // fallback for repo layout
+
 $storageAppPublic = $projectRoot . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'public';
-$publicStorage = $projectRoot . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'storage';
+$publicStorage = ($publicDir ?: $projectRoot) . DIRECTORY_SEPARATOR . 'storage';
 $storageBase = is_dir($storageAppPublic) ? $storageAppPublic : $publicStorage;
 $uploadDir = $storageBase . DIRECTORY_SEPARATOR . 'walkin_gallery';
 if (!is_dir($uploadDir)) {
@@ -74,10 +80,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
 
     if ($type === 'photo') {
         $media_path = store_upload($_FILES['media_file'] ?? [], $uploadDir, ['jpg','jpeg','png','webp']);
+        if (!$media_path) {
+            $_SESSION['error'] = 'Upload foto gagal. Pastikan file dipilih dan formatnya JPG/PNG/WEBP.';
+            header('Location: walkin_gallery.php');
+            exit();
+        }
     } elseif ($type === 'video_upload') {
         $media_path = store_upload($_FILES['media_file'] ?? [], $uploadDir, ['mp4','webm','ogg']);
+        if (!$media_path) {
+            $_SESSION['error'] = 'Upload video gagal. Pastikan file dipilih dan formatnya MP4/WEBM/OGG.';
+            header('Location: walkin_gallery.php');
+            exit();
+        }
         $thumb_path = store_upload($_FILES['thumbnail_file'] ?? [], $uploadDir, ['jpg','jpeg','png','webp']);
     } elseif ($type === 'video_embed') {
+        if ($embed_url === '') {
+            $_SESSION['error'] = 'Embed URL wajib diisi untuk video_embed.';
+            header('Location: walkin_gallery.php');
+            exit();
+        }
         // no upload; use embed url
     } else {
         $_SESSION['error'] = 'Type tidak valid.';
