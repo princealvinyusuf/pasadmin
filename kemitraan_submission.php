@@ -38,6 +38,14 @@ function column_exists(mysqli $conn, string $table, string $column): bool {
     return $res && $res->num_rows > 0;
 }
 
+// Helper: check if a table exists in current DB
+function table_exists(mysqli $conn, string $table): bool {
+    $t = $conn->real_escape_string($table);
+    $sql = "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='$t' LIMIT 1";
+    $res = $conn->query($sql);
+    return $res && $res->num_rows > 0;
+}
+
 // Handle Delete
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
@@ -302,6 +310,31 @@ if ($kemitraans === false) {
     $_SESSION['error'] = 'Query error: ' . $conn->error;
 }
 
+// Fetch Detail Lowongan (new feature) - map by kemitraan_id
+$detailLowonganByKemitraan = [];
+if (table_exists($conn, 'kemitraan_detail_lowongan')) {
+    $dlRes = $conn->query("SELECT kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan, gender, pendidikan_terakhir, pengalaman_kerja, kompetensi_yang_dibutuhkan, tahapan_seleksi, lokasi_penempatan FROM kemitraan_detail_lowongan ORDER BY kemitraan_id ASC, id ASC");
+    if ($dlRes) {
+        while ($dl = $dlRes->fetch_assoc()) {
+            $kid = intval($dl['kemitraan_id']);
+            if (!isset($detailLowonganByKemitraan[$kid])) {
+                $detailLowonganByKemitraan[$kid] = [];
+            }
+            $detailLowonganByKemitraan[$kid][] = [
+                'jabatan_yang_dibuka' => $dl['jabatan_yang_dibuka'] ?? '',
+                'jumlah_kebutuhan' => $dl['jumlah_kebutuhan'] ?? '',
+                'gender' => $dl['gender'] ?? '',
+                'pendidikan_terakhir' => $dl['pendidikan_terakhir'] ?? '',
+                'pengalaman_kerja' => $dl['pengalaman_kerja'] ?? '',
+                'kompetensi_yang_dibutuhkan' => $dl['kompetensi_yang_dibutuhkan'] ?? '',
+                'tahapan_seleksi' => $dl['tahapan_seleksi'] ?? '',
+                'lokasi_penempatan' => $dl['lokasi_penempatan'] ?? '',
+            ];
+        }
+        $dlRes->free();
+    }
+}
+
 // Fetch summary counts safely
 $pending_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status='pending'");
 $approved_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status='approved'");
@@ -441,7 +474,10 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
             </tr>
             <?php if ($kemitraans && $kemitraans->num_rows > 0): ?>
             <?php while ($row = $kemitraans->fetch_assoc()): ?>
-            <tr data-request-letter="<?php echo htmlspecialchars($row['request_letter'] ?? '', ENT_QUOTES); ?>">
+            <tr
+                data-request-letter="<?php echo htmlspecialchars($row['request_letter'] ?? '', ENT_QUOTES); ?>"
+                data-detail-lowongan="<?php echo htmlspecialchars(json_encode($detailLowonganByKemitraan[intval($row['id'])] ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES); ?>"
+            >
                 <td class="actions">
                     <button type="button" class="btn btn-detail btn-sm detail-btn mb-1" data-id="<?php echo $row['id']; ?>">Detail</button>
                     <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn btn-delete btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
@@ -574,6 +610,16 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 'Tipe Penyelenggara', 'Room', 'Other Room', 'Facility', 'Other Facility', 'Schedule', 'Time', 'Request Letter', 'Status', 'Created At', 'Updated At'
               ];
               let html = '';
+
+              function escapeHtml(str) {
+                return String(str ?? '')
+                  .replace(/&/g, '&amp;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;')
+                  .replace(/"/g, '&quot;')
+                  .replace(/'/g, '&#039;');
+              }
+
               for (let i = 1; i < headers.length + 1; i++) {
                 if (headers[i-1] === 'Foto Kartu Pegawai PIC') {
                   const td = cells[i];
@@ -590,6 +636,37 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 html += `<tr><th>${headers[i-1]}</th><td>${cells[i].innerHTML}</td></tr>`;
                 }
               }
+
+              // Detail Lowongan (new feature)
+              try {
+                const lowonganRaw = row.getAttribute('data-detail-lowongan') || '[]';
+                const lowongan = JSON.parse(lowonganRaw);
+                if (Array.isArray(lowongan) && lowongan.length > 0) {
+                  let lowonganHtml = `<div class="d-flex flex-column gap-3">`;
+                  lowongan.forEach((l, idx) => {
+                    lowonganHtml += `
+                      <div class="border rounded p-2 bg-white">
+                        <div class="fw-semibold mb-2">Lowongan #${idx + 1}</div>
+                        <div><span class="text-muted">Jabatan Yang Dibuka:</span> ${escapeHtml(l.jabatan_yang_dibuka)}</div>
+                        <div><span class="text-muted">Jumlah Kebutuhan:</span> ${escapeHtml(l.jumlah_kebutuhan)}</div>
+                        <div><span class="text-muted">Gender:</span> ${escapeHtml(l.gender || '-')}</div>
+                        <div><span class="text-muted">Pendidikan Terakhir:</span> ${escapeHtml(l.pendidikan_terakhir || '-')}</div>
+                        <div><span class="text-muted">Pengalaman Kerja:</span> ${escapeHtml(l.pengalaman_kerja || '-')}</div>
+                        <div><span class="text-muted">Lokasi Penempatan:</span> ${escapeHtml(l.lokasi_penempatan || '-')}</div>
+                        <div class="mt-2"><span class="text-muted">Kompetensi Yang Dibutuhkan:</span><br>${escapeHtml(l.kompetensi_yang_dibutuhkan || '-')}</div>
+                        <div class="mt-2"><span class="text-muted">Tahapan Seleksi:</span><br>${escapeHtml(l.tahapan_seleksi || '-')}</div>
+                      </div>
+                    `;
+                  });
+                  lowonganHtml += `</div>`;
+                  html += `<tr><th>Detail Lowongan</th><td>${lowonganHtml}</td></tr>`;
+                } else {
+                  html += `<tr><th>Detail Lowongan</th><td><span class='text-muted'>-</span></td></tr>`;
+                }
+              } catch (e) {
+                html += `<tr><th>Detail Lowongan</th><td><span class='text-muted'>-</span></td></tr>`;
+              }
+
               document.getElementById('detailModalBody').innerHTML = html;
               // Download Letter button logic - use data attribute for reliability
               const requestLetter = row.getAttribute('data-request-letter');
