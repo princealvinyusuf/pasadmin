@@ -107,6 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
     $action = $_POST['action'];
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     $type = trim($_POST['type'] ?? '');
+    $company_name = trim($_POST['company_name'] ?? '');
     $title = trim($_POST['title'] ?? '');
     $caption = trim($_POST['caption'] ?? '');
     $embed_url = trim($_POST['embed_url'] ?? '');
@@ -148,16 +149,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
     }
 
     if ($action === 'create') {
+        $companyVal = ($company_name !== '' ? $company_name : null);
         $titleVal = ($title !== '' ? $title : null);
         $captionVal = ($caption !== '' ? $caption : null);
         $embedVal = ($embed_url !== '' ? $embed_url : null);
         $embedThumbVal = ($embed_thumb !== '' ? $embed_thumb : null);
 
-        $stmt = $conn->prepare("INSERT INTO walkin_gallery_items (type, title, caption, media_path, thumbnail_path, embed_url, embed_thumbnail_url, is_published, sort_order, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,NOW(),NOW())");
+        $stmt = $conn->prepare("INSERT INTO walkin_gallery_items (type, company_name, title, caption, media_path, thumbnail_path, embed_url, embed_thumbnail_url, is_published, sort_order, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?, ?,NOW(),NOW())");
         if ($stmt) {
             $stmt->bind_param(
-                "sssssssii",
+                "ssssssssii",
                 $type,
+                $companyVal,
                 $titleVal,
                 $captionVal,
                 $media_path,
@@ -187,13 +190,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
         if (!$media_path) $media_path = $cur;
         if (!$thumb_path) $thumb_path = $curThumb;
 
-        $stmt = $conn->prepare("UPDATE walkin_gallery_items SET type=?, title=?, caption=?, media_path=?, thumbnail_path=?, embed_url=?, embed_thumbnail_url=?, is_published=?, sort_order=?, updated_at=NOW() WHERE id=?");
+        $stmt = $conn->prepare("UPDATE walkin_gallery_items SET type=?, company_name=?, title=?, caption=?, media_path=?, thumbnail_path=?, embed_url=?, embed_thumbnail_url=?, is_published=?, sort_order=?, updated_at=NOW() WHERE id=?");
         if ($stmt) {
+            $companyVal = ($company_name !== '' ? $company_name : null);
             $titleVal = ($title !== '' ? $title : null);
             $captionVal = ($caption !== '' ? $caption : null);
             $embedVal = ($embed_url !== '' ? $embed_url : null);
             $embedThumbVal = ($embed_thumb !== '' ? $embed_thumb : null);
-            $stmt->bind_param("sssssssiii", $type, $titleVal, $captionVal, $media_path, $thumb_path, $embedVal, $embedThumbVal, $is_published, $sort_order, $id);
+            $stmt->bind_param("ssssssssiii", $type, $companyVal, $titleVal, $captionVal, $media_path, $thumb_path, $embedVal, $embedThumbVal, $is_published, $sort_order, $id);
             $stmt->execute();
             $stmt->close();
             $_SESSION['success'] = 'Item galeri berhasil diupdate.';
@@ -282,6 +286,11 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
                         </select>
                     </div>
                     <div class="col-md-3">
+                        <label class="form-label">Company Name</label>
+                        <input type="text" class="form-control" name="company_name" placeholder="Contoh: PT ABC" maxlength="255">
+                        <div class="form-text">Kosong = masuk ke kategori "Umum".</div>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label">Publish</label>
                         <div class="form-check mt-2">
                             <input class="form-check-input" type="checkbox" name="is_published" id="pubCheck" checked>
@@ -335,6 +344,7 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
                             <th style="width:140px">Preview</th>
                             <th>ID</th>
                             <th>Type</th>
+                            <th>Company</th>
                             <th>Title</th>
                             <th>Caption</th>
                             <th>Published</th>
@@ -360,6 +370,7 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
                             </td>
                             <td><?= intval($it['id']); ?></td>
                             <td><span class="pill"><?= h($it['type']); ?></span></td>
+                            <td><?= h(($it['company_name'] ?? '') !== '' ? $it['company_name'] : 'Umum'); ?></td>
                             <td><?= h($it['title']); ?></td>
                             <td style="max-width:360px"><?= h($it['caption']); ?></td>
                             <td>
@@ -376,7 +387,7 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
                         </tr>
                     <?php endforeach; ?>
                     <?php if (count($items) === 0): ?>
-                        <tr><td colspan="8" class="text-center text-muted">Belum ada item.</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted">Belum ada item.</td></tr>
                     <?php endif; ?>
                     </tbody>
                 </table>
