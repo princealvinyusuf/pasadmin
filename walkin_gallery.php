@@ -158,9 +158,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
             header('Location: walkin_gallery.php');
             exit();
         }
-        // no upload; use embed url
+        // no media upload; optional thumbnail upload (stored to thumbnail_path)
+        if (has_file_upload($_FILES['thumbnail_file'] ?? [])) {
+            $thumb_path = store_upload($_FILES['thumbnail_file'] ?? [], $uploadDir, ['jpg','jpeg','png','webp'], $thumbError, $relativeDir);
+        }
         $media_path = null;
-        $thumb_path = null;
     } else {
         $_SESSION['error'] = 'Type tidak valid.';
         header('Location: walkin_gallery.php');
@@ -173,7 +175,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
         $captionVal = ($caption !== '' ? $caption : null);
         // Avoid stale embed fields on non-embed items
         $embedVal = ($type === 'video_embed' && $embed_url !== '' ? $embed_url : null);
-        $embedThumbVal = ($type === 'video_embed' && $embed_thumb !== '' ? $embed_thumb : null);
+        // Deprecated in this admin UI: use uploaded thumbnail -> thumbnail_path instead
+        $embedThumbVal = null;
 
         $stmt = $conn->prepare("INSERT INTO walkin_gallery_items (type, company_name, title, caption, media_path, thumbnail_path, embed_url, embed_thumbnail_url, is_published, sort_order, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?, ?,NOW(),NOW())");
         if ($stmt) {
@@ -212,7 +215,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
         // Keep old file paths only when relevant & when user didn't upload new ones
         if ($type === 'video_embed') {
             $media_path = null;
-            $thumb_path = null;
+            // keep existing thumbnail unless a new file was uploaded
+            if (!$thumb_path) $thumb_path = $curThumb;
         } else {
             if (!$media_path) $media_path = $cur;
             if ($type === 'video_upload') {
@@ -230,7 +234,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
             $captionVal = ($caption !== '' ? $caption : null);
             // Avoid stale embed fields on non-embed items
             $embedVal = ($type === 'video_embed' && $embed_url !== '' ? $embed_url : null);
-            $embedThumbVal = ($type === 'video_embed' && $embed_thumb !== '' ? $embed_thumb : null);
+            // Deprecated in this admin UI: use uploaded thumbnail -> thumbnail_path instead
+            $embedThumbVal = null;
             $stmt->bind_param("ssssssssiii", $type, $companyVal, $titleVal, $captionVal, $media_path, $thumb_path, $embedVal, $embedThumbVal, $is_published, $sort_order, $id);
             $stmt->execute();
             $stmt->close();
@@ -388,7 +393,7 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
                         </div>
                     </div>
                     <div class="col-md-6" id="thumbFileWrap">
-                        <label class="form-label">Thumbnail (optional for video_upload)</label>
+                        <label class="form-label">Thumbnail (optional)</label>
                         <input type="file" class="form-control" name="thumbnail_file" id="thumbFile" accept="image/*">
                         <?php if ($editItem && !empty($editItem['thumbnail_path'])): ?>
                             <div class="form-text">Thumbnail saat ini: <code>/storage/<?= h(ltrim($editItem['thumbnail_path'], '/')); ?></code> (kosongkan jika tidak ingin ganti)</div>
@@ -398,10 +403,7 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
                         <label class="form-label">Embed URL (video_embed)</label>
                         <input type="text" class="form-control" name="embed_url" placeholder="https://..." value="<?= h($editItem['embed_url'] ?? ''); ?>">
                     </div>
-                    <div class="col-md-6 d-none" id="embedThumbWrap">
-                        <label class="form-label">Embed Thumbnail URL (optional)</label>
-                        <input type="text" class="form-control" name="embed_thumbnail_url" placeholder="https://...jpg" value="<?= h($editItem['embed_thumbnail_url'] ?? ''); ?>">
-                    </div>
+                    <!-- Embed Thumbnail URL removed: use file upload Thumbnail instead -->
                 </div>
                 <div class="mt-3">
                     <?php if ($editItem): ?>
@@ -486,15 +488,13 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
         const mediaWrap = document.getElementById('mediaFileWrap');
         const thumbWrap = document.getElementById('thumbFileWrap');
         const embedUrlWrap = document.getElementById('embedUrlWrap');
-        const embedThumbWrap = document.getElementById('embedThumbWrap');
         if (!typeSelect) return;
         function sync() {
             const t = typeSelect.value;
             const isEmbed = t === 'video_embed';
             mediaWrap.classList.toggle('d-none', isEmbed);
-            thumbWrap.classList.toggle('d-none', t !== 'video_upload');
+            thumbWrap.classList.toggle('d-none', !(t === 'video_upload' || t === 'video_embed'));
             embedUrlWrap.classList.toggle('d-none', !isEmbed);
-            embedThumbWrap.classList.toggle('d-none', !isEmbed);
         }
         typeSelect.addEventListener('change', sync);
         sync();
