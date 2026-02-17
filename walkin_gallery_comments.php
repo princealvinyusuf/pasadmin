@@ -5,6 +5,14 @@ error_reporting(E_ALL);
 mysqli_report(MYSQLI_REPORT_OFF);
 
 require_once __DIR__ . '/auth_guard.php';
+require_once __DIR__ . '/access_helper.php';
+
+// RBAC: only allow Walk-in Gallery managers (or global settings managers)
+if (!current_user_can('walkin_gallery_manage') && !current_user_can('manage_settings')) {
+    http_response_code(403);
+    echo 'Forbidden';
+    exit;
+}
 
 $host = 'localhost';
 $user = 'root';
