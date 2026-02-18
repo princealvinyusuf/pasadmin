@@ -5,6 +5,14 @@ error_reporting(E_ALL);
 mysqli_report(MYSQLI_REPORT_OFF);
 
 require_once __DIR__ . '/auth_guard.php';
+require_once __DIR__ . '/access_helper.php';
+
+// RBAC: only allow Walk-in Gallery managers (or global settings managers)
+if (!current_user_can('walkin_gallery_manage') && !current_user_can('manage_settings')) {
+    http_response_code(403);
+    echo 'Forbidden';
+    exit;
+}
 
 // DB connection (same pattern as kemitraan_submission.php)
 $host = 'localhost';
@@ -97,6 +105,12 @@ function store_upload(array $file, string $uploadDir, array $allowedExt, ?string
     return null;
 }
 
+function has_file_upload(array $file): bool {
+    if (!isset($file['error'])) return false;
+    $err = (int)$file['error'];
+    return $err !== UPLOAD_ERR_NO_FILE;
+}
+
 // Handle create/update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array($_POST['action'], ['create', 'update'], true)) {
     if (!table_exists($conn, 'walkin_gallery_items')) {
@@ -121,27 +135,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
     $thumbError = null;
 
     if ($type === 'photo') {
-        $media_path = store_upload($_FILES['media_file'] ?? [], $uploadDir, ['jpg','jpeg','png','webp'], $uploadError, $relativeDir);
-        if (!$media_path) {
-            $_SESSION['error'] = 'Upload foto gagal: ' . ($uploadError ?: 'unknown error');
-            header('Location: walkin_gallery.php');
-            exit();
+        // create: required upload. update: optional upload.
+        if ($action === 'create' || has_file_upload($_FILES['media_file'] ?? [])) {
+            $media_path = store_upload($_FILES['media_file'] ?? [], $uploadDir, ['jpg','jpeg','png','webp'], $uploadError, $relativeDir);
+            if (!$media_path) {
+                $_SESSION['error'] = 'Upload foto gagal: ' . ($uploadError ?: 'unknown error');
+                header('Location: walkin_gallery.php');
+                exit();
+            }
         }
+        // photo does not use thumbnail
+        $thumb_path = null;
     } elseif ($type === 'video_upload') {
-        $media_path = store_upload($_FILES['media_file'] ?? [], $uploadDir, ['mp4','webm','ogg'], $uploadError, $relativeDir);
-        if (!$media_path) {
-            $_SESSION['error'] = 'Upload video gagal: ' . ($uploadError ?: 'unknown error');
-            header('Location: walkin_gallery.php');
-            exit();
+        // create: required upload. update: optional upload.
+        if ($action === 'create' || has_file_upload($_FILES['media_file'] ?? [])) {
+            $media_path = store_upload($_FILES['media_file'] ?? [], $uploadDir, ['mp4','webm','ogg'], $uploadError, $relativeDir);
+            if (!$media_path) {
+                $_SESSION['error'] = 'Upload video gagal: ' . ($uploadError ?: 'unknown error');
+                header('Location: walkin_gallery.php');
+                exit();
+            }
         }
-        $thumb_path = store_upload($_FILES['thumbnail_file'] ?? [], $uploadDir, ['jpg','jpeg','png','webp'], $thumbError, $relativeDir);
+        // thumbnail optional (both create/update)
+        if (has_file_upload($_FILES['thumbnail_file'] ?? [])) {
+            $thumb_path = store_upload($_FILES['thumbnail_file'] ?? [], $uploadDir, ['jpg','jpeg','png','webp'], $thumbError, $relativeDir);
+        }
     } elseif ($type === 'video_embed') {
         if ($embed_url === '') {
             $_SESSION['error'] = 'Embed URL wajib diisi untuk video_embed.';
             header('Location: walkin_gallery.php');
             exit();
         }
-        // no upload; use embed url
+        // no media upload; optional thumbnail upload (stored to thumbnail_path)
+        if (has_file_upload($_FILES['thumbnail_file'] ?? [])) {
+            $thumb_path = store_upload($_FILES['thumbnail_file'] ?? [], $uploadDir, ['jpg','jpeg','png','webp'], $thumbError, $relativeDir);
+        }
+        $media_path = null;
     } else {
         $_SESSION['error'] = 'Type tidak valid.';
         header('Location: walkin_gallery.php');
@@ -152,8 +181,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
         $companyVal = ($company_name !== '' ? $company_name : null);
         $titleVal = ($title !== '' ? $title : null);
         $captionVal = ($caption !== '' ? $caption : null);
-        $embedVal = ($embed_url !== '' ? $embed_url : null);
-        $embedThumbVal = ($embed_thumb !== '' ? $embed_thumb : null);
+        // Avoid stale embed fields on non-embed items
+        $embedVal = ($type === 'video_embed' && $embed_url !== '' ? $embed_url : null);
+        // Deprecated in this admin UI: use uploaded thumbnail -> thumbnail_path instead
+        $embedThumbVal = null;
 
         $stmt = $conn->prepare("INSERT INTO walkin_gallery_items (type, company_name, title, caption, media_path, thumbnail_path, embed_url, embed_thumbnail_url, is_published, sort_order, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?, ?,NOW(),NOW())");
         if ($stmt) {
@@ -180,6 +211,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
         // Update: keep old media_path unless new file uploaded
         $cur = null;
         $curThumb = null;
+        $curEmbed = null;
+        $curEmbedThumb = null;
         if ($id > 0 && ($sel = $conn->prepare("SELECT media_path, thumbnail_path FROM walkin_gallery_items WHERE id=?"))) {
             $sel->bind_param("i", $id);
             $sel->execute();
@@ -187,16 +220,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
             $sel->fetch();
             $sel->close();
         }
-        if (!$media_path) $media_path = $cur;
-        if (!$thumb_path) $thumb_path = $curThumb;
+        // Keep old file paths only when relevant & when user didn't upload new ones
+        if ($type === 'video_embed') {
+            $media_path = null;
+            // keep existing thumbnail unless a new file was uploaded
+            if (!$thumb_path) $thumb_path = $curThumb;
+        } else {
+            if (!$media_path) $media_path = $cur;
+            if ($type === 'video_upload') {
+                if (!$thumb_path) $thumb_path = $curThumb;
+            } else {
+                // photo: no thumbnail
+                $thumb_path = null;
+            }
+        }
 
         $stmt = $conn->prepare("UPDATE walkin_gallery_items SET type=?, company_name=?, title=?, caption=?, media_path=?, thumbnail_path=?, embed_url=?, embed_thumbnail_url=?, is_published=?, sort_order=?, updated_at=NOW() WHERE id=?");
         if ($stmt) {
             $companyVal = ($company_name !== '' ? $company_name : null);
             $titleVal = ($title !== '' ? $title : null);
             $captionVal = ($caption !== '' ? $caption : null);
-            $embedVal = ($embed_url !== '' ? $embed_url : null);
-            $embedThumbVal = ($embed_thumb !== '' ? $embed_thumb : null);
+            // Avoid stale embed fields on non-embed items
+            $embedVal = ($type === 'video_embed' && $embed_url !== '' ? $embed_url : null);
+            // Deprecated in this admin UI: use uploaded thumbnail -> thumbnail_path instead
+            $embedThumbVal = null;
             $stmt->bind_param("ssssssssiii", $type, $companyVal, $titleVal, $captionVal, $media_path, $thumb_path, $embedVal, $embedThumbVal, $is_published, $sort_order, $id);
             $stmt->execute();
             $stmt->close();
@@ -224,6 +271,30 @@ if (isset($_GET['delete'])) {
     }
     header('Location: walkin_gallery.php');
     exit();
+}
+
+// Handle edit (load single item)
+$editItem = null;
+$editingId = 0;
+if (isset($_GET['edit'])) {
+    $editingId = intval($_GET['edit']);
+    if ($editingId > 0 && table_exists($conn, 'walkin_gallery_items')) {
+        $stmt = $conn->prepare("SELECT * FROM walkin_gallery_items WHERE id=? LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param("i", $editingId);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res) {
+                $editItem = $res->fetch_assoc() ?: null;
+            }
+            $stmt->close();
+        }
+        if (!$editItem) {
+            $_SESSION['error'] = 'Item tidak ditemukan untuk diedit.';
+            header('Location: walkin_gallery.php');
+            exit();
+        }
+    }
 }
 
 // Fetch items
@@ -273,62 +344,81 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
 
     <div class="card shadow-sm mb-4">
         <div class="card-body">
-            <h5 class="mb-3">Tambah Item</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><?= $editItem ? 'Edit Item #' . intval($editItem['id']) : 'Tambah Item'; ?></h5>
+                <?php if ($editItem): ?>
+                    <a class="btn btn-sm btn-outline-secondary" href="walkin_gallery.php"><i class="bi bi-x-circle me-1"></i>Batal Edit</a>
+                <?php endif; ?>
+            </div>
             <form method="post" enctype="multipart/form-data">
-                <input type="hidden" name="action" value="create">
+                <input type="hidden" name="action" value="<?= $editItem ? 'update' : 'create'; ?>">
+                <?php if ($editItem): ?>
+                    <input type="hidden" name="id" value="<?= intval($editItem['id']); ?>">
+                <?php endif; ?>
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label">Type</label>
                         <select class="form-select" name="type" id="typeSelect" required>
-                            <option value="photo">photo</option>
-                            <option value="video_upload">video_upload</option>
-                            <option value="video_embed">video_embed</option>
+                            <?php $curType = $editItem['type'] ?? 'photo'; ?>
+                            <option value="photo" <?= $curType === 'photo' ? 'selected' : ''; ?>>photo</option>
+                            <option value="video_upload" <?= $curType === 'video_upload' ? 'selected' : ''; ?>>video_upload</option>
+                            <option value="video_embed" <?= $curType === 'video_embed' ? 'selected' : ''; ?>>video_embed</option>
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Company Name</label>
-                        <input type="text" class="form-control" name="company_name" placeholder="Contoh: PT ABC" maxlength="255">
+                        <input type="text" class="form-control" name="company_name" placeholder="Contoh: PT ABC" maxlength="255" value="<?= h($editItem['company_name'] ?? ''); ?>">
                         <div class="form-text">Kosong = masuk ke kategori "Umum".</div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Publish</label>
                         <div class="form-check mt-2">
-                            <input class="form-check-input" type="checkbox" name="is_published" id="pubCheck" checked>
+                            <?php $pubChecked = $editItem ? !empty($editItem['is_published']) : true; ?>
+                            <input class="form-check-input" type="checkbox" name="is_published" id="pubCheck" <?= $pubChecked ? 'checked' : ''; ?>>
                             <label class="form-check-label" for="pubCheck">Published</label>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Sort Order</label>
-                        <input type="number" class="form-control" name="sort_order" value="0">
+                        <input type="number" class="form-control" name="sort_order" value="<?= h($editItem['sort_order'] ?? 0); ?>">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Title (optional)</label>
-                        <input type="text" class="form-control" name="title" maxlength="255">
+                        <input type="text" class="form-control" name="title" maxlength="255" value="<?= h($editItem['title'] ?? ''); ?>">
                     </div>
                     <div class="col-12">
                         <label class="form-label">Caption (optional)</label>
-                        <textarea class="form-control" name="caption" rows="2"></textarea>
+                        <textarea class="form-control" name="caption" rows="2"><?= h($editItem['caption'] ?? ''); ?></textarea>
                     </div>
                     <div class="col-md-6" id="mediaFileWrap">
                         <label class="form-label">Media File (photo/video)</label>
                         <input type="file" class="form-control" name="media_file" id="mediaFile">
-                        <div class="form-text">Photo: JPG/PNG/WEBP. Video: MP4/WEBM/OGG.</div>
+                        <div class="form-text">
+                            Photo: JPG/PNG/WEBP. Video: MP4/WEBM/OGG.
+                            <?php if ($editItem && !empty($editItem['media_path'])): ?>
+                                <br>File saat ini: <code>/storage/<?= h(ltrim($editItem['media_path'], '/')); ?></code> (kosongkan jika tidak ingin ganti)
+                            <?php endif; ?>
+                        </div>
                     </div>
                     <div class="col-md-6" id="thumbFileWrap">
-                        <label class="form-label">Thumbnail (optional for video_upload)</label>
+                        <label class="form-label">Thumbnail (optional)</label>
                         <input type="file" class="form-control" name="thumbnail_file" id="thumbFile" accept="image/*">
+                        <?php if ($editItem && !empty($editItem['thumbnail_path'])): ?>
+                            <div class="form-text">Thumbnail saat ini: <code>/storage/<?= h(ltrim($editItem['thumbnail_path'], '/')); ?></code> (kosongkan jika tidak ingin ganti)</div>
+                        <?php endif; ?>
                     </div>
                     <div class="col-md-6 d-none" id="embedUrlWrap">
                         <label class="form-label">Embed URL (video_embed)</label>
-                        <input type="text" class="form-control" name="embed_url" placeholder="https://...">
+                        <input type="text" class="form-control" name="embed_url" placeholder="https://..." value="<?= h($editItem['embed_url'] ?? ''); ?>">
                     </div>
-                    <div class="col-md-6 d-none" id="embedThumbWrap">
-                        <label class="form-label">Embed Thumbnail URL (optional)</label>
-                        <input type="text" class="form-control" name="embed_thumbnail_url" placeholder="https://...jpg">
-                    </div>
+                    <!-- Embed Thumbnail URL removed: use file upload Thumbnail instead -->
                 </div>
                 <div class="mt-3">
-                    <button class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i>Tambah</button>
+                    <?php if ($editItem): ?>
+                        <button class="btn btn-primary"><i class="bi bi-save me-1"></i>Update</button>
+                    <?php else: ?>
+                        <button class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i>Tambah</button>
+                    <?php endif; ?>
                 </div>
             </form>
         </div>
@@ -382,7 +472,10 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
                             </td>
                             <td><?= intval($it['sort_order']); ?></td>
                             <td>
-                                <a class="btn btn-sm btn-outline-danger" href="?delete=<?= intval($it['id']); ?>" onclick="return confirm('Hapus item ini?');">Delete</a>
+                                <div class="d-flex gap-2">
+                                    <a class="btn btn-sm btn-outline-primary" href="?edit=<?= intval($it['id']); ?>">Edit</a>
+                                    <a class="btn btn-sm btn-outline-danger" href="?delete=<?= intval($it['id']); ?>" onclick="return confirm('Hapus item ini?');">Delete</a>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -392,7 +485,7 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
                     </tbody>
                 </table>
             </div>
-            <div class="text-muted small">Catatan: edit inline (update) bisa ditambah berikutnya; saat ini fokus CRUD dasar + publikasi.</div>
+            <div class="text-muted small">Catatan: gunakan tombol <b>Edit</b> untuk mengubah data; saat edit, upload file bersifat opsional.</div>
         </div>
     </div>
 </div>
@@ -403,15 +496,13 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
         const mediaWrap = document.getElementById('mediaFileWrap');
         const thumbWrap = document.getElementById('thumbFileWrap');
         const embedUrlWrap = document.getElementById('embedUrlWrap');
-        const embedThumbWrap = document.getElementById('embedThumbWrap');
         if (!typeSelect) return;
         function sync() {
             const t = typeSelect.value;
             const isEmbed = t === 'video_embed';
             mediaWrap.classList.toggle('d-none', isEmbed);
-            thumbWrap.classList.toggle('d-none', t !== 'video_upload');
+            thumbWrap.classList.toggle('d-none', !(t === 'video_upload' || t === 'video_embed'));
             embedUrlWrap.classList.toggle('d-none', !isEmbed);
-            embedThumbWrap.classList.toggle('d-none', !isEmbed);
         }
         typeSelect.addEventListener('change', sync);
         sync();

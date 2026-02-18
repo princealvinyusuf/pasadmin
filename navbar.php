@@ -52,7 +52,7 @@
     $canMitraSubmission = current_user_can('settings_mitra_submission_manage');
     $canKemitraanBooked = current_user_can('settings_kemitraan_booked_manage');
     $canPaskerRoom = current_user_can('settings_pasker_room_manage');
-    $canWalkinGallery = current_user_can('manage_settings');
+    $canWalkinGallery = current_user_can('walkin_gallery_manage') || current_user_can('manage_settings');
     $canDatabaseContact = current_user_can('settings_database_contact_manage');
     $canIframe = current_user_can('settings_iframe_manage');
     $canRegistrasiKehadiran = current_user_can('registrasi_kehadiran_manage');
