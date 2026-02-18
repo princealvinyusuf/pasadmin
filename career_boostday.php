@@ -85,7 +85,28 @@ function ensure_schema(mysqli $conn): void
         if (!column_exists($conn, 'career_boostday_consultations', 'admin_updated_at')) {
             $conn->query("ALTER TABLE career_boostday_consultations ADD COLUMN admin_updated_at DATETIME NULL AFTER alasan");
         }
+        if (!column_exists($conn, 'career_boostday_consultations', 'booked_date')) {
+            $conn->query("ALTER TABLE career_boostday_consultations ADD COLUMN booked_date DATE NULL AFTER admin_updated_at");
+        }
+        if (!column_exists($conn, 'career_boostday_consultations', 'booked_time_start')) {
+            $conn->query("ALTER TABLE career_boostday_consultations ADD COLUMN booked_time_start TIME NULL AFTER booked_date");
+        }
+        if (!column_exists($conn, 'career_boostday_consultations', 'booked_time_finish')) {
+            $conn->query("ALTER TABLE career_boostday_consultations ADD COLUMN booked_time_finish TIME NULL AFTER booked_time_start");
+        }
     }
+}
+
+function parse_time_range_from_slot(string $slot): array
+{
+    // Example: "Senin (pukul 13.30 s/d 15.00)"
+    $start = null;
+    $finish = null;
+    if (preg_match('/pukul\s+(\d{2})[.:](\d{2})\s*s\/d\s*(\d{2})[.:](\d{2})/i', $slot, $m)) {
+        $start = sprintf('%02d:%02d:00', intval($m[1]), intval($m[2]));
+        $finish = sprintf('%02d:%02d:00', intval($m[3]), intval($m[4]));
+    }
+    return [$start, $finish];
 }
 
 // Try both DBs used in this repo's admin pages.
@@ -131,16 +152,34 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     if ($action === 'accept') {
         $picId = intval($_POST['pic_id'] ?? 0);
         $keterangan = trim((string)($_POST['keterangan'] ?? ''));
+        $bookedDate = trim((string)($_POST['booked_date'] ?? ''));
         if ($picId <= 0) {
             $_SESSION['error'] = 'PIC wajib dipilih.';
             header('Location: ' . $redir);
             exit;
         }
+        if ($bookedDate === '') {
+            $_SESSION['error'] = 'Tanggal Booked wajib diisi.';
+            header('Location: ' . $redir);
+            exit;
+        }
+
+        // derive time range from the slot (jadwal_konseling)
+        $slot = '';
+        if ($s = $conn->prepare("SELECT jadwal_konseling FROM career_boostday_consultations WHERE id=?")) {
+            $s->bind_param('i', $id);
+            $s->execute();
+            $s->bind_result($slotRes);
+            if ($s->fetch()) $slot = (string)$slotRes;
+            $s->close();
+        }
+        [$timeStart, $timeFinish] = parse_time_range_from_slot($slot);
+
         $stmt = $conn->prepare("UPDATE career_boostday_consultations
-            SET admin_status='accepted', pic_id=?, keterangan=?, alasan=NULL, admin_updated_at=NOW()
+            SET admin_status='accepted', pic_id=?, keterangan=?, alasan=NULL, booked_date=?, booked_time_start=?, booked_time_finish=?, admin_updated_at=NOW()
             WHERE id=?");
         if ($stmt) {
-            $stmt->bind_param('isi', $picId, $keterangan, $id);
+            $stmt->bind_param('isssssi', $picId, $keterangan, $bookedDate, $timeStart, $timeFinish, $id);
             $stmt->execute();
             $stmt->close();
             $_SESSION['success'] = 'Data berhasil di-accept.';
@@ -241,7 +280,7 @@ if ($resPics) {
 // Fetch rows
 $rows = [];
 $sql = "SELECT c.id, c.created_at, c.name, c.whatsapp, c.status, c.jenis_konseling, c.jadwal_konseling, c.pendidikan_terakhir, c.cv_path, c.cv_original_name,
-               c.admin_status, c.pic_id, c.keterangan, c.alasan, c.admin_updated_at,
+               c.admin_status, c.pic_id, c.keterangan, c.alasan, c.admin_updated_at, c.booked_date, c.booked_time_start, c.booked_time_finish,
                p.name AS pic_name
         FROM career_boostday_consultations c
         LEFT JOIN career_boostday_pics p ON p.id=c.pic_id
@@ -484,6 +523,11 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
           <input type="hidden" name="id" id="accept_id" value="">
 
           <div class="row g-3">
+            <div class="col-12 col-md-5">
+              <label class="form-label">Tanggal Booked</label>
+              <input type="date" class="form-control" name="booked_date" required>
+              <div class="form-text">Tanggal konsultasi yang dipilih (akan tampil di kalender Booked).</div>
+            </div>
             <div class="col-12">
               <label class="form-label">PIC</label>
               <select class="form-select" name="pic_id" required>
