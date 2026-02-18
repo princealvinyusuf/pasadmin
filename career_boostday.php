@@ -179,7 +179,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             SET admin_status='accepted', pic_id=?, keterangan=?, alasan=NULL, booked_date=?, booked_time_start=?, booked_time_finish=?, admin_updated_at=NOW()
             WHERE id=?");
         if ($stmt) {
-            $stmt->bind_param('isssssi', $picId, $keterangan, $bookedDate, $timeStart, $timeFinish, $id);
+            // 6 params: i (pic_id), s (keterangan), s (booked_date), s (time_start), s (time_finish), i (id)
+            $stmt->bind_param('issssi', $picId, $keterangan, $bookedDate, $timeStart, $timeFinish, $id);
             $stmt->execute();
             $stmt->close();
             $_SESSION['success'] = 'Data berhasil di-accept.';
