@@ -16,6 +16,21 @@ if (!(current_user_can('career_boost_day_manage') || current_user_can('manage_se
 
 function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 
+function fmt_ts_gmt7(?string $dt): string {
+    $dt = trim((string)$dt);
+    if ($dt === '') return '';
+
+    try {
+        // Assumption: timestamps stored in DB are UTC (Laravel default in many setups).
+        // Display requirement: show as GMT+7 (Asia/Jakarta).
+        $d = new DateTime($dt, new DateTimeZone('UTC'));
+        $d->setTimezone(new DateTimeZone('Asia/Jakarta'));
+        return $d->format('Y-m-d H:i:s');
+    } catch (Throwable $e) {
+        return $dt; // fallback to raw value if parsing fails
+    }
+}
+
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
@@ -78,6 +93,10 @@ function ensure_schema(mysqli $conn): void
 
     // Add workflow columns to consultations table (if missing)
     if (table_exists($conn, 'career_boostday_consultations')) {
+        // Optional extra field from public form
+        if (!column_exists($conn, 'career_boostday_consultations', 'jurusan')) {
+            $conn->query("ALTER TABLE career_boostday_consultations ADD COLUMN jurusan VARCHAR(120) NULL AFTER pendidikan_terakhir");
+        }
         if (!column_exists($conn, 'career_boostday_consultations', 'admin_status')) {
             $conn->query("ALTER TABLE career_boostday_consultations ADD COLUMN admin_status VARCHAR(20) NOT NULL DEFAULT 'pending' AFTER cv_original_name");
         }
@@ -255,6 +274,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $jenis = trim((string)($_POST['jenis_konseling'] ?? ''));
         $jadwal = trim((string)($_POST['jadwal_konseling'] ?? ''));
         $pend = trim((string)($_POST['pendidikan_terakhir'] ?? ''));
+        $jurusan = trim((string)($_POST['jurusan'] ?? ''));
         $bookedDate = trim((string)($_POST['booked_date'] ?? '')); // optional (YYYY-MM-DD)
 
         if ($name === '' || $whatsapp === '' || $status === '' || $jenis === '' || $jadwal === '') {
@@ -264,10 +284,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         }
 
         $stmt = $conn->prepare("UPDATE career_boostday_consultations
-            SET name=?, whatsapp=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, booked_date=NULLIF(?, ''), admin_updated_at=NOW()
+            SET name=?, whatsapp=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, jurusan=NULLIF(?, ''), booked_date=NULLIF(?, ''), admin_updated_at=NOW()
             WHERE id=?");
         if ($stmt) {
-            $stmt->bind_param('sssssssi', $name, $whatsapp, $status, $jenis, $jadwal, $pend, $bookedDate, $id);
+            $stmt->bind_param('ssssssssi', $name, $whatsapp, $status, $jenis, $jadwal, $pend, $jurusan, $bookedDate, $id);
             $stmt->execute();
             $stmt->close();
             $_SESSION['success'] = 'Data berhasil di-update.';
@@ -378,7 +398,7 @@ if ($resPics) {
 
 // Fetch rows
 $rows = [];
-$sql = "SELECT c.id, c.created_at, c.name, c.whatsapp, c.status, c.jenis_konseling, c.jadwal_konseling, c.pendidikan_terakhir, c.cv_path, c.cv_original_name,
+$sql = "SELECT c.id, c.created_at, c.name, c.whatsapp, c.status, c.jenis_konseling, c.jadwal_konseling, c.pendidikan_terakhir, c.jurusan, c.cv_path, c.cv_original_name,
                c.admin_status, c.pic_id, c.keterangan, c.alasan, c.admin_updated_at, c.booked_date, c.booked_time_start, c.booked_time_finish,
                p.name AS pic_name
         FROM career_boostday_consultations c
@@ -520,6 +540,7 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
                         <th style="width: 150px;">Jenis Konseling</th>
                         <th style="width: 220px;">Jadwal Konseling</th>
                         <th style="width: 170px;">Pendidikan Terakhir</th>
+                        <th style="width: 180px;">Jurusan</th>
                         <th style="width: 120px;">Status</th>
                         <th style="width: 140px;">PIC</th>
                         <th style="width: 140px;">Upload CV</th>
@@ -528,7 +549,7 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
                 </thead>
                 <tbody>
                 <?php if (empty($rows)): ?>
-                    <tr><td colspan="11" class="text-center text-muted py-4">Belum ada data.</td></tr>
+                    <tr><td colspan="12" class="text-center text-muted py-4">Belum ada data.</td></tr>
                 <?php else: ?>
                     <?php foreach ($rows as $r): ?>
                         <?php
@@ -543,13 +564,14 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
                             elseif ($st === 'pending') $badge = 'warning';
                         ?>
                         <tr>
-                            <td><?php echo h($r['created_at']); ?></td>
+                            <td><?php echo h(fmt_ts_gmt7($r['created_at'] ?? '')); ?></td>
                             <td class="fw-semibold"><?php echo h($r['name']); ?></td>
                             <td><?php echo h($r['whatsapp']); ?></td>
                             <td><?php echo h($r['status']); ?></td>
                             <td><?php echo h($r['jenis_konseling']); ?></td>
                             <td><?php echo h($r['jadwal_konseling']); ?></td>
                             <td><?php echo h($r['pendidikan_terakhir']); ?></td>
+                            <td><?php echo h(trim((string)($r['jurusan'] ?? '')) !== '' ? $r['jurusan'] : '-'); ?></td>
                             <td>
                                 <span class="badge text-bg-<?php echo h($badge); ?>"><?php echo h($st); ?></span>
                                 <?php if ($st === 'rejected' && !empty($r['alasan'])): ?>
@@ -583,6 +605,7 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
                                         data-jenis="<?php echo h($r['jenis_konseling']); ?>"
                                         data-jadwal="<?php echo h($r['jadwal_konseling']); ?>"
                                         data-pendidikan="<?php echo h($r['pendidikan_terakhir']); ?>"
+                                        data-jurusan="<?php echo h($r['jurusan'] ?? ''); ?>"
                                         data-booked-date="<?php echo h($r['booked_date']); ?>"
                                     ><i class="bi bi-pencil-square me-1"></i>Edit</button>
 
@@ -679,6 +702,10 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
               <label class="form-label">Pendidikan Terakhir</label>
               <input class="form-control" name="pendidikan_terakhir" id="edit_pendidikan">
             </div>
+            <div class="col-12">
+              <label class="form-label">Jurusan <span class="text-muted">(opsional)</span></label>
+              <input class="form-control" name="jurusan" id="edit_jurusan" placeholder="(opsional)">
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -774,6 +801,8 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
         document.getElementById('edit_jenis').value = btn.getAttribute('data-jenis') || '';
         document.getElementById('edit_jadwal').value = btn.getAttribute('data-jadwal') || '';
         document.getElementById('edit_pendidikan').value = btn.getAttribute('data-pendidikan') || '';
+        var jurEl = document.getElementById('edit_jurusan');
+        if (jurEl) jurEl.value = btn.getAttribute('data-jurusan') || '';
         var bd = btn.getAttribute('data-booked-date') || '';
         var bdEl = document.getElementById('edit_booked_date');
         if (bdEl) bdEl.value = bd;
