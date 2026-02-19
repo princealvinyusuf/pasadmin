@@ -90,7 +90,13 @@ function ac_seed_permissions(mysqli $conn): void {
 		['asmen_view_services','AsMen: View Services','AsMen'],
 		['asmen_view_calendar','AsMen: View Calendar','AsMen'],
 		['asmen_view_dashboard','AsMen: View Dashboard','AsMen'],
-		['asmen_use_qr','AsMen: Use QR','AsMen']
+		['asmen_use_qr','AsMen: Use QR','AsMen'],
+		// Career Boost Day permissions
+		['career_boost_day_manage','Career Boost Day: Manage Submissions','Career Boost Day'],
+		['career_boost_day_pic_manage','Career Boost Day: Manage PIC','Career Boost Day'],
+		['career_boost_day_booked_view','Career Boost Day: View Booked','Career Boost Day'],
+		// Konseling permissions
+		['form_hasil_konseling_manage','Form Hasil Konseling: Manage Submissions','Konseling']
 	];
 	$stmt = $conn->prepare('INSERT IGNORE INTO access_permissions (code,label,category) VALUES (?,?,?)');
 	foreach ($perms as [$c,$l,$cat]) { $stmt->bind_param('sss',$c,$l,$cat); $stmt->execute(); }

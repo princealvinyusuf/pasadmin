@@ -73,8 +73,23 @@
     
     $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canAccessControl || $canBroadcast || $canIframe || $canAuditTrails);
     $hasApiKeys = ($canManageSettings || $canApiKeys);
-    $hasLayanan = ($canManageSettings || $canMitraKerja || $canPartnershipType || $canMitraSubmission || $canKemitraanBooked || $canPaskerRoom);
-    $canCareerBoostday = $canManageSettings;
+    $canCareerBoostDay = current_user_can('career_boost_day_manage') || $canManageSettings;
+    $canCareerBoostDayPic = current_user_can('career_boost_day_pic_manage') || $canManageSettings;
+    $canCareerBoostDayBooked = current_user_can('career_boost_day_booked_view') || $canManageSettings;
+    $canFormHasilKonseling = current_user_can('form_hasil_konseling_manage') || $canManageSettings;
+
+    $hasLayanan = (
+        $canManageSettings ||
+        $canMitraKerja ||
+        $canPartnershipType ||
+        $canMitraSubmission ||
+        $canKemitraanBooked ||
+        $canPaskerRoom ||
+        $canCareerBoostDay ||
+        $canCareerBoostDayPic ||
+        $canCareerBoostDayBooked ||
+        $canFormHasilKonseling
+    );
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
     $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan);
     $hasAsmen = ($canAsmenDashboard || $canAsmenAssets || $canAsmenServices || $canAsmenCalendar || $canAsmenQR);
@@ -184,11 +199,11 @@
                         <?php if ($canManageSettings || $canMitraSubmission): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_submission.php">Mitra Kerja Submission</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canKemitraanBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_booked.php">Kemitraan Booked</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canPaskerRoom): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>pasker_room_settings.php">Pasker Room Settings</a></li><?php endif; ?>
-                        <?php if (($canManageSettings || $canPaskerRoom) && ($canCareerBoostday || $canManageSettings || $canWalkinGallery)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
-                        <?php if ($canCareerBoostday): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday.php">Career Boost Day</a></li><?php endif; ?>
-                        <?php if ($canCareerBoostday): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_pic.php">Career Boost Day PIC</a></li><?php endif; ?>
-                        <?php if ($canCareerBoostday): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_booked.php">Career Boost Day Booked</a></li><?php endif; ?>
-                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>form_hasil_konseling.php">Form Hasil Konseling</a></li><?php endif; ?>
+                        <?php if (($canManageSettings || $canPaskerRoom) && ($canCareerBoostDay || $canCareerBoostDayPic || $canCareerBoostDayBooked || $canFormHasilKonseling || $canWalkinGallery)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
+                        <?php if ($canCareerBoostDay): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday.php">Career Boost Day</a></li><?php endif; ?>
+                        <?php if ($canCareerBoostDayPic): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_pic.php">Career Boost Day PIC</a></li><?php endif; ?>
+                        <?php if ($canCareerBoostDayBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_booked.php">Career Boost Day Booked</a></li><?php endif; ?>
+                        <?php if ($canFormHasilKonseling): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>form_hasil_konseling.php">Form Hasil Konseling</a></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_gallery.php"><i class="bi bi-images me-1"></i>Walk-in Gallery</a></li><?php endif; ?>
                     </ul>

@@ -5,6 +5,14 @@ error_reporting(E_ALL);
 mysqli_report(MYSQLI_REPORT_OFF);
 
 require_once __DIR__ . '/auth_guard.php';
+require_once __DIR__ . '/access_helper.php';
+
+// Permission gate
+if (!(current_user_can('career_boost_day_booked_view') || current_user_can('manage_settings'))) {
+    http_response_code(403);
+    echo 'Forbidden';
+    exit;
+}
 
 function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 
