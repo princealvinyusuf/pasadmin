@@ -311,6 +311,64 @@ if ($where) {
     $total = $row ? intval($row['c']) : 0;
 }
 
+// Stats (follow current filter)
+$stats = [
+    'total' => (int)$total,
+    'pending' => 0,
+    'accepted' => 0,
+    'rejected' => 0,
+    'booked' => 0,
+];
+
+// Status breakdown
+if ($where) {
+    $stmt = $conn->prepare("SELECT c.admin_status, COUNT(*) AS cnt
+        FROM career_boostday_consultations c
+        LEFT JOIN career_boostday_pics p ON p.id=c.pic_id
+        $where
+        GROUP BY c.admin_status");
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    if ($res) {
+        while ($r = $res->fetch_assoc()) {
+            $st = (string)($r['admin_status'] ?? '');
+            $cnt = intval($r['cnt'] ?? 0);
+            if (isset($stats[$st])) $stats[$st] = $cnt;
+        }
+    }
+    $stmt->close();
+} else {
+    $res = $conn->query("SELECT admin_status, COUNT(*) AS cnt FROM career_boostday_consultations GROUP BY admin_status");
+    if ($res) {
+        while ($r = $res->fetch_assoc()) {
+            $st = (string)($r['admin_status'] ?? '');
+            $cnt = intval($r['cnt'] ?? 0);
+            if (isset($stats[$st])) $stats[$st] = $cnt;
+        }
+    }
+}
+
+// Booked count (accepted + booked_date not null), also follow current filter
+if ($where) {
+    $stmt = $conn->prepare("SELECT COUNT(*) AS c
+        FROM career_boostday_consultations c
+        LEFT JOIN career_boostday_pics p ON p.id=c.pic_id
+        $where
+        AND c.admin_status='accepted'
+        AND c.booked_date IS NOT NULL");
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $stmt->bind_result($bookedCnt);
+    $stmt->fetch();
+    $stmt->close();
+    $stats['booked'] = intval($bookedCnt ?? 0);
+} else {
+    $res = $conn->query("SELECT COUNT(*) AS c FROM career_boostday_consultations WHERE admin_status='accepted' AND booked_date IS NOT NULL");
+    $row = $res ? $res->fetch_assoc() : null;
+    $stats['booked'] = $row ? intval($row['c']) : 0;
+}
+
 // Fetch PICs (for accept modal)
 $pics = [];
 $resPics = $conn->query("SELECT id, name FROM career_boostday_pics WHERE is_active=1 ORDER BY name ASC");
@@ -381,6 +439,74 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
     <?php if (!empty($_SESSION['error'])): ?>
         <div class="alert alert-danger"><?php echo h($_SESSION['error']); unset($_SESSION['error']); ?></div>
     <?php endif; ?>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-md-6 col-lg">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted small">Total</div>
+                            <div class="fs-4 fw-bold"><?php echo number_format($stats['total']); ?></div>
+                        </div>
+                        <div class="text-primary fs-4"><i class="bi bi-collection"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted small">Pending</div>
+                            <div class="fs-4 fw-bold"><?php echo number_format($stats['pending']); ?></div>
+                        </div>
+                        <div class="text-warning fs-4"><i class="bi bi-hourglass-split"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted small">Accepted</div>
+                            <div class="fs-4 fw-bold"><?php echo number_format($stats['accepted']); ?></div>
+                        </div>
+                        <div class="text-success fs-4"><i class="bi bi-check2-circle"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted small">Rejected</div>
+                            <div class="fs-4 fw-bold"><?php echo number_format($stats['rejected']); ?></div>
+                        </div>
+                        <div class="text-danger fs-4"><i class="bi bi-x-circle"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted small">Booked</div>
+                            <div class="fs-4 fw-bold"><?php echo number_format($stats['booked']); ?></div>
+                        </div>
+                        <div class="text-info fs-4"><i class="bi bi-calendar2-check"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="card shadow-sm">
         <div class="table-responsive">
