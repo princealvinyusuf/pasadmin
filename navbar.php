@@ -184,9 +184,9 @@
                         <?php if ($canManageSettings || $canMitraSubmission): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_submission.php">Mitra Kerja Submission</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canKemitraanBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_booked.php">Kemitraan Booked</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canPaskerRoom): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>pasker_room_settings.php">Pasker Room Settings</a></li><?php endif; ?>
-                        <?php if ($canCareerBoostday): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday.php">Career BoostDay</a></li><?php endif; ?>
-                        <?php if ($canCareerBoostday): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_pic.php">Career BoostDay PIC</a></li><?php endif; ?>
-                        <?php if ($canCareerBoostday): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_booked.php">Career BoostDay Booked</a></li><?php endif; ?>
+                        <?php if ($canCareerBoostday): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday.php">Career Boost Day</a></li><?php endif; ?>
+                        <?php if ($canCareerBoostday): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_pic.php">Career Boost Day PIC</a></li><?php endif; ?>
+                        <?php if ($canCareerBoostday): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_booked.php">Career Boost Day Booked</a></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_gallery.php"><i class="bi bi-images me-1"></i>Walk-in Gallery</a></li><?php endif; ?>
                     </ul>

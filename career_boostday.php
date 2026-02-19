@@ -313,7 +313,7 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Career BoostDay | Admin</title>
+    <title>Career Boost Day | Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
@@ -323,7 +323,7 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
 <div class="container py-4">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
         <div>
-            <h1 class="h4 mb-1">Career BoostDay</h1>
+            <h1 class="h4 mb-1">Career Boost Day</h1>
             <div class="text-muted small">Database: <code><?php echo h($activeDb); ?></code> • Total: <b><?php echo number_format($total); ?></b></div>
         </div>
         <div class="d-flex gap-2 align-items-center">
