@@ -269,13 +269,15 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
                         <th>Nama Konselor</th>
                         <th>Nama Konseli</th>
                         <th style="width: 220px;">Jenis</th>
+                        <th style="width: 320px;">Hal Yang Dibahas</th>
+                        <th style="width: 320px;">Saran Untuk Pencaker</th>
                         <th style="width: 220px;">Bukti</th>
                         <th style="width: 220px;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                 <?php if (empty($rows)): ?>
-                    <tr><td colspan="7" class="text-center text-muted py-4">Belum ada data.</td></tr>
+                    <tr><td colspan="9" class="text-center text-muted py-4">Belum ada data.</td></tr>
                 <?php else: ?>
                     <?php foreach ($rows as $r): ?>
                         <?php $rid = intval($r['id']); $files = $evidences[$rid] ?? []; ?>
@@ -285,6 +287,16 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
                             <td class="fw-semibold"><?php echo h($r['nama_konselor']); ?></td>
                             <td><?php echo h($r['nama_konseli']); ?></td>
                             <td><?php echo h($r['jenis_konseling']); ?></td>
+                            <td>
+                                <div class="small">
+                                    <?php echo h(mb_strimwidth((string)($r['hal_yang_dibahas'] ?? ''), 0, 180, '...')); ?>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    <?php echo h(mb_strimwidth((string)($r['saran_untuk_pencaker'] ?? ''), 0, 180, '...')); ?>
+                                </div>
+                            </td>
                             <td>
                                 <?php if (empty($files)): ?>
                                     <span class="text-muted">-</span>
