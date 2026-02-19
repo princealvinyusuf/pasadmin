@@ -217,6 +217,37 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
+    if ($action === 'delete') {
+        // Remove CV file if present
+        $cvPath = null;
+        if ($stmt = $conn->prepare("SELECT cv_path FROM career_boostday_consultations WHERE id=?")) {
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $stmt->bind_result($cvPathRes);
+            if ($stmt->fetch()) {
+                $cvPath = $cvPathRes;
+            }
+            $stmt->close();
+        }
+
+        if (!empty($cvPath)) {
+            $full = $_SERVER['DOCUMENT_ROOT'] . '/storage/' . ltrim((string)$cvPath, '/');
+            if (is_file($full)) {
+                @unlink($full);
+            }
+        }
+
+        $stmt = $conn->prepare("DELETE FROM career_boostday_consultations WHERE id=?");
+        if ($stmt) {
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $stmt->close();
+            $_SESSION['success'] = 'Data berhasil dihapus.';
+        }
+        header('Location: ' . $redir);
+        exit;
+    }
+
     if ($action === 'edit') {
         $name = trim((string)($_POST['name'] ?? ''));
         $whatsapp = trim((string)($_POST['whatsapp'] ?? ''));
@@ -249,37 +280,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     header('Location: ' . $redir);
     exit;
 }
-
-    if ($action === 'delete') {
-        // Remove CV file if present
-        $cvPath = null;
-        if ($stmt = $conn->prepare("SELECT cv_path FROM career_boostday_consultations WHERE id=?")) {
-            $stmt->bind_param('i', $id);
-            $stmt->execute();
-            $stmt->bind_result($cvPathRes);
-            if ($stmt->fetch()) {
-                $cvPath = $cvPathRes;
-            }
-            $stmt->close();
-        }
-
-        if (!empty($cvPath)) {
-            $full = $_SERVER['DOCUMENT_ROOT'] . '/storage/' . ltrim((string)$cvPath, '/');
-            if (is_file($full)) {
-                @unlink($full);
-            }
-        }
-
-        $stmt = $conn->prepare("DELETE FROM career_boostday_consultations WHERE id=?");
-        if ($stmt) {
-            $stmt->bind_param('i', $id);
-            $stmt->execute();
-            $stmt->close();
-            $_SESSION['success'] = 'Data berhasil dihapus.';
-        }
-        header('Location: ' . $redir);
-        exit;
-    }
 
 $q = isset($_GET['q']) ? trim((string)$_GET['q']) : '';
 $page = max(1, intval($_GET['page'] ?? 1));
