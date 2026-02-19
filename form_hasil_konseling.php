@@ -78,6 +78,14 @@ if (!table_exists($conn, 'counseling_results')) {
 }
 
 $q = isset($_GET['q']) ? trim((string)$_GET['q']) : '';
+$jenis = isset($_GET['jenis']) ? trim((string)$_GET['jenis']) : '';
+$dateFrom = isset($_GET['date_from']) ? trim((string)$_GET['date_from']) : '';
+$dateTo = isset($_GET['date_to']) ? trim((string)$_GET['date_to']) : '';
+
+// normalize dates (YYYY-MM-DD) or empty
+if ($dateFrom !== '' && !preg_match('/^\d{4}\-\d{2}\-\d{2}$/', $dateFrom)) $dateFrom = '';
+if ($dateTo !== '' && !preg_match('/^\d{4}\-\d{2}\-\d{2}$/', $dateTo)) $dateTo = '';
+
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = 25;
 $offset = ($page - 1) * $perPage;
@@ -160,14 +168,117 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     }
 }
 
-$where = '';
+// Fetch distinct jenis for filter dropdown
+$jenisOptions = [];
+$resJenis = $conn->query("SELECT DISTINCT jenis_konseling FROM counseling_results WHERE jenis_konseling IS NOT NULL AND jenis_konseling <> '' ORDER BY jenis_konseling ASC LIMIT 200");
+if ($resJenis) {
+    while ($r = $resJenis->fetch_assoc()) {
+        $jenisOptions[] = (string)$r['jenis_konseling'];
+    }
+}
+
+// Build WHERE with params
+$conditions = [];
 $params = [];
 $types = '';
+
 if ($q !== '') {
-    $where = "WHERE nama_konselor LIKE ? OR nama_konseli LIKE ? OR jenis_konseling LIKE ?";
+    $conditions[] = "(nama_konselor LIKE ? OR nama_konseli LIKE ? OR jenis_konseling LIKE ? OR hal_yang_dibahas LIKE ? OR saran_untuk_pencaker LIKE ?)";
     $like = '%' . $q . '%';
-    $params = [$like, $like, $like];
-    $types = 'sss';
+    array_push($params, $like, $like, $like, $like, $like);
+    $types .= 'sssss';
+}
+
+if ($jenis !== '') {
+    $conditions[] = "jenis_konseling = ?";
+    $params[] = $jenis;
+    $types .= 's';
+}
+
+if ($dateFrom !== '') {
+    $conditions[] = "tanggal_konseling >= ?";
+    $params[] = $dateFrom;
+    $types .= 's';
+}
+if ($dateTo !== '') {
+    $conditions[] = "tanggal_konseling <= ?";
+    $params[] = $dateTo;
+    $types .= 's';
+}
+
+$where = !empty($conditions) ? ('WHERE ' . implode(' AND ', $conditions)) : '';
+
+// JSON export endpoint (used by XLSX client export)
+if (($_GET['format'] ?? '') === 'json' && isset($_GET['export'])) {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $exportRows = [];
+    $sql = "SELECT id, created_at, nama_konselor, nama_konseli, tanggal_konseling, jenis_konseling, hal_yang_dibahas, saran_untuk_pencaker
+            FROM counseling_results
+            $where
+            ORDER BY tanggal_konseling DESC, id DESC
+            LIMIT 10000";
+
+    if ($stmt = $conn->prepare($sql)) {
+        if ($where) {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res) {
+            while ($r = $res->fetch_assoc()) $exportRows[] = $r;
+        }
+        $stmt->close();
+    }
+
+    // Attach evidences (filenames + urls) per row
+    $exportEvidences = [];
+    if (table_exists($conn, 'counseling_result_evidences')) {
+        $ids = array_map(fn($r) => intval($r['id']), $exportRows);
+        if (!empty($ids)) {
+            $in = implode(',', array_fill(0, count($ids), '?'));
+            $typesIn = str_repeat('i', count($ids));
+            $stmt = $conn->prepare("SELECT counseling_result_id, file_path, original_name FROM counseling_result_evidences WHERE counseling_result_id IN ($in) ORDER BY id ASC");
+            if ($stmt) {
+                $stmt->bind_param($typesIn, ...$ids);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                if ($res) {
+                    while ($r = $res->fetch_assoc()) {
+                        $rid = intval($r['counseling_result_id']);
+                        if (!isset($exportEvidences[$rid])) $exportEvidences[$rid] = [];
+                        $exportEvidences[$rid][] = [
+                            'name' => $r['original_name'] ?: 'file',
+                            'url' => '/storage/' . ltrim((string)$r['file_path'], '/'),
+                        ];
+                    }
+                }
+                $stmt->close();
+            }
+        }
+    }
+
+    $out = [];
+    foreach ($exportRows as $r) {
+        $rid = intval($r['id']);
+        $files = $exportEvidences[$rid] ?? [];
+        $fileNames = implode("\n", array_map(fn($f) => (string)$f['name'], $files));
+        $fileUrls = implode("\n", array_map(fn($f) => (string)$f['url'], $files));
+        $out[] = [
+            'Created' => $r['created_at'] ?? '',
+            'Tanggal' => $r['tanggal_konseling'] ?? '',
+            'Nama Konselor' => $r['nama_konselor'] ?? '',
+            'Nama Konseli' => $r['nama_konseli'] ?? '',
+            'Jenis' => $r['jenis_konseling'] ?? '',
+            'Hal Yang Dibahas' => $r['hal_yang_dibahas'] ?? '',
+            'Saran Untuk Pencaker' => $r['saran_untuk_pencaker'] ?? '',
+            'Bukti (Nama File)' => $fileNames,
+            'Bukti (URL)' => $fileUrls,
+        ];
+    }
+
+    echo json_encode(['rows' => $out], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 // Count
@@ -234,7 +345,12 @@ if (table_exists($conn, 'counseling_result_evidences')) {
 }
 
 $totalPages = max(1, (int)ceil($total / $perPage));
-$baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
+$baseQueryParts = [];
+if ($q !== '') $baseQueryParts[] = 'q=' . urlencode($q);
+if ($jenis !== '') $baseQueryParts[] = 'jenis=' . urlencode($jenis);
+if ($dateFrom !== '') $baseQueryParts[] = 'date_from=' . urlencode($dateFrom);
+if ($dateTo !== '') $baseQueryParts[] = 'date_to=' . urlencode($dateTo);
+$baseQuery = !empty($baseQueryParts) ? ('&' . implode('&', $baseQueryParts)) : '';
 ?>
 <!doctype html>
 <html lang="en">
@@ -244,6 +360,7 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
     <title>Form Hasil Konseling | Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body class="bg-light">
 <?php include __DIR__ . '/navbar.php'; ?>
@@ -254,10 +371,23 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
             <h1 class="h4 mb-1">Form Hasil Konseling</h1>
             <div class="text-muted small">Database: <code><?php echo h($activeDb); ?></code> • Total: <b><?php echo number_format($total); ?></b></div>
         </div>
-        <form class="d-flex gap-2" method="GET" action="">
-            <input class="form-control" name="q" value="<?php echo h($q); ?>" placeholder="Cari konselor / konseli / jenis" style="min-width: 280px;">
-            <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Cari</button>
-        </form>
+        <div class="d-flex gap-2 align-items-center flex-wrap justify-content-end">
+            <button class="btn btn-outline-success" type="button" id="btnExportExcel">
+                <i class="bi bi-file-earmark-excel me-1"></i>Download to Excel
+            </button>
+            <form class="d-flex gap-2 flex-wrap" method="GET" action="">
+                <select class="form-select" name="jenis" style="min-width: 220px;">
+                    <option value="">Semua Jenis</option>
+                    <?php foreach ($jenisOptions as $opt): ?>
+                        <option value="<?php echo h($opt); ?>" <?php echo ($jenis === $opt) ? 'selected' : ''; ?>><?php echo h($opt); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <input class="form-control" type="date" name="date_from" value="<?php echo h($dateFrom); ?>" title="Dari tanggal">
+                <input class="form-control" type="date" name="date_to" value="<?php echo h($dateTo); ?>" title="Sampai tanggal">
+                <input class="form-control" name="q" value="<?php echo h($q); ?>" placeholder="Cari konselor / konseli / jenis" style="min-width: 260px;">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Cari</button>
+            </form>
+        </div>
     </div>
 
     <?php if (!empty($_SESSION['success'])): ?>
@@ -414,6 +544,49 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  (function () {
+    var btn = document.getElementById('btnExportExcel');
+    if (!btn) return;
+
+    function buildExportUrl() {
+      var url = new URL(window.location.href);
+      url.searchParams.set('format', 'json');
+      url.searchParams.set('export', '1');
+      // Keep current filters (q/jenis/date_from/date_to) automatically via URL
+      return url.toString();
+    }
+
+    btn.addEventListener('click', async function () {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Preparing...';
+      try {
+        var res = await fetch(buildExportUrl(), { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error('Failed to export');
+        var json = await res.json();
+        var rows = (json && json.rows) ? json.rows : [];
+        if (!rows.length) {
+          alert('Tidak ada data untuk diexport.');
+          return;
+        }
+
+        var wb = XLSX.utils.book_new();
+        var ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, 'Hasil Konseling');
+        var ts = new Date();
+        var y = ts.getFullYear();
+        var m = String(ts.getMonth()+1).padStart(2,'0');
+        var d = String(ts.getDate()).padStart(2,'0');
+        XLSX.writeFile(wb, 'Form_Hasil_Konseling_' + y + m + d + '.xlsx');
+      } catch (e) {
+        alert('Gagal export Excel. Silakan coba lagi.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-file-earmark-excel me-1"></i>Download to Excel';
+      }
+    });
+  })();
+</script>
 <script>
   (function () {
     var editModal = document.getElementById('editModal');
