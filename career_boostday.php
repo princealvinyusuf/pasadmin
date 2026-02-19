@@ -250,6 +250,37 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     exit;
 }
 
+    if ($action === 'delete') {
+        // Remove CV file if present
+        $cvPath = null;
+        if ($stmt = $conn->prepare("SELECT cv_path FROM career_boostday_consultations WHERE id=?")) {
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $stmt->bind_result($cvPathRes);
+            if ($stmt->fetch()) {
+                $cvPath = $cvPathRes;
+            }
+            $stmt->close();
+        }
+
+        if (!empty($cvPath)) {
+            $full = $_SERVER['DOCUMENT_ROOT'] . '/storage/' . ltrim((string)$cvPath, '/');
+            if (is_file($full)) {
+                @unlink($full);
+            }
+        }
+
+        $stmt = $conn->prepare("DELETE FROM career_boostday_consultations WHERE id=?");
+        if ($stmt) {
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $stmt->close();
+            $_SESSION['success'] = 'Data berhasil dihapus.';
+        }
+        header('Location: ' . $redir);
+        exit;
+    }
+
 $q = isset($_GET['q']) ? trim((string)$_GET['q']) : '';
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = 25;
@@ -429,19 +460,27 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
                                         data-booked-date="<?php echo h($r['booked_date']); ?>"
                                     ><i class="bi bi-pencil-square me-1"></i>Edit</button>
 
-                                    <button
-                                        class="btn btn-outline-success btn-sm"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#acceptModal"
-                                        data-id="<?php echo h($r['id']); ?>"
-                                    ><i class="bi bi-check2-circle me-1"></i>Accept</button>
+                                    <?php if (($r['admin_status'] ?? 'pending') === 'pending'): ?>
+                                        <button
+                                            class="btn btn-outline-success btn-sm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#acceptModal"
+                                            data-id="<?php echo h($r['id']); ?>"
+                                        ><i class="bi bi-check2-circle me-1"></i>Accept</button>
 
-                                    <button
-                                        class="btn btn-outline-danger btn-sm"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#rejectModal"
-                                        data-id="<?php echo h($r['id']); ?>"
-                                    ><i class="bi bi-x-circle me-1"></i>Reject</button>
+                                        <button
+                                            class="btn btn-outline-danger btn-sm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#rejectModal"
+                                            data-id="<?php echo h($r['id']); ?>"
+                                        ><i class="bi bi-x-circle me-1"></i>Reject</button>
+                                    <?php endif; ?>
+
+                                    <form method="POST" action="" onsubmit="return confirm('Hapus data ini?');" class="d-inline">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="id" value="<?php echo h($r['id']); ?>">
+                                        <button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-trash me-1"></i>Delete</button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
