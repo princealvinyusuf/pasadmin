@@ -224,6 +224,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $jenis = trim((string)($_POST['jenis_konseling'] ?? ''));
         $jadwal = trim((string)($_POST['jadwal_konseling'] ?? ''));
         $pend = trim((string)($_POST['pendidikan_terakhir'] ?? ''));
+        $bookedDate = trim((string)($_POST['booked_date'] ?? '')); // optional (YYYY-MM-DD)
 
         if ($name === '' || $whatsapp === '' || $status === '' || $jenis === '' || $jadwal === '') {
             $_SESSION['error'] = 'Nama, WhatsApp, Status, Jenis Konseling, dan Jadwal wajib diisi.';
@@ -232,10 +233,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         }
 
         $stmt = $conn->prepare("UPDATE career_boostday_consultations
-            SET name=?, whatsapp=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, admin_updated_at=NOW()
+            SET name=?, whatsapp=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, booked_date=NULLIF(?, ''), admin_updated_at=NOW()
             WHERE id=?");
         if ($stmt) {
-            $stmt->bind_param('ssssssi', $name, $whatsapp, $status, $jenis, $jadwal, $pend, $id);
+            $stmt->bind_param('sssssssi', $name, $whatsapp, $status, $jenis, $jadwal, $pend, $bookedDate, $id);
             $stmt->execute();
             $stmt->close();
             $_SESSION['success'] = 'Data berhasil di-update.';
@@ -425,6 +426,7 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
                                         data-jenis="<?php echo h($r['jenis_konseling']); ?>"
                                         data-jadwal="<?php echo h($r['jadwal_konseling']); ?>"
                                         data-pendidikan="<?php echo h($r['pendidikan_terakhir']); ?>"
+                                        data-booked-date="<?php echo h($r['booked_date']); ?>"
                                     ><i class="bi bi-pencil-square me-1"></i>Edit</button>
 
                                     <button
@@ -502,6 +504,11 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
             <div class="col-12 col-md-6">
               <label class="form-label">Jadwal Konseling</label>
               <input class="form-control" name="jadwal_konseling" id="edit_jadwal" required>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Tanggal Booked</label>
+              <input class="form-control" type="date" name="booked_date" id="edit_booked_date">
+              <div class="form-text">Opsional. Digunakan untuk tampilan kalender Booked.</div>
             </div>
             <div class="col-12">
               <label class="form-label">Pendidikan Terakhir</label>
@@ -602,6 +609,9 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
         document.getElementById('edit_jenis').value = btn.getAttribute('data-jenis') || '';
         document.getElementById('edit_jadwal').value = btn.getAttribute('data-jadwal') || '';
         document.getElementById('edit_pendidikan').value = btn.getAttribute('data-pendidikan') || '';
+        var bd = btn.getAttribute('data-booked-date') || '';
+        var bdEl = document.getElementById('edit_booked_date');
+        if (bdEl) bdEl.value = bd;
       });
     }
 
