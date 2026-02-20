@@ -91,48 +91,6 @@ function ensure_schema(mysqli $conn): void
         }
     }
 
-    // Create Slots table (Jadwal Konseling)
-    if (!table_exists($conn, 'career_boostday_slots')) {
-        $conn->query("CREATE TABLE career_boostday_slots (
-            id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            day_name VARCHAR(20) NOT NULL,
-            time_start TIME NOT NULL,
-            time_finish TIME NOT NULL,
-            label VARCHAR(120) NOT NULL,
-            sort_order INT NOT NULL DEFAULT 0,
-            is_active TINYINT(1) NOT NULL DEFAULT 1,
-            created_at DATETIME NULL,
-            updated_at DATETIME NULL,
-            INDEX idx_active_sort (is_active, sort_order),
-            UNIQUE KEY uq_label (label)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    }
-
-    // Seed default slots if empty (match public defaults)
-    if (table_exists($conn, 'career_boostday_slots')) {
-        $res = $conn->query("SELECT COUNT(*) AS c FROM career_boostday_slots");
-        $row = $res ? $res->fetch_assoc() : null;
-        $count = $row ? intval($row['c']) : 0;
-        if ($count === 0) {
-            $defaults = [
-                ['Senin', '09:00:00', '11:00:00', 'Senin (pukul 09.00 s/d 11.00)', 10],
-                ['Senin', '13:30:00', '15:00:00', 'Senin (pukul 13.30 s/d 15.00)', 20],
-                ['Kamis', '09:00:00', '11:00:00', 'Kamis (pukul 09.00 s/d 11.00)', 30],
-                ['Kamis', '13:30:00', '15:00:00', 'Kamis (pukul 13.30 s/d 15.00)', 40],
-            ];
-            $stmt = $conn->prepare("INSERT INTO career_boostday_slots (day_name, time_start, time_finish, label, sort_order, is_active, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 1, NOW(), NOW())");
-            if ($stmt) {
-                foreach ($defaults as $d) {
-                    [$day, $t1, $t2, $label, $sort] = $d;
-                    $stmt->bind_param('ssssi', $day, $t1, $t2, $label, $sort);
-                    $stmt->execute();
-                }
-                $stmt->close();
-            }
-        }
-    }
-
     // Add workflow columns to consultations table (if missing)
     if (table_exists($conn, 'career_boostday_consultations')) {
         // Optional extra field from public form
@@ -176,33 +134,6 @@ function parse_time_range_from_slot(string $slot): array
         $finish = sprintf('%02d:%02d:00', intval($m[3]), intval($m[4]));
     }
     return [$start, $finish];
-}
-
-function slot_time_range_from_label(mysqli $conn, string $label): array
-{
-    if (!table_exists($conn, 'career_boostday_slots')) {
-        return [null, null];
-    }
-
-    $label = trim($label);
-    if ($label === '') {
-        return [null, null];
-    }
-
-    $t1 = null;
-    $t2 = null;
-    if ($stmt = $conn->prepare("SELECT time_start, time_finish FROM career_boostday_slots WHERE label=? LIMIT 1")) {
-        $stmt->bind_param('s', $label);
-        $stmt->execute();
-        $stmt->bind_result($timeStart, $timeFinish);
-        if ($stmt->fetch()) {
-            $t1 = (string)$timeStart;
-            $t2 = (string)$timeFinish;
-        }
-        $stmt->close();
-    }
-
-    return [$t1 ?: null, $t2 ?: null];
 }
 
 // Try both DBs used in this repo's admin pages.
@@ -269,11 +200,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             if ($s->fetch()) $slot = (string)$slotRes;
             $s->close();
         }
-        // Prefer slot table lookup, fallback to parsing label format
-        [$timeStart, $timeFinish] = slot_time_range_from_label($conn, $slot);
-        if (!$timeStart || !$timeFinish) {
-            [$timeStart, $timeFinish] = parse_time_range_from_slot($slot);
-        }
+        [$timeStart, $timeFinish] = parse_time_range_from_slot($slot);
 
         $stmt = $conn->prepare("UPDATE career_boostday_consultations
             SET admin_status='accepted', pic_id=?, keterangan=?, alasan=NULL, booked_date=?, booked_time_start=?, booked_time_finish=?, admin_updated_at=NOW()
@@ -469,15 +396,6 @@ if ($resPics) {
     while ($r = $resPics->fetch_assoc()) $pics[] = $r;
 }
 
-// Fetch Slots (for edit modal dropdown)
-$slots = [];
-if (table_exists($conn, 'career_boostday_slots')) {
-    $resSlots = $conn->query("SELECT id, label FROM career_boostday_slots WHERE is_active=1 ORDER BY sort_order ASC, id ASC");
-    if ($resSlots) {
-        while ($r = $resSlots->fetch_assoc()) $slots[] = $r;
-    }
-}
-
 // Fetch rows
 $rows = [];
 $sql = "SELECT c.id, c.created_at, c.name, c.whatsapp, c.status, c.jenis_konseling, c.jadwal_konseling, c.pendidikan_terakhir, c.jurusan, c.cv_path, c.cv_original_name,
@@ -527,7 +445,6 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
             <div class="text-muted small">Database: <code><?php echo h($activeDb); ?></code> • Total: <b><?php echo number_format($total); ?></b></div>
         </div>
         <div class="d-flex gap-2 align-items-center">
-            <a class="btn btn-outline-secondary" href="career_boostday_slot.php"><i class="bi bi-calendar-week me-1"></i>Jadwal</a>
             <a class="btn btn-outline-secondary" href="career_boostday_pic.php"><i class="bi bi-people me-1"></i>PIC</a>
             <form class="d-flex gap-2" method="GET" action="">
             <input class="form-control" name="q" value="<?php echo h($q); ?>" placeholder="Cari nama / WA / status / jadwal" style="min-width: 280px;">
@@ -774,13 +691,7 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Jadwal Konseling</label>
-              <select class="form-select" name="jadwal_konseling" id="edit_jadwal" required>
-                <option value="" disabled selected>Pilih jadwal</option>
-                <?php foreach ($slots as $s): ?>
-                  <option value="<?php echo h($s['label']); ?>"><?php echo h($s['label']); ?></option>
-                <?php endforeach; ?>
-              </select>
-              <div class="form-text">Daftar jadwal dapat dikelola di menu Jadwal.</div>
+              <input class="form-control" name="jadwal_konseling" id="edit_jadwal" required>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Tanggal Booked</label>
@@ -888,22 +799,7 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
         document.getElementById('edit_whatsapp').value = btn.getAttribute('data-whatsapp') || '';
         document.getElementById('edit_status').value = btn.getAttribute('data-status') || '';
         document.getElementById('edit_jenis').value = btn.getAttribute('data-jenis') || '';
-        var jadwalVal = btn.getAttribute('data-jadwal') || '';
-        var jadwalEl = document.getElementById('edit_jadwal');
-        if (jadwalEl) {
-          // Ensure current value is selectable even if not in active slot list
-          var exists = false;
-          for (var i = 0; i < jadwalEl.options.length; i++) {
-            if (jadwalEl.options[i].value === jadwalVal) { exists = true; break; }
-          }
-          if (!exists && jadwalVal) {
-            var opt = document.createElement('option');
-            opt.value = jadwalVal;
-            opt.text = jadwalVal + ' (custom)';
-            jadwalEl.appendChild(opt);
-          }
-          jadwalEl.value = jadwalVal;
-        }
+        document.getElementById('edit_jadwal').value = btn.getAttribute('data-jadwal') || '';
         document.getElementById('edit_pendidikan').value = btn.getAttribute('data-pendidikan') || '';
         var jurEl = document.getElementById('edit_jurusan');
         if (jurEl) jurEl.value = btn.getAttribute('data-jurusan') || '';
