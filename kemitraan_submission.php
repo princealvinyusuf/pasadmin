@@ -313,13 +313,38 @@ if ($kemitraans === false) {
 // Fetch Detail Lowongan (new feature) - map by kemitraan_id
 $detailLowonganByKemitraan = [];
 if (table_exists($conn, 'kemitraan_detail_lowongan')) {
-    $dlRes = $conn->query("SELECT kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan, gender, pendidikan_terakhir, pengalaman_kerja, kompetensi_yang_dibutuhkan, tahapan_seleksi, lokasi_penempatan FROM kemitraan_detail_lowongan ORDER BY kemitraan_id ASC, id ASC");
+    $hasNamaPerusahaanCol = false;
+    if ($colRes = $conn->query("SHOW COLUMNS FROM kemitraan_detail_lowongan LIKE 'nama_perusahaan'")) {
+        $hasNamaPerusahaanCol = $colRes->num_rows > 0;
+        $colRes->free();
+    }
+    $namaPerusahaanSelect = $hasNamaPerusahaanCol ? ", nama_perusahaan" : "";
+    $dlRes = $conn->query("SELECT kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan, gender, pendidikan_terakhir, pengalaman_kerja, kompetensi_yang_dibutuhkan, tahapan_seleksi, lokasi_penempatan{$namaPerusahaanSelect} FROM kemitraan_detail_lowongan ORDER BY kemitraan_id ASC, id ASC");
     if ($dlRes) {
         while ($dl = $dlRes->fetch_assoc()) {
             $kid = intval($dl['kemitraan_id']);
             if (!isset($detailLowonganByKemitraan[$kid])) {
                 $detailLowonganByKemitraan[$kid] = [];
             }
+
+            $namaPerusahaan = [];
+            if ($hasNamaPerusahaanCol && isset($dl['nama_perusahaan']) && $dl['nama_perusahaan'] !== null && $dl['nama_perusahaan'] !== '') {
+                $decoded = json_decode($dl['nama_perusahaan'], true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $name) {
+                        $name = trim((string) $name);
+                        if ($name !== '') {
+                            $namaPerusahaan[] = $name;
+                        }
+                    }
+                } else {
+                    $single = trim((string) $dl['nama_perusahaan']);
+                    if ($single !== '') {
+                        $namaPerusahaan[] = $single;
+                    }
+                }
+            }
+
             $detailLowonganByKemitraan[$kid][] = [
                 'jabatan_yang_dibuka' => $dl['jabatan_yang_dibuka'] ?? '',
                 'jumlah_kebutuhan' => $dl['jumlah_kebutuhan'] ?? '',
@@ -329,6 +354,7 @@ if (table_exists($conn, 'kemitraan_detail_lowongan')) {
                 'kompetensi_yang_dibutuhkan' => $dl['kompetensi_yang_dibutuhkan'] ?? '',
                 'tahapan_seleksi' => $dl['tahapan_seleksi'] ?? '',
                 'lokasi_penempatan' => $dl['lokasi_penempatan'] ?? '',
+                'nama_perusahaan' => $namaPerusahaan,
             ];
         }
         $dlRes->free();
@@ -653,6 +679,11 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                         <div><span class="text-muted">Pendidikan Terakhir:</span> ${escapeHtml(l.pendidikan_terakhir || '-')}</div>
                         <div><span class="text-muted">Pengalaman Kerja:</span> ${escapeHtml(l.pengalaman_kerja || '-')}</div>
                         <div><span class="text-muted">Lokasi Penempatan:</span> ${escapeHtml(l.lokasi_penempatan || '-')}</div>
+                        <div><span class="text-muted">Nama Perusahaan:</span> ${
+                          (Array.isArray(l.nama_perusahaan) && l.nama_perusahaan.length > 0)
+                            ? escapeHtml(l.nama_perusahaan.join(', '))
+                            : '-'
+                        }</div>
                         <div class="mt-2"><span class="text-muted">Kompetensi Yang Dibutuhkan:</span><br>${escapeHtml(l.kompetensi_yang_dibutuhkan || '-')}</div>
                         <div class="mt-2"><span class="text-muted">Tahapan Seleksi:</span><br>${escapeHtml(l.tahapan_seleksi || '-')}</div>
                       </div>
