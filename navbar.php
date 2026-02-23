@@ -78,6 +78,7 @@
     $canCareerBoostDayBooked = current_user_can('career_boost_day_booked_view') || $canManageSettings;
     $canFormHasilKonseling = current_user_can('form_hasil_konseling_manage') || $canManageSettings;
     $canCareerBoostDaySlot = $canCareerBoostDay; // same permission
+    $canWalkinSurvey = current_user_can('walkin_survey_manage') || $canManageSettings;
 
     $hasLayanan = (
         $canManageSettings ||
@@ -90,6 +91,7 @@
         $canCareerBoostDayPic ||
         $canCareerBoostDayBooked ||
         $canFormHasilKonseling
+        || $canWalkinSurvey
     );
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
     $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan);
@@ -206,6 +208,8 @@
                         <?php if ($canCareerBoostDayPic): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_pic.php">Career Boost Day PIC</a></li><?php endif; ?>
                         <?php if ($canCareerBoostDayBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_booked.php">Career Boost Day Booked</a></li><?php endif; ?>
                         <?php if ($canFormHasilKonseling): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>form_hasil_konseling.php">Form Hasil Konseling</a></li><?php endif; ?>
+                        <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_company_settings.php">Walk-in Survey Companies</a></li><?php endif; ?>
+                        <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_responses.php">Walk-in Survey Responses</a></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_gallery.php"><i class="bi bi-images me-1"></i>Walk-in Gallery</a></li><?php endif; ?>
                     </ul>

@@ -69,6 +69,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		['jejaring_tahapan_manage','Manage Jejaring Tahapan','Jejaring'],
 		['settings_partnership_type_manage','Manage Partnership Types','Settings'],
 		['walkin_gallery_manage','Manage Walk-in Gallery','Layanan'],
+		['walkin_survey_manage','Manage Walk-in Survey','Layanan'],
 		['use_broadcast','Use Broadcast','Tools'],
 		['view_extensions','View Extensions','Tools'],
 		['view_db_sessions','View Active DB Sessions','Tools'],
