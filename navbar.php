@@ -208,6 +208,7 @@
                         <?php if ($canCareerBoostDayPic): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_pic.php">Career Boost Day PIC</a></li><?php endif; ?>
                         <?php if ($canCareerBoostDayBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_booked.php">Career Boost Day Booked</a></li><?php endif; ?>
                         <?php if ($canFormHasilKonseling): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>form_hasil_konseling.php">Form Hasil Konseling</a></li><?php endif; ?>
+                        <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_initiator_settings.php">Walk-in Survey Initiators</a></li><?php endif; ?>
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_company_settings.php">Walk-in Survey Companies</a></li><?php endif; ?>
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_responses.php">Walk-in Survey Responses</a></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><hr class="dropdown-divider"></li><?php endif; ?>

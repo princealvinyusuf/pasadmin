@@ -28,6 +28,14 @@ function table_exists(mysqli $conn, string $table): bool {
     return $res && $res->num_rows > 0;
 }
 
+function column_exists(mysqli $conn, string $table, string $column): bool {
+    $t = $conn->real_escape_string($table);
+    $c = $conn->real_escape_string($column);
+    $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$t' AND COLUMN_NAME = '$c' LIMIT 1";
+    $res = $conn->query($sql);
+    return $res && $res->num_rows > 0;
+}
+
 function clean_string(mysqli $conn, string $value): string {
     return trim($conn->real_escape_string($value));
 }
@@ -38,10 +46,23 @@ if (!table_exists($conn, 'company_walk_in_survey')) {
 
 $tableReady = table_exists($conn, 'company_walk_in_survey');
 $hasResponseTable = table_exists($conn, 'walk_in_survey_responses');
+$hasInitiatorTable = table_exists($conn, 'walk_in_survey_initiators');
+$hasInitiatorColumn = $tableReady && column_exists($conn, 'company_walk_in_survey', 'walk_in_initiator_id');
+
+$initiators = [];
+if ($hasInitiatorTable) {
+    $resInitiator = $conn->query("SELECT id, initiator_name FROM walk_in_survey_initiators WHERE is_active = 1 ORDER BY sort_order ASC, initiator_name ASC");
+    if ($resInitiator) {
+        while ($i = $resInitiator->fetch_assoc()) {
+            $initiators[] = $i;
+        }
+    }
+}
 
 if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
     $companyName = isset($_POST['company_name']) ? clean_string($conn, $_POST['company_name']) : '';
+    $initiatorId = isset($_POST['walk_in_initiator_id']) ? (int) $_POST['walk_in_initiator_id'] : 0;
     $sortOrder = isset($_POST['sort_order']) ? max(0, (int) $_POST['sort_order']) : 0;
     $isActive = isset($_POST['is_active']) ? 1 : 0;
 
@@ -50,11 +71,24 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: walkin_survey_company_settings.php');
         exit();
     }
+    if ($hasInitiatorColumn && $initiatorId <= 0) {
+        $_SESSION['error'] = 'Walk In Initiator wajib dipilih.';
+        header('Location: walkin_survey_company_settings.php');
+        exit();
+    }
 
     if ($id > 0) {
-        $stmt = $conn->prepare("UPDATE company_walk_in_survey SET company_name = ?, is_active = ?, sort_order = ?, updated_at = NOW() WHERE id = ?");
+        if ($hasInitiatorColumn) {
+            $stmt = $conn->prepare("UPDATE company_walk_in_survey SET company_name = ?, walk_in_initiator_id = ?, is_active = ?, sort_order = ?, updated_at = NOW() WHERE id = ?");
+        } else {
+            $stmt = $conn->prepare("UPDATE company_walk_in_survey SET company_name = ?, is_active = ?, sort_order = ?, updated_at = NOW() WHERE id = ?");
+        }
         if ($stmt) {
-            $stmt->bind_param('siii', $companyName, $isActive, $sortOrder, $id);
+            if ($hasInitiatorColumn) {
+                $stmt->bind_param('siiii', $companyName, $initiatorId, $isActive, $sortOrder, $id);
+            } else {
+                $stmt->bind_param('siii', $companyName, $isActive, $sortOrder, $id);
+            }
             $stmt->execute();
             $stmt->close();
             $_SESSION['success'] = 'Data perusahaan survey berhasil diperbarui.';
@@ -62,9 +96,17 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = 'Gagal update data: ' . $conn->error;
         }
     } else {
-        $stmt = $conn->prepare("INSERT INTO company_walk_in_survey (company_name, is_active, sort_order, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())");
+        if ($hasInitiatorColumn) {
+            $stmt = $conn->prepare("INSERT INTO company_walk_in_survey (company_name, walk_in_initiator_id, is_active, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
+        } else {
+            $stmt = $conn->prepare("INSERT INTO company_walk_in_survey (company_name, is_active, sort_order, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())");
+        }
         if ($stmt) {
-            $stmt->bind_param('sii', $companyName, $isActive, $sortOrder);
+            if ($hasInitiatorColumn) {
+                $stmt->bind_param('siii', $companyName, $initiatorId, $isActive, $sortOrder);
+            } else {
+                $stmt->bind_param('sii', $companyName, $isActive, $sortOrder);
+            }
             $stmt->execute();
             $stmt->close();
             $_SESSION['success'] = 'Data perusahaan survey berhasil ditambahkan.';
@@ -112,6 +154,13 @@ if ($tableReady && isset($_GET['delete'])) {
 $rows = [];
 if ($tableReady) {
     $sql = "SELECT c.id, c.company_name, c.is_active, c.sort_order, c.created_at, c.updated_at";
+    if ($hasInitiatorColumn && $hasInitiatorTable) {
+        $sql .= ", c.walk_in_initiator_id, i.initiator_name";
+    } elseif ($hasInitiatorColumn) {
+        $sql .= ", c.walk_in_initiator_id, NULL AS initiator_name";
+    } else {
+        $sql .= ", NULL AS walk_in_initiator_id, NULL AS initiator_name";
+    }
     if ($hasResponseTable) {
         $sql .= ", COUNT(r.id) AS response_count
                  FROM company_walk_in_survey c
@@ -119,8 +168,15 @@ if ($tableReady) {
     } else {
         $sql .= ", 0 AS response_count FROM company_walk_in_survey c";
     }
-    $sql .= " GROUP BY c.id, c.company_name, c.is_active, c.sort_order, c.created_at, c.updated_at
-              ORDER BY c.sort_order ASC, c.company_name ASC";
+    if ($hasInitiatorColumn && $hasInitiatorTable) {
+        $sql .= " LEFT JOIN walk_in_survey_initiators i ON i.id = c.walk_in_initiator_id";
+        $sql .= " GROUP BY c.id, c.company_name, c.walk_in_initiator_id, i.initiator_name, c.is_active, c.sort_order, c.created_at, c.updated_at";
+    } elseif ($hasInitiatorColumn) {
+        $sql .= " GROUP BY c.id, c.company_name, c.walk_in_initiator_id, c.is_active, c.sort_order, c.created_at, c.updated_at";
+    } else {
+        $sql .= " GROUP BY c.id, c.company_name, c.is_active, c.sort_order, c.created_at, c.updated_at";
+    }
+    $sql .= " ORDER BY c.sort_order ASC, c.company_name ASC";
 
     $res = $conn->query($sql);
     if ($res) {
@@ -142,7 +198,10 @@ if ($tableReady) {
 <body class="bg-light">
 <?php include 'navbar.php'; ?>
 <div class="container mt-4">
-    <h3 class="mb-3">Walk-in Survey Company Settings</h3>
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="mb-0">Walk-in Survey Company Settings</h3>
+        <a href="walkin_survey_initiator_settings.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-people me-1"></i>Manage Initiators</a>
+    </div>
 
     <?php if (isset($_SESSION['error'])): ?>
         <div class="alert alert-danger"><?php echo htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?></div>
@@ -159,6 +218,20 @@ if ($tableReady) {
                     <label class="form-label">Nama Perusahaan</label>
                     <input type="text" class="form-control" name="company_name" id="form_company_name" required>
                 </div>
+                <?php if ($hasInitiatorColumn): ?>
+                <div class="col-md-4">
+                    <label class="form-label">Walk In Initiator</label>
+                    <select class="form-select" name="walk_in_initiator_id" id="form_walk_in_initiator_id" required>
+                        <option value="">Pilih initiator</option>
+                        <?php if (empty($initiators)): ?>
+                            <option value="" disabled>Belum ada initiator aktif</option>
+                        <?php endif; ?>
+                        <?php foreach ($initiators as $i): ?>
+                            <option value="<?php echo (int) $i['id']; ?>"><?php echo htmlspecialchars($i['initiator_name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
                 <div class="col-md-2">
                     <label class="form-label">Urutan</label>
                     <input type="number" min="0" class="form-control" name="sort_order" id="form_sort_order" value="0" required>
@@ -183,6 +256,7 @@ if ($tableReady) {
                 <tr>
                     <th style="width:70px;">ID</th>
                     <th>Nama Perusahaan</th>
+                    <?php if ($hasInitiatorColumn): ?><th>Walk In Initiator</th><?php endif; ?>
                     <th style="width:100px;">Urutan</th>
                     <th style="width:110px;">Status</th>
                     <th style="width:130px;">Responses</th>
@@ -191,11 +265,12 @@ if ($tableReady) {
             </thead>
             <tbody>
                 <?php if (empty($rows)): ?>
-                    <tr><td colspan="6" class="text-center text-muted">Belum ada data perusahaan survey.</td></tr>
+                    <tr><td colspan="<?php echo $hasInitiatorColumn ? '7' : '6'; ?>" class="text-center text-muted">Belum ada data perusahaan survey.</td></tr>
                 <?php else: foreach ($rows as $r): ?>
                     <tr>
                         <td><?php echo (int) $r['id']; ?></td>
                         <td><?php echo htmlspecialchars($r['company_name']); ?></td>
+                        <?php if ($hasInitiatorColumn): ?><td><?php echo htmlspecialchars((string) ($r['initiator_name'] ?? '-')); ?></td><?php endif; ?>
                         <td><?php echo (int) $r['sort_order']; ?></td>
                         <td>
                             <?php if ((int) $r['is_active'] === 1): ?>
@@ -220,6 +295,9 @@ if ($tableReady) {
 function editRow(row) {
     document.getElementById('form_id').value = row.id || '';
     document.getElementById('form_company_name').value = row.company_name || '';
+    if (document.getElementById('form_walk_in_initiator_id')) {
+        document.getElementById('form_walk_in_initiator_id').value = row.walk_in_initiator_id || '';
+    }
     document.getElementById('form_sort_order').value = row.sort_order || 0;
     document.getElementById('form_is_active').checked = Number(row.is_active) === 1;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -228,6 +306,9 @@ function editRow(row) {
 function resetForm() {
     document.getElementById('form_id').value = '';
     document.getElementById('form_company_name').value = '';
+    if (document.getElementById('form_walk_in_initiator_id')) {
+        document.getElementById('form_walk_in_initiator_id').value = '';
+    }
     document.getElementById('form_sort_order').value = 0;
     document.getElementById('form_is_active').checked = true;
 }

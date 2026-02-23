@@ -28,6 +28,14 @@ function table_exists(mysqli $conn, string $table): bool {
     return $res && $res->num_rows > 0;
 }
 
+function column_exists(mysqli $conn, string $table, string $column): bool {
+    $t = $conn->real_escape_string($table);
+    $c = $conn->real_escape_string($column);
+    $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$t' AND COLUMN_NAME = '$c' LIMIT 1";
+    $res = $conn->query($sql);
+    return $res && $res->num_rows > 0;
+}
+
 function decode_json_array($value): array {
     if (!is_string($value) || $value === '') {
         return [];
@@ -37,6 +45,7 @@ function decode_json_array($value): array {
 }
 
 $hasResponseTable = table_exists($conn, 'walk_in_survey_responses');
+$hasInitiatorSnapshotCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'walkin_initiator_snapshot');
 if (!$hasResponseTable) {
     $_SESSION['error'] = 'Table walk_in_survey_responses belum ada. Jalankan migration Laravel terlebih dahulu.';
 }
@@ -85,7 +94,8 @@ if ($hasResponseTable && $viewId > 0) {
 
 $rows = [];
 if ($hasResponseTable) {
-    $sql = "SELECT id, company_name_snapshot, walkin_date, name, email, phone, rating_satisfaction, created_at
+    $initiatorSelect = $hasInitiatorSnapshotCol ? 'walkin_initiator_snapshot' : 'NULL AS walkin_initiator_snapshot';
+    $sql = "SELECT id, company_name_snapshot, {$initiatorSelect}, walkin_date, name, email, phone, rating_satisfaction, created_at
             FROM walk_in_survey_responses
             WHERE 1=1";
     $types = '';
@@ -151,7 +161,10 @@ if ($hasResponseTable) {
 <div class="container mt-4">
     <div class="d-flex align-items-center justify-content-between mb-3">
         <h3 class="mb-0">Walk-in Survey Responses</h3>
-        <a href="walkin_survey_company_settings.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-building me-1"></i>Manage Companies</a>
+        <div class="d-flex gap-2">
+            <a href="walkin_survey_initiator_settings.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-people me-1"></i>Manage Initiators</a>
+            <a href="walkin_survey_company_settings.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-building me-1"></i>Manage Companies</a>
+        </div>
     </div>
 
     <?php if (isset($_SESSION['error'])): ?>
@@ -196,6 +209,7 @@ if ($hasResponseTable) {
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6"><strong>Perusahaan:</strong> <?php echo htmlspecialchars($selected['company_name_snapshot']); ?></div>
+                    <div class="col-md-6"><strong>Walk In Initiator:</strong> <?php echo htmlspecialchars((string) ($selected['walkin_initiator_snapshot'] ?? '-')); ?></div>
                     <div class="col-md-3"><strong>Tanggal Walk In:</strong> <?php echo htmlspecialchars((string) ($selected['walkin_date'] ?? '-')); ?></div>
                     <div class="col-md-3"><strong>Tanggal Submit:</strong> <?php echo htmlspecialchars((string) $selected['created_at']); ?></div>
                     <div class="col-md-4"><strong>Nama:</strong> <?php echo htmlspecialchars($selected['name']); ?></div>
@@ -227,6 +241,7 @@ if ($hasResponseTable) {
                 <tr>
                     <th style="width:70px;">ID</th>
                     <th>Perusahaan</th>
+                    <th>Walk In Initiator</th>
                     <th>Nama</th>
                     <th>Email</th>
                     <th style="width:140px;">Tgl Walk In</th>
@@ -237,11 +252,12 @@ if ($hasResponseTable) {
             </thead>
             <tbody>
                 <?php if (empty($rows)): ?>
-                    <tr><td colspan="8" class="text-center text-muted">Belum ada data response survey.</td></tr>
+                    <tr><td colspan="9" class="text-center text-muted">Belum ada data response survey.</td></tr>
                 <?php else: foreach ($rows as $r): ?>
                     <tr>
                         <td><?php echo (int) $r['id']; ?></td>
                         <td><?php echo htmlspecialchars($r['company_name_snapshot']); ?></td>
+                        <td><?php echo htmlspecialchars((string) ($r['walkin_initiator_snapshot'] ?? '-')); ?></td>
                         <td><?php echo htmlspecialchars($r['name']); ?></td>
                         <td><?php echo htmlspecialchars($r['email']); ?></td>
                         <td><?php echo htmlspecialchars((string) ($r['walkin_date'] ?? '-')); ?></td>
