@@ -85,7 +85,7 @@ if ($hasResponseTable && $viewId > 0) {
 
 $rows = [];
 if ($hasResponseTable) {
-    $sql = "SELECT id, company_name_snapshot, name, email, phone, rating_satisfaction, created_at
+    $sql = "SELECT id, company_name_snapshot, walkin_date, name, email, phone, rating_satisfaction, created_at
             FROM walk_in_survey_responses
             WHERE 1=1";
     $types = '';
@@ -196,7 +196,8 @@ if ($hasResponseTable) {
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6"><strong>Perusahaan:</strong> <?php echo htmlspecialchars($selected['company_name_snapshot']); ?></div>
-                    <div class="col-md-6"><strong>Tanggal Submit:</strong> <?php echo htmlspecialchars((string) $selected['created_at']); ?></div>
+                    <div class="col-md-3"><strong>Tanggal Walk In:</strong> <?php echo htmlspecialchars((string) ($selected['walkin_date'] ?? '-')); ?></div>
+                    <div class="col-md-3"><strong>Tanggal Submit:</strong> <?php echo htmlspecialchars((string) $selected['created_at']); ?></div>
                     <div class="col-md-4"><strong>Nama:</strong> <?php echo htmlspecialchars($selected['name']); ?></div>
                     <div class="col-md-4"><strong>Email:</strong> <?php echo htmlspecialchars($selected['email']); ?></div>
                     <div class="col-md-4"><strong>Phone:</strong> <?php echo htmlspecialchars($selected['phone']); ?></div>
@@ -228,6 +229,7 @@ if ($hasResponseTable) {
                     <th>Perusahaan</th>
                     <th>Nama</th>
                     <th>Email</th>
+                    <th style="width:140px;">Tgl Walk In</th>
                     <th style="width:110px;">Kepuasan</th>
                     <th style="width:180px;">Submitted</th>
                     <th style="width:150px;">Actions</th>
@@ -235,13 +237,14 @@ if ($hasResponseTable) {
             </thead>
             <tbody>
                 <?php if (empty($rows)): ?>
-                    <tr><td colspan="7" class="text-center text-muted">Belum ada data response survey.</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted">Belum ada data response survey.</td></tr>
                 <?php else: foreach ($rows as $r): ?>
                     <tr>
                         <td><?php echo (int) $r['id']; ?></td>
                         <td><?php echo htmlspecialchars($r['company_name_snapshot']); ?></td>
                         <td><?php echo htmlspecialchars($r['name']); ?></td>
                         <td><?php echo htmlspecialchars($r['email']); ?></td>
+                        <td><?php echo htmlspecialchars((string) ($r['walkin_date'] ?? '-')); ?></td>
                         <td><?php echo (int) $r['rating_satisfaction']; ?>/5</td>
                         <td><?php echo htmlspecialchars((string) $r['created_at']); ?></td>
                         <td>
