@@ -44,6 +44,40 @@ function decode_json_array($value): array {
     return is_array($decoded) ? $decoded : [];
 }
 
+function fetch_rows_with_params(mysqli $conn, string $sql, string $types, array $params): array {
+    $rows = [];
+    if ($types === '') {
+        $res = $conn->query($sql);
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $rows[] = $row;
+            }
+        }
+        return $rows;
+    }
+
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        return $rows;
+    }
+
+    $bindParams = [];
+    $bindParams[] = &$types;
+    foreach ($params as $k => $value) {
+        $bindParams[] = &$params[$k];
+    }
+    call_user_func_array([$stmt, 'bind_param'], $bindParams);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $rows[] = $row;
+        }
+    }
+    $stmt->close();
+    return $rows;
+}
+
 $hasResponseTable = table_exists($conn, 'walk_in_survey_responses');
 $hasInitiatorSnapshotCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'walkin_initiator_snapshot');
 $hasWalkinDateCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'walkin_date');
@@ -70,8 +104,21 @@ $companies = [];
 $filtersApplied = false;
 $search = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
 $companyId = isset($_GET['company_id']) ? (int) $_GET['company_id'] : 0;
-$filterDate = isset($_GET['date']) ? trim((string) $_GET['date']) : '';
-$filterDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', $filterDate) ? $filterDate : '';
+$singleDate = isset($_GET['date']) ? trim((string) $_GET['date']) : '';
+$singleDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', $singleDate) ? $singleDate : '';
+$filterDateFrom = isset($_GET['date_from']) ? trim((string) $_GET['date_from']) : '';
+$filterDateFrom = preg_match('/^\d{4}-\d{2}-\d{2}$/', $filterDateFrom) ? $filterDateFrom : '';
+$filterDateTo = isset($_GET['date_to']) ? trim((string) $_GET['date_to']) : '';
+$filterDateTo = preg_match('/^\d{4}-\d{2}-\d{2}$/', $filterDateTo) ? $filterDateTo : '';
+if ($singleDate !== '' && $filterDateFrom === '' && $filterDateTo === '') {
+    $filterDateFrom = $singleDate;
+    $filterDateTo = $singleDate;
+}
+if ($filterDateFrom !== '' && $filterDateTo !== '' && $filterDateFrom > $filterDateTo) {
+    $tmp = $filterDateFrom;
+    $filterDateFrom = $filterDateTo;
+    $filterDateTo = $tmp;
+}
 $viewId = isset($_GET['view']) ? (int) $_GET['view'] : 0;
 
 if (table_exists($conn, 'company_walk_in_survey')) {
@@ -96,23 +143,21 @@ if ($hasResponseTable && $viewId > 0) {
 }
 
 $rows = [];
+$exportRows = [];
 if ($hasResponseTable) {
-    $initiatorSelect = $hasInitiatorSnapshotCol ? 'walkin_initiator_snapshot' : 'NULL AS walkin_initiator_snapshot';
-    $walkinDateSelect = $hasWalkinDateCol ? 'walkin_date' : 'NULL AS walkin_date';
-    $sql = "SELECT id, company_name_snapshot, {$initiatorSelect}, {$walkinDateSelect}, name, email, phone, rating_satisfaction, created_at
-            FROM walk_in_survey_responses
-            WHERE 1=1";
+    $dateExpr = $hasWalkinDateCol ? 'DATE(walkin_date)' : 'DATE(created_at)';
+    $whereSql = " WHERE 1=1";
     $types = '';
     $params = [];
 
     if ($companyId > 0) {
-        $sql .= " AND company_walk_in_survey_id = ?";
+        $whereSql .= " AND company_walk_in_survey_id = ?";
         $types .= 'i';
         $params[] = $companyId;
         $filtersApplied = true;
     }
     if ($search !== '') {
-        $sql .= " AND (name LIKE ? OR email LIKE ? OR company_name_snapshot LIKE ?)";
+        $whereSql .= " AND (name LIKE ? OR email LIKE ? OR company_name_snapshot LIKE ?)";
         $like = '%' . $search . '%';
         $types .= 'sss';
         $params[] = $like;
@@ -120,42 +165,40 @@ if ($hasResponseTable) {
         $params[] = $like;
         $filtersApplied = true;
     }
-    if ($filterDate !== '') {
-        $sql .= $hasWalkinDateCol ? " AND DATE(walkin_date) = ?" : " AND DATE(created_at) = ?";
+    if ($filterDateFrom !== '' && $filterDateTo !== '') {
+        $whereSql .= " AND {$dateExpr} BETWEEN ? AND ?";
+        $types .= 'ss';
+        $params[] = $filterDateFrom;
+        $params[] = $filterDateTo;
+        $filtersApplied = true;
+    } elseif ($filterDateFrom !== '') {
+        $whereSql .= " AND {$dateExpr} >= ?";
         $types .= 's';
-        $params[] = $filterDate;
+        $params[] = $filterDateFrom;
+        $filtersApplied = true;
+    } elseif ($filterDateTo !== '') {
+        $whereSql .= " AND {$dateExpr} <= ?";
+        $types .= 's';
+        $params[] = $filterDateTo;
         $filtersApplied = true;
     }
 
-    $sql .= " ORDER BY id DESC LIMIT 500";
+    $initiatorSelect = $hasInitiatorSnapshotCol ? 'walkin_initiator_snapshot' : 'NULL AS walkin_initiator_snapshot';
+    $walkinDateSelect = $hasWalkinDateCol ? 'walkin_date' : 'NULL AS walkin_date';
+    $sql = "SELECT id, company_name_snapshot, {$initiatorSelect}, {$walkinDateSelect}, name, email, phone, rating_satisfaction, created_at
+            FROM walk_in_survey_responses" . $whereSql . " ORDER BY id DESC LIMIT 500";
+    $rows = fetch_rows_with_params($conn, $sql, $types, $params);
 
-    if ($types === '') {
-        $res = $conn->query($sql);
-        if ($res) {
-            while ($row = $res->fetch_assoc()) {
-                $rows[] = $row;
-            }
-        }
-    } else {
-        $stmt = $conn->prepare($sql);
-        if ($stmt) {
-            $bindParams = [];
-            $bindParams[] = &$types;
-            foreach ($params as $k => $value) {
-                $bindParams[] = &$params[$k];
-            }
-            call_user_func_array([$stmt, 'bind_param'], $bindParams);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            if ($res) {
-                while ($row = $res->fetch_assoc()) {
-                    $rows[] = $row;
-                }
-            }
-            $stmt->close();
-        }
-    }
+    // Export includes complete filtered rows from DB (not only visible columns in the table).
+    $exportSql = "SELECT * FROM walk_in_survey_responses" . $whereSql . " ORDER BY id DESC";
+    $exportRows = fetch_rows_with_params($conn, $exportSql, $types, $params);
 }
+
+$filterQuery = [];
+if ($search !== '') $filterQuery['q'] = $search;
+if ($companyId > 0) $filterQuery['company_id'] = $companyId;
+if ($filterDateFrom !== '') $filterQuery['date_from'] = $filterDateFrom;
+if ($filterDateTo !== '') $filterQuery['date_to'] = $filterDateTo;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -187,7 +230,7 @@ if ($hasResponseTable) {
     <div class="card mb-3">
         <div class="card-body">
             <form method="get" class="row g-2">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label mb-1">Search</label>
                     <input type="text" class="form-control" name="q" value="<?php echo htmlspecialchars($search); ?>" placeholder="Nama / email / perusahaan">
                 </div>
@@ -203,10 +246,14 @@ if ($hasResponseTable) {
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label mb-1">Date</label>
-                    <input type="date" class="form-control" name="date" value="<?php echo htmlspecialchars($filterDate); ?>">
+                    <label class="form-label mb-1">Date From</label>
+                    <input type="date" class="form-control" name="date_from" value="<?php echo htmlspecialchars($filterDateFrom); ?>">
                 </div>
-                <div class="col-md-3 d-flex align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label mb-1">Date To</label>
+                    <input type="date" class="form-control" name="date_to" value="<?php echo htmlspecialchars($filterDateTo); ?>">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
                     <button class="btn btn-primary me-2" type="submit"><i class="bi bi-search me-1"></i>Filter</button>
                     <a href="walkin_survey_responses.php" class="btn btn-secondary">Reset</a>
                     <button class="btn btn-success ms-2" type="button" id="btnDownloadExcel"><i class="bi bi-file-earmark-excel me-1"></i>Download To Excel</button>
@@ -219,7 +266,7 @@ if ($hasResponseTable) {
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Detail Response #<?php echo (int) $selected['id']; ?></strong>
-                <a href="walkin_survey_responses.php<?php echo $filtersApplied ? '?' . http_build_query(['q' => $search, 'company_id' => $companyId, 'date' => $filterDate]) : ''; ?>" class="btn btn-sm btn-outline-secondary">Tutup Detail</a>
+                <a href="walkin_survey_responses.php<?php echo $filtersApplied ? '?' . http_build_query($filterQuery) : ''; ?>" class="btn btn-sm btn-outline-secondary">Tutup Detail</a>
             </div>
             <div class="card-body">
                 <div class="row g-3">
@@ -279,7 +326,7 @@ if ($hasResponseTable) {
                         <td><?php echo (int) $r['rating_satisfaction']; ?>/5</td>
                         <td><?php echo htmlspecialchars((string) $r['created_at']); ?></td>
                         <td>
-                            <a class="btn btn-sm btn-outline-primary" href="?<?php echo http_build_query(['view' => (int) $r['id'], 'q' => $search, 'company_id' => $companyId, 'date' => $filterDate]); ?>">
+                            <a class="btn btn-sm btn-outline-primary" href="?<?php echo http_build_query(array_merge(['view' => (int) $r['id']], $filterQuery)); ?>">
                                 <i class="bi bi-eye"></i>
                             </a>
                             <a class="btn btn-sm btn-outline-danger" href="?delete=<?php echo (int) $r['id']; ?>" onclick="return confirm('Hapus response ini?');">
@@ -296,42 +343,51 @@ if ($hasResponseTable) {
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var btn = document.getElementById('btnDownloadExcel');
-    var table = document.getElementById('responsesTable');
-    if (!btn || !table || typeof XLSX === 'undefined') return;
+    if (!btn || typeof XLSX === 'undefined') return;
+    var exportRows = <?php echo json_encode($exportRows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
     btn.addEventListener('click', function () {
-        var headerCells = table.querySelectorAll('thead th');
-        if (!headerCells || headerCells.length === 0) return;
-
-        var headers = [];
-        for (var i = 0; i < headerCells.length - 1; i++) {
-            headers.push((headerCells[i].innerText || '').trim());
-        }
-
-        var bodyRows = table.querySelectorAll('tbody tr');
-        var data = [headers];
-        bodyRows.forEach(function (tr) {
-            var cells = tr.querySelectorAll('td');
-            if (!cells || cells.length < headers.length + 1) return;
-            if (cells.length === 1) return;
-
-            var row = [];
-            for (var i = 0; i < headers.length; i++) {
-                row.push((cells[i].innerText || '').trim());
-            }
-            data.push(row);
-        });
-
-        if (data.length <= 1) {
+        if (!Array.isArray(exportRows) || exportRows.length === 0) {
             alert('Tidak ada data untuk diexport.');
             return;
         }
+
+        var headerMap = {};
+        exportRows.forEach(function (rowObj) {
+            if (!rowObj || typeof rowObj !== 'object') return;
+            Object.keys(rowObj).forEach(function (key) {
+                headerMap[key] = true;
+            });
+        });
+        var headers = Object.keys(headerMap);
+        if (headers.length === 0) {
+            alert('Data export tidak valid.');
+            return;
+        }
+
+        var data = [headers];
+        exportRows.forEach(function (rowObj) {
+            var row = [];
+            headers.forEach(function (key) {
+                var v = rowObj && Object.prototype.hasOwnProperty.call(rowObj, key) ? rowObj[key] : '';
+                if (v === null || typeof v === 'undefined') v = '';
+                if (typeof v === 'object') v = JSON.stringify(v);
+                row.push(String(v));
+            });
+            data.push(row);
+        });
 
         var ws = XLSX.utils.aoa_to_sheet(data);
         var wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Survey Responses');
         var fileDate = new Date().toISOString().slice(0, 10);
-        XLSX.writeFile(wb, 'walkin_survey_responses_' + fileDate + '.xlsx');
+        var from = <?php echo json_encode($filterDateFrom); ?>;
+        var to = <?php echo json_encode($filterDateTo); ?>;
+        var suffix = '';
+        if (from || to) {
+            suffix = '_' + (from || 'all') + '_to_' + (to || 'all');
+        }
+        XLSX.writeFile(wb, 'walkin_survey_responses_full_' + fileDate + suffix + '.xlsx');
     });
 });
 </script>
