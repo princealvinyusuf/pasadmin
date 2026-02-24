@@ -162,11 +162,11 @@ if ($tableReady) {
         $sql .= ", NULL AS walk_in_initiator_id, NULL AS initiator_name";
     }
     if ($hasResponseTable) {
-        $sql .= ", COUNT(r.id) AS response_count, ROUND(AVG(r.rating_satisfaction), 2) AS average_rating
+        $sql .= ", COUNT(r.id) AS peserta_hadir_count, ROUND(AVG(r.rating_satisfaction), 2) AS average_rating
                  FROM company_walk_in_survey c
                  LEFT JOIN walk_in_survey_responses r ON r.company_walk_in_survey_id = c.id";
     } else {
-        $sql .= ", 0 AS response_count, NULL AS average_rating FROM company_walk_in_survey c";
+        $sql .= ", 0 AS peserta_hadir_count, NULL AS average_rating FROM company_walk_in_survey c";
     }
     if ($hasInitiatorColumn && $hasInitiatorTable) {
         $sql .= " LEFT JOIN walk_in_survey_initiators i ON i.id = c.walk_in_initiator_id";
@@ -259,14 +259,14 @@ if ($tableReady) {
                     <?php if ($hasInitiatorColumn): ?><th>Walk In Initiator</th><?php endif; ?>
                     <th style="width:100px;">Urutan</th>
                     <th style="width:110px;">Status</th>
-                    <th style="width:130px;">Responses</th>
+                    <th style="width:140px;">Peserta Hadir</th>
                     <th style="width:120px;">Ratings</th>
                     <th style="width:140px;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($rows)): ?>
-                    <tr><td colspan="<?php echo $hasInitiatorColumn ? '8' : '7'; ?>" class="text-center text-muted">Belum ada data perusahaan survey.</td></tr>
+                    <tr><td colspan="<?php echo $hasInitiatorColumn ? '9' : '8'; ?>" class="text-center text-muted">Belum ada data perusahaan survey.</td></tr>
                 <?php else: foreach ($rows as $r): ?>
                     <tr>
                         <td><?php echo (int) $r['id']; ?></td>
@@ -280,7 +280,7 @@ if ($tableReady) {
                                 <span class="badge text-bg-secondary">Nonaktif</span>
                             <?php endif; ?>
                         </td>
-                        <td><?php echo (int) $r['response_count']; ?></td>
+                        <td><?php echo (int) $r['peserta_hadir_count']; ?></td>
                         <td>
                             <?php if ($r['average_rating'] !== null): ?>
                                 <?php echo htmlspecialchars(number_format((float) $r['average_rating'], 2)); ?>/5
