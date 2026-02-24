@@ -230,11 +230,11 @@ if ($filterDateTo !== '') $filterQuery['date_to'] = $filterDateTo;
     <div class="card mb-3">
         <div class="card-body">
             <form method="get" class="row g-2">
-                <div class="col-md-3">
+                <div class="col-md-6 col-xl-3">
                     <label class="form-label mb-1">Search</label>
                     <input type="text" class="form-control" name="q" value="<?php echo htmlspecialchars($search); ?>" placeholder="Nama / email / perusahaan">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-6 col-xl-3">
                     <label class="form-label mb-1">Perusahaan</label>
                     <select class="form-select" name="company_id">
                         <option value="0">Semua perusahaan</option>
@@ -245,18 +245,20 @@ if ($filterDateTo !== '') $filterQuery['date_to'] = $filterDateTo;
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-6 col-xl-2">
                     <label class="form-label mb-1">Date From</label>
                     <input type="date" class="form-control" name="date_from" value="<?php echo htmlspecialchars($filterDateFrom); ?>">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-6 col-xl-2">
                     <label class="form-label mb-1">Date To</label>
                     <input type="date" class="form-control" name="date_to" value="<?php echo htmlspecialchars($filterDateTo); ?>">
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button class="btn btn-primary me-2" type="submit"><i class="bi bi-search me-1"></i>Filter</button>
-                    <a href="walkin_survey_responses.php" class="btn btn-secondary">Reset</a>
-                    <button class="btn btn-success ms-2" type="button" id="btnDownloadExcel"><i class="bi bi-file-earmark-excel me-1"></i>Download To Excel</button>
+                <div class="col-12 col-xl-2 d-flex align-items-end">
+                    <div class="d-flex flex-wrap gap-2 w-100 justify-content-xl-end">
+                        <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Filter</button>
+                        <a href="walkin_survey_responses.php" class="btn btn-secondary">Reset</a>
+                        <button class="btn btn-success" type="button" id="btnDownloadExcel"><i class="bi bi-file-earmark-excel me-1"></i>Download To Excel</button>
+                    </div>
                 </div>
             </form>
         </div>
