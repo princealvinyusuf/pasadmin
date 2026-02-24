@@ -403,9 +403,9 @@ if ($dateTo !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
 }
 $where = !empty($whereClauses) ? ('WHERE ' . implode(' AND ', $whereClauses)) : '';
 
-// Download all filtered rows to Excel
+// Download all filtered rows (JSON for client-side XLSX generation)
 $export = isset($_GET['export']) ? trim((string)$_GET['export']) : '';
-if ($export === 'excel') {
+if ($export === 'json') {
     $exportRows = [];
     $sqlExport = "SELECT c.id, c.created_at, c.name, c.whatsapp, c.status, c.jenis_konseling, c.jadwal_konseling, c.pendidikan_terakhir, c.jurusan,
                          c.admin_status, p.name AS pic_name, c.booked_date, c.booked_time_start, c.booked_time_finish, c.keterangan, c.alasan
@@ -421,44 +421,15 @@ if ($export === 'excel') {
         $res = $stmt->get_result();
         if ($res) {
             while ($r = $res->fetch_assoc()) {
+                $r['created_at_gmt7'] = fmt_ts_gmt7((string)($r['created_at'] ?? ''));
                 $exportRows[] = $r;
             }
         }
         $stmt->close();
     }
 
-    $filename = 'career_boostday_' . date('Ymd_His') . '.xls';
-    header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
-    echo "\xEF\xBB\xBF";
-    echo '<table border="1">';
-    echo '<tr>';
-    echo '<th>ID</th><th>Timestamp (GMT+7)</th><th>Nama</th><th>WhatsApp</th><th>Status Peserta</th><th>Jenis Konseling</th><th>Jadwal Konseling</th><th>Pendidikan Terakhir</th><th>Jurusan</th><th>Status Admin</th><th>PIC</th><th>Tanggal Booked</th><th>Waktu Booked</th><th>Keterangan</th><th>Alasan Reject</th>';
-    echo '</tr>';
-    foreach ($exportRows as $r) {
-        $timeRange = '';
-        if (!empty($r['booked_time_start']) || !empty($r['booked_time_finish'])) {
-            $timeRange = trim(substr((string)($r['booked_time_start'] ?? ''), 0, 5) . ' - ' . substr((string)($r['booked_time_finish'] ?? ''), 0, 5), ' -');
-        }
-        echo '<tr>';
-        echo '<td>' . h($r['id'] ?? '') . '</td>';
-        echo '<td>' . h(fmt_ts_gmt7($r['created_at'] ?? '')) . '</td>';
-        echo '<td>' . h($r['name'] ?? '') . '</td>';
-        echo '<td>' . h($r['whatsapp'] ?? '') . '</td>';
-        echo '<td>' . h($r['status'] ?? '') . '</td>';
-        echo '<td>' . h($r['jenis_konseling'] ?? '') . '</td>';
-        echo '<td>' . h($r['jadwal_konseling'] ?? '') . '</td>';
-        echo '<td>' . h($r['pendidikan_terakhir'] ?? '') . '</td>';
-        echo '<td>' . h($r['jurusan'] ?? '') . '</td>';
-        echo '<td>' . h($r['admin_status'] ?? '') . '</td>';
-        echo '<td>' . h($r['pic_name'] ?? '') . '</td>';
-        echo '<td>' . h($r['booked_date'] ?? '') . '</td>';
-        echo '<td>' . h($timeRange) . '</td>';
-        echo '<td>' . h($r['keterangan'] ?? '') . '</td>';
-        echo '<td>' . h($r['alasan'] ?? '') . '</td>';
-        echo '</tr>';
-    }
-    echo '</table>';
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['rows' => $exportRows], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -611,12 +582,17 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
             <input class="form-control" name="q" value="<?php echo h($q); ?>" placeholder="Cari nama / WA / status / jadwal" style="min-width: 220px;">
             <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Cari</button>
             <?php
-                $excelUrl = '?export=excel';
+                $excelUrl = '?export=json';
                 if ($q !== '') $excelUrl .= '&q=' . urlencode($q);
                 if ($dateFrom !== '') $excelUrl .= '&date_from=' . urlencode($dateFrom);
                 if ($dateTo !== '') $excelUrl .= '&date_to=' . urlencode($dateTo);
             ?>
-            <a class="btn btn-success" href="<?php echo h($excelUrl); ?>"><i class="bi bi-file-earmark-excel me-1"></i>Download To Excel</a>
+            <button
+                id="btnDownloadExcel"
+                type="button"
+                class="btn btn-success"
+                data-export-url="<?php echo h($excelUrl); ?>"
+            ><i class="bi bi-file-earmark-excel me-1"></i>Download To Excel</button>
             </form>
         </div>
     </div>
@@ -961,8 +937,62 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
   (function () {
+    var excelBtn = document.getElementById('btnDownloadExcel');
+    if (excelBtn) {
+      excelBtn.addEventListener('click', async function () {
+        var originalHtml = excelBtn.innerHTML;
+        excelBtn.disabled = true;
+        excelBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Exporting...';
+        try {
+          var url = excelBtn.getAttribute('data-export-url') || '?export=json';
+          var res = await fetch(url, { credentials: 'same-origin' });
+          if (!res.ok) throw new Error('Gagal mengambil data export.');
+          var payload = await res.json();
+          var rows = Array.isArray(payload.rows) ? payload.rows : [];
+
+          var exportRows = rows.map(function (r) {
+            var timeStart = (r.booked_time_start || '').toString().slice(0, 5);
+            var timeFinish = (r.booked_time_finish || '').toString().slice(0, 5);
+            var bookedTime = [timeStart, timeFinish].filter(Boolean).join(' - ');
+            return {
+              'ID': r.id || '',
+              'Timestamp (GMT+7)': r.created_at_gmt7 || r.created_at || '',
+              'Nama': r.name || '',
+              'WhatsApp': r.whatsapp || '',
+              'Status Peserta': r.status || '',
+              'Jenis Konseling': r.jenis_konseling || '',
+              'Jadwal Konseling': r.jadwal_konseling || '',
+              'Pendidikan Terakhir': r.pendidikan_terakhir || '',
+              'Jurusan': r.jurusan || '',
+              'Status Admin': r.admin_status || '',
+              'PIC': r.pic_name || '',
+              'Tanggal Booked': r.booked_date || '',
+              'Waktu Booked': bookedTime,
+              'Keterangan': r.keterangan || '',
+              'Alasan Reject': r.alasan || ''
+            };
+          });
+
+          var ws = XLSX.utils.json_to_sheet(exportRows);
+          var wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Career Boostday');
+
+          var d = new Date();
+          var pad = function (n) { return String(n).padStart(2, '0'); };
+          var fileName = 'career_boostday_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '_' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds()) + '.xlsx';
+          XLSX.writeFile(wb, fileName);
+        } catch (err) {
+          alert((err && err.message) ? err.message : 'Export gagal.');
+        } finally {
+          excelBtn.disabled = false;
+          excelBtn.innerHTML = originalHtml;
+        }
+      });
+    }
+
     var editModal = document.getElementById('editModal');
     if (editModal) {
       editModal.addEventListener('show.bs.modal', function (event) {
