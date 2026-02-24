@@ -346,6 +346,39 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!btn || typeof XLSX === 'undefined') return;
     var exportRows = <?php echo json_encode($exportRows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
+    function toExcelCellValue(v) {
+        if (v === null || typeof v === 'undefined') return '';
+        if (Array.isArray(v)) {
+            return v.map(function (item) { return String(item == null ? '' : item).trim(); }).filter(Boolean).join(', ');
+        }
+        if (typeof v === 'object') {
+            try {
+                return JSON.stringify(v);
+            } catch (e) {
+                return String(v);
+            }
+        }
+
+        var str = String(v);
+        var trimmed = str.trim();
+        if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+            try {
+                var parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) {
+                    return parsed.map(function (item) { return String(item == null ? '' : item).trim(); }).filter(Boolean).join(', ');
+                }
+                if (parsed && typeof parsed === 'object') {
+                    return Object.keys(parsed).map(function (key) {
+                        return key + ': ' + String(parsed[key] == null ? '' : parsed[key]);
+                    }).join(', ');
+                }
+            } catch (e) {
+                // Keep original text when not valid JSON.
+            }
+        }
+        return str;
+    }
+
     btn.addEventListener('click', function () {
         if (!Array.isArray(exportRows) || exportRows.length === 0) {
             alert('Tidak ada data untuk diexport.');
@@ -370,9 +403,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var row = [];
             headers.forEach(function (key) {
                 var v = rowObj && Object.prototype.hasOwnProperty.call(rowObj, key) ? rowObj[key] : '';
-                if (v === null || typeof v === 'undefined') v = '';
-                if (typeof v === 'object') v = JSON.stringify(v);
-                row.push(String(v));
+                row.push(toExcelCellValue(v));
             });
             data.push(row);
         });
