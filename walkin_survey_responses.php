@@ -46,6 +46,7 @@ function decode_json_array($value): array {
 
 $hasResponseTable = table_exists($conn, 'walk_in_survey_responses');
 $hasInitiatorSnapshotCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'walkin_initiator_snapshot');
+$hasWalkinDateCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'walkin_date');
 if (!$hasResponseTable) {
     $_SESSION['error'] = 'Table walk_in_survey_responses belum ada. Jalankan migration Laravel terlebih dahulu.';
 }
@@ -69,6 +70,8 @@ $companies = [];
 $filtersApplied = false;
 $search = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
 $companyId = isset($_GET['company_id']) ? (int) $_GET['company_id'] : 0;
+$filterDate = isset($_GET['date']) ? trim((string) $_GET['date']) : '';
+$filterDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', $filterDate) ? $filterDate : '';
 $viewId = isset($_GET['view']) ? (int) $_GET['view'] : 0;
 
 if (table_exists($conn, 'company_walk_in_survey')) {
@@ -95,7 +98,8 @@ if ($hasResponseTable && $viewId > 0) {
 $rows = [];
 if ($hasResponseTable) {
     $initiatorSelect = $hasInitiatorSnapshotCol ? 'walkin_initiator_snapshot' : 'NULL AS walkin_initiator_snapshot';
-    $sql = "SELECT id, company_name_snapshot, {$initiatorSelect}, walkin_date, name, email, phone, rating_satisfaction, created_at
+    $walkinDateSelect = $hasWalkinDateCol ? 'walkin_date' : 'NULL AS walkin_date';
+    $sql = "SELECT id, company_name_snapshot, {$initiatorSelect}, {$walkinDateSelect}, name, email, phone, rating_satisfaction, created_at
             FROM walk_in_survey_responses
             WHERE 1=1";
     $types = '';
@@ -114,6 +118,12 @@ if ($hasResponseTable) {
         $params[] = $like;
         $params[] = $like;
         $params[] = $like;
+        $filtersApplied = true;
+    }
+    if ($filterDate !== '') {
+        $sql .= $hasWalkinDateCol ? " AND DATE(walkin_date) = ?" : " AND DATE(created_at) = ?";
+        $types .= 's';
+        $params[] = $filterDate;
         $filtersApplied = true;
     }
 
@@ -181,7 +191,7 @@ if ($hasResponseTable) {
                     <label class="form-label mb-1">Search</label>
                     <input type="text" class="form-control" name="q" value="<?php echo htmlspecialchars($search); ?>" placeholder="Nama / email / perusahaan">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label mb-1">Perusahaan</label>
                     <select class="form-select" name="company_id">
                         <option value="0">Semua perusahaan</option>
@@ -192,9 +202,14 @@ if ($hasResponseTable) {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-4 d-flex align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label mb-1">Date</label>
+                    <input type="date" class="form-control" name="date" value="<?php echo htmlspecialchars($filterDate); ?>">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
                     <button class="btn btn-primary me-2" type="submit"><i class="bi bi-search me-1"></i>Filter</button>
                     <a href="walkin_survey_responses.php" class="btn btn-secondary">Reset</a>
+                    <button class="btn btn-success ms-2" type="button" id="btnDownloadExcel"><i class="bi bi-file-earmark-excel me-1"></i>Download To Excel</button>
                 </div>
             </form>
         </div>
@@ -204,7 +219,7 @@ if ($hasResponseTable) {
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Detail Response #<?php echo (int) $selected['id']; ?></strong>
-                <a href="walkin_survey_responses.php<?php echo $filtersApplied ? '?' . http_build_query(['q' => $search, 'company_id' => $companyId]) : ''; ?>" class="btn btn-sm btn-outline-secondary">Tutup Detail</a>
+                <a href="walkin_survey_responses.php<?php echo $filtersApplied ? '?' . http_build_query(['q' => $search, 'company_id' => $companyId, 'date' => $filterDate]) : ''; ?>" class="btn btn-sm btn-outline-secondary">Tutup Detail</a>
             </div>
             <div class="card-body">
                 <div class="row g-3">
@@ -236,7 +251,7 @@ if ($hasResponseTable) {
     <?php endif; ?>
 
     <div class="table-responsive">
-        <table class="table table-bordered align-middle">
+        <table class="table table-bordered align-middle" id="responsesTable">
             <thead>
                 <tr>
                     <th style="width:70px;">ID</th>
@@ -244,7 +259,7 @@ if ($hasResponseTable) {
                     <th>Walk In Initiator</th>
                     <th>Nama</th>
                     <th>Email</th>
-                    <th style="width:140px;">Tgl Walk In</th>
+                    <th style="width:140px;">Tanggal Walk In</th>
                     <th style="width:110px;">Kepuasan</th>
                     <th style="width:180px;">Submitted</th>
                     <th style="width:150px;">Actions</th>
@@ -264,7 +279,7 @@ if ($hasResponseTable) {
                         <td><?php echo (int) $r['rating_satisfaction']; ?>/5</td>
                         <td><?php echo htmlspecialchars((string) $r['created_at']); ?></td>
                         <td>
-                            <a class="btn btn-sm btn-outline-primary" href="?<?php echo http_build_query(['view' => (int) $r['id'], 'q' => $search, 'company_id' => $companyId]); ?>">
+                            <a class="btn btn-sm btn-outline-primary" href="?<?php echo http_build_query(['view' => (int) $r['id'], 'q' => $search, 'company_id' => $companyId, 'date' => $filterDate]); ?>">
                                 <i class="bi bi-eye"></i>
                             </a>
                             <a class="btn btn-sm btn-outline-danger" href="?delete=<?php echo (int) $r['id']; ?>" onclick="return confirm('Hapus response ini?');">
@@ -277,6 +292,49 @@ if ($hasResponseTable) {
         </table>
     </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('btnDownloadExcel');
+    var table = document.getElementById('responsesTable');
+    if (!btn || !table || typeof XLSX === 'undefined') return;
+
+    btn.addEventListener('click', function () {
+        var headerCells = table.querySelectorAll('thead th');
+        if (!headerCells || headerCells.length === 0) return;
+
+        var headers = [];
+        for (var i = 0; i < headerCells.length - 1; i++) {
+            headers.push((headerCells[i].innerText || '').trim());
+        }
+
+        var bodyRows = table.querySelectorAll('tbody tr');
+        var data = [headers];
+        bodyRows.forEach(function (tr) {
+            var cells = tr.querySelectorAll('td');
+            if (!cells || cells.length < headers.length + 1) return;
+            if (cells.length === 1) return;
+
+            var row = [];
+            for (var i = 0; i < headers.length; i++) {
+                row.push((cells[i].innerText || '').trim());
+            }
+            data.push(row);
+        });
+
+        if (data.length <= 1) {
+            alert('Tidak ada data untuk diexport.');
+            return;
+        }
+
+        var ws = XLSX.utils.aoa_to_sheet(data);
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Survey Responses');
+        var fileDate = new Date().toISOString().slice(0, 10);
+        XLSX.writeFile(wb, 'walkin_survey_responses_' + fileDate + '.xlsx');
+    });
+});
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
