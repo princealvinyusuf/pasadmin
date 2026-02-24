@@ -375,18 +375,91 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
 }
 
 $q = isset($_GET['q']) ? trim((string)$_GET['q']) : '';
+$dateFrom = isset($_GET['date_from']) ? trim((string)$_GET['date_from']) : '';
+$dateTo = isset($_GET['date_to']) ? trim((string)$_GET['date_to']) : '';
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = 25;
 $offset = ($page - 1) * $perPage;
 
-$where = '';
+$whereClauses = [];
 $params = [];
 $types = '';
+
 if ($q !== '') {
-    $where = "WHERE c.name LIKE ? OR c.whatsapp LIKE ? OR c.status LIKE ? OR c.jadwal_konseling LIKE ? OR c.admin_status LIKE ? OR p.name LIKE ?";
+    $whereClauses[] = "(c.name LIKE ? OR c.whatsapp LIKE ? OR c.status LIKE ? OR c.jadwal_konseling LIKE ? OR c.admin_status LIKE ? OR p.name LIKE ?)";
     $like = '%' . $q . '%';
-    $params = [$like, $like, $like, $like, $like, $like];
-    $types = 'ssssss';
+    $params = array_merge($params, [$like, $like, $like, $like, $like, $like]);
+    $types .= 'ssssss';
+}
+if ($dateFrom !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
+    $whereClauses[] = "DATE(c.created_at) >= ?";
+    $params[] = $dateFrom;
+    $types .= 's';
+}
+if ($dateTo !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
+    $whereClauses[] = "DATE(c.created_at) <= ?";
+    $params[] = $dateTo;
+    $types .= 's';
+}
+$where = !empty($whereClauses) ? ('WHERE ' . implode(' AND ', $whereClauses)) : '';
+
+// Download all filtered rows to Excel
+$export = isset($_GET['export']) ? trim((string)$_GET['export']) : '';
+if ($export === 'excel') {
+    $exportRows = [];
+    $sqlExport = "SELECT c.id, c.created_at, c.name, c.whatsapp, c.status, c.jenis_konseling, c.jadwal_konseling, c.pendidikan_terakhir, c.jurusan,
+                         c.admin_status, p.name AS pic_name, c.booked_date, c.booked_time_start, c.booked_time_finish, c.keterangan, c.alasan
+                  FROM career_boostday_consultations c
+                  LEFT JOIN career_boostday_pics p ON p.id=c.pic_id
+                  $where
+                  ORDER BY c.created_at DESC";
+    if ($stmt = $conn->prepare($sqlExport)) {
+        if ($where) {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res) {
+            while ($r = $res->fetch_assoc()) {
+                $exportRows[] = $r;
+            }
+        }
+        $stmt->close();
+    }
+
+    $filename = 'career_boostday_' . date('Ymd_His') . '.xls';
+    header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    echo "\xEF\xBB\xBF";
+    echo '<table border="1">';
+    echo '<tr>';
+    echo '<th>ID</th><th>Timestamp (GMT+7)</th><th>Nama</th><th>WhatsApp</th><th>Status Peserta</th><th>Jenis Konseling</th><th>Jadwal Konseling</th><th>Pendidikan Terakhir</th><th>Jurusan</th><th>Status Admin</th><th>PIC</th><th>Tanggal Booked</th><th>Waktu Booked</th><th>Keterangan</th><th>Alasan Reject</th>';
+    echo '</tr>';
+    foreach ($exportRows as $r) {
+        $timeRange = '';
+        if (!empty($r['booked_time_start']) || !empty($r['booked_time_finish'])) {
+            $timeRange = trim(substr((string)($r['booked_time_start'] ?? ''), 0, 5) . ' - ' . substr((string)($r['booked_time_finish'] ?? ''), 0, 5), ' -');
+        }
+        echo '<tr>';
+        echo '<td>' . h($r['id'] ?? '') . '</td>';
+        echo '<td>' . h(fmt_ts_gmt7($r['created_at'] ?? '')) . '</td>';
+        echo '<td>' . h($r['name'] ?? '') . '</td>';
+        echo '<td>' . h($r['whatsapp'] ?? '') . '</td>';
+        echo '<td>' . h($r['status'] ?? '') . '</td>';
+        echo '<td>' . h($r['jenis_konseling'] ?? '') . '</td>';
+        echo '<td>' . h($r['jadwal_konseling'] ?? '') . '</td>';
+        echo '<td>' . h($r['pendidikan_terakhir'] ?? '') . '</td>';
+        echo '<td>' . h($r['jurusan'] ?? '') . '</td>';
+        echo '<td>' . h($r['admin_status'] ?? '') . '</td>';
+        echo '<td>' . h($r['pic_name'] ?? '') . '</td>';
+        echo '<td>' . h($r['booked_date'] ?? '') . '</td>';
+        echo '<td>' . h($timeRange) . '</td>';
+        echo '<td>' . h($r['keterangan'] ?? '') . '</td>';
+        echo '<td>' . h($r['alasan'] ?? '') . '</td>';
+        echo '</tr>';
+    }
+    echo '</table>';
+    exit;
 }
 
 // Count total
@@ -413,7 +486,7 @@ $stats = [
     'booked' => 0,
 ];
 
-// Status breakdown
+// Status breakdown (follow current filter)
 if ($where) {
     $stmt = $conn->prepare("SELECT c.admin_status, COUNT(*) AS cnt
         FROM career_boostday_consultations c
@@ -506,7 +579,10 @@ if ($stmt = $conn->prepare($sql)) {
 }
 
 $totalPages = max(1, (int)ceil($total / $perPage));
-$baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
+$baseQuery = '';
+if ($q !== '') $baseQuery .= '&q=' . urlencode($q);
+if ($dateFrom !== '') $baseQuery .= '&date_from=' . urlencode($dateFrom);
+if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
 ?>
 <!doctype html>
 <html lang="en">
@@ -530,8 +606,17 @@ $baseQuery = $q !== '' ? ('&q=' . urlencode($q)) : '';
             <a class="btn btn-outline-secondary" href="career_boostday_slot.php"><i class="bi bi-calendar-week me-1"></i>Jadwal</a>
             <a class="btn btn-outline-secondary" href="career_boostday_pic.php"><i class="bi bi-people me-1"></i>PIC</a>
             <form class="d-flex gap-2" method="GET" action="">
-            <input class="form-control" name="q" value="<?php echo h($q); ?>" placeholder="Cari nama / WA / status / jadwal" style="min-width: 280px;">
+            <input class="form-control" type="date" name="date_from" value="<?php echo h($dateFrom); ?>" title="Tanggal awal">
+            <input class="form-control" type="date" name="date_to" value="<?php echo h($dateTo); ?>" title="Tanggal akhir">
+            <input class="form-control" name="q" value="<?php echo h($q); ?>" placeholder="Cari nama / WA / status / jadwal" style="min-width: 220px;">
             <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Cari</button>
+            <?php
+                $excelUrl = '?export=excel';
+                if ($q !== '') $excelUrl .= '&q=' . urlencode($q);
+                if ($dateFrom !== '') $excelUrl .= '&date_from=' . urlencode($dateFrom);
+                if ($dateTo !== '') $excelUrl .= '&date_to=' . urlencode($dateTo);
+            ?>
+            <a class="btn btn-success" href="<?php echo h($excelUrl); ?>"><i class="bi bi-file-earmark-excel me-1"></i>Download To Excel</a>
             </form>
         </div>
     </div>
