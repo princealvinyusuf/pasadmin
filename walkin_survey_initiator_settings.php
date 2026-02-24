@@ -114,16 +114,16 @@ $rows = [];
 if ($tableReady) {
     $sql = "SELECT i.id, i.initiator_name, i.is_active, i.sort_order, i.created_at, i.updated_at";
     if ($hasCompanyTable && $hasResponseTable) {
-        $sql .= ", COUNT(DISTINCT c.id) AS company_count, ROUND(AVG(r.rating_satisfaction), 2) AS average_rating
+        $sql .= ", COUNT(DISTINCT c.id) AS company_count, COUNT(r.id) AS peserta_hadir_count, ROUND(AVG(r.rating_satisfaction), 2) AS average_rating
                  FROM walk_in_survey_initiators i
                  LEFT JOIN company_walk_in_survey c ON c.walk_in_initiator_id = i.id
                  LEFT JOIN walk_in_survey_responses r ON r.company_walk_in_survey_id = c.id";
     } elseif ($hasCompanyTable) {
-        $sql .= ", COUNT(DISTINCT c.id) AS company_count, NULL AS average_rating
+        $sql .= ", COUNT(DISTINCT c.id) AS company_count, 0 AS peserta_hadir_count, NULL AS average_rating
                  FROM walk_in_survey_initiators i
                  LEFT JOIN company_walk_in_survey c ON c.walk_in_initiator_id = i.id";
     } else {
-        $sql .= ", 0 AS company_count, NULL AS average_rating FROM walk_in_survey_initiators i";
+        $sql .= ", 0 AS company_count, 0 AS peserta_hadir_count, NULL AS average_rating FROM walk_in_survey_initiators i";
     }
     $sql .= " GROUP BY i.id, i.initiator_name, i.is_active, i.sort_order, i.created_at, i.updated_at
               ORDER BY i.sort_order ASC, i.initiator_name ASC";
@@ -195,13 +195,14 @@ if ($tableReady) {
                     <th style="width:100px;">Urutan</th>
                     <th style="width:110px;">Status</th>
                     <th style="width:130px;">Companies</th>
+                    <th style="width:140px;">Peserta Hadir</th>
                     <th style="width:120px;">Ratings</th>
                     <th style="width:140px;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($rows)): ?>
-                    <tr><td colspan="7" class="text-center text-muted">Belum ada data initiator.</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted">Belum ada data initiator.</td></tr>
                 <?php else: foreach ($rows as $r): ?>
                     <tr>
                         <td><?php echo (int) $r['id']; ?></td>
@@ -215,6 +216,7 @@ if ($tableReady) {
                             <?php endif; ?>
                         </td>
                         <td><?php echo (int) $r['company_count']; ?></td>
+                        <td><?php echo (int) $r['peserta_hadir_count']; ?></td>
                         <td>
                             <?php if ($r['average_rating'] !== null): ?>
                                 <?php echo htmlspecialchars(number_format((float) $r['average_rating'], 2)); ?>/5
