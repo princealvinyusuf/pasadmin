@@ -64,6 +64,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		['settings_mitra_submission_manage','Manage Mitra Kerja Submission','Settings'],
 		['settings_kemitraan_booked_manage','Manage Kemitraan Booked','Settings'],
 		['settings_pasker_room_manage','Manage Pasker Room Settings','Settings'],
+		['settings_minijobi_manage','Manage miniJobi Jobs','Settings'],
 		['settings_database_contact_manage','Manage Database Contact','Settings'],
 		['settings_iframe_manage','Manage iFrame Settings','Settings'],
 		['jejaring_tahapan_manage','Manage Jejaring Tahapan','Jejaring'],
