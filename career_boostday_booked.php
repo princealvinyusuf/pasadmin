@@ -77,7 +77,7 @@ $endDate = sprintf('%04d-%02d-%02d', $year, $month, $daysInMonth);
 // Fetch accepted bookings for this month
 $bookings = [];
 $stmt = $conn->prepare("
-    SELECT c.id, c.booked_date, c.booked_time_start, c.booked_time_finish, c.name, c.jenis_konseling, c.jadwal_konseling,
+    SELECT c.id, c.booked_date, c.booked_time_start, c.booked_time_finish, c.name, c.jenis_konseling, c.jadwal_konseling, c.attendance_confirmed_at,
            c.pic_id, p.name AS pic_name
     FROM career_boostday_consultations c
     LEFT JOIN career_boostday_pics p ON p.id=c.pic_id
@@ -127,6 +127,7 @@ function fmt_time(?string $t): string {
         .cb-item { background:#eef7e6; border-left: 4px solid #7cb342; border-radius: 10px; padding: 8px 10px; margin-top:8px; font-size: 0.9rem; }
         .cb-item-title { font-weight: 800; }
         .cb-item-sub { color:#334155; font-size: 0.86rem; margin-top: 2px; }
+        .cb-item-confirmed { color:#0d6efd; font-weight: 700; }
         .cb-muted { color:#6c757d; }
         .cb-blank { background:#fafafa; }
         @media (max-width: 992px) { .cb-cell { min-height: 90px; } }
@@ -178,10 +179,14 @@ function fmt_time(?string $t): string {
                             $t2 = fmt_time($b['booked_time_finish']);
                             $time = ($t1 && $t2) ? ($t1 . ' - ' . $t2) : '';
                             $pic = $b['pic_name'] ? ('PIC: ' . $b['pic_name']) : 'PIC: -';
+                            $isConfirmed = !empty($b['attendance_confirmed_at']);
                             echo '<div class="cb-item">';
                             echo '  <div class="cb-item-title">' . h($b['name']) . '</div>';
                             echo '  <div class="cb-item-sub">' . h($time ?: $b['jadwal_konseling']) . '</div>';
                             echo '  <div class="cb-item-sub cb-muted">' . h($pic) . '</div>';
+                            if ($isConfirmed) {
+                                echo '  <div class="cb-item-sub cb-item-confirmed">Sudah Konfirmasi Hadir</div>';
+                            }
                             echo '</div>';
                         }
                     }
@@ -221,12 +226,18 @@ function fmt_time(?string $t): string {
                                     $t1 = fmt_time($b['booked_time_start']);
                                     $t2 = fmt_time($b['booked_time_finish']);
                                     $time = ($t1 && $t2) ? ($t1 . ' - ' . $t2) : '-';
+                                    $isConfirmed = !empty($b['attendance_confirmed_at']);
                                 ?>
                                 <tr>
                                     <td><?php echo h(date('d M Y', strtotime($d))); ?></td>
                                     <td><?php echo h($time); ?></td>
                                     <td class="fw-semibold"><?php echo h($b['name']); ?></td>
-                                    <td><?php echo h($b['pic_name'] ?? '-'); ?></td>
+                                    <td>
+                                        <?php echo h($b['pic_name'] ?? '-'); ?>
+                                        <?php if ($isConfirmed): ?>
+                                            <div class="small text-primary fw-semibold">Sudah Konfirmasi Hadir</div>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?php echo h($b['jenis_konseling']); ?></td>
                                 </tr>
                             <?php endforeach; ?>
