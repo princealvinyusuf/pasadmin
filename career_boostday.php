@@ -576,6 +576,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
         <div class="d-flex gap-2 align-items-center">
             <a class="btn btn-outline-secondary" href="career_boostday_slot.php"><i class="bi bi-calendar-week me-1"></i>Jadwal</a>
             <a class="btn btn-outline-secondary" href="career_boostday_pic.php"><i class="bi bi-people me-1"></i>PIC</a>
+            <a class="btn btn-outline-secondary" href="career_boostday_attendance.php"><i class="bi bi-check2-square me-1"></i>Konfirmasi Kehadiran</a>
             <form class="d-flex gap-2" method="GET" action="">
             <input class="form-control" type="date" name="date_from" value="<?php echo h($dateFrom); ?>" title="Tanggal awal">
             <input class="form-control" type="date" name="date_to" value="<?php echo h($dateTo); ?>" title="Tanggal akhir">

@@ -76,6 +76,7 @@
     $canCareerBoostDay = current_user_can('career_boost_day_manage') || $canManageSettings;
     $canCareerBoostDayPic = current_user_can('career_boost_day_pic_manage') || $canManageSettings;
     $canCareerBoostDayBooked = current_user_can('career_boost_day_booked_view') || $canManageSettings;
+    $canCareerBoostDayAttendance = $canCareerBoostDay;
     $canFormHasilKonseling = current_user_can('form_hasil_konseling_manage') || $canManageSettings;
     $canMiniJobi = current_user_can('settings_minijobi_manage') || $canManageSettings;
     $canCareerBoostDaySlot = $canCareerBoostDay; // same permission
@@ -91,6 +92,7 @@
         $canCareerBoostDay ||
         $canCareerBoostDayPic ||
         $canCareerBoostDayBooked ||
+        $canCareerBoostDayAttendance ||
         $canFormHasilKonseling ||
         $canMiniJobi
         || $canWalkinSurvey
@@ -210,6 +212,7 @@
                         <?php if ($canCareerBoostDaySlot): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_slot.php">Career Boost Day Jadwal</a></li><?php endif; ?>
                         <?php if ($canCareerBoostDayPic): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_pic.php">Career Boost Day PIC</a></li><?php endif; ?>
                         <?php if ($canCareerBoostDayBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_booked.php">Career Boost Day Booked</a></li><?php endif; ?>
+                        <?php if ($canCareerBoostDayAttendance): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_attendance.php">Career Boost Day Konfirmasi Kehadiran</a></li><?php endif; ?>
                         <?php if ($canFormHasilKonseling): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>form_hasil_konseling.php">Form Hasil Konseling</a></li><?php endif; ?>
                         <?php if ($canFormHasilKonseling && $canWalkinSurvey): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_initiator_settings.php">Walk-in Survey Initiators</a></li><?php endif; ?>
