@@ -81,7 +81,7 @@ function remove_internal_walkin_file(string $value): void
     if (!is_internal_walkin_file($value)) {
         return;
     }
-    $publicDir = realpath(__DIR__ . '/../public');
+    $publicDir = get_public_dir();
     if (!$publicDir) {
         return;
     }
@@ -90,6 +90,25 @@ function remove_internal_walkin_file(string $value): void
     if ($abs && str_starts_with($abs, $publicDir) && is_file($abs)) {
         @unlink($abs);
     }
+}
+
+function get_public_dir(): ?string
+{
+    $docRoot = isset($_SERVER['DOCUMENT_ROOT']) ? realpath((string) $_SERVER['DOCUMENT_ROOT']) : false;
+    if ($docRoot && is_dir($docRoot)) {
+        return $docRoot;
+    }
+
+    $candidates = [
+        realpath(__DIR__ . '/../public'), // repo layout: /project/pasadmin + /project/public
+        realpath(__DIR__ . '/..'),        // deployed layout: /public/pasadmin
+    ];
+    foreach ($candidates as $dir) {
+        if ($dir && is_dir($dir)) {
+            return $dir;
+        }
+    }
+    return null;
 }
 
 // Ensure schema: add booked_date.informasi_lainnya if missing.
@@ -169,7 +188,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 exit;
             }
 
-            $publicDir = realpath(__DIR__ . '/../public');
+            $publicDir = get_public_dir();
             if (!$publicDir) {
                 $_SESSION['error'] = 'Folder public tidak ditemukan.';
                 header('Location: ' . $redir);
