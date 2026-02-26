@@ -869,6 +869,8 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                     <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn btn-delete btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
                     <?php if (isset($row['status']) && $row['status'] === 'pending'): ?>
                         <button type="button" class="btn btn-approve btn-sm approve-btn mb-1" data-id="<?php echo $row['id']; ?>">Approved</button>
+                    <?php endif; ?>
+                    <?php if (isset($row['status']) && ($row['status'] === 'pending' || $row['status'] === 'approved')): ?>
                         <button type="button" class="btn btn-reject btn-sm reject-btn mb-1" data-id="<?php echo $row['id']; ?>">Rejected</button>
                     <?php endif; ?>
                 </td>
