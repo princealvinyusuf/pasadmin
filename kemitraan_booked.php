@@ -298,7 +298,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             exit;
         }
 
-        $newPayload = encode_info_items($newItems);
+        // Merge with existing so previously uploaded items stay available
+        $mergedItems = array_merge($currentInfoItems, $newItems);
+        $newPayload = encode_info_items($mergedItems);
         if ($newPayload === null) {
             $_SESSION['error'] = 'Data Informasi Lainnya tidak valid.';
             header('Location: ' . $redir);
@@ -310,8 +312,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $stmt->execute();
             $stmt->close();
         }
-
-        remove_internal_walkin_files($currentInfoItems);
 
         $_SESSION['success'] = 'Informasi Lainnya berhasil disimpan.';
         header('Location: ' . $redir);
