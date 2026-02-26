@@ -334,6 +334,31 @@ if (isset($_POST['update_id'])) {
         }
     }
     
+    // Handle request_letter file upload
+    $request_letter = null;
+    if (isset($_POST['existing_request_letter'])) {
+        $request_letter = trim($_POST['existing_request_letter']);
+    }
+    
+    if (isset($_FILES['request_letter']) && $_FILES['request_letter']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/storage/kemitraan_letters/';
+        if (!is_dir($uploadDir)) {
+            @mkdir($uploadDir, 0777, true);
+        }
+        $fileName = 'letter_' . $id . '_' . time() . '_' . basename($_FILES['request_letter']['name']);
+        $targetPath = $uploadDir . $fileName;
+        if (move_uploaded_file($_FILES['request_letter']['tmp_name'], $targetPath)) {
+            // Delete old file if exists
+            if ($request_letter) {
+                $oldPath = $_SERVER['DOCUMENT_ROOT'] . '/storage/' . ltrim($request_letter, '/');
+                if (is_file($oldPath)) {
+                    @unlink($oldPath);
+                }
+            }
+            $request_letter = 'kemitraan_letters/' . $fileName;
+        }
+    }
+    
     // Build UPDATE query dynamically based on available columns
     $updateFields = [];
     $updateValues = [];
@@ -431,6 +456,12 @@ if (isset($_POST['update_id'])) {
         $updateTypes .= "s";
     }
     
+    if ($request_letter !== null && column_exists($conn, 'kemitraan', 'request_letter')) {
+        $updateFields[] = "request_letter=?";
+        $updateValues[] = $request_letter;
+        $updateTypes .= "s";
+    }
+    
     $updateFields[] = "updated_at=NOW()";
     $updateValues[] = $id;
     $updateTypes .= "i";
@@ -441,6 +472,67 @@ if (isset($_POST['update_id'])) {
         $stmt->bind_param($updateTypes, ...$updateValues);
         $stmt->execute();
         $stmt->close();
+        
+        // Handle Detail Lowongan update
+        if (table_exists($conn, 'kemitraan_detail_lowongan')) {
+            // Delete existing detail lowongan
+            $delStmt = $conn->prepare("DELETE FROM kemitraan_detail_lowongan WHERE kemitraan_id=?");
+            if ($delStmt) {
+                $delStmt->bind_param("i", $id);
+                $delStmt->execute();
+                $delStmt->close();
+            }
+            
+            // Insert new detail lowongan if provided
+            if (isset($_POST['detail_lowongan']) && is_array($_POST['detail_lowongan'])) {
+                $hasNamaPerusahaanCol = column_exists($conn, 'kemitraan_detail_lowongan', 'nama_perusahaan');
+                
+                foreach ($_POST['detail_lowongan'] as $dl) {
+                    $jabatan = trim($dl['jabatan_yang_dibuka'] ?? '');
+                    $jumlah = trim($dl['jumlah_kebutuhan'] ?? '');
+                    $gender = trim($dl['gender'] ?? '');
+                    $pendidikan = trim($dl['pendidikan_terakhir'] ?? '');
+                    $pengalaman = trim($dl['pengalaman_kerja'] ?? '');
+                    $kompetensi = trim($dl['kompetensi_yang_dibutuhkan'] ?? '');
+                    $tahapan = trim($dl['tahapan_seleksi'] ?? '');
+                    $lokasi = trim($dl['lokasi_penempatan'] ?? '');
+                    
+                    // Handle nama_perusahaan (can be array, comma-separated string, or single string)
+                    $namaPerusahaanValue = null;
+                    if (isset($dl['nama_perusahaan']) && !empty($dl['nama_perusahaan'])) {
+                        if (is_array($dl['nama_perusahaan'])) {
+                            $namaPerusahaanValue = json_encode(array_filter(array_map('trim', $dl['nama_perusahaan'])));
+                        } else {
+                            $namaPerusahaanStr = trim($dl['nama_perusahaan']);
+                            // Check if it's comma-separated
+                            if (strpos($namaPerusahaanStr, ',') !== false) {
+                                $companies = array_filter(array_map('trim', explode(',', $namaPerusahaanStr)));
+                                $namaPerusahaanValue = json_encode($companies);
+                            } else {
+                                $namaPerusahaanValue = json_encode([$namaPerusahaanStr]);
+                            }
+                        }
+                    }
+                    
+                    if ($hasNamaPerusahaanCol) {
+                        $insStmt = $conn->prepare("INSERT INTO kemitraan_detail_lowongan (kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan, gender, pendidikan_terakhir, pengalaman_kerja, kompetensi_yang_dibutuhkan, tahapan_seleksi, lokasi_penempatan, nama_perusahaan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        if ($insStmt) {
+                            $insStmt->bind_param("isssssssss", $id, $jabatan, $jumlah, $gender, $pendidikan, $pengalaman, $kompetensi, $tahapan, $lokasi, $namaPerusahaanValue);
+                            $insStmt->execute();
+                            $insStmt->close();
+                        }
+                    } else {
+                        $insStmt = $conn->prepare("INSERT INTO kemitraan_detail_lowongan (kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan, gender, pendidikan_terakhir, pengalaman_kerja, kompetensi_yang_dibutuhkan, tahapan_seleksi, lokasi_penempatan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        if ($insStmt) {
+                            $insStmt->bind_param("issssssss", $id, $jabatan, $jumlah, $gender, $pendidikan, $pengalaman, $kompetensi, $tahapan, $lokasi);
+                            $insStmt->execute();
+                            $insStmt->close();
+                        }
+                    }
+                }
+            }
+        }
+        
         $_SESSION['success'] = 'Data berhasil diupdate!';
     } else {
         $_SESSION['error'] = 'Gagal update: ' . $conn->error;
@@ -932,6 +1024,22 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                       <label class="form-label">Time Finish</label>
                       <input type="time" name="scheduletimefinish" id="edit_scheduletimefinish" class="form-control">
                     </div>
+                    <div class="col-12">
+                      <label class="form-label">Request Letter</label>
+                      <input type="file" name="request_letter" id="edit_request_letter" class="form-control" accept=".pdf,.doc,.docx">
+                      <input type="hidden" name="existing_request_letter" id="existing_request_letter">
+                      <small class="text-muted">Leave empty to keep current file</small>
+                      <div id="current_request_letter_preview" class="mt-2"></div>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label">Detail Lowongan</label>
+                      <div id="detail_lowongan_container">
+                        <!-- Detail Lowongan items will be dynamically added here -->
+                      </div>
+                      <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add_detail_lowongan_btn">
+                        <i class="bi bi-plus-circle"></i> Add Lowongan
+                      </button>
+                    </div>
                   </div>
                 </form>
               </div>
@@ -1115,9 +1223,136 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 fotoPreview.innerHTML = '';
               }
               
+              // Handle Request Letter preview
+              const requestLetterPreview = document.getElementById('current_request_letter_preview');
+              const existingLetter = rowData.request_letter || '';
+              document.getElementById('existing_request_letter').value = existingLetter;
+              
+              if (existingLetter && existingLetter !== '-') {
+                const letterUrl = '/storage/' + existingLetter.replace(/^\/+/, '').replace(/^storage[\/\\]/, '');
+                requestLetterPreview.innerHTML = '<small class="text-muted">Current:</small><br><a href="' + letterUrl + '" target="_blank" class="btn btn-sm btn-outline-success mt-1"><i class="bi bi-download"></i> View Current Letter</a>';
+              } else {
+                requestLetterPreview.innerHTML = '';
+              }
+              
+              // Handle Detail Lowongan
+              const detailLowonganContainer = document.getElementById('detail_lowongan_container');
+              detailLowonganContainer.innerHTML = '';
+              detailLowonganIndex = 0; // Reset index
+              
+              try {
+                const lowonganRaw = row.getAttribute('data-detail-lowongan') || '[]';
+                const lowongan = JSON.parse(lowonganRaw);
+                
+                if (Array.isArray(lowongan) && lowongan.length > 0) {
+                  lowongan.forEach((l, idx) => {
+                    addDetailLowonganItem(l, idx);
+                  });
+                  detailLowonganIndex = lowongan.length; // Set next index
+                }
+              } catch (e) {
+                console.error('Error parsing detail lowongan:', e);
+              }
+              
               var editModal = new bootstrap.Modal(document.getElementById('editModal'));
               editModal.show();
             });
+          });
+          
+          // Detail Lowongan management
+          let detailLowonganIndex = 0;
+          
+          function addDetailLowonganItem(data = null, index = null) {
+            const idx = index !== null ? index : detailLowonganIndex++;
+            const container = document.getElementById('detail_lowongan_container');
+            
+            const itemHtml = `
+              <div class="border rounded p-3 mb-3 bg-light" data-index="${idx}">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="mb-0">Lowongan #${idx + 1}</h6>
+                  <button type="button" class="btn btn-sm btn-danger remove-lowongan-btn" data-index="${idx}">
+                    <i class="bi bi-trash"></i> Remove
+                  </button>
+                </div>
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <label class="form-label small">Jabatan Yang Dibuka</label>
+                    <input type="text" name="detail_lowongan[${idx}][jabatan_yang_dibuka]" class="form-control form-control-sm" value="${data ? (data.jabatan_yang_dibuka || '') : ''}">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small">Jumlah Kebutuhan</label>
+                    <input type="text" name="detail_lowongan[${idx}][jumlah_kebutuhan]" class="form-control form-control-sm" value="${data ? (data.jumlah_kebutuhan || '') : ''}">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small">Gender</label>
+                    <input type="text" name="detail_lowongan[${idx}][gender]" class="form-control form-control-sm" value="${data ? (data.gender || '') : ''}">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small">Pendidikan Terakhir</label>
+                    <input type="text" name="detail_lowongan[${idx}][pendidikan_terakhir]" class="form-control form-control-sm" value="${data ? (data.pendidikan_terakhir || '') : ''}">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small">Pengalaman Kerja</label>
+                    <input type="text" name="detail_lowongan[${idx}][pengalaman_kerja]" class="form-control form-control-sm" value="${data ? (data.pengalaman_kerja || '') : ''}">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small">Lokasi Penempatan</label>
+                    <input type="text" name="detail_lowongan[${idx}][lokasi_penempatan]" class="form-control form-control-sm" value="${data ? (data.lokasi_penempatan || '') : ''}">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small">Nama Perusahaan (comma-separated)</label>
+                    <input type="text" name="detail_lowongan[${idx}][nama_perusahaan]" class="form-control form-control-sm" value="${data && data.nama_perusahaan ? (Array.isArray(data.nama_perusahaan) ? data.nama_perusahaan.join(', ') : data.nama_perusahaan) : ''}" placeholder="Company 1, Company 2">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small">Kompetensi Yang Dibutuhkan</label>
+                    <textarea name="detail_lowongan[${idx}][kompetensi_yang_dibutuhkan]" class="form-control form-control-sm" rows="2">${data ? (data.kompetensi_yang_dibutuhkan || '') : ''}</textarea>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small">Tahapan Seleksi</label>
+                    <textarea name="detail_lowongan[${idx}][tahapan_seleksi]" class="form-control form-control-sm" rows="2">${data ? (data.tahapan_seleksi || '') : ''}</textarea>
+                  </div>
+                </div>
+              </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', itemHtml);
+            
+            // Update remove button handlers
+            document.querySelectorAll('.remove-lowongan-btn').forEach(btn => {
+              btn.addEventListener('click', function() {
+                const itemIndex = this.getAttribute('data-index');
+                const item = container.querySelector(`[data-index="${itemIndex}"]`);
+                if (item) {
+                  item.remove();
+                  // Renumber remaining items
+                  renumberDetailLowongan();
+                }
+              });
+            });
+          }
+          
+          function renumberDetailLowongan() {
+            const container = document.getElementById('detail_lowongan_container');
+            const items = container.querySelectorAll('[data-index]');
+            items.forEach((item, idx) => {
+              const newIndex = idx;
+              item.setAttribute('data-index', newIndex);
+              item.querySelector('h6').textContent = `Lowongan #${newIndex + 1}`;
+              
+              // Update all input names
+              item.querySelectorAll('input, textarea').forEach(input => {
+                const name = input.getAttribute('name');
+                if (name) {
+                  const newName = name.replace(/\[(\d+)\]/, `[${newIndex}]`);
+                  input.setAttribute('name', newName);
+                }
+              });
+            });
+          }
+          
+          // Add new lowongan button
+          document.getElementById('add_detail_lowongan_btn').addEventListener('click', function() {
+            addDetailLowonganItem();
           });
         });
         </script>
