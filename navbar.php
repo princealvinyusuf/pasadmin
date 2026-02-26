@@ -219,6 +219,7 @@
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_company_settings.php">Walk-in Survey Companies</a></li><?php endif; ?>
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_responses.php">Walk-in Survey Responses</a></li><?php endif; ?>
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_access_settings.php">Walk-in Survey Access</a></li><?php endif; ?>
+                        <?php if ($canMitraSubmission || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_form_access_settings.php">Walk-in Form Access</a></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_gallery.php"><i class="bi bi-images me-1"></i>Walk-in Gallery</a></li><?php endif; ?>
                     </ul>
