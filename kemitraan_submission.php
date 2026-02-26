@@ -462,6 +462,14 @@ if (isset($_POST['update_id'])) {
         $updateTypes .= "s";
     }
     
+    // Handle status update
+    $status = trim($_POST['status'] ?? '');
+    if (in_array($status, ['pending', 'approved', 'rejected']) && column_exists($conn, 'kemitraan', 'status')) {
+        $updateFields[] = "status=?";
+        $updateValues[] = $status;
+        $updateTypes .= "s";
+    }
+    
     $updateFields[] = "updated_at=NOW()";
     $updateValues[] = $id;
     $updateTypes .= "i";
@@ -472,6 +480,58 @@ if (isset($_POST['update_id'])) {
         $stmt->bind_param($updateTypes, ...$updateValues);
         $stmt->execute();
         $stmt->close();
+        
+        // Handle multiple rooms (junction table)
+        if (table_exists($conn, 'kemitraan_pasker_room')) {
+            // Delete existing room associations
+            $delRoomStmt = $conn->prepare("DELETE FROM kemitraan_pasker_room WHERE kemitraan_id=?");
+            if ($delRoomStmt) {
+                $delRoomStmt->bind_param("i", $id);
+                $delRoomStmt->execute();
+                $delRoomStmt->close();
+            }
+            
+            // Insert new room associations if provided
+            if (isset($_POST['pasker_room_ids']) && is_array($_POST['pasker_room_ids'])) {
+                $insRoomStmt = $conn->prepare("INSERT INTO kemitraan_pasker_room (kemitraan_id, pasker_room_id) VALUES (?, ?)");
+                if ($insRoomStmt) {
+                    foreach ($_POST['pasker_room_ids'] as $roomId) {
+                        $roomIdInt = intval($roomId);
+                        if ($roomIdInt > 0) {
+                            $insRoomStmt->bind_param("ii", $id, $roomIdInt);
+                            $insRoomStmt->execute();
+                        }
+                    }
+                    $insRoomStmt->close();
+                }
+            }
+        }
+        
+        // Handle multiple facilities (junction table)
+        if (table_exists($conn, 'kemitraan_pasker_facility')) {
+            // Delete existing facility associations
+            $delFacStmt = $conn->prepare("DELETE FROM kemitraan_pasker_facility WHERE kemitraan_id=?");
+            if ($delFacStmt) {
+                $delFacStmt->bind_param("i", $id);
+                $delFacStmt->execute();
+                $delFacStmt->close();
+            }
+            
+            // Insert new facility associations if provided
+            if (isset($_POST['pasker_facility_ids']) && is_array($_POST['pasker_facility_ids'])) {
+                $insFacStmt = $conn->prepare("INSERT INTO kemitraan_pasker_facility (kemitraan_id, pasker_facility_id) VALUES (?, ?)");
+                if ($insFacStmt) {
+                    foreach ($_POST['pasker_facility_ids'] as $facilityId) {
+                        $facilityIdInt = intval($facilityId);
+                        if ($facilityIdInt > 0) {
+                            $insFacStmt->bind_param("ii", $id, $facilityIdInt);
+                            $insFacStmt->execute();
+                        }
+                    }
+                    $insFacStmt->close();
+                }
+            }
+        }
         
         // Handle Detail Lowongan update
         if (table_exists($conn, 'kemitraan_detail_lowongan')) {
@@ -549,10 +609,16 @@ $kemitraans = $conn->query(
        FROM kemitraan_pasker_room kpr2
        LEFT JOIN pasker_room pr2 ON pr2.id = kpr2.pasker_room_id
       WHERE kpr2.kemitraan_id = k.id) AS rooms_concat,
+    (SELECT GROUP_CONCAT(DISTINCT kpr2.pasker_room_id ORDER BY kpr2.pasker_room_id SEPARATOR ',')
+       FROM kemitraan_pasker_room kpr2
+      WHERE kpr2.kemitraan_id = k.id) AS room_ids,
     (SELECT GROUP_CONCAT(DISTINCT pf2.facility_name ORDER BY pf2.facility_name SEPARATOR ', ')
        FROM kemitraan_pasker_facility kpf2
        LEFT JOIN pasker_facility pf2 ON pf2.id = kpf2.pasker_facility_id
-      WHERE kpf2.kemitraan_id = k.id) AS facilities_concat
+      WHERE kpf2.kemitraan_id = k.id) AS facilities_concat,
+    (SELECT GROUP_CONCAT(DISTINCT kpf2.pasker_facility_id ORDER BY kpf2.pasker_facility_id SEPARATOR ',')
+       FROM kemitraan_pasker_facility kpf2
+      WHERE kpf2.kemitraan_id = k.id) AS facility_ids
      FROM kemitraan k
      LEFT JOIN company_sectors cs ON cs.id = k.company_sectors_id
      LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id
@@ -987,7 +1053,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                       <input type="text" name="tipe_penyelenggara" id="edit_tipe_penyelenggara" class="form-control">
                     </div>
                     <div class="col-md-6">
-                      <label class="form-label">Room</label>
+                      <label class="form-label">Room (Single)</label>
                       <select name="pasker_room_id" id="edit_pasker_room_id" class="form-select">
                         <option value="">-- Select --</option>
                         <?php foreach ($pasker_rooms as $room): ?>
@@ -996,17 +1062,35 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                       </select>
                     </div>
                     <div class="col-md-6">
+                      <label class="form-label">Rooms (Multiple)</label>
+                      <select name="pasker_room_ids[]" id="edit_pasker_room_ids" class="form-select" multiple size="3">
+                        <?php foreach ($pasker_rooms as $room): ?>
+                          <option value="<?php echo $room['id']; ?>"><?php echo htmlspecialchars($room['room_name']); ?></option>
+                        <?php endforeach; ?>
+                      </select>
+                      <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
+                    </div>
+                    <div class="col-md-6">
                       <label class="form-label">Other Room</label>
                       <input type="text" name="other_pasker_room" id="edit_other_pasker_room" class="form-control">
                     </div>
                     <div class="col-md-6">
-                      <label class="form-label">Facility</label>
+                      <label class="form-label">Facility (Single)</label>
                       <select name="pasker_facility_id" id="edit_pasker_facility_id" class="form-select">
                         <option value="">-- Select --</option>
                         <?php foreach ($pasker_facilities as $facility): ?>
                           <option value="<?php echo $facility['id']; ?>"><?php echo htmlspecialchars($facility['facility_name']); ?></option>
                         <?php endforeach; ?>
                       </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Facilities (Multiple)</label>
+                      <select name="pasker_facility_ids[]" id="edit_pasker_facility_ids" class="form-select" multiple size="3">
+                        <?php foreach ($pasker_facilities as $facility): ?>
+                          <option value="<?php echo $facility['id']; ?>"><?php echo htmlspecialchars($facility['facility_name']); ?></option>
+                        <?php endforeach; ?>
+                      </select>
+                      <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
                     </div>
                     <div class="col-md-6">
                       <label class="form-label">Other Facility</label>
@@ -1039,6 +1123,26 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                       <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add_detail_lowongan_btn">
                         <i class="bi bi-plus-circle"></i> Add Lowongan
                       </button>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Status</label>
+                      <select name="status" id="edit_status" class="form-select">
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">ID</label>
+                      <input type="text" id="edit_id_display" class="form-control" readonly style="background-color: #e9ecef;">
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Created At</label>
+                      <input type="text" id="edit_created_at_display" class="form-control" readonly style="background-color: #e9ecef;">
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Updated At</label>
+                      <input type="text" id="edit_updated_at_display" class="form-control" readonly style="background-color: #e9ecef;">
                     </div>
                   </div>
                 </form>
@@ -1175,6 +1279,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               
               // Populate form fields
               document.getElementById('edit_id').value = id;
+              document.getElementById('edit_id_display').value = id;
               document.getElementById('edit_pic_name').value = rowData.pic_name || '';
               document.getElementById('edit_pic_position').value = rowData.pic_position || '';
               document.getElementById('edit_pic_email').value = rowData.pic_email || '';
@@ -1186,6 +1291,9 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               document.getElementById('edit_tipe_penyelenggara').value = rowData.tipe_penyelenggara || '';
               document.getElementById('edit_other_pasker_room').value = rowData.other_pasker_room || '';
               document.getElementById('edit_other_pasker_facility').value = rowData.other_pasker_facility || '';
+              document.getElementById('edit_status').value = rowData.status || 'pending';
+              document.getElementById('edit_created_at_display').value = rowData.created_at || '';
+              document.getElementById('edit_updated_at_display').value = rowData.updated_at || '';
               
               // Set dropdowns
               if (rowData.company_sectors_id) {
@@ -1199,6 +1307,28 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               }
               if (rowData.pasker_facility_id) {
                 document.getElementById('edit_pasker_facility_id').value = rowData.pasker_facility_id;
+              }
+              
+              // Handle multiple rooms
+              const roomIdsSelect = document.getElementById('edit_pasker_room_ids');
+              if (rowData.room_ids) {
+                const roomIds = rowData.room_ids.split(',').map(id => id.trim()).filter(id => id);
+                Array.from(roomIdsSelect.options).forEach(option => {
+                  if (roomIds.includes(option.value)) {
+                    option.selected = true;
+                  }
+                });
+              }
+              
+              // Handle multiple facilities
+              const facilityIdsSelect = document.getElementById('edit_pasker_facility_ids');
+              if (rowData.facility_ids) {
+                const facilityIds = rowData.facility_ids.split(',').map(id => id.trim()).filter(id => id);
+                Array.from(facilityIdsSelect.options).forEach(option => {
+                  if (facilityIds.includes(option.value)) {
+                    option.selected = true;
+                  }
+                });
               }
               
               // Handle time fields
