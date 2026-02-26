@@ -41,6 +41,49 @@ function column_exists(mysqli $conn, string $table, string $column): bool
     return $res && $res->num_rows > 0;
 }
 
+function parse_info_items($raw): array
+{
+    $value = trim((string) ($raw ?? ''));
+    if ($value === '') {
+        return [];
+    }
+
+    $items = [];
+    if (str_starts_with($value, '[')) {
+        $decoded = json_decode($value, true);
+        if (is_array($decoded)) {
+            foreach ($decoded as $v) {
+                $s = trim((string) $v);
+                if ($s !== '') {
+                    $items[] = $s;
+                }
+            }
+        }
+    }
+
+    if (empty($items)) {
+        $items[] = $value;
+    }
+
+    return array_values(array_unique($items));
+}
+
+function encode_info_items(array $items): ?string
+{
+    $clean = [];
+    foreach ($items as $item) {
+        $s = trim((string) $item);
+        if ($s !== '') {
+            $clean[] = $s;
+        }
+    }
+    $clean = array_values(array_unique($clean));
+    if (empty($clean)) {
+        return null;
+    }
+    return json_encode($clean, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+}
+
 function detect_info_type(string $value): string
 {
     $value = trim($value);
@@ -92,6 +135,13 @@ function remove_internal_walkin_file(string $value): void
     }
 }
 
+function remove_internal_walkin_files(array $items): void
+{
+    foreach ($items as $item) {
+        remove_internal_walkin_file((string) $item);
+    }
+}
+
 function get_public_dir(): ?string
 {
     $docRoot = isset($_SERVER['DOCUMENT_ROOT']) ? realpath((string) $_SERVER['DOCUMENT_ROOT']) : false;
@@ -136,16 +186,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         exit;
     }
 
-    $currentInfo = '';
+    $currentInfoRaw = '';
     if ($stmt = $conn->prepare("SELECT informasi_lainnya FROM booked_date WHERE id=? LIMIT 1")) {
         $stmt->bind_param('i', $bookedId);
         $stmt->execute();
         $stmt->bind_result($existingInfo);
         if ($stmt->fetch()) {
-            $currentInfo = trim((string) ($existingInfo ?? ''));
+            $currentInfoRaw = trim((string) ($existingInfo ?? ''));
         }
         $stmt->close();
     }
+    $currentInfoItems = parse_info_items($currentInfoRaw);
 
     if ($action === 'clear_info') {
         if ($stmt = $conn->prepare("UPDATE booked_date SET informasi_lainnya=NULL, updated_at=NOW() WHERE id=?")) {
@@ -153,40 +204,40 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $stmt->execute();
             $stmt->close();
         }
-        remove_internal_walkin_file($currentInfo);
+        remove_internal_walkin_files($currentInfoItems);
         $_SESSION['success'] = 'Informasi Lainnya berhasil dihapus.';
         header('Location: ' . $redir);
         exit;
     }
 
     if ($action === 'save_info') {
-        $linkValue = trim((string) ($_POST['info_link'] ?? ''));
-        $newValue = '';
-        $newFromUpload = false;
+        $linksText = trim((string) ($_POST['info_links'] ?? ''));
+        $newItems = [];
 
-        $hasUpload = isset($_FILES['info_file']) && is_array($_FILES['info_file']) && intval($_FILES['info_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
-        if ($hasUpload) {
-            $uploadErr = intval($_FILES['info_file']['error'] ?? UPLOAD_ERR_NO_FILE);
-            if ($uploadErr !== UPLOAD_ERR_OK) {
-                $_SESSION['error'] = 'Upload file gagal.';
-                header('Location: ' . $redir);
-                exit;
+        if ($linksText !== '') {
+            $parts = preg_split('/\r\n|\r|\n/', $linksText) ?: [];
+            foreach ($parts as $part) {
+                $linkValue = trim((string) $part);
+                if ($linkValue === '') {
+                    continue;
+                }
+                $isAbsoluteHttp = preg_match('/^https?:\/\//i', $linkValue) === 1;
+                $isAbsoluteInternal = str_starts_with($linkValue, '/');
+                if (!$isAbsoluteHttp && !$isAbsoluteInternal) {
+                    $_SESSION['error'] = 'Setiap link harus diawali http(s):// atau /path-internal.';
+                    header('Location: ' . $redir);
+                    exit;
+                }
+                $newItems[] = $linkValue;
             }
-            $origName = (string) ($_FILES['info_file']['name'] ?? '');
-            $tmpName = (string) ($_FILES['info_file']['tmp_name'] ?? '');
-            $size = intval($_FILES['info_file']['size'] ?? 0);
-            $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
-            if (!in_array($ext, $allowed, true)) {
-                $_SESSION['error'] = 'File harus berupa gambar (JPG/PNG/GIF/WEBP) atau PDF.';
-                header('Location: ' . $redir);
-                exit;
-            }
-            if ($size <= 0 || $size > (8 * 1024 * 1024)) {
-                $_SESSION['error'] = 'Ukuran file maksimal 8MB.';
-                header('Location: ' . $redir);
-                exit;
-            }
+        }
+
+        $hasAnyUpload = false;
+        if (isset($_FILES['info_files']) && is_array($_FILES['info_files']) && isset($_FILES['info_files']['name']) && is_array($_FILES['info_files']['name'])) {
+            $names = $_FILES['info_files']['name'];
+            $tmpNames = $_FILES['info_files']['tmp_name'] ?? [];
+            $errors = $_FILES['info_files']['error'] ?? [];
+            $sizes = $_FILES['info_files']['size'] ?? [];
 
             $publicDir = get_public_dir();
             if (!$publicDir) {
@@ -194,7 +245,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 header('Location: ' . $redir);
                 exit;
             }
-
             $relDir = 'documents/walkin_info';
             $absDir = $publicDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relDir);
             if (!is_dir($absDir) && !@mkdir($absDir, 0775, true)) {
@@ -203,40 +253,65 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 exit;
             }
 
-            $fileName = 'walkin_info_' . $bookedId . '_' . date('YmdHis') . '_' . substr(md5((string) mt_rand()), 0, 8) . '.' . $ext;
-            $dest = $absDir . DIRECTORY_SEPARATOR . $fileName;
-            if (!@move_uploaded_file($tmpName, $dest)) {
-                $_SESSION['error'] = 'Gagal menyimpan file upload.';
-                header('Location: ' . $redir);
-                exit;
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
+            foreach ($names as $i => $origNameRaw) {
+                $origName = trim((string) $origNameRaw);
+                $uploadErr = intval($errors[$i] ?? UPLOAD_ERR_NO_FILE);
+                if ($uploadErr === UPLOAD_ERR_NO_FILE || $origName === '') {
+                    continue;
+                }
+                $hasAnyUpload = true;
+                if ($uploadErr !== UPLOAD_ERR_OK) {
+                    $_SESSION['error'] = 'Salah satu upload file gagal.';
+                    header('Location: ' . $redir);
+                    exit;
+                }
+
+                $tmpName = (string) ($tmpNames[$i] ?? '');
+                $size = intval($sizes[$i] ?? 0);
+                $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+                if (!in_array($ext, $allowed, true)) {
+                    $_SESSION['error'] = 'File harus berupa gambar (JPG/PNG/GIF/WEBP) atau PDF.';
+                    header('Location: ' . $redir);
+                    exit;
+                }
+                if ($size <= 0 || $size > (8 * 1024 * 1024)) {
+                    $_SESSION['error'] = 'Ukuran setiap file maksimal 8MB.';
+                    header('Location: ' . $redir);
+                    exit;
+                }
+
+                $fileName = 'walkin_info_' . $bookedId . '_' . date('YmdHis') . '_' . substr(md5((string) mt_rand()), 0, 8) . '_' . $i . '.' . $ext;
+                $dest = $absDir . DIRECTORY_SEPARATOR . $fileName;
+                if (!@move_uploaded_file($tmpName, $dest)) {
+                    $_SESSION['error'] = 'Gagal menyimpan salah satu file upload.';
+                    header('Location: ' . $redir);
+                    exit;
+                }
+                $newItems[] = '/' . $relDir . '/' . $fileName;
             }
-            $newValue = '/' . $relDir . '/' . $fileName;
-            $newFromUpload = true;
-        } else {
-            if ($linkValue === '') {
-                $_SESSION['error'] = 'Isi link atau upload file untuk Informasi Lainnya.';
-                header('Location: ' . $redir);
-                exit;
-            }
-            $isAbsoluteHttp = preg_match('/^https?:\/\//i', $linkValue) === 1;
-            $isAbsoluteInternal = str_starts_with($linkValue, '/');
-            if (!$isAbsoluteHttp && !$isAbsoluteInternal) {
-                $_SESSION['error'] = 'Link harus diawali http(s):// atau /path-internal.';
-                header('Location: ' . $redir);
-                exit;
-            }
-            $newValue = $linkValue;
+        }
+
+        if (empty($newItems) && !$hasAnyUpload) {
+            $_SESSION['error'] = 'Isi minimal satu link atau upload satu/lebih file untuk Informasi Lainnya.';
+            header('Location: ' . $redir);
+            exit;
+        }
+
+        $newPayload = encode_info_items($newItems);
+        if ($newPayload === null) {
+            $_SESSION['error'] = 'Data Informasi Lainnya tidak valid.';
+            header('Location: ' . $redir);
+            exit;
         }
 
         if ($stmt = $conn->prepare("UPDATE booked_date SET informasi_lainnya=?, updated_at=NOW() WHERE id=?")) {
-            $stmt->bind_param('si', $newValue, $bookedId);
+            $stmt->bind_param('si', $newPayload, $bookedId);
             $stmt->execute();
             $stmt->close();
         }
 
-        if ($newFromUpload || $newValue !== $currentInfo) {
-            remove_internal_walkin_file($currentInfo);
-        }
+        remove_internal_walkin_files($currentInfoItems);
 
         $_SESSION['success'] = 'Informasi Lainnya berhasil disimpan.';
         header('Location: ' . $redir);
@@ -526,21 +601,30 @@ $today = date('Y-m-d');
                                     $dateLabel = date('d M Y', strtotime($start));
                                 }
                                 $infoRaw = trim((string) ($r['informasi_lainnya'] ?? ''));
-                                $infoType = detect_info_type($infoRaw);
-                                $infoHref = normalize_info_href($infoRaw);
+                                $infoItems = parse_info_items($infoRaw);
                             ?>
                             <tr>
                                 <td><?php echo h($dateLabel); ?></td>
                                 <td><?php echo h($r['institution_name'] ?? '-'); ?></td>
                                 <td>
-                                    <?php if ($infoRaw === ''): ?>
+                                    <?php if (empty($infoItems)): ?>
                                         <span class="text-muted">-</span>
-                                    <?php elseif ($infoType === 'image'): ?>
-                                        <a class="btn btn-outline-info btn-sm" href="<?php echo h($infoHref); ?>" target="_blank" rel="noopener">Lihat Gambar</a>
-                                    <?php elseif ($infoType === 'pdf'): ?>
-                                        <a class="btn btn-outline-danger btn-sm" href="<?php echo h($infoHref); ?>" target="_blank" rel="noopener">Lihat PDF</a>
                                     <?php else: ?>
-                                        <a class="btn btn-outline-success btn-sm" href="<?php echo h($infoHref); ?>" target="_blank" rel="noopener">Buka Link</a>
+                                        <div class="d-flex flex-column gap-1">
+                                            <?php foreach ($infoItems as $infoOne): ?>
+                                                <?php
+                                                    $infoType = detect_info_type((string) $infoOne);
+                                                    $infoHref = normalize_info_href((string) $infoOne);
+                                                ?>
+                                                <?php if ($infoType === 'image'): ?>
+                                                    <a class="btn btn-outline-info btn-sm" href="<?php echo h($infoHref); ?>" target="_blank" rel="noopener">Lihat Gambar</a>
+                                                <?php elseif ($infoType === 'pdf'): ?>
+                                                    <a class="btn btn-outline-danger btn-sm" href="<?php echo h($infoHref); ?>" target="_blank" rel="noopener">Lihat PDF</a>
+                                                <?php else: ?>
+                                                    <a class="btn btn-outline-success btn-sm" href="<?php echo h($infoHref); ?>" target="_blank" rel="noopener">Buka Link</a>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        </div>
                                     <?php endif; ?>
                                 </td>
                                 <td>
@@ -555,7 +639,7 @@ $today = date('Y-m-d');
                                         >
                                             <i class="bi bi-pencil-square me-1"></i>Atur
                                         </button>
-                                        <?php if ($infoRaw !== ''): ?>
+                                        <?php if (!empty($infoItems)): ?>
                                             <form method="POST" action="" onsubmit="return confirm('Hapus Informasi Lainnya ini?');" class="d-inline">
                                                 <input type="hidden" name="action" value="clear_info">
                                                 <input type="hidden" name="booked_id" value="<?php echo h($r['booked_id']); ?>">
@@ -596,15 +680,15 @@ $today = date('Y-m-d');
           </div>
 
           <div class="mb-3">
-            <label class="form-label fw-semibold">Link Informasi Lainnya</label>
-            <input type="text" class="form-control" name="info_link" id="info_link" placeholder="https://... atau /documents/...">
-            <div class="form-text">Boleh isi link eksternal atau path internal. Jika upload file di bawah, maka file upload akan diprioritaskan.</div>
+            <label class="form-label fw-semibold">Link Informasi Lainnya (opsional)</label>
+            <textarea class="form-control" name="info_links" id="info_links" rows="3" placeholder="Satu link per baris&#10;https://contoh.com/file.pdf&#10;/documents/file-internal.pdf"></textarea>
+            <div class="form-text">Bisa lebih dari satu link (satu baris satu link).</div>
           </div>
 
           <div class="mb-2">
-            <label class="form-label fw-semibold">Upload Gambar/PDF</label>
-            <input type="file" class="form-control" name="info_file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
-            <div class="form-text">Format: JPG/JPEG/PNG/GIF/WEBP/PDF, maksimal 8MB.</div>
+            <label class="form-label fw-semibold">Upload Gambar/PDF (opsional)</label>
+            <input type="file" class="form-control" name="info_files[]" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf" multiple>
+            <div class="form-text">Bisa upload banyak file sekaligus (gambar + PDF), maksimal 8MB per file.</div>
           </div>
         </div>
         <div class="modal-footer">
@@ -629,10 +713,21 @@ $today = date('Y-m-d');
       var info = btn.getAttribute('data-info') || '';
       var bookedInput = document.getElementById('info_booked_id');
       var instansiEl = document.getElementById('info_instansi');
-      var infoInput = document.getElementById('info_link');
+      var infoInput = document.getElementById('info_links');
+      var infoLines = '';
+      try {
+        var parsed = JSON.parse(info);
+        if (Array.isArray(parsed)) {
+          infoLines = parsed.map(function (it) { return String(it || '').trim(); }).filter(Boolean).join('\n');
+        } else {
+          infoLines = String(info || '').trim();
+        }
+      } catch (e) {
+        infoLines = String(info || '').trim();
+      }
       if (bookedInput) bookedInput.value = bookedId;
       if (instansiEl) instansiEl.textContent = instansi;
-      if (infoInput) infoInput.value = info;
+      if (infoInput) infoInput.value = infoLines;
     });
   })();
 </script>
