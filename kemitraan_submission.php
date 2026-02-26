@@ -288,6 +288,168 @@ if (isset($_POST['reject_id'])) {
     exit();
 }
 
+// Handle Update
+if (isset($_POST['update_id'])) {
+    $id = intval($_POST['update_id']);
+    $pic_name = trim($_POST['pic_name'] ?? '');
+    $pic_position = trim($_POST['pic_position'] ?? '');
+    $pic_email = trim($_POST['pic_email'] ?? '');
+    $pic_whatsapp = trim($_POST['pic_whatsapp'] ?? '');
+    $institution_name = trim($_POST['institution_name'] ?? '');
+    $business_sector = trim($_POST['business_sector'] ?? '');
+    $institution_address = trim($_POST['institution_address'] ?? '');
+    $schedule = trim($_POST['schedule'] ?? '');
+    $scheduletimestart = trim($_POST['scheduletimestart'] ?? '');
+    $scheduletimefinish = trim($_POST['scheduletimefinish'] ?? '');
+    $tipe_penyelenggara = trim($_POST['tipe_penyelenggara'] ?? '');
+    $company_sectors_id = !empty($_POST['company_sectors_id']) ? intval($_POST['company_sectors_id']) : null;
+    $type_of_partnership_id = !empty($_POST['type_of_partnership_id']) ? intval($_POST['type_of_partnership_id']) : null;
+    $pasker_room_id = !empty($_POST['pasker_room_id']) ? intval($_POST['pasker_room_id']) : null;
+    $other_pasker_room = trim($_POST['other_pasker_room'] ?? '');
+    $pasker_facility_id = !empty($_POST['pasker_facility_id']) ? intval($_POST['pasker_facility_id']) : null;
+    $other_pasker_facility = trim($_POST['other_pasker_facility'] ?? '');
+    
+    // Handle foto_kartu_pegawai_pic file upload
+    $foto_kartu_pegawai_pic = null;
+    if (isset($_POST['existing_foto_kartu_pegawai_pic'])) {
+        $foto_kartu_pegawai_pic = trim($_POST['existing_foto_kartu_pegawai_pic']);
+    }
+    
+    if (isset($_FILES['foto_kartu_pegawai_pic']) && $_FILES['foto_kartu_pegawai_pic']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/storage/kemitraan_photos/';
+        if (!is_dir($uploadDir)) {
+            @mkdir($uploadDir, 0777, true);
+        }
+        $fileName = 'pic_' . $id . '_' . time() . '_' . basename($_FILES['foto_kartu_pegawai_pic']['name']);
+        $targetPath = $uploadDir . $fileName;
+        if (move_uploaded_file($_FILES['foto_kartu_pegawai_pic']['tmp_name'], $targetPath)) {
+            // Delete old file if exists
+            if ($foto_kartu_pegawai_pic) {
+                $oldPath = $_SERVER['DOCUMENT_ROOT'] . '/storage/' . ltrim($foto_kartu_pegawai_pic, '/');
+                if (is_file($oldPath)) {
+                    @unlink($oldPath);
+                }
+            }
+            $foto_kartu_pegawai_pic = 'kemitraan_photos/' . $fileName;
+        }
+    }
+    
+    // Build UPDATE query dynamically based on available columns
+    $updateFields = [];
+    $updateValues = [];
+    $updateTypes = '';
+    
+    $updateFields[] = "pic_name=?";
+    $updateValues[] = $pic_name;
+    $updateTypes .= "s";
+    
+    $updateFields[] = "pic_position=?";
+    $updateValues[] = $pic_position;
+    $updateTypes .= "s";
+    
+    $updateFields[] = "pic_email=?";
+    $updateValues[] = $pic_email;
+    $updateTypes .= "s";
+    
+    $updateFields[] = "pic_whatsapp=?";
+    $updateValues[] = $pic_whatsapp;
+    $updateTypes .= "s";
+    
+    if ($foto_kartu_pegawai_pic !== null) {
+        $updateFields[] = "foto_kartu_pegawai_pic=?";
+        $updateValues[] = $foto_kartu_pegawai_pic;
+        $updateTypes .= "s";
+    }
+    
+    $updateFields[] = "institution_name=?";
+    $updateValues[] = $institution_name;
+    $updateTypes .= "s";
+    
+    $updateFields[] = "business_sector=?";
+    $updateValues[] = $business_sector;
+    $updateTypes .= "s";
+    
+    $updateFields[] = "institution_address=?";
+    $updateValues[] = $institution_address;
+    $updateTypes .= "s";
+    
+    $updateFields[] = "schedule=?";
+    $updateValues[] = $schedule;
+    $updateTypes .= "s";
+    
+    if (column_exists($conn, 'kemitraan', 'scheduletimestart')) {
+        $updateFields[] = "scheduletimestart=?";
+        $updateValues[] = $scheduletimestart ?: null;
+        $updateTypes .= "s";
+    }
+    
+    if (column_exists($conn, 'kemitraan', 'scheduletimefinish')) {
+        $updateFields[] = "scheduletimefinish=?";
+        $updateValues[] = $scheduletimefinish ?: null;
+        $updateTypes .= "s";
+    }
+    
+    if (column_exists($conn, 'kemitraan', 'tipe_penyelenggara')) {
+        $updateFields[] = "tipe_penyelenggara=?";
+        $updateValues[] = $tipe_penyelenggara;
+        $updateTypes .= "s";
+    }
+    
+    if ($company_sectors_id !== null && column_exists($conn, 'kemitraan', 'company_sectors_id')) {
+        $updateFields[] = "company_sectors_id=?";
+        $updateValues[] = $company_sectors_id;
+        $updateTypes .= "i";
+    }
+    
+    if ($type_of_partnership_id !== null && column_exists($conn, 'kemitraan', 'type_of_partnership_id')) {
+        $updateFields[] = "type_of_partnership_id=?";
+        $updateValues[] = $type_of_partnership_id;
+        $updateTypes .= "i";
+    }
+    
+    if ($pasker_room_id !== null && column_exists($conn, 'kemitraan', 'pasker_room_id')) {
+        $updateFields[] = "pasker_room_id=?";
+        $updateValues[] = $pasker_room_id;
+        $updateTypes .= "i";
+    }
+    
+    if (column_exists($conn, 'kemitraan', 'other_pasker_room')) {
+        $updateFields[] = "other_pasker_room=?";
+        $updateValues[] = $other_pasker_room;
+        $updateTypes .= "s";
+    }
+    
+    if ($pasker_facility_id !== null && column_exists($conn, 'kemitraan', 'pasker_facility_id')) {
+        $updateFields[] = "pasker_facility_id=?";
+        $updateValues[] = $pasker_facility_id;
+        $updateTypes .= "i";
+    }
+    
+    if (column_exists($conn, 'kemitraan', 'other_pasker_facility')) {
+        $updateFields[] = "other_pasker_facility=?";
+        $updateValues[] = $other_pasker_facility;
+        $updateTypes .= "s";
+    }
+    
+    $updateFields[] = "updated_at=NOW()";
+    $updateValues[] = $id;
+    $updateTypes .= "i";
+    
+    $sql = "UPDATE kemitraan SET " . implode(", ", $updateFields) . " WHERE id=?";
+    $stmt = $conn->prepare($sql);
+    if ($stmt) {
+        $stmt->bind_param($updateTypes, ...$updateValues);
+        $stmt->execute();
+        $stmt->close();
+        $_SESSION['success'] = 'Data berhasil diupdate!';
+    } else {
+        $_SESSION['error'] = 'Gagal update: ' . $conn->error;
+    }
+    
+    header("Location: kemitraan_submission.php");
+    exit();
+}
+
 // Fetch all kemitraan with joins for names
 $kemitraans = $conn->query(
     "SELECT k.*, cs.sector_name, top.name AS partnership_type_name, pr.room_name, pf.facility_name,
@@ -359,6 +521,43 @@ if (table_exists($conn, 'kemitraan_detail_lowongan')) {
         }
         $dlRes->free();
     }
+}
+
+// Fetch dropdown options for edit form
+$company_sectors = [];
+$sectorsRes = $conn->query("SELECT id, sector_name FROM company_sectors ORDER BY sector_name");
+if ($sectorsRes) {
+    while ($s = $sectorsRes->fetch_assoc()) {
+        $company_sectors[] = $s;
+    }
+    $sectorsRes->free();
+}
+
+$partnership_types = [];
+$typesRes = $conn->query("SELECT id, name FROM type_of_partnership ORDER BY name");
+if ($typesRes) {
+    while ($t = $typesRes->fetch_assoc()) {
+        $partnership_types[] = $t;
+    }
+    $typesRes->free();
+}
+
+$pasker_rooms = [];
+$roomsRes = $conn->query("SELECT id, room_name FROM pasker_room ORDER BY room_name");
+if ($roomsRes) {
+    while ($r = $roomsRes->fetch_assoc()) {
+        $pasker_rooms[] = $r;
+    }
+    $roomsRes->free();
+}
+
+$pasker_facilities = [];
+$facilitiesRes = $conn->query("SELECT id, facility_name FROM pasker_facility ORDER BY facility_name");
+if ($facilitiesRes) {
+    while ($f = $facilitiesRes->fetch_assoc()) {
+        $pasker_facilities[] = $f;
+    }
+    $facilitiesRes->free();
 }
 
 // Fetch summary counts safely
@@ -433,6 +632,8 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
         .btn-approve:hover { background: #15803d; color: #fff; }
         .btn-reject { background: #f59e42; color: #fff; border: none; }
         .btn-reject:hover { background: #d97706; color: #fff; }
+        .btn-edit { background: #3b82f6; color: #fff; border: none; }
+        .btn-edit:hover { background: #2563eb; color: #fff; }
     </style>
 </head>
 <body class="bg-light">
@@ -506,6 +707,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
             >
                 <td class="actions">
                     <button type="button" class="btn btn-detail btn-sm detail-btn mb-1" data-id="<?php echo $row['id']; ?>">Detail</button>
+                    <button type="button" class="btn btn-edit btn-sm edit-btn mb-1" data-id="<?php echo $row['id']; ?>" data-row='<?php echo htmlspecialchars(json_encode($row), ENT_QUOTES); ?>'>Edit</button>
                     <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn btn-delete btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
                     <?php if (isset($row['status']) && $row['status'] === 'pending'): ?>
                         <button type="button" class="btn btn-approve btn-sm approve-btn mb-1" data-id="<?php echo $row['id']; ?>">Approved</button>
@@ -618,6 +820,124 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                   <button type="submit" class="btn btn-warning">Reject</button>
                 </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Edit Modal -->
+        <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel">Edit Submission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form method="post" id="editForm" enctype="multipart/form-data">
+                  <input type="hidden" name="update_id" id="edit_id">
+                  <input type="hidden" name="existing_foto_kartu_pegawai_pic" id="existing_foto_kartu_pegawai_pic">
+                  
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label class="form-label">PIC Name <span class="text-danger">*</span></label>
+                      <input type="text" name="pic_name" id="edit_pic_name" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">PIC Position</label>
+                      <input type="text" name="pic_position" id="edit_pic_position" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">PIC Email</label>
+                      <input type="email" name="pic_email" id="edit_pic_email" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">PIC Whatsapp</label>
+                      <input type="text" name="pic_whatsapp" id="edit_pic_whatsapp" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Foto Kartu Pegawai PIC</label>
+                      <input type="file" name="foto_kartu_pegawai_pic" id="edit_foto_kartu_pegawai_pic" class="form-control" accept="image/*">
+                      <small class="text-muted">Leave empty to keep current image</small>
+                      <div id="current_foto_preview" class="mt-2"></div>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Company Sector</label>
+                      <select name="company_sectors_id" id="edit_company_sectors_id" class="form-select">
+                        <option value="">-- Select --</option>
+                        <?php foreach ($company_sectors as $sector): ?>
+                          <option value="<?php echo $sector['id']; ?>"><?php echo htmlspecialchars($sector['sector_name']); ?></option>
+                        <?php endforeach; ?>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Institution Name <span class="text-danger">*</span></label>
+                      <input type="text" name="institution_name" id="edit_institution_name" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Business Sector</label>
+                      <input type="text" name="business_sector" id="edit_business_sector" class="form-control">
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label">Institution Address</label>
+                      <textarea name="institution_address" id="edit_institution_address" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Partnership Type</label>
+                      <select name="type_of_partnership_id" id="edit_type_of_partnership_id" class="form-select">
+                        <option value="">-- Select --</option>
+                        <?php foreach ($partnership_types as $type): ?>
+                          <option value="<?php echo $type['id']; ?>"><?php echo htmlspecialchars($type['name']); ?></option>
+                        <?php endforeach; ?>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Tipe Penyelenggara</label>
+                      <input type="text" name="tipe_penyelenggara" id="edit_tipe_penyelenggara" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Room</label>
+                      <select name="pasker_room_id" id="edit_pasker_room_id" class="form-select">
+                        <option value="">-- Select --</option>
+                        <?php foreach ($pasker_rooms as $room): ?>
+                          <option value="<?php echo $room['id']; ?>"><?php echo htmlspecialchars($room['room_name']); ?></option>
+                        <?php endforeach; ?>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Other Room</label>
+                      <input type="text" name="other_pasker_room" id="edit_other_pasker_room" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Facility</label>
+                      <select name="pasker_facility_id" id="edit_pasker_facility_id" class="form-select">
+                        <option value="">-- Select --</option>
+                        <?php foreach ($pasker_facilities as $facility): ?>
+                          <option value="<?php echo $facility['id']; ?>"><?php echo htmlspecialchars($facility['facility_name']); ?></option>
+                        <?php endforeach; ?>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Other Facility</label>
+                      <input type="text" name="other_pasker_facility" id="edit_other_pasker_facility" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Schedule</label>
+                      <input type="text" name="schedule" id="edit_schedule" class="form-control" placeholder="YYYY-MM-DD or YYYY-MM-DD to YYYY-MM-DD">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Time Start</label>
+                      <input type="time" name="scheduletimestart" id="edit_scheduletimestart" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Time Finish</label>
+                      <input type="time" name="scheduletimefinish" id="edit_scheduletimefinish" class="form-control">
+                    </div>
+                  </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="editForm" class="btn btn-primary">Update</button>
               </div>
             </div>
           </div>
@@ -735,6 +1055,68 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               document.getElementById('reject_id').value = btn.getAttribute('data-id');
               var rejectModal = new bootstrap.Modal(document.getElementById('rejectModal'));
               rejectModal.show();
+            });
+          });
+          
+          // Edit button logic
+          const editButtons = document.querySelectorAll('.edit-btn');
+          editButtons.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              const rowData = JSON.parse(btn.getAttribute('data-row'));
+              const id = btn.getAttribute('data-id');
+              
+              // Populate form fields
+              document.getElementById('edit_id').value = id;
+              document.getElementById('edit_pic_name').value = rowData.pic_name || '';
+              document.getElementById('edit_pic_position').value = rowData.pic_position || '';
+              document.getElementById('edit_pic_email').value = rowData.pic_email || '';
+              document.getElementById('edit_pic_whatsapp').value = rowData.pic_whatsapp || '';
+              document.getElementById('edit_institution_name').value = rowData.institution_name || '';
+              document.getElementById('edit_business_sector').value = rowData.business_sector || '';
+              document.getElementById('edit_institution_address').value = rowData.institution_address || '';
+              document.getElementById('edit_schedule').value = rowData.schedule || '';
+              document.getElementById('edit_tipe_penyelenggara').value = rowData.tipe_penyelenggara || '';
+              document.getElementById('edit_other_pasker_room').value = rowData.other_pasker_room || '';
+              document.getElementById('edit_other_pasker_facility').value = rowData.other_pasker_facility || '';
+              
+              // Set dropdowns
+              if (rowData.company_sectors_id) {
+                document.getElementById('edit_company_sectors_id').value = rowData.company_sectors_id;
+              }
+              if (rowData.type_of_partnership_id) {
+                document.getElementById('edit_type_of_partnership_id').value = rowData.type_of_partnership_id;
+              }
+              if (rowData.pasker_room_id) {
+                document.getElementById('edit_pasker_room_id').value = rowData.pasker_room_id;
+              }
+              if (rowData.pasker_facility_id) {
+                document.getElementById('edit_pasker_facility_id').value = rowData.pasker_facility_id;
+              }
+              
+              // Handle time fields
+              if (rowData.scheduletimestart) {
+                const timeStart = rowData.scheduletimestart.substring(0, 5);
+                document.getElementById('edit_scheduletimestart').value = timeStart;
+              }
+              if (rowData.scheduletimefinish) {
+                const timeFinish = rowData.scheduletimefinish.substring(0, 5);
+                document.getElementById('edit_scheduletimefinish').value = timeFinish;
+              }
+              
+              // Handle foto preview
+              const fotoPreview = document.getElementById('current_foto_preview');
+              const existingFoto = rowData.foto_kartu_pegawai_pic || '';
+              document.getElementById('existing_foto_kartu_pegawai_pic').value = existingFoto;
+              
+              if (existingFoto) {
+                const fotoUrl = '/storage/' + existingFoto.replace(/^\/+/, '');
+                fotoPreview.innerHTML = '<small class="text-muted">Current:</small><br><img src="' + fotoUrl + '" alt="Current Photo" class="img-thumbnail mt-1" style="max-width:100px;max-height:80px">';
+              } else {
+                fotoPreview.innerHTML = '';
+              }
+              
+              var editModal = new bootstrap.Modal(document.getElementById('editModal'));
+              editModal.show();
             });
           });
         });
