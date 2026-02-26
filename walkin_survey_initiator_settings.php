@@ -39,6 +39,55 @@ if (!table_exists($conn, 'walk_in_survey_initiators')) {
 $tableReady = table_exists($conn, 'walk_in_survey_initiators');
 $hasCompanyTable = table_exists($conn, 'company_walk_in_survey');
 $hasResponseTable = table_exists($conn, 'walk_in_survey_responses');
+$hasKemitraanTable = table_exists($conn, 'kemitraan');
+
+// Handle sync from kemitraan
+if ($tableReady && $hasKemitraanTable && isset($_GET['sync_from_kemitraan'])) {
+    // Get unique institution names from kemitraan where status is approved
+    $syncRes = $conn->query("SELECT DISTINCT institution_name FROM kemitraan WHERE institution_name IS NOT NULL AND institution_name != '' AND status = 'approved' ORDER BY institution_name");
+    $synced = 0;
+    if ($syncRes) {
+        while ($syncRow = $syncRes->fetch_assoc()) {
+            $instName = trim($syncRow['institution_name']);
+            if ($instName === '') continue;
+            
+            // Check if already exists
+            $checkStmt = $conn->prepare("SELECT id FROM walk_in_survey_initiators WHERE initiator_name = ? LIMIT 1");
+            if ($checkStmt) {
+                $checkStmt->bind_param('s', $instName);
+                $checkStmt->execute();
+                $checkStmt->store_result();
+                if ($checkStmt->num_rows === 0) {
+                    // Insert new initiator
+                    $insStmt = $conn->prepare("INSERT INTO walk_in_survey_initiators (initiator_name, is_active, sort_order, created_at, updated_at) VALUES (?, 1, 0, NOW(), NOW())");
+                    if ($insStmt) {
+                        $insStmt->bind_param('s', $instName);
+                        $insStmt->execute();
+                        $insStmt->close();
+                        $synced++;
+                    }
+                }
+                $checkStmt->close();
+            }
+        }
+        $syncRes->free();
+    }
+    $_SESSION['success'] = "Berhasil sinkronisasi $synced initiator dari Kemitraan.";
+    header('Location: walkin_survey_initiator_settings.php');
+    exit();
+}
+
+// Fetch available institution names from kemitraan for dropdown
+$availableInstitutions = [];
+if ($hasKemitraanTable) {
+    $instRes = $conn->query("SELECT DISTINCT institution_name FROM kemitraan WHERE institution_name IS NOT NULL AND institution_name != '' ORDER BY institution_name");
+    if ($instRes) {
+        while ($instRow = $instRes->fetch_assoc()) {
+            $availableInstitutions[] = trim($instRow['institution_name']);
+        }
+        $instRes->free();
+    }
+}
 
 if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
@@ -114,17 +163,29 @@ $rows = [];
 if ($tableReady) {
     $sql = "SELECT i.id, i.initiator_name, i.is_active, i.sort_order, i.created_at, i.updated_at";
     if ($hasCompanyTable && $hasResponseTable) {
-        $sql .= ", COUNT(DISTINCT c.id) AS company_count, COUNT(r.id) AS peserta_hadir_count, ROUND(AVG(r.rating_satisfaction), 2) AS average_rating
-                 FROM walk_in_survey_initiators i
-                 LEFT JOIN company_walk_in_survey c ON c.walk_in_initiator_id = i.id
-                 LEFT JOIN walk_in_survey_responses r ON r.company_walk_in_survey_id = c.id";
+        $sql .= ", COUNT(DISTINCT c.id) AS company_count, COUNT(r.id) AS peserta_hadir_count, ROUND(AVG(r.rating_satisfaction), 2) AS average_rating";
     } elseif ($hasCompanyTable) {
-        $sql .= ", COUNT(DISTINCT c.id) AS company_count, 0 AS peserta_hadir_count, NULL AS average_rating
-                 FROM walk_in_survey_initiators i
-                 LEFT JOIN company_walk_in_survey c ON c.walk_in_initiator_id = i.id";
+        $sql .= ", COUNT(DISTINCT c.id) AS company_count, 0 AS peserta_hadir_count, NULL AS average_rating";
     } else {
-        $sql .= ", 0 AS company_count, 0 AS peserta_hadir_count, NULL AS average_rating FROM walk_in_survey_initiators i";
+        $sql .= ", 0 AS company_count, 0 AS peserta_hadir_count, NULL AS average_rating";
     }
+    
+    // Add check if initiator exists in kemitraan table
+    if ($hasKemitraanTable) {
+        $sql .= ", (SELECT COUNT(*) FROM kemitraan k WHERE k.institution_name = i.initiator_name AND k.status = 'approved') AS kemitraan_count";
+    } else {
+        $sql .= ", 0 AS kemitraan_count";
+    }
+    
+    $sql .= " FROM walk_in_survey_initiators i";
+    
+    if ($hasCompanyTable && $hasResponseTable) {
+        $sql .= " LEFT JOIN company_walk_in_survey c ON c.walk_in_initiator_id = i.id
+                  LEFT JOIN walk_in_survey_responses r ON r.company_walk_in_survey_id = c.id";
+    } elseif ($hasCompanyTable) {
+        $sql .= " LEFT JOIN company_walk_in_survey c ON c.walk_in_initiator_id = i.id";
+    }
+    
     $sql .= " GROUP BY i.id, i.initiator_name, i.is_active, i.sort_order, i.created_at, i.updated_at
               ORDER BY i.sort_order ASC, i.initiator_name ASC";
 
@@ -150,7 +211,14 @@ if ($tableReady) {
 <div class="container mt-4">
     <div class="d-flex align-items-center justify-content-between mb-3">
         <h3 class="mb-0">Walk-in Survey Initiator Settings</h3>
-        <a href="walkin_survey_company_settings.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-building me-1"></i>Manage Companies</a>
+        <div class="d-flex gap-2">
+            <?php if ($hasKemitraanTable): ?>
+                <a href="?sync_from_kemitraan=1" class="btn btn-outline-success btn-sm" onclick="return confirm('Sinkronisasi initiator dari Institution Name di Kemitraan? Ini akan menambahkan institution name yang belum ada.');">
+                    <i class="bi bi-arrow-repeat me-1"></i>Sync from Kemitraan
+                </a>
+            <?php endif; ?>
+            <a href="walkin_survey_company_settings.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-building me-1"></i>Manage Companies</a>
+        </div>
     </div>
 
     <?php if (isset($_SESSION['error'])): ?>
@@ -166,7 +234,15 @@ if ($tableReady) {
                 <input type="hidden" name="id" id="form_id" value="">
                 <div class="col-md-6">
                     <label class="form-label">Nama Initiator</label>
-                    <input type="text" class="form-control" name="initiator_name" id="form_initiator_name" required>
+                    <input type="text" class="form-control" name="initiator_name" id="form_initiator_name" list="institution_names_list" required>
+                    <?php if (!empty($availableInstitutions)): ?>
+                        <datalist id="institution_names_list">
+                            <?php foreach ($availableInstitutions as $inst): ?>
+                                <option value="<?php echo htmlspecialchars($inst); ?>">
+                            <?php endforeach; ?>
+                        </datalist>
+                        <div class="form-text">Pilih dari daftar Institution Name di Kemitraan atau ketik manual</div>
+                    <?php endif; ?>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Urutan</label>
@@ -197,12 +273,13 @@ if ($tableReady) {
                     <th style="width:130px;">Companies</th>
                     <th style="width:140px;">Peserta Hadir</th>
                     <th style="width:120px;">Ratings</th>
+                    <th style="width:120px;">From Kemitraan</th>
                     <th style="width:140px;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($rows)): ?>
-                    <tr><td colspan="8" class="text-center text-muted">Belum ada data initiator.</td></tr>
+                    <tr><td colspan="9" class="text-center text-muted">Belum ada data initiator.</td></tr>
                 <?php else: foreach ($rows as $r): ?>
                     <tr>
                         <td><?php echo (int) $r['id']; ?></td>
@@ -222,6 +299,15 @@ if ($tableReady) {
                                 <?php echo htmlspecialchars(number_format((float) $r['average_rating'], 2)); ?>/5
                             <?php else: ?>
                                 -
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php 
+                            $kemitraanCount = (int) ($r['kemitraan_count'] ?? 0);
+                            if ($kemitraanCount > 0): ?>
+                                <span class="badge text-bg-info" title="Ditemukan di <?php echo $kemitraanCount; ?> kemitraan">✓ <?php echo $kemitraanCount; ?></span>
+                            <?php else: ?>
+                                <span class="text-muted">-</span>
                             <?php endif; ?>
                         </td>
                         <td>
