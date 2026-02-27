@@ -73,13 +73,27 @@ if (!$conn) {
 ensure_testimonials_table($conn);
 
 // Setup upload directory
-$upload_base_dir = $_SERVER['DOCUMENT_ROOT'] . '/images/career_boostday_testimonials/';
+$images_base_dir = $_SERVER['DOCUMENT_ROOT'] . '/images/';
+$upload_base_dir = $images_base_dir . 'career_boostday_testimonials/';
 $db_image_path_prefix = 'images/career_boostday_testimonials/';
 
-if (!file_exists($upload_base_dir)) {
-    if (!mkdir($upload_base_dir, 0755, true)) {
-        error_log("Failed to create upload directory: " . $upload_base_dir);
-    }
+// Create images directory if it doesn't exist (suppress warnings)
+if (!is_dir($images_base_dir)) {
+    @mkdir($images_base_dir, 0775, true);
+}
+
+// Create testimonial upload directory if it doesn't exist (suppress warnings)
+if (!is_dir($upload_base_dir)) {
+    @mkdir($upload_base_dir, 0775, true);
+}
+
+// Check if directory is writable, if not, show a warning message
+$upload_dir_writable = is_dir($upload_base_dir) && is_writable($upload_base_dir);
+$upload_error_msg = '';
+if (!$upload_dir_writable && !is_dir($upload_base_dir)) {
+    $upload_error_msg = 'Peringatan: Direktori upload tidak dapat dibuat. Pastikan folder ' . htmlspecialchars($images_base_dir) . ' memiliki permission yang benar (chmod 755 atau 775).';
+} elseif (!$upload_dir_writable) {
+    $upload_error_msg = 'Peringatan: Direktori upload tidak dapat ditulis. Pastikan folder ' . htmlspecialchars($upload_base_dir) . ' memiliki permission yang benar (chmod 755 atau 775).';
 }
 
 // Helper function to get image display URL
@@ -143,6 +157,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Handle file upload
             if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+                // Check if upload directory is writable
+                if (!$upload_dir_writable) {
+                    $message = 'Direktori upload tidak dapat ditulis. Silakan hubungi administrator untuk memperbaiki permission folder.';
+                    $messageType = 'danger';
+                    header('Location: career_boostday_testimonial.php?msg=' . urlencode($message) . '&type=' . urlencode($messageType));
+                    exit;
+                }
+                
                 $file_info = pathinfo($_FILES['photo']['name']);
                 $extension = strtolower($file_info['extension'] ?? '');
                 
@@ -155,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $photo_url = $db_image_path_prefix . $filename;
                     
                     if (!move_uploaded_file($_FILES['photo']['tmp_name'], $target_file_system_path)) {
-                        $message = 'Gagal mengupload foto.';
+                        $message = 'Gagal mengupload foto. Pastikan direktori upload memiliki permission yang benar.';
                         $messageType = 'danger';
                         header('Location: career_boostday_testimonial.php?msg=' . urlencode($message) . '&type=' . urlencode($messageType));
                         exit;
@@ -336,6 +358,13 @@ $conn->close();
     <?php if ($message): ?>
     <div class="alert alert-<?php echo h($messageType); ?> alert-dismissible fade show" role="alert">
         <?php echo h($message); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <?php endif; ?>
+    
+    <?php if (!empty($upload_error_msg)): ?>
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i><?php echo $upload_error_msg; ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     <?php endif; ?>
