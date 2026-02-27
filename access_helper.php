@@ -97,6 +97,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		['career_boost_day_manage','Career Boost Day: Manage Submissions','Career Boost Day'],
 		['career_boost_day_pic_manage','Career Boost Day: Manage PIC','Career Boost Day'],
 		['career_boost_day_booked_view','Career Boost Day: View Booked','Career Boost Day'],
+		['career_boost_day_testimonial_manage','Career Boost Day: Manage Testimonials','Career Boost Day'],
 		// Konseling permissions
 		['form_hasil_konseling_manage','Form Hasil Konseling: Manage Submissions','Konseling']
 	];
