@@ -72,6 +72,55 @@ if (!$conn) {
 
 ensure_testimonials_table($conn);
 
+// Setup upload directory
+$upload_base_dir = $_SERVER['DOCUMENT_ROOT'] . '/images/career_boostday_testimonials/';
+$db_image_path_prefix = 'images/career_boostday_testimonials/';
+
+if (!file_exists($upload_base_dir)) {
+    if (!mkdir($upload_base_dir, 0755, true)) {
+        error_log("Failed to create upload directory: " . $upload_base_dir);
+    }
+}
+
+// Helper function to get image display URL
+function getPhotoDisplayUrl($photo_path) {
+    if (empty($photo_path)) return '';
+    
+    // If it's already a full URL (http/https), return as is
+    if (preg_match('/^https?:\/\//', $photo_path)) {
+        return $photo_path;
+    }
+    
+    // If it's in the format images/career_boostday_testimonials/filename.jpg, prepend /
+    if (strpos($photo_path, 'images/career_boostday_testimonials/') === 0) {
+        return '/' . $photo_path;
+    }
+    
+    // If it starts with /images/, return as is
+    if (strpos($photo_path, '/images/') === 0) {
+        return $photo_path;
+    }
+    
+    return $photo_path;
+}
+
+// Helper function to get file system path
+function getPhotoFilePath($photo_path) {
+    if (empty($photo_path)) return '';
+    
+    // If it's a full URL, return empty (can't delete external URLs)
+    if (preg_match('/^https?:\/\//', $photo_path)) {
+        return '';
+    }
+    
+    // If it's in the format images/career_boostday_testimonials/filename.jpg
+    if (strpos($photo_path, 'images/career_boostday_testimonials/') === 0) {
+        return $_SERVER['DOCUMENT_ROOT'] . '/' . $photo_path;
+    }
+    
+    return $_SERVER['DOCUMENT_ROOT'] . '/' . $photo_path;
+}
+
 $message = '';
 $messageType = '';
 
@@ -82,7 +131,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'create' || $action === 'update') {
         $name = trim($_POST['name'] ?? '');
         $job_title = trim($_POST['job_title'] ?? '');
-        $photo_url = trim($_POST['photo_url'] ?? '');
         $testimony = trim($_POST['testimony'] ?? '');
         $is_active = isset($_POST['is_active']) ? 1 : 0;
         $sort_order = intval($_POST['sort_order'] ?? 0);
@@ -91,6 +139,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'Nama dan Testimoni wajib diisi.';
             $messageType = 'danger';
         } else {
+            $photo_url = '';
+            
+            // Handle file upload
+            if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+                $file_info = pathinfo($_FILES['photo']['name']);
+                $extension = strtolower($file_info['extension'] ?? '');
+                
+                // Check if file is an image
+                $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                if (in_array($extension, $allowed_extensions)) {
+                    // Generate unique filename
+                    $filename = uniqid() . '_' . time() . '.' . $extension;
+                    $target_file_system_path = $upload_base_dir . $filename;
+                    $photo_url = $db_image_path_prefix . $filename;
+                    
+                    if (!move_uploaded_file($_FILES['photo']['tmp_name'], $target_file_system_path)) {
+                        $message = 'Gagal mengupload foto.';
+                        $messageType = 'danger';
+                        header('Location: career_boostday_testimonial.php?msg=' . urlencode($message) . '&type=' . urlencode($messageType));
+                        exit;
+                    }
+                } else {
+                    $message = 'Format file tidak didukung. Gunakan JPG, PNG, GIF, atau WEBP.';
+                    $messageType = 'danger';
+                    header('Location: career_boostday_testimonial.php?msg=' . urlencode($message) . '&type=' . urlencode($messageType));
+                    exit;
+                }
+            } elseif ($action === 'update') {
+                // Keep existing photo if no new file uploaded
+                $id = intval($_POST['id'] ?? 0);
+                $res = $conn->query("SELECT photo_url FROM career_boostday_testimonials WHERE id = $id LIMIT 1");
+                if ($res && $res->num_rows > 0) {
+                    $row = $res->fetch_assoc();
+                    $photo_url = $row['photo_url'] ?? '';
+                }
+            }
+            
             if ($action === 'create') {
                 $stmt = $conn->prepare("INSERT INTO career_boostday_testimonials (name, job_title, photo_url, testimony, is_active, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())");
                 $stmt->bind_param('ssssii', $name, $job_title, $photo_url, $testimony, $is_active, $sort_order);
@@ -104,6 +189,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->close();
             } else {
                 $id = intval($_POST['id'] ?? 0);
+                
+                // If new photo uploaded, delete old photo
+                if (!empty($photo_url) && isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+                    $res = $conn->query("SELECT photo_url FROM career_boostday_testimonials WHERE id = $id LIMIT 1");
+                    if ($res && $res->num_rows > 0) {
+                        $row = $res->fetch_assoc();
+                        $old_photo = $row['photo_url'] ?? '';
+                        if (!empty($old_photo)) {
+                            $old_file_path = getPhotoFilePath($old_photo);
+                            if (!empty($old_file_path) && file_exists($old_file_path)) {
+                                @unlink($old_file_path);
+                            }
+                        }
+                    }
+                }
+                
                 $stmt = $conn->prepare("UPDATE career_boostday_testimonials SET name=?, job_title=?, photo_url=?, testimony=?, is_active=?, sort_order=?, updated_at=NOW() WHERE id=?");
                 $stmt->bind_param('ssssiis', $name, $job_title, $photo_url, $testimony, $is_active, $sort_order, $id);
                 if ($stmt->execute()) {
@@ -118,9 +219,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'delete') {
         $id = intval($_POST['id'] ?? 0);
+        
+        // Get photo path before deleting
+        $res = $conn->query("SELECT photo_url FROM career_boostday_testimonials WHERE id = $id LIMIT 1");
+        $photo_path = '';
+        if ($res && $res->num_rows > 0) {
+            $row = $res->fetch_assoc();
+            $photo_path = $row['photo_url'] ?? '';
+        }
+        
         $stmt = $conn->prepare("DELETE FROM career_boostday_testimonials WHERE id=?");
         $stmt->bind_param('i', $id);
         if ($stmt->execute()) {
+            // Delete photo file if exists
+            if (!empty($photo_path)) {
+                $file_path = getPhotoFilePath($photo_path);
+                if (!empty($file_path) && file_exists($file_path)) {
+                    @unlink($file_path);
+                }
+            }
             $message = 'Testimoni berhasil dihapus.';
             $messageType = 'success';
         } else {
@@ -230,7 +347,7 @@ $conn->close();
             <?php echo $editData ? 'Edit Testimoni' : 'Tambah Testimoni Baru'; ?>
         </div>
         <div class="card-body">
-            <form method="POST" action="">
+            <form method="POST" action="" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="<?php echo $editData ? 'update' : 'create'; ?>">
                 <?php if ($editData): ?>
                 <input type="hidden" name="id" value="<?php echo h($editData['id']); ?>">
@@ -246,9 +363,19 @@ $conn->close();
                         <input type="text" class="form-control" name="job_title" value="<?php echo h($editData['job_title'] ?? ''); ?>" placeholder="Contoh: Staff Marketing di PT ABC">
                     </div>
                     <div class="col-md-8">
-                        <label class="form-label fw-semibold">URL Foto</label>
-                        <input type="url" class="form-control" name="photo_url" value="<?php echo h($editData['photo_url'] ?? ''); ?>" placeholder="https://example.com/photo.jpg">
-                        <div class="form-text">Masukkan URL gambar (JPG/PNG). Kosongkan jika tidak ada foto.</div>
+                        <label class="form-label fw-semibold">Foto</label>
+                        <input type="file" class="form-control" name="photo" id="photo_input" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+                        <div class="form-text">Upload foto (JPG, PNG, GIF, atau WEBP). Maksimal 5MB.</div>
+                        <?php if ($editData && !empty($editData['photo_url'])): ?>
+                        <div class="mt-2">
+                            <small class="text-muted">Foto saat ini:</small><br>
+                            <img src="<?php echo h(getPhotoDisplayUrl($editData['photo_url'])); ?>" alt="Current photo" class="mt-1" style="max-width: 150px; max-height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #dee2e6;">
+                        </div>
+                        <?php endif; ?>
+                        <div id="photo_preview" class="mt-2" style="display: none;">
+                            <small class="text-muted">Preview foto baru:</small><br>
+                            <img id="photo_preview_img" src="" alt="Preview" style="max-width: 150px; max-height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #198754; margin-top: 8px;">
+                        </div>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label fw-semibold">Urutan</label>
@@ -309,7 +436,10 @@ $conn->close();
                         <tr>
                             <td>
                                 <?php if (!empty($t['photo_url'])): ?>
-                                <img src="<?php echo h($t['photo_url']); ?>" alt="<?php echo h($t['name']); ?>" class="testimonial-photo">
+                                <img src="<?php echo h(getPhotoDisplayUrl($t['photo_url'])); ?>" alt="<?php echo h($t['name']); ?>" class="testimonial-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="testimonial-photo-placeholder" style="display: none;">
+                                    <i class="bi bi-person"></i>
+                                </div>
                                 <?php else: ?>
                                 <div class="testimonial-photo-placeholder">
                                     <i class="bi bi-person"></i>
@@ -352,6 +482,48 @@ $conn->close();
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Image preview functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const photoInput = document.getElementById('photo_input');
+        const photoPreview = document.getElementById('photo_preview');
+        const photoPreviewImg = document.getElementById('photo_preview_img');
+        
+        if (photoInput) {
+            photoInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    // Check file size (5MB max)
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('Ukuran file terlalu besar. Maksimal 5MB.');
+                        photoInput.value = '';
+                        photoPreview.style.display = 'none';
+                        return;
+                    }
+                    
+                    // Check file type
+                    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                    if (!allowedTypes.includes(file.type)) {
+                        alert('Format file tidak didukung. Gunakan JPG, PNG, GIF, atau WEBP.');
+                        photoInput.value = '';
+                        photoPreview.style.display = 'none';
+                        return;
+                    }
+                    
+                    // Show preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        photoPreviewImg.src = e.target.result;
+                        photoPreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    photoPreview.style.display = 'none';
+                }
+            });
+        }
+    });
+</script>
 </body>
 </html>
 
