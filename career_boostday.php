@@ -356,14 +356,52 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             exit;
         }
 
-        $stmt = $conn->prepare("UPDATE career_boostday_consultations
-            SET name=?, whatsapp=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, jurusan=NULLIF(?, ''), booked_date=NULLIF(?, ''), admin_updated_at=NOW()
-            WHERE id=?");
-        if ($stmt) {
-            $stmt->bind_param('ssssssssi', $name, $whatsapp, $status, $jenis, $jadwal, $pend, $jurusan, $bookedDate, $id);
-            $stmt->execute();
-            $stmt->close();
-            $_SESSION['success'] = 'Data berhasil di-update.';
+        // Check if this record is already accepted and has booked_date
+        // If so, recalculate booked_time_start and booked_time_finish from the new jadwal_konseling
+        $currentStatus = '';
+        $currentBookedDate = '';
+        if ($checkStmt = $conn->prepare("SELECT admin_status, booked_date FROM career_boostday_consultations WHERE id=?")) {
+            $checkStmt->bind_param('i', $id);
+            $checkStmt->execute();
+            $checkStmt->bind_result($currentStatus, $currentBookedDate);
+            $checkStmt->fetch();
+            $checkStmt->close();
+        }
+
+        $timeStart = null;
+        $timeFinish = null;
+        
+        // If record is accepted and has booked_date, recalculate time from new slot
+        if ($currentStatus === 'accepted' && !empty($currentBookedDate)) {
+            // Prefer slot table lookup, fallback to parsing label format
+            [$timeStart, $timeFinish] = slot_time_range_from_label($conn, $jadwal);
+            if (!$timeStart || !$timeFinish) {
+                [$timeStart, $timeFinish] = parse_time_range_from_slot($jadwal);
+            }
+        }
+
+        // If we have time values, update them; otherwise, keep existing values or set to NULL
+        if ($timeStart && $timeFinish) {
+            $stmt = $conn->prepare("UPDATE career_boostday_consultations
+                SET name=?, whatsapp=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, jurusan=NULLIF(?, ''), booked_date=NULLIF(?, ''), booked_time_start=?, booked_time_finish=?, admin_updated_at=NOW()
+                WHERE id=?");
+            if ($stmt) {
+                $stmt->bind_param('ssssssssssi', $name, $whatsapp, $status, $jenis, $jadwal, $pend, $jurusan, $bookedDate, $timeStart, $timeFinish, $id);
+                $stmt->execute();
+                $stmt->close();
+                $_SESSION['success'] = 'Data berhasil di-update.';
+            }
+        } else {
+            // No time calculation needed, just update other fields
+            $stmt = $conn->prepare("UPDATE career_boostday_consultations
+                SET name=?, whatsapp=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, jurusan=NULLIF(?, ''), booked_date=NULLIF(?, ''), admin_updated_at=NOW()
+                WHERE id=?");
+            if ($stmt) {
+                $stmt->bind_param('ssssssssi', $name, $whatsapp, $status, $jenis, $jadwal, $pend, $jurusan, $bookedDate, $id);
+                $stmt->execute();
+                $stmt->close();
+                $_SESSION['success'] = 'Data berhasil di-update.';
+            }
         }
         header('Location: ' . $redir);
         exit;
