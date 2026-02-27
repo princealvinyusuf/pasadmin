@@ -185,6 +185,18 @@ if ($tableReady) {
         }
     }
 }
+
+// Fetch available institution names from kemitraan for company_name autocomplete
+$availableCompanies = [];
+if (table_exists($conn, 'kemitraan')) {
+    $instRes = $conn->query("SELECT DISTINCT institution_name FROM kemitraan WHERE institution_name IS NOT NULL AND institution_name != '' ORDER BY institution_name");
+    if ($instRes) {
+        while ($instRow = $instRes->fetch_assoc()) {
+            $availableCompanies[] = trim($instRow['institution_name']);
+        }
+        $instRes->free();
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -216,7 +228,15 @@ if ($tableReady) {
                 <input type="hidden" name="id" id="form_id" value="">
                 <div class="col-md-6">
                     <label class="form-label">Nama Perusahaan</label>
-                    <input type="text" class="form-control" name="company_name" id="form_company_name" required>
+                    <input type="text" class="form-control" name="company_name" id="form_company_name" list="company_names_list" required>
+                    <?php if (!empty($availableCompanies)): ?>
+                        <datalist id="company_names_list">
+                            <?php foreach ($availableCompanies as $comp): ?>
+                                <option value="<?php echo htmlspecialchars($comp); ?>">
+                            <?php endforeach; ?>
+                        </datalist>
+                        <div class="form-text">Pilih dari daftar Institution Name di Kemitraan atau ketik manual</div>
+                    <?php endif; ?>
                 </div>
                 <?php if ($hasInitiatorColumn): ?>
                 <div class="col-md-4">
