@@ -307,6 +307,18 @@ if (table_exists($conn, 'walkin_gallery_items')) {
     }
 }
 
+// Fetch available institution names from kemitraan for company_name autocomplete
+$availableCompanies = [];
+if (table_exists($conn, 'kemitraan')) {
+    $instRes = $conn->query("SELECT DISTINCT institution_name FROM kemitraan WHERE institution_name IS NOT NULL AND institution_name != '' ORDER BY institution_name");
+    if ($instRes) {
+        while ($instRow = $instRes->fetch_assoc()) {
+            $availableCompanies[] = trim($instRow['institution_name']);
+        }
+        $instRes->free();
+    }
+}
+
 function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES); }
 ?>
 <!DOCTYPE html>
@@ -367,8 +379,17 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Company Name</label>
-                        <input type="text" class="form-control" name="company_name" placeholder="Contoh: PT ABC" maxlength="255" value="<?= h($editItem['company_name'] ?? ''); ?>">
-                        <div class="form-text">Kosong = masuk ke kategori "Umum".</div>
+                        <input type="text" class="form-control" name="company_name" placeholder="Contoh: PT ABC" maxlength="255" value="<?= h($editItem['company_name'] ?? ''); ?>" list="company_names_list">
+                        <?php if (!empty($availableCompanies)): ?>
+                            <datalist id="company_names_list">
+                                <?php foreach ($availableCompanies as $comp): ?>
+                                    <option value="<?= h($comp); ?>">
+                                <?php endforeach; ?>
+                            </datalist>
+                            <div class="form-text">Pilih dari daftar Institution Name di Kemitraan atau ketik manual. Kosong = "Umum".</div>
+                        <?php else: ?>
+                            <div class="form-text">Kosong = masuk ke kategori "Umum".</div>
+                        <?php endif; ?>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Publish</label>
