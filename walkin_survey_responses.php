@@ -144,6 +144,8 @@ if ($hasResponseTable && $viewId > 0) {
 
 $rows = [];
 $exportRows = [];
+$duplicateEmails = [];
+$showDuplicateEmails = isset($_GET['see_duplicate']) && $_GET['see_duplicate'] === '1';
 if ($hasResponseTable) {
     $dateExpr = $hasWalkinDateCol ? 'DATE(walkin_date)' : 'DATE(created_at)';
     $whereSql = " WHERE 1=1";
@@ -192,6 +194,20 @@ if ($hasResponseTable) {
     // Export includes complete filtered rows from DB (not only visible columns in the table).
     $exportSql = "SELECT * FROM walk_in_survey_responses" . $whereSql . " ORDER BY id DESC";
     $exportRows = fetch_rows_with_params($conn, $exportSql, $types, $params);
+
+    if ($showDuplicateEmails) {
+        $duplicateSql = "SELECT
+                LOWER(TRIM(email)) AS email_norm,
+                COUNT(*) AS total_responses,
+                MAX(created_at) AS latest_submitted_at
+            FROM walk_in_survey_responses" . $whereSql . "
+            AND TRIM(COALESCE(email, '')) <> ''
+            GROUP BY LOWER(TRIM(email))
+            HAVING COUNT(*) > 1
+            ORDER BY total_responses DESC, latest_submitted_at DESC
+            LIMIT 300";
+        $duplicateEmails = fetch_rows_with_params($conn, $duplicateSql, $types, $params);
+    }
 }
 
 $filterQuery = [];
@@ -199,6 +215,11 @@ if ($search !== '') $filterQuery['q'] = $search;
 if ($companyId > 0) $filterQuery['company_id'] = $companyId;
 if ($filterDateFrom !== '') $filterQuery['date_from'] = $filterDateFrom;
 if ($filterDateTo !== '') $filterQuery['date_to'] = $filterDateTo;
+$duplicateToggleQuery = $filterQuery;
+if (!$showDuplicateEmails) {
+    $duplicateToggleQuery['see_duplicate'] = '1';
+}
+$duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQuery) ? ('?' . http_build_query($duplicateToggleQuery)) : '');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -257,12 +278,60 @@ if ($filterDateTo !== '') $filterQuery['date_to'] = $filterDateTo;
                     <div class="d-flex flex-wrap gap-2 w-100 justify-content-xl-end">
                         <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Filter</button>
                         <a href="walkin_survey_responses.php" class="btn btn-secondary">Reset</a>
+                        <a href="<?php echo htmlspecialchars($duplicateToggleUrl); ?>" class="btn <?php echo $showDuplicateEmails ? 'btn-outline-dark' : 'btn-outline-info'; ?>">
+                            <i class="bi bi-copy me-1"></i><?php echo $showDuplicateEmails ? 'Hide Duplicate Email' : 'See Duplicate Email'; ?>
+                        </a>
                         <button class="btn btn-success" type="button" id="btnDownloadExcel"><i class="bi bi-file-earmark-excel me-1"></i>Download To Excel</button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
+
+    <?php if ($showDuplicateEmails): ?>
+        <div class="card mb-3">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <strong>Duplicate Email</strong>
+                <span class="text-muted small"><?php echo count($duplicateEmails); ?> email duplikat</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th style="width:140px;">Total Response</th>
+                                <th style="width:190px;">Last Submitted</th>
+                                <th style="width:120px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($duplicateEmails)): ?>
+                                <tr><td colspan="4" class="text-center text-muted">Tidak ada email duplikat pada filter saat ini.</td></tr>
+                            <?php else: foreach ($duplicateEmails as $dup): ?>
+                                <?php
+                                    $emailNorm = (string) ($dup['email_norm'] ?? '');
+                                    $drillQuery = $filterQuery;
+                                    $drillQuery['q'] = $emailNorm;
+                                    $drillUrl = 'walkin_survey_responses.php?' . http_build_query($drillQuery);
+                                ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($emailNorm); ?></td>
+                                    <td><?php echo (int) ($dup['total_responses'] ?? 0); ?></td>
+                                    <td><?php echo htmlspecialchars((string) ($dup['latest_submitted_at'] ?? '-')); ?></td>
+                                    <td>
+                                        <a class="btn btn-sm btn-outline-primary" href="<?php echo htmlspecialchars($drillUrl); ?>">
+                                            Lihat Data
+                                        </a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <?php if ($selected): ?>
         <div class="card mb-3">
