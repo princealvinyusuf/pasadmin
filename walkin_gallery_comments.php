@@ -32,12 +32,65 @@ function table_exists(mysqli $conn, string $table): bool {
     return $res && $res->num_rows > 0;
 }
 
+function column_exists(mysqli $conn, string $table, string $column): bool {
+    $t = $conn->real_escape_string($table);
+    $c = $conn->real_escape_string($column);
+    $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='$t' AND COLUMN_NAME='$c' LIMIT 1";
+    $res = $conn->query($sql);
+    return $res && $res->num_rows > 0;
+}
+
 function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES); }
 
 if (!table_exists($conn, 'walkin_gallery_comments')) {
     $_SESSION['error'] = 'Tabel walkin_gallery_comments belum ada. Jalankan migration di Laravel terlebih dahulu.';
     header('Location: walkin_gallery.php');
     exit();
+}
+
+// Sync "Masukan Umum" from walk-in survey responses into moderation comments (once per response).
+if (
+    table_exists($conn, 'walk_in_survey_responses') &&
+    column_exists($conn, 'walk_in_survey_responses', 'id') &&
+    column_exists($conn, 'walk_in_survey_responses', 'name') &&
+    column_exists($conn, 'walk_in_survey_responses', 'company_name_snapshot') &&
+    column_exists($conn, 'walk_in_survey_responses', 'general_feedback') &&
+    column_exists($conn, 'walk_in_survey_responses', 'created_at')
+) {
+    $syncSql = "
+        INSERT INTO walkin_gallery_comments (
+            walkin_gallery_item_id,
+            company_name,
+            name,
+            comment,
+            status,
+            ip_address,
+            user_agent,
+            created_at,
+            updated_at
+        )
+        SELECT
+            NULL,
+            NULLIF(TRIM(COALESCE(r.company_name_snapshot, '')), ''),
+            CASE
+                WHEN TRIM(COALESCE(r.name, '')) = '' THEN 'Responden Survey'
+                ELSE LEFT(TRIM(r.name), 80)
+            END,
+            TRIM(r.general_feedback),
+            'pending',
+            NULL,
+            CONCAT('survey_response:', r.id),
+            COALESCE(r.created_at, NOW()),
+            NOW()
+        FROM walk_in_survey_responses r
+        WHERE TRIM(COALESCE(r.general_feedback, '')) <> ''
+          AND NOT EXISTS (
+            SELECT 1
+            FROM walkin_gallery_comments c
+            WHERE c.user_agent = CONCAT('survey_response:', r.id)
+          )
+    ";
+    $conn->query($syncSql);
 }
 
 // Handle moderation actions
@@ -131,6 +184,7 @@ if ($res) {
                         <tr>
                             <th>ID</th>
                             <th>Status</th>
+                            <th>Sumber</th>
                             <th>Nama</th>
                             <th>Komentar</th>
                             <th>Item</th>
@@ -141,9 +195,16 @@ if ($res) {
                     </thead>
                     <tbody>
                     <?php foreach ($rows as $r): ?>
+                        <?php
+                            $sourceLabel = 'Komentar Galeri';
+                            if (preg_match('/^survey_response:(\d+)$/', (string)($r['user_agent'] ?? ''), $m)) {
+                                $sourceLabel = 'Masukan Umum Survey #' . ((int)$m[1]);
+                            }
+                        ?>
                         <tr>
                             <td><?= intval($r['id']); ?></td>
                             <td><span class="badge bg-secondary"><?= h($r['status']); ?></span></td>
+                            <td class="small"><?= h($sourceLabel); ?></td>
                             <td><?= h($r['name']); ?></td>
                             <td style="max-width:420px"><?= h($r['comment']); ?></td>
                             <td><?= h(($r['item_title'] ?: '-') . ($r['item_type'] ? ' (' . $r['item_type'] . ')' : '')); ?></td>
@@ -160,7 +221,7 @@ if ($res) {
                         </tr>
                     <?php endforeach; ?>
                     <?php if (count($rows) === 0): ?>
-                        <tr><td colspan="8" class="text-center text-muted">Tidak ada data.</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted">Tidak ada data.</td></tr>
                     <?php endif; ?>
                     </tbody>
                 </table>
