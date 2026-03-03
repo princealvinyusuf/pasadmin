@@ -19,6 +19,8 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 
 $versionId = intval($_GET['version_id'] ?? 0);
 $userId = intval($_SESSION['user_id'] ?? 0);
+$sessionUsername = strtolower((string)($_SESSION['username'] ?? ''));
+$isDriveSuperUser = ($sessionUsername === 'datin_pasker') || (function_exists('current_user_is_super_admin') && current_user_is_super_admin());
 if ($versionId <= 0 || $userId <= 0) {
     http_response_code(400);
     echo 'Invalid request.';
@@ -56,7 +58,7 @@ if (!$row) {
 }
 
 $fileId = intval($row['file_id']);
-$allowed = intval($row['owner_user_id']) === $userId;
+$allowed = $isDriveSuperUser || intval($row['owner_user_id']) === $userId;
 if (!$allowed) {
     $uStmt = $conn->prepare("SELECT 1 FROM pasker_drive_permissions WHERE file_id=? AND principal_type='user' AND principal_id=? LIMIT 1");
     $uStmt->bind_param('ii', $fileId, $userId);

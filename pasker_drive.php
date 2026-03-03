@@ -159,6 +159,13 @@ function get_user_group_ids(mysqli $conn, int $userId): array {
 }
 
 function get_file_access_role(mysqli $conn, int $userId, int $fileId): ?string {
+    $sessionUsername = strtolower((string)($_SESSION['username'] ?? ''));
+    $isNamedSuperUser = $sessionUsername === 'datin_pasker';
+    $isSuperAdmin = function_exists('current_user_is_super_admin') && current_user_is_super_admin();
+    if ($isNamedSuperUser || $isSuperAdmin) {
+        return 'owner';
+    }
+
     $stmt = $conn->prepare("SELECT owner_user_id, is_trashed FROM pasker_drive_files WHERE id=? LIMIT 1");
     $stmt->bind_param('i', $fileId);
     $stmt->execute();
@@ -376,6 +383,8 @@ if (!is_dir($storageDir)) {
 }
 
 $userId = intval($_SESSION['user_id'] ?? 0);
+$sessionUsername = strtolower((string)($_SESSION['username'] ?? ''));
+$isDriveSuperUser = ($sessionUsername === 'datin_pasker') || (function_exists('current_user_is_super_admin') && current_user_is_super_admin());
 $maxUploadBytes = 100 * 1024 * 1024;
 $dangerousExt = ['php', 'phtml', 'phar', 'htaccess', 'cgi', 'pl', 'exe', 'sh', 'bat'];
 
@@ -1237,29 +1246,41 @@ if (table_exists($conn, 'user_access')) {
 $myGroupIds = array_values(array_unique($myGroupIds));
 
 $allFolders = [];
-$folderRes = $conn->prepare("SELECT folder_path FROM pasker_drive_folders WHERE owner_user_id=? ORDER BY folder_path");
-$folderRes->bind_param('i', $userId);
-$folderRes->execute();
-$folderData = $folderRes->get_result();
+if ($isDriveSuperUser) {
+    $folderData = $conn->query("SELECT folder_path FROM pasker_drive_folders ORDER BY folder_path");
+} else {
+    $folderRes = $conn->prepare("SELECT folder_path FROM pasker_drive_folders WHERE owner_user_id=? ORDER BY folder_path");
+    $folderRes->bind_param('i', $userId);
+    $folderRes->execute();
+    $folderData = $folderRes->get_result();
+}
 while ($r = $folderData->fetch_assoc()) {
     $fp = normalize_folder_path((string)$r['folder_path']);
     if ($fp !== '') {
         $allFolders[$fp] = true;
     }
 }
-$folderRes->close();
+if (!$isDriveSuperUser && isset($folderRes)) {
+    $folderRes->close();
+}
 
-$scanFromFiles = $conn->prepare("SELECT DISTINCT folder_path FROM pasker_drive_files WHERE owner_user_id=? AND folder_path<>''");
-$scanFromFiles->bind_param('i', $userId);
-$scanFromFiles->execute();
-$fres = $scanFromFiles->get_result();
+if ($isDriveSuperUser) {
+    $fres = $conn->query("SELECT DISTINCT folder_path FROM pasker_drive_files WHERE folder_path<>''");
+} else {
+    $scanFromFiles = $conn->prepare("SELECT DISTINCT folder_path FROM pasker_drive_files WHERE owner_user_id=? AND folder_path<>''");
+    $scanFromFiles->bind_param('i', $userId);
+    $scanFromFiles->execute();
+    $fres = $scanFromFiles->get_result();
+}
 while ($r = $fres->fetch_assoc()) {
     $fp = normalize_folder_path((string)$r['folder_path']);
     if ($fp !== '') {
         $allFolders[$fp] = true;
     }
 }
-$scanFromFiles->close();
+if (!$isDriveSuperUser && isset($scanFromFiles)) {
+    $scanFromFiles->close();
+}
 $allFolderPaths = array_keys($allFolders);
 sort($allFolderPaths);
 
@@ -1276,7 +1297,49 @@ $files = [];
 $totalBytes = 0;
 $sharedRoleByFileId = [];
 
-if ($view === 'shared') {
+if ($isDriveSuperUser) {
+    $sql = "SELECT f.*, s.share_token, s.access_type, s.can_download, s.expires_at
+            FROM pasker_drive_files f
+            LEFT JOIN pasker_drive_shares s ON s.file_id=f.id
+            WHERE 1=1";
+    $params = [];
+    $types = '';
+    if ($view === 'trash') {
+        $sql .= " AND f.is_trashed=1";
+    } elseif ($view === 'starred') {
+        $sql .= " AND f.is_trashed=0 AND f.is_starred=1";
+    } elseif ($view === 'recent') {
+        $sql .= " AND f.is_trashed=0";
+    } else {
+        $sql .= " AND f.is_trashed=0 AND f.folder_path=?";
+        $types .= 's';
+        $params[] = $folder;
+    }
+    if ($search !== '') {
+        $sql .= " AND f.original_name LIKE ?";
+        $types .= 's';
+        $params[] = '%' . $search . '%';
+    }
+    if ($view === 'recent') {
+        $sql .= " ORDER BY f.updated_at DESC LIMIT 100";
+    } else {
+        $sql .= " ORDER BY f.updated_at DESC";
+    }
+    $stmt = $conn->prepare($sql);
+    if ($types !== '') {
+        $stmt->bind_param($types, ...$params);
+    }
+    $stmt->execute();
+    $res = $stmt->get_result();
+    while ($row = $res->fetch_assoc()) {
+        $files[] = $row;
+        $totalBytes += intval($row['size_bytes'] ?? 0);
+        if ($view === 'shared') {
+            $sharedRoleByFileId[intval($row['id'])] = 'owner';
+        }
+    }
+    $stmt->close();
+} elseif ($view === 'shared') {
     $rolePriority = ['viewer' => 1, 'commenter' => 2, 'editor' => 3];
     $permRows = [];
     $uPerm = $conn->prepare("SELECT file_id, role FROM pasker_drive_permissions WHERE principal_type='user' AND principal_id=?");
@@ -1849,7 +1912,7 @@ $fullBaseUrl = app_full_base_url();
                                 $shared = (($file['access_type'] ?? 'private') === 'anyone_with_link') && !empty($file['share_token']);
                                 $shareUrl = $shared ? ($fullBaseUrl . 'pasker_drive_share.php?token=' . urlencode((string)$file['share_token'])) : '';
                                 $expiresInput = '';
-                                $isOwner = intval($file['owner_user_id'] ?? 0) === $userId;
+                                $isOwner = $isDriveSuperUser || intval($file['owner_user_id'] ?? 0) === $userId;
                                 $currentRole = $isOwner ? 'owner' : ($sharedRoleByFileId[$fileId] ?? 'viewer');
                                 $canEditFile = in_array($currentRole, ['owner', 'editor'], true);
                                 $canCommentFile = in_array($currentRole, ['owner', 'editor', 'commenter'], true);
