@@ -139,6 +139,70 @@ function log_activity(mysqli $conn, int $userId, ?int $fileId, string $action, s
     $stmt->close();
 }
 
+function get_user_group_ids(mysqli $conn, int $userId): array {
+    $ids = [];
+    if (!table_exists($conn, 'user_access')) {
+        return $ids;
+    }
+    $stmt = $conn->prepare("SELECT group_id FROM user_access WHERE user_id=?");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    while ($r = $res->fetch_assoc()) {
+        $gid = intval($r['group_id']);
+        if ($gid > 0) {
+            $ids[] = $gid;
+        }
+    }
+    $stmt->close();
+    return array_values(array_unique($ids));
+}
+
+function get_file_access_role(mysqli $conn, int $userId, int $fileId): ?string {
+    $stmt = $conn->prepare("SELECT owner_user_id, is_trashed FROM pasker_drive_files WHERE id=? LIMIT 1");
+    $stmt->bind_param('i', $fileId);
+    $stmt->execute();
+    $stmt->bind_result($ownerUserId, $isTrashed);
+    $found = $stmt->fetch();
+    $stmt->close();
+    if (!$found || intval($isTrashed) === 1) {
+        return null;
+    }
+    if (intval($ownerUserId) === $userId) {
+        return 'owner';
+    }
+
+    $best = null;
+    $priority = ['viewer' => 1, 'commenter' => 2, 'editor' => 3];
+
+    $u = $conn->prepare("SELECT role FROM pasker_drive_permissions WHERE file_id=? AND principal_type='user' AND principal_id=? LIMIT 1");
+    $u->bind_param('ii', $fileId, $userId);
+    $u->execute();
+    $u->bind_result($uRole);
+    if ($u->fetch()) {
+        $best = $uRole;
+    }
+    $u->close();
+
+    $groupIds = get_user_group_ids($conn, $userId);
+    if (!empty($groupIds)) {
+        $in = implode(',', array_map('intval', $groupIds));
+        $res = $conn->query("SELECT role FROM pasker_drive_permissions WHERE file_id=" . intval($fileId) . " AND principal_type='group' AND principal_id IN ($in)");
+        if ($res) {
+            while ($r = $res->fetch_assoc()) {
+                $role = (string)$r['role'];
+                if (!isset($priority[$role])) {
+                    continue;
+                }
+                if ($best === null || $priority[$role] > $priority[$best]) {
+                    $best = $role;
+                }
+            }
+        }
+    }
+    return $best;
+}
+
 $conn = new mysqli('localhost', 'root', '', 'job_admin_prod');
 
 $conn->query("CREATE TABLE IF NOT EXISTS pasker_drive_files (
@@ -206,6 +270,19 @@ $conn->query("CREATE TABLE IF NOT EXISTS pasker_drive_permissions (
     UNIQUE KEY uniq_file_principal (file_id, principal_type, principal_id),
     INDEX idx_principal (principal_type, principal_id),
     CONSTRAINT fk_pasker_drive_permissions_file
+        FOREIGN KEY (file_id) REFERENCES pasker_drive_files(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$conn->query("CREATE TABLE IF NOT EXISTS pasker_drive_comments (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    file_id BIGINT UNSIGNED NOT NULL,
+    user_id INT NOT NULL,
+    comment_text TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_file_created (file_id, created_at),
+    INDEX idx_user_created (user_id, created_at),
+    CONSTRAINT fk_pasker_drive_comments_file
         FOREIGN KEY (file_id) REFERENCES pasker_drive_files(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
@@ -388,8 +465,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: ' . $redirect);
             exit;
         }
-        $stmt = $conn->prepare('UPDATE pasker_drive_files SET original_name=? WHERE id=? AND owner_user_id=?');
-        $stmt->bind_param('sii', $newName, $fileId, $userId);
+        $role = get_file_access_role($conn, $userId, $fileId);
+        if (!in_array($role, ['owner', 'editor'], true)) {
+            flash_set('pasker_drive_error', 'You do not have permission to rename this file.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $stmt = $conn->prepare('UPDATE pasker_drive_files SET original_name=? WHERE id=?');
+        $stmt->bind_param('si', $newName, $fileId);
         $stmt->execute();
         $affected = $stmt->affected_rows;
         $stmt->close();
@@ -406,8 +489,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'toggle_star') {
         $fileId = intval($_POST['file_id'] ?? 0);
         $isStarred = intval($_POST['is_starred'] ?? 0) === 1 ? 1 : 0;
-        $stmt = $conn->prepare('UPDATE pasker_drive_files SET is_starred=? WHERE id=? AND owner_user_id=?');
-        $stmt->bind_param('iii', $isStarred, $fileId, $userId);
+        $role = get_file_access_role($conn, $userId, $fileId);
+        if (!in_array($role, ['owner', 'editor'], true)) {
+            flash_set('pasker_drive_error', 'You do not have permission to star this file.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $stmt = $conn->prepare('UPDATE pasker_drive_files SET is_starred=? WHERE id=?');
+        $stmt->bind_param('ii', $isStarred, $fileId);
         $stmt->execute();
         $stmt->close();
         log_activity($conn, $userId, $fileId, $isStarred ? 'star' : 'unstar');
@@ -419,14 +508,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'move_file') {
         $fileId = intval($_POST['file_id'] ?? 0);
         $targetFolder = normalize_folder_path((string)($_POST['target_folder'] ?? ''));
+        $role = get_file_access_role($conn, $userId, $fileId);
+        if (!in_array($role, ['owner', 'editor'], true)) {
+            flash_set('pasker_drive_error', 'You do not have permission to move this file.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $ownerId = $userId;
+        $oStmt = $conn->prepare("SELECT owner_user_id FROM pasker_drive_files WHERE id=? LIMIT 1");
+        $oStmt->bind_param('i', $fileId);
+        $oStmt->execute();
+        $oStmt->bind_result($ownerUserIdForMove);
+        if ($oStmt->fetch()) {
+            $ownerId = intval($ownerUserIdForMove);
+        }
+        $oStmt->close();
+
         if ($targetFolder !== '') {
             $ins = $conn->prepare("INSERT IGNORE INTO pasker_drive_folders (owner_user_id, folder_path) VALUES (?, ?)");
-            $ins->bind_param('is', $userId, $targetFolder);
+            $ins->bind_param('is', $ownerId, $targetFolder);
             $ins->execute();
             $ins->close();
         }
-        $stmt = $conn->prepare('UPDATE pasker_drive_files SET folder_path=? WHERE id=? AND owner_user_id=?');
-        $stmt->bind_param('sii', $targetFolder, $fileId, $userId);
+        $stmt = $conn->prepare('UPDATE pasker_drive_files SET folder_path=? WHERE id=?');
+        $stmt->bind_param('si', $targetFolder, $fileId);
         $stmt->execute();
         $stmt->close();
         log_activity($conn, $userId, $fileId, 'move', $targetFolder === '' ? 'root' : $targetFolder);
@@ -437,8 +542,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'trash') {
         $fileId = intval($_POST['file_id'] ?? 0);
-        $stmt = $conn->prepare('UPDATE pasker_drive_files SET is_trashed=1, trashed_at=NOW() WHERE id=? AND owner_user_id=?');
-        $stmt->bind_param('ii', $fileId, $userId);
+        $role = get_file_access_role($conn, $userId, $fileId);
+        if (!in_array($role, ['owner', 'editor'], true)) {
+            flash_set('pasker_drive_error', 'You do not have permission to trash this file.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $stmt = $conn->prepare('UPDATE pasker_drive_files SET is_trashed=1, trashed_at=NOW() WHERE id=?');
+        $stmt->bind_param('i', $fileId);
         $stmt->execute();
         $stmt->close();
         log_activity($conn, $userId, $fileId, 'trash');
@@ -545,6 +656,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->close();
         log_activity($conn, $userId, $fileId, 'share_revoke', $principalType . ':' . $principalId);
         flash_set('pasker_drive_success', 'Permission revoked.');
+        header('Location: ' . $redirect);
+        exit;
+    }
+
+    if ($action === 'add_comment') {
+        $fileId = intval($_POST['file_id'] ?? 0);
+        $commentText = trim((string)($_POST['comment_text'] ?? ''));
+        if ($fileId <= 0 || $commentText === '') {
+            flash_set('pasker_drive_error', 'Comment cannot be empty.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $role = get_file_access_role($conn, $userId, $fileId);
+        if (!in_array($role, ['owner', 'editor', 'commenter'], true)) {
+            flash_set('pasker_drive_error', 'You do not have permission to comment on this file.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $commentText = mb_substr($commentText, 0, 2000);
+        $stmt = $conn->prepare("INSERT INTO pasker_drive_comments (file_id, user_id, comment_text) VALUES (?, ?, ?)");
+        $stmt->bind_param('iis', $fileId, $userId, $commentText);
+        $stmt->execute();
+        $stmt->close();
+        log_activity($conn, $userId, $fileId, 'comment_add', mb_substr($commentText, 0, 80));
+        flash_set('pasker_drive_success', 'Comment added.');
+        header('Location: ' . $redirect);
+        exit;
+    }
+
+    if ($action === 'delete_comment') {
+        $commentId = intval($_POST['comment_id'] ?? 0);
+        $fileId = intval($_POST['file_id'] ?? 0);
+        if ($commentId <= 0 || $fileId <= 0) {
+            flash_set('pasker_drive_error', 'Invalid delete comment request.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $stmt = $conn->prepare("SELECT user_id FROM pasker_drive_comments WHERE id=? AND file_id=? LIMIT 1");
+        $stmt->bind_param('ii', $commentId, $fileId);
+        $stmt->execute();
+        $stmt->bind_result($commentOwnerId);
+        $found = $stmt->fetch();
+        $stmt->close();
+        if (!$found) {
+            flash_set('pasker_drive_error', 'Comment not found.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $role = get_file_access_role($conn, $userId, $fileId);
+        $canDelete = intval($commentOwnerId) === $userId || in_array($role, ['owner', 'editor'], true);
+        if (!$canDelete) {
+            flash_set('pasker_drive_error', 'You do not have permission to delete this comment.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $del = $conn->prepare("DELETE FROM pasker_drive_comments WHERE id=?");
+        $del->bind_param('i', $commentId);
+        $del->execute();
+        $del->close();
+        log_activity($conn, $userId, $fileId, 'comment_delete', 'comment_id:' . $commentId);
+        flash_set('pasker_drive_success', 'Comment deleted.');
         header('Location: ' . $redirect);
         exit;
     }
@@ -846,9 +1018,73 @@ if (!empty($files)) {
     }
 }
 
+$fileCommentsMap = [];
+if (!empty($files)) {
+    $ids = array_map(static function ($x) {
+        return intval($x['id'] ?? 0);
+    }, $files);
+    $ids = array_values(array_filter($ids, static function ($x) {
+        return $x > 0;
+    }));
+    if (!empty($ids)) {
+        $in = implode(',', array_map('intval', $ids));
+        $comRes = $conn->query("SELECT id, file_id, user_id, comment_text, created_at FROM pasker_drive_comments WHERE file_id IN ($in) ORDER BY id DESC");
+        while ($c = $comRes->fetch_assoc()) {
+            $fid = intval($c['file_id']);
+            if (!isset($fileCommentsMap[$fid])) {
+                $fileCommentsMap[$fid] = [];
+            }
+            if (count($fileCommentsMap[$fid]) < 5) {
+                $uid = intval($c['user_id']);
+                $userLabel = $shareUserOptions[$uid] ?? ('User #' . $uid);
+                $fileCommentsMap[$fid][] = [
+                    'id' => intval($c['id']),
+                    'user_id' => $uid,
+                    'user_label' => $userLabel,
+                    'comment_text' => (string)$c['comment_text'],
+                    'created_at' => (string)$c['created_at'],
+                ];
+            }
+        }
+    }
+}
+
+$activityFilterFileId = intval($_GET['activity_file_id'] ?? 0);
+$activityFilterUserId = intval($_GET['activity_user_id'] ?? 0);
 $activityRows = [];
-$act = $conn->prepare("SELECT action_name, meta_info, created_at, file_id FROM pasker_drive_activities WHERE user_id=? ORDER BY id DESC LIMIT 12");
-$act->bind_param('i', $userId);
+$activitySql = "SELECT action_name, meta_info, created_at, file_id, user_id FROM pasker_drive_activities WHERE 1=1";
+$activityTypes = '';
+$activityParams = [];
+
+if ($activityFilterFileId > 0) {
+    $activitySql .= " AND file_id=?";
+    $activityTypes .= 'i';
+    $activityParams[] = $activityFilterFileId;
+}
+if ($activityFilterUserId > 0) {
+    $activitySql .= " AND user_id=?";
+    $activityTypes .= 'i';
+    $activityParams[] = $activityFilterUserId;
+}
+if ($view === 'shared') {
+    if (!empty($sharedRoleByFileId)) {
+        $sharedIdsForAct = array_map('intval', array_keys($sharedRoleByFileId));
+        $activitySql .= " AND file_id IN (" . implode(',', $sharedIdsForAct) . ")";
+    } else {
+        $activitySql .= " AND 1=0";
+    }
+} else {
+    $activitySql .= " AND (user_id=? OR file_id IN (SELECT id FROM pasker_drive_files WHERE owner_user_id=?))";
+    $activityTypes .= 'ii';
+    $activityParams[] = $userId;
+    $activityParams[] = $userId;
+}
+$activitySql .= " ORDER BY id DESC LIMIT 20";
+
+$act = $conn->prepare($activitySql);
+if ($activityTypes !== '') {
+    $act->bind_param($activityTypes, ...$activityParams);
+}
 $act->execute();
 $ares = $act->get_result();
 while ($r = $ares->fetch_assoc()) {
@@ -950,9 +1186,42 @@ $fullBaseUrl = app_full_base_url();
             <div class="card shadow-sm mt-3">
                 <div class="card-body">
                     <h6 class="mb-2">Recent Activity</h6>
+                    <form method="get" class="row g-2 mb-2">
+                        <input type="hidden" name="view" value="<?= h($view); ?>">
+                        <input type="hidden" name="folder" value="<?= h($folder); ?>">
+                        <input type="hidden" name="q" value="<?= h($search); ?>">
+                        <div class="col-12">
+                            <select class="form-select form-select-sm" name="activity_file_id">
+                                <option value="0">All files</option>
+                                <?php foreach ($files as $af): ?>
+                                    <?php $afid = intval($af['id']); ?>
+                                    <option value="<?= $afid; ?>" <?= $activityFilterFileId === $afid ? 'selected' : ''; ?>>
+                                        <?= h(mb_substr((string)$af['original_name'], 0, 35)); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <select class="form-select form-select-sm" name="activity_user_id">
+                                <option value="0">All users</option>
+                                <?php foreach ($shareUserOptions as $auid => $aulabel): ?>
+                                    <option value="<?= intval($auid); ?>" <?= $activityFilterUserId === intval($auid) ? 'selected' : ''; ?>>
+                                        <?= h($aulabel . ' (#' . intval($auid) . ')'); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-6 d-grid">
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Filter</button>
+                        </div>
+                        <div class="col-6 d-grid">
+                            <a class="btn btn-sm btn-outline-secondary" href="pasker_drive.php?view=<?= urlencode($view); ?>&folder=<?= urlencode($folder); ?>&q=<?= urlencode($search); ?>">Reset</a>
+                        </div>
+                    </form>
                     <?php foreach ($activityRows as $a): ?>
                         <div class="small mb-2">
                             <div><span class="badge bg-light text-dark border"><?= h($a['action_name']); ?></span> <?= h($a['meta_info']); ?></div>
+                            <div class="text-muted">by <?= h($shareUserOptions[intval($a['user_id'])] ?? ('User #' . intval($a['user_id']))); ?></div>
                             <div class="text-muted"><?= h($a['created_at']); ?></div>
                         </div>
                     <?php endforeach; ?>
@@ -1072,6 +1341,9 @@ $fullBaseUrl = app_full_base_url();
                                 $shareUrl = $shared ? ($fullBaseUrl . 'pasker_drive_share.php?token=' . urlencode((string)$file['share_token'])) : '';
                                 $expiresInput = '';
                                 $isOwner = intval($file['owner_user_id'] ?? 0) === $userId;
+                                $currentRole = $isOwner ? 'owner' : ($sharedRoleByFileId[$fileId] ?? 'viewer');
+                                $canEditFile = in_array($currentRole, ['owner', 'editor'], true);
+                                $canCommentFile = in_array($currentRole, ['owner', 'editor', 'commenter'], true);
                                 if (!empty($file['expires_at'])) {
                                     $expiresInput = date('Y-m-d\TH:i', strtotime((string)$file['expires_at']));
                                 }
@@ -1091,7 +1363,7 @@ $fullBaseUrl = app_full_base_url();
                                     <td><?= h($mime ?: '-'); ?></td>
                                     <td><?= h($file['updated_at']); ?></td>
                                     <?php if ($view === 'shared'): ?>
-                                        <td><span class="badge bg-info text-dark"><?= h($sharedRoleByFileId[$fileId] ?? 'viewer'); ?></span></td>
+                                        <td><span class="badge bg-info text-dark"><?= h($currentRole); ?></span></td>
                                     <?php endif; ?>
                                     <td>
                                         <?php if (intval($file['is_trashed']) === 0 && $isOwner): ?>
@@ -1167,7 +1439,7 @@ $fullBaseUrl = app_full_base_url();
                                                 </div>
                                             <?php endif; ?>
                                         <?php elseif (intval($file['is_trashed']) === 0): ?>
-                                            <span class="badge bg-info text-dark">Shared to you (<?= h($sharedRoleByFileId[$fileId] ?? 'viewer'); ?>)</span>
+                                            <span class="badge bg-info text-dark">Shared to you (<?= h($currentRole); ?>)</span>
                                             <?php if ($shared): ?>
                                                 <div class="mt-2">
                                                     <input type="text" class="form-control form-control-sm" readonly value="<?= h($shareUrl); ?>">
@@ -1188,7 +1460,7 @@ $fullBaseUrl = app_full_base_url();
                                                 <a class="btn btn-sm btn-success" href="<?= h($baseUrl); ?>pasker_drive_download.php?id=<?= $fileId; ?>">
                                                     <i class="bi bi-download me-1"></i>Download
                                                 </a>
-                                                <?php if ($isOwner): ?>
+                                                <?php if ($canEditFile): ?>
                                                     <form method="post" class="d-flex gap-2">
                                                         <input type="hidden" name="action" value="rename">
                                                         <input type="hidden" name="file_id" value="<?= $fileId; ?>">
@@ -1204,6 +1476,9 @@ $fullBaseUrl = app_full_base_url();
                                                         <input type="hidden" name="view" value="<?= h($view); ?>">
                                                         <select class="form-select form-select-sm" name="target_folder">
                                                             <option value="">/ (Root)</option>
+                                                            <?php if (($file['folder_path'] ?? '') !== '' && !in_array($file['folder_path'], $allFolderPaths, true)): ?>
+                                                                <option value="<?= h($file['folder_path']); ?>" selected><?= h($file['folder_path']); ?></option>
+                                                            <?php endif; ?>
                                                             <?php foreach ($allFolderPaths as $target): ?>
                                                                 <option value="<?= h($target); ?>" <?= $target === $file['folder_path'] ? 'selected' : ''; ?>><?= h($target); ?></option>
                                                             <?php endforeach; ?>
@@ -1231,6 +1506,42 @@ $fullBaseUrl = app_full_base_url();
                                                         </form>
                                                     </div>
                                                 <?php endif; ?>
+                                                <div class="border rounded p-2">
+                                                    <div class="small fw-semibold mb-1">Comments</div>
+                                                    <?php if (!empty($fileCommentsMap[$fileId])): ?>
+                                                        <?php foreach ($fileCommentsMap[$fileId] as $cm): ?>
+                                                            <div class="small border rounded p-1 mb-1">
+                                                                <div class="d-flex justify-content-between align-items-start">
+                                                                    <span><strong><?= h($cm['user_label']); ?></strong></span>
+                                                                    <span class="text-muted"><?= h($cm['created_at']); ?></span>
+                                                                </div>
+                                                                <div><?= h($cm['comment_text']); ?></div>
+                                                                <?php if ($canEditFile || intval($cm['user_id']) === $userId): ?>
+                                                                    <form method="post" class="mt-1 text-end">
+                                                                        <input type="hidden" name="action" value="delete_comment">
+                                                                        <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                                        <input type="hidden" name="comment_id" value="<?= intval($cm['id']); ?>">
+                                                                        <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                                        <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                                        <button class="btn btn-sm btn-outline-danger py-0 px-2" type="submit">Delete</button>
+                                                                    </form>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    <?php else: ?>
+                                                        <div class="small text-muted mb-1">No comments yet.</div>
+                                                    <?php endif; ?>
+                                                    <?php if ($canCommentFile): ?>
+                                                        <form method="post" class="d-flex gap-1">
+                                                            <input type="hidden" name="action" value="add_comment">
+                                                            <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                            <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                            <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                            <input type="text" class="form-control form-control-sm" name="comment_text" maxlength="2000" placeholder="Write a comment..." required>
+                                                            <button class="btn btn-sm btn-outline-primary" type="submit">Send</button>
+                                                        </form>
+                                                    <?php endif; ?>
+                                                </div>
                                             <?php else: ?>
                                                 <?php if ($isOwner): ?>
                                                     <div class="d-flex gap-2">
