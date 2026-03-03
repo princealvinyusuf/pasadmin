@@ -145,45 +145,31 @@ function build_detail_link(string $itemId, int $recordIndex, string $selectedPer
                 </table>
             </div>
 
-            <hr>
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="mb-0">Data Individu (Variable Level)</h5>
-                <small class="text-muted">Contoh variabel: nama, nik, email, no_hp, status.</small>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle">
-                    <thead>
-                    <tr>
-                        <?php if (!empty($records)): ?>
-                            <?php foreach (array_keys($records[0]) as $col): ?>
+            <?php if ($selectedRecord !== null): ?>
+                <hr>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">Data Individu (Variable Level)</h5>
+                    <small class="text-muted">Contoh variabel: nama, nik, email, no_hp, status.</small>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle">
+                        <thead>
+                        <tr>
+                            <?php foreach (array_keys($selectedRecord) as $col): ?>
                                 <th><?php echo e($col); ?></th>
                             <?php endforeach; ?>
-                        <?php endif; ?>
-                        <th style="width: 120px;">Aksi</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <?php if (!empty($records)): ?>
-                        <?php foreach ($records as $recordIndex => $record): ?>
-                            <tr>
-                                <?php foreach ($record as $value): ?>
-                                    <td><?php echo e($value); ?></td>
-                                <?php endforeach; ?>
-                                <td>
-                                    <a href="<?php echo e(build_detail_link($itemId, $recordIndex, $selectedPeriod, $selectedLocation, $selectedMajor, $selectedSource)); ?>" class="btn btn-sm btn-primary">
-                                        Detail
-                                    </a>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="99" class="text-center text-muted">Belum ada data individu untuk item ini.</td>
                         </tr>
-                    <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <?php foreach ($selectedRecord as $value): ?>
+                                <td><?php echo e($value); ?></td>
+                            <?php endforeach; ?>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
