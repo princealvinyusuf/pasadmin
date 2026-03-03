@@ -203,6 +203,45 @@ function get_file_access_role(mysqli $conn, int $userId, int $fileId): ?string {
     return $best;
 }
 
+function get_file_owner_id(mysqli $conn, int $fileId): int {
+    $stmt = $conn->prepare("SELECT owner_user_id FROM pasker_drive_files WHERE id=? LIMIT 1");
+    $stmt->bind_param('i', $fileId);
+    $stmt->execute();
+    $stmt->bind_result($ownerUserId);
+    $found = $stmt->fetch();
+    $stmt->close();
+    return $found ? intval($ownerUserId) : 0;
+}
+
+function get_group_user_ids(mysqli $conn, int $groupId): array {
+    $ids = [];
+    if (!table_exists($conn, 'user_access')) {
+        return $ids;
+    }
+    $stmt = $conn->prepare("SELECT user_id FROM user_access WHERE group_id=?");
+    $stmt->bind_param('i', $groupId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    while ($r = $res->fetch_assoc()) {
+        $uid = intval($r['user_id']);
+        if ($uid > 0) {
+            $ids[] = $uid;
+        }
+    }
+    $stmt->close();
+    return array_values(array_unique($ids));
+}
+
+function create_notification(mysqli $conn, int $recipientUserId, int $actorUserId, ?int $fileId, string $type, string $message): void {
+    if ($recipientUserId <= 0 || $recipientUserId === $actorUserId) {
+        return;
+    }
+    $stmt = $conn->prepare("INSERT INTO pasker_drive_notifications (recipient_user_id, actor_user_id, file_id, notif_type, message_text) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param('iiiss', $recipientUserId, $actorUserId, $fileId, $type, $message);
+    $stmt->execute();
+    $stmt->close();
+}
+
 $conn = new mysqli('localhost', 'root', '', 'job_admin_prod');
 
 $conn->query("CREATE TABLE IF NOT EXISTS pasker_drive_files (
@@ -286,6 +325,51 @@ $conn->query("CREATE TABLE IF NOT EXISTS pasker_drive_comments (
         FOREIGN KEY (file_id) REFERENCES pasker_drive_files(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+$conn->query("CREATE TABLE IF NOT EXISTS pasker_drive_comment_replies (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    comment_id BIGINT UNSIGNED NOT NULL,
+    file_id BIGINT UNSIGNED NOT NULL,
+    user_id INT NOT NULL,
+    reply_text TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_comment_created (comment_id, created_at),
+    INDEX idx_file_created (file_id, created_at),
+    CONSTRAINT fk_pasker_drive_comment_replies_comment
+        FOREIGN KEY (comment_id) REFERENCES pasker_drive_comments(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pasker_drive_comment_replies_file
+        FOREIGN KEY (file_id) REFERENCES pasker_drive_files(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$conn->query("CREATE TABLE IF NOT EXISTS pasker_drive_notifications (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    recipient_user_id INT NOT NULL,
+    actor_user_id INT NOT NULL,
+    file_id BIGINT UNSIGNED NULL,
+    notif_type VARCHAR(80) NOT NULL,
+    message_text VARCHAR(255) NOT NULL,
+    is_read TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_recipient_created (recipient_user_id, created_at),
+    INDEX idx_recipient_read (recipient_user_id, is_read)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$conn->query("CREATE TABLE IF NOT EXISTS pasker_drive_file_versions (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    file_id BIGINT UNSIGNED NOT NULL,
+    version_no INT NOT NULL,
+    original_name VARCHAR(255) NOT NULL,
+    storage_name VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(150) DEFAULT NULL,
+    size_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    path_rel VARCHAR(255) NOT NULL,
+    uploaded_by INT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_file_version (file_id, version_no),
+    INDEX idx_file_created (file_id, created_at),
+    CONSTRAINT fk_pasker_drive_file_versions_file
+        FOREIGN KEY (file_id) REFERENCES pasker_drive_files(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
 $storageDir = __DIR__ . '/downloads/pasker_drive';
 if (!is_dir($storageDir)) {
     @mkdir($storageDir, 0775, true);
@@ -311,6 +395,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $redirectView = 'all';
     }
     $redirect = 'pasker_drive.php?view=' . urlencode($redirectView) . '&folder=' . urlencode($redirectFolder) . '&q=' . urlencode($search);
+
+    if ($action === 'mark_notification_read') {
+        $notificationId = intval($_POST['notification_id'] ?? 0);
+        if ($notificationId > 0) {
+            $stmt = $conn->prepare("UPDATE pasker_drive_notifications SET is_read=1 WHERE id=? AND recipient_user_id=?");
+            $stmt->bind_param('ii', $notificationId, $userId);
+            $stmt->execute();
+            $stmt->close();
+        }
+        header('Location: ' . $redirect);
+        exit;
+    }
 
     if ($action === 'create_folder') {
         $folderName = normalize_folder_path((string)($_POST['folder_name'] ?? ''));
@@ -624,6 +720,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param('isisi', $fileId, $principalType, $principalId, $role, $userId);
         $stmt->execute();
         $stmt->close();
+        if ($principalType === 'user') {
+            create_notification($conn, $principalId, $userId, $fileId, 'share_granted', 'A file was shared with you as ' . $role);
+        } else {
+            foreach (get_group_user_ids($conn, $principalId) as $groupUserId) {
+                create_notification($conn, $groupUserId, $userId, $fileId, 'share_granted_group', 'A file was shared with your group as ' . $role);
+            }
+        }
         log_activity($conn, $userId, $fileId, 'share_direct', $principalType . ':' . $principalId . ':' . $role);
         flash_set('pasker_drive_success', 'Direct share permission saved.');
         header('Location: ' . $redirect);
@@ -679,6 +782,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param('iis', $fileId, $userId, $commentText);
         $stmt->execute();
         $stmt->close();
+        $ownerId = get_file_owner_id($conn, $fileId);
+        create_notification($conn, $ownerId, $userId, $fileId, 'comment_add', 'New comment on your file');
         log_activity($conn, $userId, $fileId, 'comment_add', mb_substr($commentText, 0, 80));
         flash_set('pasker_drive_success', 'Comment added.');
         header('Location: ' . $redirect);
@@ -717,6 +822,291 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $del->close();
         log_activity($conn, $userId, $fileId, 'comment_delete', 'comment_id:' . $commentId);
         flash_set('pasker_drive_success', 'Comment deleted.');
+        header('Location: ' . $redirect);
+        exit;
+    }
+
+    if ($action === 'add_comment_reply') {
+        $fileId = intval($_POST['file_id'] ?? 0);
+        $commentId = intval($_POST['comment_id'] ?? 0);
+        $replyText = trim((string)($_POST['reply_text'] ?? ''));
+        if ($fileId <= 0 || $commentId <= 0 || $replyText === '') {
+            flash_set('pasker_drive_error', 'Reply cannot be empty.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $role = get_file_access_role($conn, $userId, $fileId);
+        if (!in_array($role, ['owner', 'editor', 'commenter'], true)) {
+            flash_set('pasker_drive_error', 'You do not have permission to reply.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $replyText = mb_substr($replyText, 0, 2000);
+        $stmt = $conn->prepare("INSERT INTO pasker_drive_comment_replies (comment_id, file_id, user_id, reply_text) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param('iiis', $commentId, $fileId, $userId, $replyText);
+        $stmt->execute();
+        $stmt->close();
+        log_activity($conn, $userId, $fileId, 'comment_reply_add', mb_substr($replyText, 0, 80));
+        $ownerId = get_file_owner_id($conn, $fileId);
+        create_notification($conn, $ownerId, $userId, $fileId, 'comment_reply', 'New comment reply on your file');
+        flash_set('pasker_drive_success', 'Reply added.');
+        header('Location: ' . $redirect);
+        exit;
+    }
+
+    if ($action === 'delete_comment_reply') {
+        $replyId = intval($_POST['reply_id'] ?? 0);
+        $fileId = intval($_POST['file_id'] ?? 0);
+        if ($replyId <= 0 || $fileId <= 0) {
+            flash_set('pasker_drive_error', 'Invalid delete reply request.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $stmt = $conn->prepare("SELECT user_id FROM pasker_drive_comment_replies WHERE id=? AND file_id=? LIMIT 1");
+        $stmt->bind_param('ii', $replyId, $fileId);
+        $stmt->execute();
+        $stmt->bind_result($replyOwnerId);
+        $found = $stmt->fetch();
+        $stmt->close();
+        if (!$found) {
+            flash_set('pasker_drive_error', 'Reply not found.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $role = get_file_access_role($conn, $userId, $fileId);
+        $canDelete = intval($replyOwnerId) === $userId || in_array($role, ['owner', 'editor'], true);
+        if (!$canDelete) {
+            flash_set('pasker_drive_error', 'You do not have permission to delete this reply.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $del = $conn->prepare("DELETE FROM pasker_drive_comment_replies WHERE id=?");
+        $del->bind_param('i', $replyId);
+        $del->execute();
+        $del->close();
+        log_activity($conn, $userId, $fileId, 'comment_reply_delete', 'reply_id:' . $replyId);
+        flash_set('pasker_drive_success', 'Reply deleted.');
+        header('Location: ' . $redirect);
+        exit;
+    }
+
+    if ($action === 'upload_new_version') {
+        $fileId = intval($_POST['file_id'] ?? 0);
+        if ($fileId <= 0 || !isset($_FILES['version_file'])) {
+            flash_set('pasker_drive_error', 'No version file uploaded.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $role = get_file_access_role($conn, $userId, $fileId);
+        if (!in_array($role, ['owner', 'editor'], true)) {
+            flash_set('pasker_drive_error', 'You do not have permission to upload a new version.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $f = $_FILES['version_file'];
+        if (intval($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            flash_set('pasker_drive_error', 'Upload error for version file.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $size = intval($f['size'] ?? 0);
+        if ($size <= 0 || $size > $maxUploadBytes) {
+            flash_set('pasker_drive_error', 'Invalid file size for new version.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $newName = sanitize_display_name((string)($f['name'] ?? ''));
+        $ext = strtolower((string)pathinfo($newName, PATHINFO_EXTENSION));
+        if (in_array($ext, $dangerousExt, true)) {
+            flash_set('pasker_drive_error', 'Disallowed file type.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $cur = $conn->prepare("SELECT original_name, storage_name, mime_type, size_bytes, path_rel FROM pasker_drive_files WHERE id=? LIMIT 1");
+        $cur->bind_param('i', $fileId);
+        $cur->execute();
+        $cur->bind_result($oldOriginalName, $oldStorageName, $oldMimeType, $oldSizeBytes, $oldPathRel);
+        $found = $cur->fetch();
+        $cur->close();
+        if (!$found) {
+            flash_set('pasker_drive_error', 'File not found.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $vStmt = $conn->prepare("SELECT COALESCE(MAX(version_no), 0) + 1 FROM pasker_drive_file_versions WHERE file_id=?");
+        $vStmt->bind_param('i', $fileId);
+        $vStmt->execute();
+        $vStmt->bind_result($nextVersionNo);
+        $vStmt->fetch();
+        $vStmt->close();
+
+        $insVer = $conn->prepare("INSERT INTO pasker_drive_file_versions (file_id, version_no, original_name, storage_name, mime_type, size_bytes, path_rel, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $insVer->bind_param('iisssisi', $fileId, $nextVersionNo, $oldOriginalName, $oldStorageName, $oldMimeType, $oldSizeBytes, $oldPathRel, $userId);
+        $insVer->execute();
+        $insVer->close();
+
+        $newStorage = bin2hex(random_bytes(16));
+        if ($ext !== '') {
+            $newStorage .= '.' . $ext;
+        }
+        $dest = $storageDir . '/' . $newStorage;
+        $tmpPath = (string)($f['tmp_name'] ?? '');
+        if (!is_uploaded_file($tmpPath) || !@move_uploaded_file($tmpPath, $dest)) {
+            flash_set('pasker_drive_error', 'Failed to store new version file.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $newMime = null;
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $detected = finfo_file($finfo, $dest);
+                if (is_string($detected) && $detected !== '') {
+                    $newMime = $detected;
+                }
+                finfo_close($finfo);
+            }
+        }
+        $newPathRel = 'downloads/pasker_drive/' . $newStorage;
+        $up = $conn->prepare("UPDATE pasker_drive_files SET original_name=?, storage_name=?, mime_type=?, size_bytes=?, path_rel=? WHERE id=?");
+        $up->bind_param('sssisi', $newName, $newStorage, $newMime, $size, $newPathRel, $fileId);
+        $up->execute();
+        $up->close();
+
+        log_activity($conn, $userId, $fileId, 'version_upload', 'v' . $nextVersionNo . ': ' . $newName);
+        $ownerId = get_file_owner_id($conn, $fileId);
+        create_notification($conn, $ownerId, $userId, $fileId, 'version_upload', 'A new file version was uploaded');
+        flash_set('pasker_drive_success', 'New version uploaded.');
+        header('Location: ' . $redirect);
+        exit;
+    }
+
+    if ($action === 'restore_version') {
+        $fileId = intval($_POST['file_id'] ?? 0);
+        $versionId = intval($_POST['version_id'] ?? 0);
+        if ($fileId <= 0 || $versionId <= 0) {
+            flash_set('pasker_drive_error', 'Invalid restore version request.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $role = get_file_access_role($conn, $userId, $fileId);
+        if (!in_array($role, ['owner', 'editor'], true)) {
+            flash_set('pasker_drive_error', 'You do not have permission to restore versions.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $cur = $conn->prepare("SELECT original_name, storage_name, mime_type, size_bytes, path_rel FROM pasker_drive_files WHERE id=? LIMIT 1");
+        $cur->bind_param('i', $fileId);
+        $cur->execute();
+        $cur->bind_result($curOriginalName, $curStorageName, $curMimeType, $curSizeBytes, $curPathRel);
+        $foundCur = $cur->fetch();
+        $cur->close();
+        if (!$foundCur) {
+            flash_set('pasker_drive_error', 'File not found.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $ver = $conn->prepare("SELECT original_name, storage_name, mime_type, size_bytes, path_rel, version_no FROM pasker_drive_file_versions WHERE id=? AND file_id=? LIMIT 1");
+        $ver->bind_param('ii', $versionId, $fileId);
+        $ver->execute();
+        $ver->bind_result($verOriginalName, $verStorageName, $verMimeType, $verSizeBytes, $verPathRel, $verNo);
+        $foundVer = $ver->fetch();
+        $ver->close();
+        if (!$foundVer) {
+            flash_set('pasker_drive_error', 'Version not found.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $vStmt = $conn->prepare("SELECT COALESCE(MAX(version_no), 0) + 1 FROM pasker_drive_file_versions WHERE file_id=?");
+        $vStmt->bind_param('i', $fileId);
+        $vStmt->execute();
+        $vStmt->bind_result($nextVersionNo);
+        $vStmt->fetch();
+        $vStmt->close();
+
+        $snapshot = $conn->prepare("INSERT INTO pasker_drive_file_versions (file_id, version_no, original_name, storage_name, mime_type, size_bytes, path_rel, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $snapshot->bind_param('iisssisi', $fileId, $nextVersionNo, $curOriginalName, $curStorageName, $curMimeType, $curSizeBytes, $curPathRel, $userId);
+        $snapshot->execute();
+        $snapshot->close();
+
+        $up = $conn->prepare("UPDATE pasker_drive_files SET original_name=?, storage_name=?, mime_type=?, size_bytes=?, path_rel=? WHERE id=?");
+        $up->bind_param('sssisi', $verOriginalName, $verStorageName, $verMimeType, $verSizeBytes, $verPathRel, $fileId);
+        $up->execute();
+        $up->close();
+
+        log_activity($conn, $userId, $fileId, 'version_restore', 'restored v' . intval($verNo));
+        $ownerId = get_file_owner_id($conn, $fileId);
+        create_notification($conn, $ownerId, $userId, $fileId, 'version_restore', 'A file version was restored');
+        flash_set('pasker_drive_success', 'Version restored as current file.');
+        header('Location: ' . $redirect);
+        exit;
+    }
+
+    if ($action === 'save_inline_text') {
+        $fileId = intval($_POST['file_id'] ?? 0);
+        $inlineContent = (string)($_POST['inline_content'] ?? '');
+        if ($fileId <= 0) {
+            flash_set('pasker_drive_error', 'Invalid inline edit request.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $role = get_file_access_role($conn, $userId, $fileId);
+        if (!in_array($role, ['owner', 'editor'], true)) {
+            flash_set('pasker_drive_error', 'You do not have permission to edit this file.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $stmt = $conn->prepare("SELECT original_name, storage_name, mime_type, size_bytes, path_rel FROM pasker_drive_files WHERE id=? LIMIT 1");
+        $stmt->bind_param('i', $fileId);
+        $stmt->execute();
+        $stmt->bind_result($curOriginalName, $curStorageName, $curMimeType, $curSizeBytes, $curPathRel);
+        $found = $stmt->fetch();
+        $stmt->close();
+        if (!$found) {
+            flash_set('pasker_drive_error', 'File not found.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $mime = strtolower((string)$curMimeType);
+        $editableMime = (strpos($mime, 'text/') === 0) || in_array($mime, ['application/json', 'application/xml', 'application/javascript'], true);
+        if (!$editableMime) {
+            flash_set('pasker_drive_error', 'This file type is not editable inline.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $vStmt = $conn->prepare("SELECT COALESCE(MAX(version_no), 0) + 1 FROM pasker_drive_file_versions WHERE file_id=?");
+        $vStmt->bind_param('i', $fileId);
+        $vStmt->execute();
+        $vStmt->bind_result($nextVersionNo);
+        $vStmt->fetch();
+        $vStmt->close();
+        $insVer = $conn->prepare("INSERT INTO pasker_drive_file_versions (file_id, version_no, original_name, storage_name, mime_type, size_bytes, path_rel, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $insVer->bind_param('iisssisi', $fileId, $nextVersionNo, $curOriginalName, $curStorageName, $curMimeType, $curSizeBytes, $curPathRel, $userId);
+        $insVer->execute();
+        $insVer->close();
+
+        $absolute = $storageDir . '/' . basename((string)$curStorageName);
+        if (!is_file($absolute) || @file_put_contents($absolute, $inlineContent) === false) {
+            flash_set('pasker_drive_error', 'Failed to save inline edits.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $newSize = filesize($absolute);
+        $up = $conn->prepare("UPDATE pasker_drive_files SET size_bytes=?, mime_type=? WHERE id=?");
+        $up->bind_param('isi', $newSize, $curMimeType, $fileId);
+        $up->execute();
+        $up->close();
+        log_activity($conn, $userId, $fileId, 'inline_edit_save', 'text content updated');
+        $ownerId = get_file_owner_id($conn, $fileId);
+        create_notification($conn, $ownerId, $userId, $fileId, 'inline_edit', 'A file was edited inline');
+        flash_set('pasker_drive_success', 'Inline text saved.');
         header('Location: ' . $redirect);
         exit;
     }
@@ -1049,6 +1439,99 @@ if (!empty($files)) {
     }
 }
 
+$commentRepliesMap = [];
+if (!empty($fileCommentsMap)) {
+    $commentIds = [];
+    foreach ($fileCommentsMap as $rows) {
+        foreach ($rows as $cm) {
+            $cid = intval($cm['id'] ?? 0);
+            if ($cid > 0) {
+                $commentIds[] = $cid;
+            }
+        }
+    }
+    $commentIds = array_values(array_unique($commentIds));
+    if (!empty($commentIds)) {
+        $in = implode(',', array_map('intval', $commentIds));
+        $repRes = $conn->query("SELECT id, comment_id, file_id, user_id, reply_text, created_at FROM pasker_drive_comment_replies WHERE comment_id IN ($in) ORDER BY id DESC");
+        while ($rep = $repRes->fetch_assoc()) {
+            $cid = intval($rep['comment_id']);
+            if (!isset($commentRepliesMap[$cid])) {
+                $commentRepliesMap[$cid] = [];
+            }
+            if (count($commentRepliesMap[$cid]) < 4) {
+                $uid = intval($rep['user_id']);
+                $commentRepliesMap[$cid][] = [
+                    'id' => intval($rep['id']),
+                    'file_id' => intval($rep['file_id']),
+                    'user_id' => $uid,
+                    'user_label' => $shareUserOptions[$uid] ?? ('User #' . $uid),
+                    'reply_text' => (string)$rep['reply_text'],
+                    'created_at' => (string)$rep['created_at'],
+                ];
+            }
+        }
+    }
+}
+
+$fileVersionsMap = [];
+if (!empty($files)) {
+    $ids = array_map(static function ($x) {
+        return intval($x['id'] ?? 0);
+    }, $files);
+    $ids = array_values(array_filter($ids, static function ($x) {
+        return $x > 0;
+    }));
+    if (!empty($ids)) {
+        $in = implode(',', array_map('intval', $ids));
+        $verRes = $conn->query("SELECT id, file_id, version_no, original_name, size_bytes, created_at FROM pasker_drive_file_versions WHERE file_id IN ($in) ORDER BY file_id, version_no DESC");
+        while ($v = $verRes->fetch_assoc()) {
+            $fid = intval($v['file_id']);
+            if (!isset($fileVersionsMap[$fid])) {
+                $fileVersionsMap[$fid] = [];
+            }
+            if (count($fileVersionsMap[$fid]) < 5) {
+                $fileVersionsMap[$fid][] = $v;
+            }
+        }
+    }
+}
+
+$inlineEditableMap = [];
+if (!empty($files)) {
+    foreach ($files as $f) {
+        $fid = intval($f['id'] ?? 0);
+        $mime = strtolower((string)($f['mime_type'] ?? ''));
+        $size = intval($f['size_bytes'] ?? 0);
+        if ($fid <= 0 || $size > 200000) {
+            continue;
+        }
+        $editableMime = (strpos($mime, 'text/') === 0) || in_array($mime, ['application/json', 'application/xml', 'application/javascript'], true);
+        if (!$editableMime) {
+            continue;
+        }
+        $abs = $storageDir . '/' . basename((string)($f['storage_name'] ?? ''));
+        if (!is_file($abs)) {
+            continue;
+        }
+        $content = @file_get_contents($abs);
+        if (!is_string($content)) {
+            continue;
+        }
+        $inlineEditableMap[$fid] = mb_substr($content, 0, 200000);
+    }
+}
+
+$notificationRows = [];
+$notifStmt = $conn->prepare("SELECT id, actor_user_id, file_id, notif_type, message_text, is_read, created_at FROM pasker_drive_notifications WHERE recipient_user_id=? ORDER BY id DESC LIMIT 15");
+$notifStmt->bind_param('i', $userId);
+$notifStmt->execute();
+$nRes = $notifStmt->get_result();
+while ($nr = $nRes->fetch_assoc()) {
+    $notificationRows[] = $nr;
+}
+$notifStmt->close();
+
 $activityFilterFileId = intval($_GET['activity_file_id'] ?? 0);
 $activityFilterUserId = intval($_GET['activity_user_id'] ?? 0);
 $activityRows = [];
@@ -1181,6 +1664,32 @@ $fullBaseUrl = app_full_base_url();
                     <a class="list-group-item list-group-item-action <?= $view === 'trash' ? 'active' : ''; ?>" href="pasker_drive.php?view=trash">
                         <i class="bi bi-trash me-1"></i>Trash
                     </a>
+                </div>
+            </div>
+            <div class="card shadow-sm mt-3">
+                <div class="card-body">
+                    <h6 class="mb-2">Notifications</h6>
+                    <?php foreach ($notificationRows as $n): ?>
+                        <div class="small border rounded p-2 mb-2 <?= intval($n['is_read']) === 0 ? 'bg-light' : ''; ?>">
+                            <div><?= h($n['message_text']); ?></div>
+                            <div class="text-muted">
+                                from <?= h($shareUserOptions[intval($n['actor_user_id'])] ?? ('User #' . intval($n['actor_user_id']))); ?>
+                                at <?= h($n['created_at']); ?>
+                            </div>
+                            <?php if (intval($n['is_read']) === 0): ?>
+                                <form method="post" class="mt-1 text-end">
+                                    <input type="hidden" name="action" value="mark_notification_read">
+                                    <input type="hidden" name="notification_id" value="<?= intval($n['id']); ?>">
+                                    <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                    <input type="hidden" name="view" value="<?= h($view); ?>">
+                                    <button class="btn btn-sm btn-outline-secondary py-0 px-2" type="submit">Mark read</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                    <?php if (count($notificationRows) === 0): ?>
+                        <div class="small text-muted">No notifications.</div>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="card shadow-sm mt-3">
@@ -1505,6 +2014,50 @@ $fullBaseUrl = app_full_base_url();
                                                             <button class="btn btn-sm btn-outline-danger w-100" type="submit">Trash</button>
                                                         </form>
                                                     </div>
+                                                    <form method="post" enctype="multipart/form-data" class="d-flex gap-2">
+                                                        <input type="hidden" name="action" value="upload_new_version">
+                                                        <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                        <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                        <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                        <input type="file" class="form-control form-control-sm" name="version_file" required>
+                                                        <button class="btn btn-sm btn-outline-dark" type="submit">New Version</button>
+                                                    </form>
+                                                <?php endif; ?>
+                                                <?php if (!empty($fileVersionsMap[$fileId])): ?>
+                                                    <div class="border rounded p-2">
+                                                        <div class="small fw-semibold mb-1">Version History</div>
+                                                        <?php foreach ($fileVersionsMap[$fileId] as $ver): ?>
+                                                            <div class="small border rounded px-2 py-1 mb-1 d-flex justify-content-between align-items-center">
+                                                                <span><?= h('v' . intval($ver['version_no']) . ' - ' . $ver['original_name']); ?> (<?= h(format_size(intval($ver['size_bytes']))); ?>)</span>
+                                                                <div class="d-flex gap-1">
+                                                                    <a class="btn btn-sm btn-outline-secondary py-0 px-2" href="<?= h($baseUrl); ?>pasker_drive_version_download.php?version_id=<?= intval($ver['id']); ?>">Download</a>
+                                                                    <?php if ($canEditFile): ?>
+                                                                        <form method="post" onsubmit="return confirm('Restore this version as current?');">
+                                                                            <input type="hidden" name="action" value="restore_version">
+                                                                            <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                                            <input type="hidden" name="version_id" value="<?= intval($ver['id']); ?>">
+                                                                            <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                                            <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                                            <button class="btn btn-sm btn-outline-primary py-0 px-2" type="submit">Restore</button>
+                                                                        </form>
+                                                                    <?php endif; ?>
+                                                                </div>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <?php if ($canEditFile && isset($inlineEditableMap[$fileId])): ?>
+                                                    <details class="border rounded p-2">
+                                                        <summary class="small fw-semibold">Inline Text Editor</summary>
+                                                        <form method="post" class="mt-2">
+                                                            <input type="hidden" name="action" value="save_inline_text">
+                                                            <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                            <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                            <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                            <textarea class="form-control form-control-sm mb-2" name="inline_content" rows="8"><?= h($inlineEditableMap[$fileId]); ?></textarea>
+                                                            <button class="btn btn-sm btn-outline-primary" type="submit">Save Inline Edit</button>
+                                                        </form>
+                                                    </details>
                                                 <?php endif; ?>
                                                 <div class="border rounded p-2">
                                                     <div class="small fw-semibold mb-1">Comments</div>
@@ -1524,6 +2077,40 @@ $fullBaseUrl = app_full_base_url();
                                                                         <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
                                                                         <input type="hidden" name="view" value="<?= h($view); ?>">
                                                                         <button class="btn btn-sm btn-outline-danger py-0 px-2" type="submit">Delete</button>
+                                                                    </form>
+                                                                <?php endif; ?>
+                                                                <?php if (!empty($commentRepliesMap[intval($cm['id'])])): ?>
+                                                                    <div class="ms-2 mt-1">
+                                                                        <?php foreach ($commentRepliesMap[intval($cm['id'])] as $rep): ?>
+                                                                            <div class="border rounded p-1 mb-1 bg-light">
+                                                                                <div class="d-flex justify-content-between">
+                                                                                    <span><strong><?= h($rep['user_label']); ?></strong></span>
+                                                                                    <span class="text-muted"><?= h($rep['created_at']); ?></span>
+                                                                                </div>
+                                                                                <div><?= h($rep['reply_text']); ?></div>
+                                                                                <?php if ($canEditFile || intval($rep['user_id']) === $userId): ?>
+                                                                                    <form method="post" class="mt-1 text-end">
+                                                                                        <input type="hidden" name="action" value="delete_comment_reply">
+                                                                                        <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                                                        <input type="hidden" name="reply_id" value="<?= intval($rep['id']); ?>">
+                                                                                        <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                                                        <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                                                        <button class="btn btn-sm btn-outline-danger py-0 px-2" type="submit">Delete Reply</button>
+                                                                                    </form>
+                                                                                <?php endif; ?>
+                                                                            </div>
+                                                                        <?php endforeach; ?>
+                                                                    </div>
+                                                                <?php endif; ?>
+                                                                <?php if ($canCommentFile): ?>
+                                                                    <form method="post" class="d-flex gap-1 mt-1">
+                                                                        <input type="hidden" name="action" value="add_comment_reply">
+                                                                        <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                                        <input type="hidden" name="comment_id" value="<?= intval($cm['id']); ?>">
+                                                                        <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                                        <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                                        <input type="text" class="form-control form-control-sm" name="reply_text" maxlength="2000" placeholder="Reply..." required>
+                                                                        <button class="btn btn-sm btn-outline-secondary" type="submit">Reply</button>
                                                                     </form>
                                                                 <?php endif; ?>
                                                             </div>
