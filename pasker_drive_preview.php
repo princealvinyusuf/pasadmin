@@ -20,7 +20,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 $fileId = intval($_GET['id'] ?? 0);
 $userId = intval($_SESSION['user_id'] ?? 0);
 $sessionUsername = strtolower((string)($_SESSION['username'] ?? ''));
-$isDriveSuperUser = ($sessionUsername === 'datin_pasker') || (function_exists('current_user_is_super_admin') && current_user_is_super_admin());
+$isDriveSuperUser = ($sessionUsername === 'datin_pasker');
 if ($fileId <= 0 || $userId <= 0) {
     http_response_code(400);
     echo 'Invalid request.';

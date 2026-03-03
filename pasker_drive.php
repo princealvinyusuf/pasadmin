@@ -160,9 +160,7 @@ function get_user_group_ids(mysqli $conn, int $userId): array {
 
 function get_file_access_role(mysqli $conn, int $userId, int $fileId): ?string {
     $sessionUsername = strtolower((string)($_SESSION['username'] ?? ''));
-    $isNamedSuperUser = $sessionUsername === 'datin_pasker';
-    $isSuperAdmin = function_exists('current_user_is_super_admin') && current_user_is_super_admin();
-    if ($isNamedSuperUser || $isSuperAdmin) {
+    if ($sessionUsername === 'datin_pasker') {
         return 'owner';
     }
 
@@ -384,7 +382,7 @@ if (!is_dir($storageDir)) {
 
 $userId = intval($_SESSION['user_id'] ?? 0);
 $sessionUsername = strtolower((string)($_SESSION['username'] ?? ''));
-$isDriveSuperUser = ($sessionUsername === 'datin_pasker') || (function_exists('current_user_is_super_admin') && current_user_is_super_admin());
+$isDriveSuperUser = ($sessionUsername === 'datin_pasker');
 $maxUploadBytes = 100 * 1024 * 1024;
 $dangerousExt = ['php', 'phtml', 'phar', 'htaccess', 'cgi', 'pl', 'exe', 'sh', 'bat'];
 
