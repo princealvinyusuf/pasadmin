@@ -43,6 +43,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		['view_dashboard_job_seekers','View Dashboard Job Seekers','Dashboard'],
 		['view_dashboard_kebutuhan_tk','View Dashboard Kebutuhan Tenaga Kerja','Dashboard'],
 		['view_dashboard_persediaan_tk','View Dashboard Persediaan Tenaga Kerja','Dashboard'],
+		['view_dashboard_blk','View Dashboard BLK','Dashboard'],
 		['manage_jobs','Manage Jobs','Data'],
 		['manage_job_seekers','Manage Job Seekers','Data'],
 		['registrasi_kehadiran_manage','Manage Registrasi Kehadiran','Data'],

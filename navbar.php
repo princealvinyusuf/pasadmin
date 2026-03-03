@@ -35,6 +35,7 @@
 <?php
     $canDashKebutuhan = current_user_can('view_dashboard_kebutuhan_tk');
     $canDashPersediaan = current_user_can('view_dashboard_persediaan_tk');
+    $canDashBlk = current_user_can('view_dashboard_blk');
     $canManageSettings = current_user_can('manage_settings');
     $canChart = current_user_can('settings_chart_manage');
     $canContribution = current_user_can('settings_contribution_manage');
@@ -69,7 +70,8 @@
     $canAsmenQR = current_user_can('asmen_use_qr') || $canAsmenAssets;
 
     // Show Dashboard if user can view any dashboard or manage settings
-    $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || current_user_can('manage_settings'));
+    $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || $canDashBlk || current_user_can('manage_settings'));
+    $hasBlk = ($canDashBlk || $canManageSettings);
     
     $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canAccessControl || $canBroadcast || $canIframe || $canAuditTrails);
     $hasApiKeys = ($canManageSettings || $canApiKeys);
@@ -134,6 +136,17 @@
                         <li><hr class="dropdown-divider"></li>
                             <?php if ($canDashKebutuhan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_kebutuhan_tenaga_kerja.php">Dashboard Kebutuhan Tenaga Kerja</a></li><?php endif; ?>
                             <?php if ($canDashPersediaan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_persediaan_tenaga_kerja.php">Dashboard Persediaan Tenaga Kerja</a></li><?php endif; ?>
+                            <?php if ($canDashBlk || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_blk.php">Dashboard BLK</a></li><?php endif; ?>
+                    </ul>
+                </li>
+                <?php endif; ?>
+                <?php if ($hasBlk): ?>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="blkDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        BLK
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="blkDropdown">
+                        <li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_blk.php">Dashboard Visualisasi BLK</a></li>
                     </ul>
                 </li>
                 <?php endif; ?>
