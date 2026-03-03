@@ -195,6 +195,20 @@ $conn->query("CREATE TABLE IF NOT EXISTS pasker_drive_activities (
     INDEX idx_file_created (file_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+$conn->query("CREATE TABLE IF NOT EXISTS pasker_drive_permissions (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    file_id BIGINT UNSIGNED NOT NULL,
+    principal_type ENUM('user','group') NOT NULL,
+    principal_id INT NOT NULL,
+    role ENUM('viewer','commenter','editor') NOT NULL DEFAULT 'viewer',
+    created_by INT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_file_principal (file_id, principal_type, principal_id),
+    INDEX idx_principal (principal_type, principal_id),
+    CONSTRAINT fk_pasker_drive_permissions_file
+        FOREIGN KEY (file_id) REFERENCES pasker_drive_files(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
 $storageDir = __DIR__ . '/downloads/pasker_drive';
 if (!is_dir($storageDir)) {
     @mkdir($storageDir, 0775, true);
@@ -205,7 +219,7 @@ $maxUploadBytes = 100 * 1024 * 1024;
 $dangerousExt = ['php', 'phtml', 'phar', 'htaccess', 'cgi', 'pl', 'exe', 'sh', 'bat'];
 
 $view = (string)($_GET['view'] ?? 'all');
-if (!in_array($view, ['all', 'starred', 'recent', 'trash'], true)) {
+if (!in_array($view, ['all', 'starred', 'recent', 'trash', 'shared'], true)) {
     $view = 'all';
 }
 $folder = normalize_folder_path((string)($_GET['folder'] ?? ''));
@@ -216,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
     $redirectFolder = normalize_folder_path((string)($_POST['folder_path'] ?? $folder));
     $redirectView = (string)($_POST['view'] ?? $view);
-    if (!in_array($redirectView, ['all', 'starred', 'recent', 'trash'], true)) {
+    if (!in_array($redirectView, ['all', 'starred', 'recent', 'trash', 'shared'], true)) {
         $redirectView = 'all';
     }
     $redirect = 'pasker_drive.php?view=' . urlencode($redirectView) . '&folder=' . urlencode($redirectFolder) . '&q=' . urlencode($search);
@@ -472,6 +486,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    if ($action === 'share_principal') {
+        $fileId = intval($_POST['file_id'] ?? 0);
+        $target = (string)($_POST['principal_target'] ?? '');
+        $parts = explode(':', $target, 2);
+        $principalType = $parts[0] ?? '';
+        $principalId = intval($parts[1] ?? 0);
+        $role = (string)($_POST['principal_role'] ?? 'viewer');
+        if (!in_array($principalType, ['user', 'group'], true) || $principalId <= 0 || !in_array($role, ['viewer', 'commenter', 'editor'], true)) {
+            flash_set('pasker_drive_error', 'Invalid direct share data.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $ownerCheck = $conn->prepare('SELECT id FROM pasker_drive_files WHERE id=? AND owner_user_id=? AND is_trashed=0 LIMIT 1');
+        $ownerCheck->bind_param('ii', $fileId, $userId);
+        $ownerCheck->execute();
+        $ownerCheck->store_result();
+        $exists = $ownerCheck->num_rows > 0;
+        $ownerCheck->close();
+        if (!$exists) {
+            flash_set('pasker_drive_error', 'File not found.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $stmt = $conn->prepare('INSERT INTO pasker_drive_permissions (file_id, principal_type, principal_id, role, created_by) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE role=VALUES(role)');
+        $stmt->bind_param('isisi', $fileId, $principalType, $principalId, $role, $userId);
+        $stmt->execute();
+        $stmt->close();
+        log_activity($conn, $userId, $fileId, 'share_direct', $principalType . ':' . $principalId . ':' . $role);
+        flash_set('pasker_drive_success', 'Direct share permission saved.');
+        header('Location: ' . $redirect);
+        exit;
+    }
+
+    if ($action === 'revoke_principal') {
+        $fileId = intval($_POST['file_id'] ?? 0);
+        $principalType = (string)($_POST['principal_type'] ?? '');
+        $principalId = intval($_POST['principal_id'] ?? 0);
+        if (!in_array($principalType, ['user', 'group'], true) || $principalId <= 0) {
+            flash_set('pasker_drive_error', 'Invalid revoke request.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $ownerCheck = $conn->prepare('SELECT id FROM pasker_drive_files WHERE id=? AND owner_user_id=? LIMIT 1');
+        $ownerCheck->bind_param('ii', $fileId, $userId);
+        $ownerCheck->execute();
+        $ownerCheck->store_result();
+        $exists = $ownerCheck->num_rows > 0;
+        $ownerCheck->close();
+        if (!$exists) {
+            flash_set('pasker_drive_error', 'File not found.');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $stmt = $conn->prepare('DELETE FROM pasker_drive_permissions WHERE file_id=? AND principal_type=? AND principal_id=?');
+        $stmt->bind_param('isi', $fileId, $principalType, $principalId);
+        $stmt->execute();
+        $stmt->close();
+        log_activity($conn, $userId, $fileId, 'share_revoke', $principalType . ':' . $principalId);
+        flash_set('pasker_drive_success', 'Permission revoked.');
+        header('Location: ' . $redirect);
+        exit;
+    }
+
     if ($action === 'share_update') {
         $fileId = intval($_POST['file_id'] ?? 0);
         $linkMode = (string)($_POST['link_mode'] ?? 'private');
@@ -546,6 +623,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$userLabelColumn = null;
+if (table_exists($conn, 'users')) {
+    $colRes = $conn->query("SHOW COLUMNS FROM users");
+    while ($c = $colRes->fetch_assoc()) {
+        if ($c['Field'] === 'username') {
+            $userLabelColumn = 'username';
+            break;
+        }
+        if ($c['Field'] === 'name') {
+            $userLabelColumn = 'name';
+        }
+    }
+}
+$shareUserOptions = [];
+if ($userLabelColumn !== null) {
+    $resUsers = $conn->query("SELECT id, " . $userLabelColumn . " AS label FROM users ORDER BY id DESC LIMIT 500");
+    while ($u = $resUsers->fetch_assoc()) {
+        $uid = intval($u['id']);
+        if ($uid > 0) {
+            $shareUserOptions[$uid] = trim((string)$u['label']) !== '' ? trim((string)$u['label']) : ('User #' . $uid);
+        }
+    }
+}
+
+$shareGroupOptions = [];
+if (table_exists($conn, 'access_groups')) {
+    $resGroups = $conn->query("SELECT id, name FROM access_groups ORDER BY name");
+    while ($g = $resGroups->fetch_assoc()) {
+        $gid = intval($g['id']);
+        if ($gid > 0) {
+            $shareGroupOptions[$gid] = (string)$g['name'];
+        }
+    }
+}
+
+$myGroupIds = [];
+if (table_exists($conn, 'user_access')) {
+    $myGrpStmt = $conn->prepare("SELECT group_id FROM user_access WHERE user_id=?");
+    $myGrpStmt->bind_param('i', $userId);
+    $myGrpStmt->execute();
+    $myGrpRes = $myGrpStmt->get_result();
+    while ($gr = $myGrpRes->fetch_assoc()) {
+        $gid = intval($gr['group_id']);
+        if ($gid > 0) {
+            $myGroupIds[] = $gid;
+        }
+    }
+    $myGrpStmt->close();
+}
+$myGroupIds = array_values(array_unique($myGroupIds));
+
 $allFolders = [];
 $folderRes = $conn->prepare("SELECT folder_path FROM pasker_drive_folders WHERE owner_user_id=? ORDER BY folder_path");
 $folderRes->bind_param('i', $userId);
@@ -582,48 +710,141 @@ if ($view === 'all') {
     }
 }
 
-$sql = "SELECT f.*, s.share_token, s.access_type, s.can_download, s.expires_at
-        FROM pasker_drive_files f
-        LEFT JOIN pasker_drive_shares s ON s.file_id=f.id
-        WHERE f.owner_user_id=?";
-$params = [$userId];
-$types = 'i';
-
-if ($view === 'trash') {
-    $sql .= " AND f.is_trashed=1";
-} elseif ($view === 'starred') {
-    $sql .= " AND f.is_trashed=0 AND f.is_starred=1";
-} elseif ($view === 'recent') {
-    $sql .= " AND f.is_trashed=0";
-} else {
-    $sql .= " AND f.is_trashed=0 AND f.folder_path=?";
-    $types .= 's';
-    $params[] = $folder;
-}
-
-if ($search !== '') {
-    $sql .= " AND f.original_name LIKE ?";
-    $types .= 's';
-    $params[] = '%' . $search . '%';
-}
-
-if ($view === 'recent') {
-    $sql .= " ORDER BY f.updated_at DESC LIMIT 100";
-} else {
-    $sql .= " ORDER BY f.updated_at DESC";
-}
-
-$stmt = $conn->prepare($sql);
-$stmt->bind_param($types, ...$params);
-$stmt->execute();
-$res = $stmt->get_result();
 $files = [];
 $totalBytes = 0;
-while ($row = $res->fetch_assoc()) {
-    $files[] = $row;
-    $totalBytes += intval($row['size_bytes'] ?? 0);
+$sharedRoleByFileId = [];
+
+if ($view === 'shared') {
+    $rolePriority = ['viewer' => 1, 'commenter' => 2, 'editor' => 3];
+    $permRows = [];
+    $uPerm = $conn->prepare("SELECT file_id, role FROM pasker_drive_permissions WHERE principal_type='user' AND principal_id=?");
+    $uPerm->bind_param('i', $userId);
+    $uPerm->execute();
+    $uPermRes = $uPerm->get_result();
+    while ($r = $uPermRes->fetch_assoc()) {
+        $permRows[] = $r;
+    }
+    $uPerm->close();
+
+    if (!empty($myGroupIds)) {
+        $in = implode(',', array_map('intval', $myGroupIds));
+        $gPermRes = $conn->query("SELECT file_id, role FROM pasker_drive_permissions WHERE principal_type='group' AND principal_id IN ($in)");
+        while ($r = $gPermRes->fetch_assoc()) {
+            $permRows[] = $r;
+        }
+    }
+
+    foreach ($permRows as $pr) {
+        $fid = intval($pr['file_id']);
+        $role = (string)$pr['role'];
+        if ($fid <= 0 || !isset($rolePriority[$role])) {
+            continue;
+        }
+        if (!isset($sharedRoleByFileId[$fid]) || $rolePriority[$role] > $rolePriority[$sharedRoleByFileId[$fid]]) {
+            $sharedRoleByFileId[$fid] = $role;
+        }
+    }
+
+    $sharedIds = array_keys($sharedRoleByFileId);
+    if (!empty($sharedIds)) {
+        $placeholders = implode(',', array_fill(0, count($sharedIds), '?'));
+        $types = str_repeat('i', count($sharedIds));
+        $params = array_map('intval', $sharedIds);
+        $sql = "SELECT f.*, s.share_token, s.access_type, s.can_download, s.expires_at
+                FROM pasker_drive_files f
+                LEFT JOIN pasker_drive_shares s ON s.file_id=f.id
+                WHERE f.id IN ($placeholders) AND f.owner_user_id<>? AND f.is_trashed=0";
+        $types .= 'i';
+        $params[] = $userId;
+        if ($search !== '') {
+            $sql .= " AND f.original_name LIKE ?";
+            $types .= 's';
+            $params[] = '%' . $search . '%';
+        }
+        $sql .= " ORDER BY f.updated_at DESC";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        while ($row = $res->fetch_assoc()) {
+            $files[] = $row;
+            $totalBytes += intval($row['size_bytes'] ?? 0);
+        }
+        $stmt->close();
+    }
+} else {
+    $sql = "SELECT f.*, s.share_token, s.access_type, s.can_download, s.expires_at
+            FROM pasker_drive_files f
+            LEFT JOIN pasker_drive_shares s ON s.file_id=f.id
+            WHERE f.owner_user_id=?";
+    $params = [$userId];
+    $types = 'i';
+
+    if ($view === 'trash') {
+        $sql .= " AND f.is_trashed=1";
+    } elseif ($view === 'starred') {
+        $sql .= " AND f.is_trashed=0 AND f.is_starred=1";
+    } elseif ($view === 'recent') {
+        $sql .= " AND f.is_trashed=0";
+    } else {
+        $sql .= " AND f.is_trashed=0 AND f.folder_path=?";
+        $types .= 's';
+        $params[] = $folder;
+    }
+
+    if ($search !== '') {
+        $sql .= " AND f.original_name LIKE ?";
+        $types .= 's';
+        $params[] = '%' . $search . '%';
+    }
+
+    if ($view === 'recent') {
+        $sql .= " ORDER BY f.updated_at DESC LIMIT 100";
+    } else {
+        $sql .= " ORDER BY f.updated_at DESC";
+    }
+
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    while ($row = $res->fetch_assoc()) {
+        $files[] = $row;
+        $totalBytes += intval($row['size_bytes'] ?? 0);
+    }
+    $stmt->close();
 }
-$stmt->close();
+
+$filePermissionMap = [];
+if (!empty($files)) {
+    $ids = array_map(static function ($x) {
+        return intval($x['id'] ?? 0);
+    }, $files);
+    $ids = array_values(array_filter($ids, static function ($x) {
+        return $x > 0;
+    }));
+    if (!empty($ids)) {
+        $in = implode(',', array_map('intval', $ids));
+        $permRes = $conn->query("SELECT file_id, principal_type, principal_id, role FROM pasker_drive_permissions WHERE file_id IN ($in)");
+        while ($p = $permRes->fetch_assoc()) {
+            $fid = intval($p['file_id']);
+            if (!isset($filePermissionMap[$fid])) {
+                $filePermissionMap[$fid] = [];
+            }
+            $ptype = (string)$p['principal_type'];
+            $pid = intval($p['principal_id']);
+            $label = $ptype === 'group'
+                ? ('Group: ' . ($shareGroupOptions[$pid] ?? ('#' . $pid)))
+                : ('User: ' . ($shareUserOptions[$pid] ?? ('#' . $pid)));
+            $filePermissionMap[$fid][] = [
+                'principal_type' => $ptype,
+                'principal_id' => $pid,
+                'role' => (string)$p['role'],
+                'label' => $label,
+            ];
+        }
+    }
+}
 
 $activityRows = [];
 $act = $conn->prepare("SELECT action_name, meta_info, created_at, file_id FROM pasker_drive_activities WHERE user_id=? ORDER BY id DESC LIMIT 12");
@@ -718,6 +939,9 @@ $fullBaseUrl = app_full_base_url();
                     <a class="list-group-item list-group-item-action <?= $view === 'starred' ? 'active' : ''; ?>" href="pasker_drive.php?view=starred">
                         <i class="bi bi-star me-1"></i>Starred
                     </a>
+                    <a class="list-group-item list-group-item-action <?= $view === 'shared' ? 'active' : ''; ?>" href="pasker_drive.php?view=shared">
+                        <i class="bi bi-people me-1"></i>Shared with me
+                    </a>
                     <a class="list-group-item list-group-item-action <?= $view === 'trash' ? 'active' : ''; ?>" href="pasker_drive.php?view=trash">
                         <i class="bi bi-trash me-1"></i>Trash
                     </a>
@@ -762,6 +986,7 @@ $fullBaseUrl = app_full_base_url();
             </div>
             <?php endif; ?>
 
+            <?php if ($view !== 'shared'): ?>
             <div class="card shadow-sm mb-3">
                 <div class="card-body">
                     <h5 class="mb-3"><i class="bi bi-cloud-upload me-1"></i>Upload</h5>
@@ -784,6 +1009,7 @@ $fullBaseUrl = app_full_base_url();
                     </form>
                 </div>
             </div>
+            <?php endif; ?>
 
             <div class="card shadow-sm">
                 <div class="card-body">
@@ -833,6 +1059,7 @@ $fullBaseUrl = app_full_base_url();
                                     <th>Size</th>
                                     <th>Type</th>
                                     <th>Updated</th>
+                                    <?php if ($view === 'shared'): ?><th>Your Role</th><?php endif; ?>
                                     <th style="min-width: 340px;">Share</th>
                                     <th style="min-width: 360px;">Actions</th>
                                 </tr>
@@ -844,6 +1071,7 @@ $fullBaseUrl = app_full_base_url();
                                 $shared = (($file['access_type'] ?? 'private') === 'anyone_with_link') && !empty($file['share_token']);
                                 $shareUrl = $shared ? ($fullBaseUrl . 'pasker_drive_share.php?token=' . urlencode((string)$file['share_token'])) : '';
                                 $expiresInput = '';
+                                $isOwner = intval($file['owner_user_id'] ?? 0) === $userId;
                                 if (!empty($file['expires_at'])) {
                                     $expiresInput = date('Y-m-d\TH:i', strtotime((string)$file['expires_at']));
                                 }
@@ -862,35 +1090,89 @@ $fullBaseUrl = app_full_base_url();
                                     <td><?= h(format_size(intval($file['size_bytes'] ?? 0))); ?></td>
                                     <td><?= h($mime ?: '-'); ?></td>
                                     <td><?= h($file['updated_at']); ?></td>
+                                    <?php if ($view === 'shared'): ?>
+                                        <td><span class="badge bg-info text-dark"><?= h($sharedRoleByFileId[$fileId] ?? 'viewer'); ?></span></td>
+                                    <?php endif; ?>
                                     <td>
-                                        <?php if (intval($file['is_trashed']) === 0): ?>
-                                        <form method="post" class="row g-2">
-                                            <input type="hidden" name="action" value="share_update">
-                                            <input type="hidden" name="file_id" value="<?= $fileId; ?>">
-                                            <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
-                                            <input type="hidden" name="view" value="<?= h($view); ?>">
-                                            <div class="col-12">
-                                                <select class="form-select form-select-sm" name="link_mode">
-                                                    <option value="private" <?= !$shared ? 'selected' : ''; ?>>Private</option>
-                                                    <option value="anyone_with_link" <?= $shared ? 'selected' : ''; ?>>Anyone with link</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-12">
-                                                <input type="datetime-local" class="form-control form-control-sm" name="expires_at" value="<?= h($expiresInput); ?>">
-                                            </div>
-                                            <div class="col-12 form-check ms-1">
-                                                <input class="form-check-input" type="checkbox" name="can_download" id="can_download_<?= $fileId; ?>" <?= intval($file['can_download'] ?? 1) === 1 ? 'checked' : ''; ?>>
-                                                <label class="form-check-label small" for="can_download_<?= $fileId; ?>">Allow download</label>
-                                            </div>
-                                            <div class="col-12 d-grid">
-                                                <button class="btn btn-sm btn-outline-primary" type="submit">Update Share</button>
-                                            </div>
-                                        </form>
-                                        <?php if ($shared): ?>
-                                            <div class="mt-2">
-                                                <input type="text" class="form-control form-control-sm" readonly value="<?= h($shareUrl); ?>">
-                                            </div>
-                                        <?php endif; ?>
+                                        <?php if (intval($file['is_trashed']) === 0 && $isOwner): ?>
+                                            <form method="post" class="row g-2 mb-2">
+                                                <input type="hidden" name="action" value="share_update">
+                                                <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                <div class="col-12">
+                                                    <select class="form-select form-select-sm" name="link_mode">
+                                                        <option value="private" <?= !$shared ? 'selected' : ''; ?>>Private</option>
+                                                        <option value="anyone_with_link" <?= $shared ? 'selected' : ''; ?>>Anyone with link</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-12">
+                                                    <input type="datetime-local" class="form-control form-control-sm" name="expires_at" value="<?= h($expiresInput); ?>">
+                                                </div>
+                                                <div class="col-12 form-check ms-1">
+                                                    <input class="form-check-input" type="checkbox" name="can_download" id="can_download_<?= $fileId; ?>" <?= intval($file['can_download'] ?? 1) === 1 ? 'checked' : ''; ?>>
+                                                    <label class="form-check-label small" for="can_download_<?= $fileId; ?>">Allow download</label>
+                                                </div>
+                                                <div class="col-12 d-grid">
+                                                    <button class="btn btn-sm btn-outline-primary" type="submit">Update Link Share</button>
+                                                </div>
+                                            </form>
+                                            <form method="post" class="row g-2 mb-2">
+                                                <input type="hidden" name="action" value="share_principal">
+                                                <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                <div class="col-12">
+                                                    <select class="form-select form-select-sm" name="principal_target" required>
+                                                        <?php foreach ($shareUserOptions as $uid => $ulabel): ?>
+                                                            <option value="<?= h('user:' . $uid); ?>"><?= h('User: ' . $ulabel . ' (#' . $uid . ')'); ?></option>
+                                                        <?php endforeach; ?>
+                                                        <?php foreach ($shareGroupOptions as $gid => $glabel): ?>
+                                                            <option value="<?= h('group:' . $gid); ?>"><?= h('Group: ' . $glabel . ' (#' . $gid . ')'); ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </div>
+                                                <div class="col-8">
+                                                    <select class="form-select form-select-sm" name="principal_role">
+                                                        <option value="viewer">Viewer</option>
+                                                        <option value="commenter">Commenter</option>
+                                                        <option value="editor">Editor</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-4 d-grid">
+                                                    <button class="btn btn-sm btn-outline-success" type="submit">Grant</button>
+                                                </div>
+                                            </form>
+                                            <?php if (!empty($filePermissionMap[$fileId])): ?>
+                                                <div class="small">
+                                                    <?php foreach ($filePermissionMap[$fileId] as $perm): ?>
+                                                        <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
+                                                            <span><?= h($perm['label'] . ' - ' . $perm['role']); ?></span>
+                                                            <form method="post" class="ms-2">
+                                                                <input type="hidden" name="action" value="revoke_principal">
+                                                                <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                                <input type="hidden" name="principal_type" value="<?= h($perm['principal_type']); ?>">
+                                                                <input type="hidden" name="principal_id" value="<?= intval($perm['principal_id']); ?>">
+                                                                <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                                <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">x</button>
+                                                            </form>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                            <?php if ($shared): ?>
+                                                <div class="mt-2">
+                                                    <input type="text" class="form-control form-control-sm" readonly value="<?= h($shareUrl); ?>">
+                                                </div>
+                                            <?php endif; ?>
+                                        <?php elseif (intval($file['is_trashed']) === 0): ?>
+                                            <span class="badge bg-info text-dark">Shared to you (<?= h($sharedRoleByFileId[$fileId] ?? 'viewer'); ?>)</span>
+                                            <?php if ($shared): ?>
+                                                <div class="mt-2">
+                                                    <input type="text" class="form-control form-control-sm" readonly value="<?= h($shareUrl); ?>">
+                                                </div>
+                                            <?php endif; ?>
                                         <?php else: ?>
                                             <span class="badge bg-secondary">Trashed item cannot be shared</span>
                                         <?php endif; ?>
@@ -906,64 +1188,68 @@ $fullBaseUrl = app_full_base_url();
                                                 <a class="btn btn-sm btn-success" href="<?= h($baseUrl); ?>pasker_drive_download.php?id=<?= $fileId; ?>">
                                                     <i class="bi bi-download me-1"></i>Download
                                                 </a>
-                                                <form method="post" class="d-flex gap-2">
-                                                    <input type="hidden" name="action" value="rename">
-                                                    <input type="hidden" name="file_id" value="<?= $fileId; ?>">
-                                                    <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
-                                                    <input type="hidden" name="view" value="<?= h($view); ?>">
-                                                    <input type="text" class="form-control form-control-sm" name="new_name" value="<?= h($file['original_name']); ?>" maxlength="255" required>
-                                                    <button class="btn btn-sm btn-outline-secondary" type="submit">Rename</button>
-                                                </form>
-                                                <form method="post" class="d-flex gap-2">
-                                                    <input type="hidden" name="action" value="move_file">
-                                                    <input type="hidden" name="file_id" value="<?= $fileId; ?>">
-                                                    <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
-                                                    <input type="hidden" name="view" value="<?= h($view); ?>">
-                                                    <select class="form-select form-select-sm" name="target_folder">
-                                                        <option value="">/ (Root)</option>
-                                                        <?php foreach ($allFolderPaths as $target): ?>
-                                                            <option value="<?= h($target); ?>" <?= $target === $file['folder_path'] ? 'selected' : ''; ?>><?= h($target); ?></option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                    <button class="btn btn-sm btn-outline-info" type="submit">Move</button>
-                                                </form>
-                                                <div class="d-flex gap-2">
-                                                    <form method="post" class="w-50">
-                                                        <input type="hidden" name="action" value="toggle_star">
-                                                        <input type="hidden" name="file_id" value="<?= $fileId; ?>">
-                                                        <input type="hidden" name="is_starred" value="<?= intval($file['is_starred']) === 1 ? '0' : '1'; ?>">
-                                                        <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
-                                                        <input type="hidden" name="view" value="<?= h($view); ?>">
-                                                        <button class="btn btn-sm btn-outline-warning w-100" type="submit">
-                                                            <i class="bi <?= intval($file['is_starred']) === 1 ? 'bi-star-fill' : 'bi-star'; ?> me-1"></i>
-                                                            <?= intval($file['is_starred']) === 1 ? 'Unstar' : 'Star'; ?>
-                                                        </button>
-                                                    </form>
-                                                    <form method="post" class="w-50" onsubmit="return confirm('Move this file to trash?');">
-                                                        <input type="hidden" name="action" value="trash">
+                                                <?php if ($isOwner): ?>
+                                                    <form method="post" class="d-flex gap-2">
+                                                        <input type="hidden" name="action" value="rename">
                                                         <input type="hidden" name="file_id" value="<?= $fileId; ?>">
                                                         <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
                                                         <input type="hidden" name="view" value="<?= h($view); ?>">
-                                                        <button class="btn btn-sm btn-outline-danger w-100" type="submit">Trash</button>
+                                                        <input type="text" class="form-control form-control-sm" name="new_name" value="<?= h($file['original_name']); ?>" maxlength="255" required>
+                                                        <button class="btn btn-sm btn-outline-secondary" type="submit">Rename</button>
                                                     </form>
-                                                </div>
+                                                    <form method="post" class="d-flex gap-2">
+                                                        <input type="hidden" name="action" value="move_file">
+                                                        <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                        <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                        <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                        <select class="form-select form-select-sm" name="target_folder">
+                                                            <option value="">/ (Root)</option>
+                                                            <?php foreach ($allFolderPaths as $target): ?>
+                                                                <option value="<?= h($target); ?>" <?= $target === $file['folder_path'] ? 'selected' : ''; ?>><?= h($target); ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <button class="btn btn-sm btn-outline-info" type="submit">Move</button>
+                                                    </form>
+                                                    <div class="d-flex gap-2">
+                                                        <form method="post" class="w-50">
+                                                            <input type="hidden" name="action" value="toggle_star">
+                                                            <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                            <input type="hidden" name="is_starred" value="<?= intval($file['is_starred']) === 1 ? '0' : '1'; ?>">
+                                                            <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                            <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                            <button class="btn btn-sm btn-outline-warning w-100" type="submit">
+                                                                <i class="bi <?= intval($file['is_starred']) === 1 ? 'bi-star-fill' : 'bi-star'; ?> me-1"></i>
+                                                                <?= intval($file['is_starred']) === 1 ? 'Unstar' : 'Star'; ?>
+                                                            </button>
+                                                        </form>
+                                                        <form method="post" class="w-50" onsubmit="return confirm('Move this file to trash?');">
+                                                            <input type="hidden" name="action" value="trash">
+                                                            <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                            <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                            <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                            <button class="btn btn-sm btn-outline-danger w-100" type="submit">Trash</button>
+                                                        </form>
+                                                    </div>
+                                                <?php endif; ?>
                                             <?php else: ?>
-                                                <div class="d-flex gap-2">
-                                                    <form method="post" class="w-50">
-                                                        <input type="hidden" name="action" value="restore">
-                                                        <input type="hidden" name="file_id" value="<?= $fileId; ?>">
-                                                        <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
-                                                        <input type="hidden" name="view" value="<?= h($view); ?>">
-                                                        <button class="btn btn-sm btn-outline-success w-100" type="submit">Restore</button>
-                                                    </form>
-                                                    <form method="post" class="w-50" onsubmit="return confirm('Permanently delete this file?');">
-                                                        <input type="hidden" name="action" value="delete_permanent">
-                                                        <input type="hidden" name="file_id" value="<?= $fileId; ?>">
-                                                        <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
-                                                        <input type="hidden" name="view" value="<?= h($view); ?>">
-                                                        <button class="btn btn-sm btn-danger w-100" type="submit">Delete</button>
-                                                    </form>
-                                                </div>
+                                                <?php if ($isOwner): ?>
+                                                    <div class="d-flex gap-2">
+                                                        <form method="post" class="w-50">
+                                                            <input type="hidden" name="action" value="restore">
+                                                            <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                            <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                            <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                            <button class="btn btn-sm btn-outline-success w-100" type="submit">Restore</button>
+                                                        </form>
+                                                        <form method="post" class="w-50" onsubmit="return confirm('Permanently delete this file?');">
+                                                            <input type="hidden" name="action" value="delete_permanent">
+                                                            <input type="hidden" name="file_id" value="<?= $fileId; ?>">
+                                                            <input type="hidden" name="folder_path" value="<?= h($folder); ?>">
+                                                            <input type="hidden" name="view" value="<?= h($view); ?>">
+                                                            <button class="btn btn-sm btn-danger w-100" type="submit">Delete</button>
+                                                        </form>
+                                                    </div>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         </div>
                                     </td>
@@ -971,7 +1257,7 @@ $fullBaseUrl = app_full_base_url();
                             <?php endforeach; ?>
                             <?php if (count($files) === 0): ?>
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted">No files found in this view.</td>
+                                    <td colspan="<?= $view === 'shared' ? '8' : '7'; ?>" class="text-center text-muted">No files found in this view.</td>
                                 </tr>
                             <?php endif; ?>
                             </tbody>
