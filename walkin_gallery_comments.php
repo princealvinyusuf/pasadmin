@@ -123,6 +123,26 @@ $filter = $_GET['status'] ?? 'pending';
 $allowed = ['pending','approved','rejected','all'];
 if (!in_array($filter, $allowed, true)) $filter = 'pending';
 $companyFilter = trim((string) ($_GET['company_name'] ?? ''));
+$availableCompanies = [];
+
+if (table_exists($conn, 'kemitraan')) {
+    $resCompanies = $conn->query("
+        SELECT DISTINCT institution_name
+        FROM kemitraan
+        WHERE institution_name IS NOT NULL
+          AND TRIM(institution_name) <> ''
+        ORDER BY institution_name ASC
+    ");
+    if ($resCompanies) {
+        while ($rowCompany = $resCompanies->fetch_assoc()) {
+            $name = trim((string) ($rowCompany['institution_name'] ?? ''));
+            if ($name !== '') {
+                $availableCompanies[] = $name;
+            }
+        }
+        $resCompanies->free();
+    }
+}
 
 $where = 'WHERE 1=1';
 if ($filter !== 'all') {
@@ -131,7 +151,7 @@ if ($filter !== 'all') {
 }
 if ($companyFilter !== '') {
     $safeCompany = $conn->real_escape_string($companyFilter);
-    $where .= " AND LOWER(COALESCE(c.company_name, '')) LIKE LOWER('%" . $safeCompany . "%')";
+    $where .= " AND LOWER(TRIM(COALESCE(c.company_name, ''))) = LOWER('{$safeCompany}')";
 }
 
 $sql = "SELECT c.*, i.type AS item_type, i.title AS item_title
@@ -187,13 +207,14 @@ if ($res) {
                 <input type="hidden" name="status" value="<?= h($filter); ?>">
                 <div class="col-12 col-md-6 col-lg-4">
                     <label class="form-label mb-1">Company Name</label>
-                    <input
-                        type="text"
-                        class="form-control"
-                        name="company_name"
-                        value="<?= h($companyFilter); ?>"
-                        placeholder="Cari nama perusahaan..."
-                    >
+                    <select class="form-select" name="company_name">
+                        <option value="">Semua perusahaan</option>
+                        <?php foreach ($availableCompanies as $companyName): ?>
+                            <option value="<?= h($companyName); ?>" <?= $companyFilter === $companyName ? 'selected' : ''; ?>>
+                                <?= h($companyName); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
                 <div class="col-12 col-md-6 col-lg-4 d-flex align-items-end gap-2">
                     <button class="btn btn-primary" type="submit">Filter</button>
