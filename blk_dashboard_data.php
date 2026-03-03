@@ -334,3 +334,168 @@ function blk_find_item_by_id(array $data, string $id): ?array
 
     return null;
 }
+
+function blk_get_item_records(string $itemId): array
+{
+    $trainingRecords = [
+        [
+            'id_peserta' => 'PSK-2026-0001',
+            'nama' => 'Andi Saputra',
+            'nik' => '3174021201980001',
+            'email' => 'andi.saputra@example.com',
+            'no_hp' => '081234560001',
+            'sumber_pendaftaran' => 'Kios SIAPkerja',
+            'balai_blk' => 'BPVP Bandung',
+            'kejuruan' => 'Teknologi Informasi',
+            'sub_kejuruan' => 'Junior Web Developer',
+            'provinsi' => 'Jawa Barat',
+            'status_pelatihan' => 'Lulus',
+            'status_sertifikat' => 'Terbit',
+            'status_penempatan' => 'Bekerja',
+            'tanggal_daftar' => '2026-01-12',
+            'tanggal_lulus' => '2026-03-01',
+        ],
+        [
+            'id_peserta' => 'PSK-2026-0002',
+            'nama' => 'Siti Rahmawati',
+            'nik' => '3275015902970002',
+            'email' => 'siti.rahmawati@example.com',
+            'no_hp' => '081234560002',
+            'sumber_pendaftaran' => 'Mandiri',
+            'balai_blk' => 'BLK Medan',
+            'kejuruan' => 'Pariwisata & Perhotelan',
+            'sub_kejuruan' => 'Front Office',
+            'provinsi' => 'Sumatera Utara',
+            'status_pelatihan' => 'Aktif',
+            'status_sertifikat' => 'Proses',
+            'status_penempatan' => 'Belum Bekerja',
+            'tanggal_daftar' => '2026-02-03',
+            'tanggal_lulus' => '-',
+        ],
+        [
+            'id_peserta' => 'PSK-2026-0003',
+            'nama' => 'Budi Santoso',
+            'nik' => '3578012501950003',
+            'email' => 'budi.santoso@example.com',
+            'no_hp' => '081234560003',
+            'sumber_pendaftaran' => 'Kios SIAPkerja',
+            'balai_blk' => 'BPVP Surabaya',
+            'kejuruan' => 'Teknik Otomotif',
+            'sub_kejuruan' => 'Engine Tune Up',
+            'provinsi' => 'Jawa Timur',
+            'status_pelatihan' => 'Lulus',
+            'status_sertifikat' => 'Terbit',
+            'status_penempatan' => 'Melamar',
+            'tanggal_daftar' => '2026-01-25',
+            'tanggal_lulus' => '2026-02-28',
+        ],
+        [
+            'id_peserta' => 'PSK-2026-0004',
+            'nama' => 'Rina Kartika',
+            'nik' => '3374091203990004',
+            'email' => 'rina.kartika@example.com',
+            'no_hp' => '081234560004',
+            'sumber_pendaftaran' => 'Mandiri',
+            'balai_blk' => 'BLK Makassar',
+            'kejuruan' => 'Tata Busana',
+            'sub_kejuruan' => 'Fashion Design',
+            'provinsi' => 'Sulawesi Selatan',
+            'status_pelatihan' => 'Lulus',
+            'status_sertifikat' => 'Terbit',
+            'status_penempatan' => 'Bekerja',
+            'tanggal_daftar' => '2026-01-30',
+            'tanggal_lulus' => '2026-03-02',
+        ],
+    ];
+
+    $integrationRecords = [
+        [
+            'id_sinkron' => 'SYNC-1001',
+            'nama' => 'Andi Saputra',
+            'nik' => '3174021201980001',
+            'sumber_data' => 'Kios SIAPkerja',
+            'status_sinkron' => 'Tersinkron',
+            'persentase_kelengkapan' => '98%',
+            'last_sync_at' => '2026-03-02 10:22:00',
+            'waktu_sinkron_hari' => '1',
+            'error_code' => '-',
+            'error_message' => '-',
+        ],
+        [
+            'id_sinkron' => 'SYNC-1002',
+            'nama' => 'Siti Rahmawati',
+            'nik' => '3275015902970002',
+            'sumber_data' => 'Kios SIAPkerja',
+            'status_sinkron' => 'Belum Sinkron',
+            'persentase_kelengkapan' => '76%',
+            'last_sync_at' => '2026-03-01 08:05:00',
+            'waktu_sinkron_hari' => '3',
+            'error_code' => 'MAPPING-TRAINING-002',
+            'error_message' => 'Sub kejuruan tidak ditemukan pada master Karirhub',
+        ],
+        [
+            'id_sinkron' => 'SYNC-1003',
+            'nama' => 'Budi Santoso',
+            'nik' => '3578012501950003',
+            'sumber_data' => 'Kios SIAPkerja',
+            'status_sinkron' => 'Tersinkron',
+            'persentase_kelengkapan' => '95%',
+            'last_sync_at' => '2026-03-02 14:41:00',
+            'waktu_sinkron_hari' => '1',
+            'error_code' => '-',
+            'error_message' => '-',
+        ],
+    ];
+
+    $qualityRecords = [
+        [
+            'issue_id' => 'DQ-5001',
+            'nama' => 'Rina Kartika',
+            'nik' => '3374091203990004',
+            'jenis_isu' => 'Format Tanggal Salah',
+            'field_terdampak' => 'tanggal_lulus',
+            'nilai_asli' => '32-13-2025',
+            'rekomendasi' => 'Gunakan format YYYY-MM-DD',
+            'tingkat_keparahan' => 'Medium',
+            'status_review' => 'Perlu Review',
+            'pic_data' => 'Tim Integrasi BLK',
+            'updated_at' => '2026-03-02 16:00:00',
+        ],
+        [
+            'issue_id' => 'DQ-5002',
+            'nama' => 'Iwan Permana',
+            'nik' => '3201120901940005',
+            'jenis_isu' => 'NIK Duplikat',
+            'field_terdampak' => 'nik',
+            'nilai_asli' => '3201120901940005',
+            'rekomendasi' => 'Verifikasi NIK dengan Dukcapil',
+            'tingkat_keparahan' => 'High',
+            'status_review' => 'Perlu Review',
+            'pic_data' => 'Tim Data Governance',
+            'updated_at' => '2026-03-02 12:33:00',
+        ],
+        [
+            'issue_id' => 'DQ-5003',
+            'nama' => 'Dewi Maharani',
+            'nik' => '3173112204000006',
+            'jenis_isu' => 'Data Profil Tidak Lengkap',
+            'field_terdampak' => 'alamat',
+            'nilai_asli' => '-',
+            'rekomendasi' => 'Lengkapi profil melalui Karirhub',
+            'tingkat_keparahan' => 'Low',
+            'status_review' => 'Perlu Review',
+            'pic_data' => 'Admin BLK',
+            'updated_at' => '2026-03-03 09:15:00',
+        ],
+    ];
+
+    if (strpos($itemId, 'integrasi-') === 0) {
+        return $integrationRecords;
+    }
+
+    if (strpos($itemId, 'teknis-') === 0) {
+        return $qualityRecords;
+    }
+
+    return $trainingRecords;
+}

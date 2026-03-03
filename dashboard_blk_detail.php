@@ -11,9 +11,9 @@ if (!(current_user_can('view_dashboard_blk') || current_user_can('manage_setting
     exit;
 }
 
-function e(string $value): string
+function e($value): string
 {
-    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
 $dashboardData = blk_get_dashboard_data();
@@ -30,6 +30,12 @@ $selectedPeriod = $_GET['period'] ?? '30 Hari';
 $selectedLocation = $_GET['location'] ?? 'Semua Lokasi';
 $selectedMajor = $_GET['major'] ?? 'Semua Kejuruan';
 $selectedSource = $_GET['source'] ?? 'Semua Sumber';
+$records = blk_get_item_records($itemId);
+$selectedRecordIndex = isset($_GET['record']) ? (int)$_GET['record'] : null;
+$selectedRecord = null;
+if ($selectedRecordIndex !== null && isset($records[$selectedRecordIndex])) {
+    $selectedRecord = $records[$selectedRecordIndex];
+}
 
 $backQuery = http_build_query([
     'period' => $selectedPeriod,
@@ -37,6 +43,18 @@ $backQuery = http_build_query([
     'major' => $selectedMajor,
     'source' => $selectedSource,
 ]);
+
+function build_detail_link(string $itemId, int $recordIndex, string $selectedPeriod, string $selectedLocation, string $selectedMajor, string $selectedSource): string
+{
+    return 'dashboard_blk_detail.php?' . http_build_query([
+        'item' => $itemId,
+        'record' => $recordIndex,
+        'period' => $selectedPeriod,
+        'location' => $selectedLocation,
+        'major' => $selectedMajor,
+        'source' => $selectedSource,
+    ]);
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -69,6 +87,31 @@ $backQuery = http_build_query([
 
     <div class="card page-card">
         <div class="card-body">
+            <?php if ($selectedRecord !== null): ?>
+                <div class="alert alert-primary d-flex align-items-center justify-content-between mb-3" role="alert">
+                    <div>
+                        <strong>Detail Record Terpilih:</strong>
+                        <?php echo e($selectedRecord['nama'] ?? $selectedRecord['id_peserta'] ?? $selectedRecord['id_sinkron'] ?? $selectedRecord['issue_id'] ?? '-'); ?>
+                    </div>
+                    <a href="dashboard_blk_detail.php?item=<?php echo e($itemId); ?>&<?php echo e($backQuery); ?>" class="btn btn-sm btn-outline-primary">
+                        Reset Detail Record
+                    </a>
+                </div>
+                <div class="table-responsive mb-4">
+                    <table class="table table-sm table-bordered align-middle">
+                        <tbody>
+                        <?php foreach ($selectedRecord as $field => $value): ?>
+                            <tr>
+                                <th style="width: 260px;"><?php echo e($field); ?></th>
+                                <td><?php echo e($value); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+
+            <h5 class="mb-2">Ringkasan KPI</h5>
             <div class="table-responsive">
                 <table class="table table-striped table-hover align-middle">
                     <thead>
@@ -76,20 +119,66 @@ $backQuery = http_build_query([
                         <?php foreach (($item['columns'] ?? []) as $column): ?>
                             <th><?php echo e((string)$column); ?></th>
                         <?php endforeach; ?>
+                        <th style="width: 120px;">Aksi</th>
                     </tr>
                     </thead>
                     <tbody>
                     <?php if (!empty($item['rows'])): ?>
-                        <?php foreach ($item['rows'] as $row): ?>
+                        <?php foreach ($item['rows'] as $rowIndex => $row): ?>
                             <tr>
                                 <?php foreach ($row as $cell): ?>
                                     <td><?php echo e((string)$cell); ?></td>
                                 <?php endforeach; ?>
+                                <td>
+                                    <a href="<?php echo e(build_detail_link($itemId, $rowIndex, $selectedPeriod, $selectedLocation, $selectedMajor, $selectedSource)); ?>" class="btn btn-sm btn-outline-primary">
+                                        Detail
+                                    </a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="<?php echo count($item['columns'] ?? []); ?>" class="text-center text-muted">Belum ada data detail.</td>
+                            <td colspan="<?php echo count($item['columns'] ?? []) + 1; ?>" class="text-center text-muted">Belum ada data detail.</td>
+                        </tr>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <hr>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Data Individu (Variable Level)</h5>
+                <small class="text-muted">Contoh variabel: nama, nik, email, no_hp, status.</small>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                    <tr>
+                        <?php if (!empty($records)): ?>
+                            <?php foreach (array_keys($records[0]) as $col): ?>
+                                <th><?php echo e($col); ?></th>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        <th style="width: 120px;">Aksi</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php if (!empty($records)): ?>
+                        <?php foreach ($records as $recordIndex => $record): ?>
+                            <tr>
+                                <?php foreach ($record as $value): ?>
+                                    <td><?php echo e($value); ?></td>
+                                <?php endforeach; ?>
+                                <td>
+                                    <a href="<?php echo e(build_detail_link($itemId, $recordIndex, $selectedPeriod, $selectedLocation, $selectedMajor, $selectedSource)); ?>" class="btn btn-sm btn-primary">
+                                        Detail
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="99" class="text-center text-muted">Belum ada data individu untuk item ini.</td>
                         </tr>
                     <?php endif; ?>
                     </tbody>
