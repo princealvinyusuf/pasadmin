@@ -47,13 +47,10 @@ if (!is_file($absolutePath)) {
     exit;
 }
 
-$size = filesize($absolutePath);
 $mime = (is_string($mimeType) && $mimeType !== '') ? $mimeType : 'application/octet-stream';
-header('Content-Description: File Transfer');
 header('Content-Type: ' . $mime);
-header('Content-Disposition: attachment; filename="' . str_replace('"', '', (string)$originalName) . '"');
-header('Content-Length: ' . $size);
+header('Content-Disposition: inline; filename="' . str_replace('"', '', (string)$originalName) . '"');
+header('Content-Length: ' . filesize($absolutePath));
 header('Cache-Control: private, max-age=0, must-revalidate');
-header('Pragma: public');
 readfile($absolutePath);
 exit;

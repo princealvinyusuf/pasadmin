@@ -19,7 +19,7 @@ $conn = new mysqli('localhost', 'root', '', 'job_admin_prod');
 $sql = "SELECT f.original_name, f.storage_name, f.mime_type, f.size_bytes, s.can_download, s.expires_at
         FROM pasker_drive_shares s
         JOIN pasker_drive_files f ON f.id = s.file_id
-        WHERE s.share_token=? AND s.access_type='anyone_with_link'
+        WHERE s.share_token=? AND s.access_type='anyone_with_link' AND f.is_trashed=0
         LIMIT 1";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param('s', $token);
@@ -38,6 +38,23 @@ if (!$file) {
 if (!empty($file['expires_at']) && strtotime((string)$file['expires_at']) < time()) {
     http_response_code(410);
     echo 'This share link has expired.';
+    exit;
+}
+
+if (intval($_GET['preview'] ?? 0) === 1) {
+    $absolutePath = __DIR__ . '/downloads/pasker_drive/' . basename((string)$file['storage_name']);
+    if (!is_file($absolutePath)) {
+        http_response_code(404);
+        echo 'File missing.';
+        exit;
+    }
+    $mime = (string)($file['mime_type'] ?: 'application/octet-stream');
+    $size = filesize($absolutePath);
+    header('Content-Type: ' . $mime);
+    header('Content-Disposition: inline; filename="' . str_replace('"', '', (string)$file['original_name']) . '"');
+    header('Content-Length: ' . $size);
+    header('Cache-Control: private, max-age=0, must-revalidate');
+    readfile($absolutePath);
     exit;
 }
 
@@ -87,9 +104,11 @@ if (intval($_GET['download'] ?? 0) === 1) {
                         <div class="mb-3"><strong>Expires at:</strong> <?= h($file['expires_at']); ?></div>
                     <?php endif; ?>
                     <?php if (intval($file['can_download'] ?? 0) === 1): ?>
+                        <a class="btn btn-outline-primary me-2" href="?token=<?= urlencode($token); ?>&preview=1" target="_blank" rel="noopener">Preview</a>
                         <a class="btn btn-primary" href="?token=<?= urlencode($token); ?>&download=1">Download File</a>
                     <?php else: ?>
-                        <div class="alert alert-warning mb-0">Owner has disabled download for this link.</div>
+                        <a class="btn btn-outline-primary" href="?token=<?= urlencode($token); ?>&preview=1" target="_blank" rel="noopener">Preview</a>
+                        <div class="alert alert-warning mt-3 mb-0">Owner has disabled download for this link.</div>
                     <?php endif; ?>
                 </div>
             </div>
