@@ -84,6 +84,7 @@
     $canMiniJobi = current_user_can('settings_minijobi_manage') || $canManageSettings;
     $canCareerBoostDaySlot = $canCareerBoostDay; // same permission
     $canWalkinSurvey = current_user_can('walkin_survey_manage') || $canManageSettings;
+    $canPaskerDrive = current_user_can('pasker_drive_manage') || $canManageSettings;
 
     $hasLayanan = (
         $canManageSettings ||
@@ -284,6 +285,11 @@
                         <?php if ($canManageSettings || $canRegistrasiKehadiran): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>registrasi_kehadiran.php">Registrasi Kehadiran</a></li><?php endif; ?>
                         <?php if ($canSplitScreen): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>split_screen.php"><i class="bi bi-layout-split me-1"></i>Split Screen</a></li><?php endif; ?>
                     </ul>
+                </li>
+                <?php endif; ?>
+                <?php if ($canPaskerDrive): ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>pasker_drive.php"><i class="bi bi-cloud me-1"></i>Pasker Drive</a>
                 </li>
                 <?php endif; ?>
                 <li class="nav-item">
