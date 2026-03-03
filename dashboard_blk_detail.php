@@ -32,9 +32,14 @@ $selectedMajor = $_GET['major'] ?? 'Semua Kejuruan';
 $selectedSource = $_GET['source'] ?? 'Semua Sumber';
 $records = blk_get_item_records($itemId);
 $selectedRecordIndex = isset($_GET['record']) ? (int)$_GET['record'] : null;
+$selectedIndividualIndex = isset($_GET['individual']) ? (int)$_GET['individual'] : null;
 $selectedRecord = null;
 if ($selectedRecordIndex !== null && isset($records[$selectedRecordIndex])) {
     $selectedRecord = $records[$selectedRecordIndex];
+}
+$selectedIndividual = null;
+if ($selectedIndividualIndex !== null && isset($records[$selectedIndividualIndex])) {
+    $selectedIndividual = $records[$selectedIndividualIndex];
 }
 
 $backQuery = http_build_query([
@@ -49,6 +54,19 @@ function build_detail_link(string $itemId, int $recordIndex, string $selectedPer
     return 'dashboard_blk_detail.php?' . http_build_query([
         'item' => $itemId,
         'record' => $recordIndex,
+        'period' => $selectedPeriod,
+        'location' => $selectedLocation,
+        'major' => $selectedMajor,
+        'source' => $selectedSource,
+    ]);
+}
+
+function build_individual_link(string $itemId, int $recordIndex, int $individualIndex, string $selectedPeriod, string $selectedLocation, string $selectedMajor, string $selectedSource): string
+{
+    return 'dashboard_blk_detail.php?' . http_build_query([
+        'item' => $itemId,
+        'record' => $recordIndex,
+        'individual' => $individualIndex,
         'period' => $selectedPeriod,
         'location' => $selectedLocation,
         'major' => $selectedMajor,
@@ -90,24 +108,12 @@ function build_detail_link(string $itemId, int $recordIndex, string $selectedPer
             <?php if ($selectedRecord !== null): ?>
                 <div class="alert alert-primary d-flex align-items-center justify-content-between mb-3" role="alert">
                     <div>
-                        <strong>Detail Record Terpilih:</strong>
-                        <?php echo e($selectedRecord['nama'] ?? $selectedRecord['id_peserta'] ?? $selectedRecord['id_sinkron'] ?? $selectedRecord['issue_id'] ?? '-'); ?>
+                        <strong>Ringkasan KPI Terpilih:</strong>
+                        <?php echo e(($item['columns'][0] ?? 'Data') . ' - ' . ($item['rows'][$selectedRecordIndex][0] ?? '')); ?>
                     </div>
                     <a href="dashboard_blk_detail.php?item=<?php echo e($itemId); ?>&<?php echo e($backQuery); ?>" class="btn btn-sm btn-outline-primary">
                         Reset Detail Record
                     </a>
-                </div>
-                <div class="table-responsive mb-4">
-                    <table class="table table-sm table-bordered align-middle">
-                        <tbody>
-                        <?php foreach ($selectedRecord as $field => $value): ?>
-                            <tr>
-                                <th style="width: 260px;"><?php echo e($field); ?></th>
-                                <td><?php echo e($value); ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
                 </div>
             <?php endif; ?>
 
@@ -149,26 +155,54 @@ function build_detail_link(string $itemId, int $recordIndex, string $selectedPer
                 <hr>
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h5 class="mb-0">Data Individu (Variable Level)</h5>
-                    <small class="text-muted">Contoh variabel: nama, nik, email, no_hp, status.</small>
+                    <small class="text-muted">Menampilkan 4 data individu. Klik Detail untuk data lengkap.</small>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-striped table-hover align-middle">
                         <thead>
                         <tr>
-                            <?php foreach (array_keys($selectedRecord) as $col): ?>
+                            <?php foreach (array_keys($records[0]) as $col): ?>
                                 <th><?php echo e($col); ?></th>
                             <?php endforeach; ?>
+                            <th style="width: 120px;">Aksi</th>
                         </tr>
                         </thead>
                         <tbody>
-                        <tr>
-                            <?php foreach ($selectedRecord as $value): ?>
-                                <td><?php echo e($value); ?></td>
-                            <?php endforeach; ?>
-                        </tr>
+                        <?php foreach ($records as $individualIndex => $record): ?>
+                            <tr>
+                                <?php foreach ($record as $value): ?>
+                                    <td><?php echo e($value); ?></td>
+                                <?php endforeach; ?>
+                                <td>
+                                    <a href="<?php echo e(build_individual_link($itemId, (int)$selectedRecordIndex, $individualIndex, $selectedPeriod, $selectedLocation, $selectedMajor, $selectedSource)); ?>" class="btn btn-sm btn-primary">
+                                        Detail
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
+
+                <?php if ($selectedIndividual !== null): ?>
+                    <div class="card border-0 mt-3" style="background:#f8fafc;">
+                        <div class="card-body">
+                            <h6 class="mb-3">Detail Lengkap Individu</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered align-middle mb-0">
+                                    <tbody>
+                                    <?php foreach ($selectedIndividual as $field => $value): ?>
+                                        <tr>
+                                            <th style="width: 260px;"><?php echo e($field); ?></th>
+                                            <td><?php echo e($value); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
