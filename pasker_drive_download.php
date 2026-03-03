@@ -19,8 +19,6 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 
 $fileId = intval($_GET['id'] ?? 0);
 $userId = intval($_SESSION['user_id'] ?? 0);
-$sessionUsername = strtolower((string)($_SESSION['username'] ?? ''));
-$isDriveSuperUser = ($sessionUsername === 'datin_pasker');
 if ($fileId <= 0 || $userId <= 0) {
     http_response_code(400);
     echo 'Invalid request.';
@@ -55,7 +53,7 @@ if (!$file) {
     exit;
 }
 
-$allowed = $isDriveSuperUser || intval($file['owner_user_id']) === $userId;
+$allowed = intval($file['owner_user_id']) === $userId;
 if (!$allowed) {
     $pStmt = $conn->prepare("SELECT 1 FROM pasker_drive_permissions WHERE file_id=? AND principal_type='user' AND principal_id=? LIMIT 1");
     $pStmt->bind_param('ii', $fileId, $userId);
