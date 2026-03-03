@@ -121,6 +121,10 @@ if (intval($_GET['download'] ?? 0) === 1) {
     <meta property="og:description" content="<?= h($ogDescription); ?>">
     <meta property="og:url" content="<?= h($shareUrl); ?>">
     <meta property="og:image" content="<?= h($ogImage); ?>">
+    <meta property="og:image:secure_url" content="<?= h($ogImage); ?>">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="<?= h($ogTitle); ?>">
     <meta name="twitter:description" content="<?= h($ogDescription); ?>">

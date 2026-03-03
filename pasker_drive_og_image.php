@@ -3,44 +3,59 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-function e(string $text): string {
-    return htmlspecialchars($text, ENT_QUOTES);
-}
-
 $kind = strtolower(trim((string)($_GET['kind'] ?? 'file')));
 if (!in_array($kind, ['document', 'file'], true)) {
     $kind = 'file';
 }
+
 $name = trim((string)($_GET['name'] ?? 'Shared File'));
 if ($name === '') {
     $name = 'Shared File';
 }
-$name = mb_substr($name, 0, 80);
+$name = mb_substr($name, 0, 70);
 
+$width = 1200;
+$height = 630;
+$img = imagecreatetruecolor($width, $height);
+imageantialias($img, true);
+
+$bg = imagecolorallocate($img, 11, 19, 36);
+$panel = imagecolorallocate($img, 16, 26, 49);
+$panelBorder = imagecolorallocate($img, 31, 42, 68);
+$white = imagecolorallocate($img, 248, 250, 252);
+$muted = imagecolorallocate($img, 203, 213, 225);
+$muted2 = imagecolorallocate($img, 148, 163, 184);
+$accent = $kind === 'document'
+    ? imagecolorallocate($img, 22, 163, 74)
+    : imagecolorallocate($img, 14, 165, 233);
+
+imagefilledrectangle($img, 0, 0, $width, $height, $bg);
+imagefilledrectangle($img, 40, 40, 1160, 590, $panel);
+imagerectangle($img, 40, 40, 1160, 590, $panelBorder);
+
+// File icon box
+imagefilledrectangle($img, 100, 120, 280, 340, $accent);
+imagefilledrectangle($img, 135, 165, 245, 310, $white);
+$line = imagecolorallocate($img, 203, 213, 225);
+imagefilledrectangle($img, 160, 205, 220, 214, $line);
+imagefilledrectangle($img, 160, 228, 220, 237, $line);
+imagefilledrectangle($img, 160, 251, 220, 260, $line);
+
+// Text (built-in font for high compatibility)
 $title = $kind === 'document' ? 'Document Shared' : 'File Shared';
-$accent = $kind === 'document' ? '#16a34a' : '#0ea5e9';
 $iconText = $kind === 'document' ? 'DOC' : 'FILE';
+imagestring($img, 5, 165, 320, $iconText, $white);
+imagestring($img, 5, 330, 150, 'Pasker Drive', $white);
+imagestring($img, 5, 330, 205, $title, $muted);
+imagestring($img, 5, 330, 260, $name, $white);
+imagestring($img, 4, 330, 315, 'Shared file preview and download link', $muted2);
 
-header('Content-Type: image/svg+xml; charset=utf-8');
+// CTA bar
+imagefilledrectangle($img, 330, 430, 670, 494, $accent);
+imagestring($img, 5, 390, 452, 'OPEN SHARED FILE', $white);
+
+header('Content-Type: image/png');
 header('Cache-Control: public, max-age=300');
-
-echo '<?xml version="1.0" encoding="UTF-8"?>';
-?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Pasker Drive shared file">
-  <rect x="0" y="0" width="1200" height="630" fill="#0b1324"/>
-  <rect x="40" y="40" width="1120" height="550" rx="24" fill="#101a31" stroke="#1f2a44" stroke-width="2"/>
-  <rect x="100" y="120" width="180" height="220" rx="16" fill="<?php echo e($accent); ?>"/>
-  <rect x="135" y="165" width="110" height="145" rx="10" fill="#ffffff"/>
-  <rect x="160" y="205" width="60" height="10" rx="5" fill="#cbd5e1"/>
-  <rect x="160" y="228" width="60" height="10" rx="5" fill="#cbd5e1"/>
-  <rect x="160" y="251" width="60" height="10" rx="5" fill="#cbd5e1"/>
-  <text x="190" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#ffffff"><?php echo e($iconText); ?></text>
-
-  <text x="330" y="180" font-family="Arial, sans-serif" font-size="48" font-weight="700" fill="#f8fafc">Pasker Drive</text>
-  <text x="330" y="240" font-family="Arial, sans-serif" font-size="36" font-weight="600" fill="#cbd5e1"><?php echo e($title); ?></text>
-  <text x="330" y="312" font-family="Arial, sans-serif" font-size="34" font-weight="500" fill="#e2e8f0"><?php echo e($name); ?></text>
-  <text x="330" y="370" font-family="Arial, sans-serif" font-size="28" fill="#94a3b8">Shared file preview and download link</text>
-
-  <rect x="330" y="430" width="340" height="64" rx="12" fill="<?php echo e($accent); ?>"/>
-  <text x="500" y="472" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#ffffff">OPEN SHARED FILE</text>
-</svg>
+imagepng($img);
+imagedestroy($img);
+exit;
