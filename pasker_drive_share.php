@@ -49,8 +49,21 @@ $fullBase = 'https://' . $host . $basePath;
 $shareUrl = $fullBase . 'pasker_drive_share.php?token=' . urlencode($token);
 $previewUrl = $shareUrl . '&preview=1';
 $downloadUrl = $shareUrl . '&download=1';
-$isImage = strpos((string)($file['mime_type'] ?? ''), 'image/') === 0;
-$ogImage = $isImage ? $previewUrl : 'https://paskerid.kemnaker.go.id/images/services/logo.png';
+$mime = strtolower((string)($file['mime_type'] ?? ''));
+$isImage = strpos($mime, 'image/') === 0;
+$isDocument = (
+    $mime === 'application/pdf' ||
+    $mime === 'application/msword' ||
+    $mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    $mime === 'application/vnd.ms-excel' ||
+    $mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+    $mime === 'application/vnd.ms-powerpoint' ||
+    $mime === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+    strpos($mime, 'text/') === 0
+);
+$ogImage = $isImage
+    ? $previewUrl
+    : ($fullBase . 'pasker_drive_og_image.php?kind=' . ($isDocument ? 'document' : 'file') . '&name=' . urlencode((string)$file['original_name']));
 $ogTitle = 'Pasker Drive: ' . (string)$file['original_name'];
 $ogDescription = 'Shared file preview and download link.';
 
