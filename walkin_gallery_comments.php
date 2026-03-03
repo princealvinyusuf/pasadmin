@@ -122,11 +122,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 $filter = $_GET['status'] ?? 'pending';
 $allowed = ['pending','approved','rejected','all'];
 if (!in_array($filter, $allowed, true)) $filter = 'pending';
+$companyFilter = trim((string) ($_GET['company_name'] ?? ''));
 
-$where = '';
+$where = 'WHERE 1=1';
 if ($filter !== 'all') {
     $safe = $conn->real_escape_string($filter);
-    $where = "WHERE c.status='$safe'";
+    $where .= " AND c.status='$safe'";
+}
+if ($companyFilter !== '') {
+    $safeCompany = $conn->real_escape_string($companyFilter);
+    $where .= " AND LOWER(COALESCE(c.company_name, '')) LIKE LOWER('%" . $safeCompany . "%')";
 }
 
 $sql = "SELECT c.*, i.type AS item_type, i.title AS item_title
@@ -170,10 +175,32 @@ if ($res) {
     <?php unset($_SESSION['success']); endif; ?>
 
     <div class="mb-3 d-flex gap-2 flex-wrap">
-        <a class="btn btn-sm <?= $filter==='pending'?'btn-primary':'btn-outline-primary' ?>" href="?status=pending">Pending</a>
-        <a class="btn btn-sm <?= $filter==='approved'?'btn-primary':'btn-outline-primary' ?>" href="?status=approved">Approved</a>
-        <a class="btn btn-sm <?= $filter==='rejected'?'btn-primary':'btn-outline-primary' ?>" href="?status=rejected">Rejected</a>
-        <a class="btn btn-sm <?= $filter==='all'?'btn-primary':'btn-outline-primary' ?>" href="?status=all">All</a>
+        <a class="btn btn-sm <?= $filter==='pending'?'btn-primary':'btn-outline-primary' ?>" href="?status=pending&company_name=<?= urlencode($companyFilter); ?>">Pending</a>
+        <a class="btn btn-sm <?= $filter==='approved'?'btn-primary':'btn-outline-primary' ?>" href="?status=approved&company_name=<?= urlencode($companyFilter); ?>">Approved</a>
+        <a class="btn btn-sm <?= $filter==='rejected'?'btn-primary':'btn-outline-primary' ?>" href="?status=rejected&company_name=<?= urlencode($companyFilter); ?>">Rejected</a>
+        <a class="btn btn-sm <?= $filter==='all'?'btn-primary':'btn-outline-primary' ?>" href="?status=all&company_name=<?= urlencode($companyFilter); ?>">All</a>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-2">
+                <input type="hidden" name="status" value="<?= h($filter); ?>">
+                <div class="col-12 col-md-6 col-lg-4">
+                    <label class="form-label mb-1">Company Name</label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        name="company_name"
+                        value="<?= h($companyFilter); ?>"
+                        placeholder="Cari nama perusahaan..."
+                    >
+                </div>
+                <div class="col-12 col-md-6 col-lg-4 d-flex align-items-end gap-2">
+                    <button class="btn btn-primary" type="submit">Filter</button>
+                    <a class="btn btn-outline-secondary" href="?status=<?= urlencode($filter); ?>">Reset</a>
+                </div>
+            </form>
+        </div>
     </div>
 
     <div class="card shadow-sm">
@@ -185,6 +212,7 @@ if ($res) {
                             <th>ID</th>
                             <th>Status</th>
                             <th>Sumber</th>
+                            <th>Company</th>
                             <th>Nama</th>
                             <th>Komentar</th>
                             <th>Item</th>
@@ -205,6 +233,7 @@ if ($res) {
                             <td><?= intval($r['id']); ?></td>
                             <td><span class="badge bg-secondary"><?= h($r['status']); ?></span></td>
                             <td class="small"><?= h($sourceLabel); ?></td>
+                            <td class="small"><?= h($r['company_name'] ?? '-'); ?></td>
                             <td><?= h($r['name']); ?></td>
                             <td style="max-width:420px"><?= h($r['comment']); ?></td>
                             <td><?= h(($r['item_title'] ?: '-') . ($r['item_type'] ? ' (' . $r['item_type'] . ')' : '')); ?></td>
@@ -221,7 +250,7 @@ if ($res) {
                         </tr>
                     <?php endforeach; ?>
                     <?php if (count($rows) === 0): ?>
-                        <tr><td colspan="9" class="text-center text-muted">Tidak ada data.</td></tr>
+                        <tr><td colspan="10" class="text-center text-muted">Tidak ada data.</td></tr>
                     <?php endif; ?>
                     </tbody>
                 </table>
