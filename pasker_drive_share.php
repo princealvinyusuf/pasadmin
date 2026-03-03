@@ -41,6 +41,19 @@ if (!empty($file['expires_at']) && strtotime((string)$file['expires_at']) < time
     exit;
 }
 
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '/pasker_drive_share.php';
+$dir = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+$basePath = ($dir === '' || $dir === '.') ? '/' : ($dir . '/');
+$fullBase = 'https://' . $host . $basePath;
+$shareUrl = $fullBase . 'pasker_drive_share.php?token=' . urlencode($token);
+$previewUrl = $shareUrl . '&preview=1';
+$downloadUrl = $shareUrl . '&download=1';
+$isImage = strpos((string)($file['mime_type'] ?? ''), 'image/') === 0;
+$ogImage = $isImage ? $previewUrl : 'https://paskerid.kemnaker.go.id/images/services/logo.png';
+$ogTitle = 'Pasker Drive: ' . (string)$file['original_name'];
+$ogDescription = 'Shared file preview and download link.';
+
 if (intval($_GET['preview'] ?? 0) === 1) {
     $absolutePath = __DIR__ . '/downloads/pasker_drive/' . basename((string)$file['storage_name']);
     if (!is_file($absolutePath)) {
@@ -88,7 +101,17 @@ if (intval($_GET['download'] ?? 0) === 1) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shared File | Pasker Drive</title>
+    <title><?= h($ogTitle); ?></title>
+    <meta name="description" content="<?= h($ogDescription); ?>">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="<?= h($ogTitle); ?>">
+    <meta property="og:description" content="<?= h($ogDescription); ?>">
+    <meta property="og:url" content="<?= h($shareUrl); ?>">
+    <meta property="og:image" content="<?= h($ogImage); ?>">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?= h($ogTitle); ?>">
+    <meta name="twitter:description" content="<?= h($ogDescription); ?>">
+    <meta name="twitter:image" content="<?= h($ogImage); ?>">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
@@ -104,10 +127,10 @@ if (intval($_GET['download'] ?? 0) === 1) {
                         <div class="mb-3"><strong>Expires at:</strong> <?= h($file['expires_at']); ?></div>
                     <?php endif; ?>
                     <?php if (intval($file['can_download'] ?? 0) === 1): ?>
-                        <a class="btn btn-outline-primary me-2" href="?token=<?= urlencode($token); ?>&preview=1" target="_blank" rel="noopener">Preview</a>
-                        <a class="btn btn-primary" href="?token=<?= urlencode($token); ?>&download=1">Download File</a>
+                        <a class="btn btn-outline-primary me-2" href="<?= h($previewUrl); ?>" target="_blank" rel="noopener">Preview</a>
+                        <a class="btn btn-primary" href="<?= h($downloadUrl); ?>">Download File</a>
                     <?php else: ?>
-                        <a class="btn btn-outline-primary" href="?token=<?= urlencode($token); ?>&preview=1" target="_blank" rel="noopener">Preview</a>
+                        <a class="btn btn-outline-primary" href="<?= h($previewUrl); ?>" target="_blank" rel="noopener">Preview</a>
                         <div class="alert alert-warning mt-3 mb-0">Owner has disabled download for this link.</div>
                     <?php endif; ?>
                 </div>

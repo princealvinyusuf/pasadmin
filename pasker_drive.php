@@ -108,7 +108,7 @@ function app_base_url(): string {
 }
 
 function app_full_base_url(): string {
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $scheme = 'https';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     return $scheme . '://' . $host . app_base_url();
 }
@@ -1943,15 +1943,17 @@ $fullBaseUrl = app_full_base_url();
                                                 </div>
                                             <?php endif; ?>
                                             <?php if ($shared): ?>
-                                                <div class="mt-2">
-                                                    <input type="text" class="form-control form-control-sm" readonly value="<?= h($shareUrl); ?>">
+                                                <div class="mt-2 input-group input-group-sm">
+                                                    <input type="text" class="form-control" readonly id="share_link_<?= $fileId; ?>" value="<?= h($shareUrl); ?>">
+                                                    <button class="btn btn-outline-secondary copy-link-btn" type="button" data-copy-target="share_link_<?= $fileId; ?>">Copy link</button>
                                                 </div>
                                             <?php endif; ?>
                                         <?php elseif (intval($file['is_trashed']) === 0): ?>
                                             <span class="badge bg-info text-dark">Shared to you (<?= h($currentRole); ?>)</span>
                                             <?php if ($shared): ?>
-                                                <div class="mt-2">
-                                                    <input type="text" class="form-control form-control-sm" readonly value="<?= h($shareUrl); ?>">
+                                                <div class="mt-2 input-group input-group-sm">
+                                                    <input type="text" class="form-control" readonly id="share_link_shared_<?= $fileId; ?>" value="<?= h($shareUrl); ?>">
+                                                    <button class="btn btn-outline-secondary copy-link-btn" type="button" data-copy-target="share_link_shared_<?= $fileId; ?>">Copy link</button>
                                                 </div>
                                             <?php endif; ?>
                                         <?php else: ?>
@@ -2221,6 +2223,31 @@ $fullBaseUrl = app_full_base_url();
             previewFrame.src = '';
         });
     }
+
+    document.querySelectorAll('.copy-link-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            const targetId = btn.getAttribute('data-copy-target');
+            const input = targetId ? document.getElementById(targetId) : null;
+            if (!input) return;
+            const text = input.value || '';
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    input.focus();
+                    input.select();
+                    document.execCommand('copy');
+                }
+                const original = btn.textContent;
+                btn.textContent = 'Copied';
+                setTimeout(() => { btn.textContent = original; }, 1200);
+            } catch (e) {
+                const original = btn.textContent;
+                btn.textContent = 'Failed';
+                setTimeout(() => { btn.textContent = original; }, 1200);
+            }
+        });
+    });
 })();
 </script>
 </body>
