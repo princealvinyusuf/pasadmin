@@ -58,6 +58,7 @@
     $canIframe = current_user_can('settings_iframe_manage');
     $canRegistrasiKehadiran = current_user_can('registrasi_kehadiran_manage');
     $canSplitScreen = current_user_can('split_screen_access') || $canManageSettings;
+    $canOUI = current_user_can('oui_access') || $canManageSettings;
     $canAuditTrails = current_user_can('view_audit_trails');
     $canAccessControl = current_user_can('manage_access_control');
     $canBroadcast = current_user_can('use_broadcast');
@@ -292,9 +293,11 @@
                     <a class="nav-link" href="<?php echo $rootUrl; ?>pasker_drive.php"><i class="bi bi-cloud me-1"></i>Pasker Drive</a>
                 </li>
                 <?php endif; ?>
+                <?php if ($canOUI): ?>
                 <li class="nav-item">
                     <a class="nav-link" href="<?php echo $rootUrl; ?>oui.php">OUI</a>
                 </li>
+                <?php endif; ?>
                 <!-- <li class="nav-item">
                     <a class="nav-link" href="<?php echo $rootUrl; ?>classification_magang.php">
                         Magang

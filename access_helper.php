@@ -103,7 +103,8 @@ function ac_seed_permissions(mysqli $conn): void {
 		// Konseling permissions
 		['form_hasil_konseling_manage','Form Hasil Konseling: Manage Submissions','Konseling'],
 		// Extensions permissions
-		['split_screen_access','Split Screen: Access Menu','Extensions']
+		['split_screen_access','Split Screen: Access Menu','Extensions'],
+		['oui_access','OUI: Access Menu','Extensions']
 	];
 	$stmt = $conn->prepare('INSERT IGNORE INTO access_permissions (code,label,category) VALUES (?,?,?)');
 	foreach ($perms as [$c,$l,$cat]) { $stmt->bind_param('sss',$c,$l,$cat); $stmt->execute(); }

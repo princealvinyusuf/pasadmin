@@ -2,6 +2,15 @@
 // OVO (Online Vacancy Outlook) - PHP/Bootstrap prototype page
 // - Uses Bootstrap classes to integrate with existing pasadmin layout
 // - Mock data only; wire to real APIs later
+
+require_once __DIR__ . '/auth_guard.php';
+require_once __DIR__ . '/access_helper.php';
+
+if (!current_user_can('oui_access') && !current_user_can('manage_settings')) {
+	http_response_code(403);
+	echo 'Forbidden';
+	exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
