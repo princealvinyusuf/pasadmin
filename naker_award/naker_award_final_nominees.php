@@ -3,9 +3,9 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-require_once __DIR__ . '/auth_guard.php';
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/access_helper.php';
+require_once __DIR__ . '/../auth_guard.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../access_helper.php';
 if (!current_user_can('naker_award_final_nominees') && !current_user_can('manage_settings')) { http_response_code(403); echo 'Forbidden'; exit; }
 
 // Ensure tables exist
@@ -75,7 +75,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="bg-light">
-<?php include 'navbar.php'; ?>
+<?php include __DIR__ . '/../navbar.php'; ?>
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Naker Award - Final Nominees</h2>

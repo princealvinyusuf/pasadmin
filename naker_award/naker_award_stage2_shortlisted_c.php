@@ -3,9 +3,9 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-require_once __DIR__ . '/auth_guard.php';
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/access_helper.php';
+require_once __DIR__ . '/../auth_guard.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../access_helper.php';
 if (!current_user_can('naker_award_view_stage2') && !current_user_can('naker_award_manage_second') && !current_user_can('manage_settings')) { http_response_code(403); echo 'Forbidden'; exit; }
 
 // Ensure tables exist
@@ -33,6 +33,14 @@ if ($colCheckRes2 && ($row2 = $colCheckRes2->fetch_assoc()) && intval($row2['cnt
     $conn->query("ALTER TABLE naker_award_second_mandatory ADD COLUMN clearance_industrial_dispute_doc_path VARCHAR(255) DEFAULT NULL");
 }
 
+function naker_public_href(?string $path): string {
+    $path = trim((string)$path);
+    if ($path === '') { return ''; }
+    if (preg_match('#^(?:[a-z]+:)?//#i', $path)) { return $path; }
+    if (strpos($path, '/') === 0 || strpos($path, '../') === 0) { return $path; }
+    return '../' . ltrim($path, '/');
+}
+
 // Query companies that submitted mandatory data
 $sql = "SELECT a.id, a.company_name, a.total_indeks, m.wlkp_status, m.wlkp_code, m.clearance_no_law_path, m.clearance_industrial_dispute_doc_path, m.bpjstk_membership_doc_path, m.minimum_wage_doc_path, m.clearance_smk3_status_doc_path, m.smk3_certificate_copy_path, m.clearance_zero_accident_doc_path, m.updated_at
         FROM naker_award_assessments a
@@ -52,7 +60,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="bg-light">
-<?php include 'navbar.php'; ?>
+<?php include __DIR__ . '/../navbar.php'; ?>
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Naker Award - Stage 2 Shortlisted C</h2>
@@ -82,13 +90,13 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                                 data-company="<?php echo htmlspecialchars($row['company_name']); ?>"
                                 data-wlkp-status="<?php echo htmlspecialchars((string)$row['wlkp_status']); ?>"
                                 data-wlkp-code="<?php echo htmlspecialchars((string)$row['wlkp_code']); ?>"
-                                data-no-law="<?php echo htmlspecialchars((string)$row['clearance_no_law_path']); ?>"
-                                data-industrial-dispute="<?php echo htmlspecialchars((string)$row['clearance_industrial_dispute_doc_path']); ?>"
-                                data-bpjstk="<?php echo htmlspecialchars((string)$row['bpjstk_membership_doc_path']); ?>"
-                                data-wage="<?php echo htmlspecialchars((string)$row['minimum_wage_doc_path']); ?>"
-                                data-smk3-status="<?php echo htmlspecialchars((string)$row['clearance_smk3_status_doc_path']); ?>"
-                                data-smk3-copy="<?php echo htmlspecialchars((string)$row['smk3_certificate_copy_path']); ?>"
-                                data-zeroacc="<?php echo htmlspecialchars((string)$row['clearance_zero_accident_doc_path']); ?>"
+                                data-no-law="<?php echo htmlspecialchars(naker_public_href((string)$row['clearance_no_law_path'])); ?>"
+                                data-industrial-dispute="<?php echo htmlspecialchars(naker_public_href((string)$row['clearance_industrial_dispute_doc_path'])); ?>"
+                                data-bpjstk="<?php echo htmlspecialchars(naker_public_href((string)$row['bpjstk_membership_doc_path'])); ?>"
+                                data-wage="<?php echo htmlspecialchars(naker_public_href((string)$row['minimum_wage_doc_path'])); ?>"
+                                data-smk3-status="<?php echo htmlspecialchars(naker_public_href((string)$row['clearance_smk3_status_doc_path'])); ?>"
+                                data-smk3-copy="<?php echo htmlspecialchars(naker_public_href((string)$row['smk3_certificate_copy_path'])); ?>"
+                                data-zeroacc="<?php echo htmlspecialchars(naker_public_href((string)$row['clearance_zero_accident_doc_path'])); ?>"
                                 data-bs-toggle="modal" data-bs-target="#stage2DetailModal">Detail</button>
                         </td>
                         <td><?php echo htmlspecialchars($row['updated_at']); ?></td>

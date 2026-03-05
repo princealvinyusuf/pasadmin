@@ -263,16 +263,16 @@
                         WLLP Award
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="nakerAwardDropdown">
-                        <?php if ($canNakerAssessment || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_initial_assessment.php">Initial Assessment</a></li><?php endif; ?>
-                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_bobot_settings.php">Bobot Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_interval_settings.php">Interval Settings</a></li><?php endif; ?>
-                        <?php if ($canNakerStage1 || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_stage1_shortlisted_c.php">Stage 1 Shortlisted C</a></li><?php endif; ?>
-                        <?php if ($canNakerSecond): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_second_assessment.php">Second Assessment</a></li><?php endif; ?>
-                        <?php if ($canNakerStage2): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_stage2_shortlisted_c.php">Stage 2 Shortlisted C</a></li><?php endif; ?>
-                        <?php if ($canNakerThird): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_third_assessment.php">Third Assessment</a></li><?php endif; ?>
-                        <?php if ($canNakerVerify): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_verification.php">Verification</a></li><?php endif; ?>
-                        <?php if ($canNakerFinal): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_final_nominees.php">Final Nominees</a></li><?php endif; ?>
-                        <?php if (current_user_can('naker_award_backup_nominees')): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_backup_nominees.php">Backup Data Nominees</a></li><?php endif; ?>
+                        <?php if ($canNakerAssessment || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_initial_assessment.php">Initial Assessment</a></li><?php endif; ?>
+                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_bobot_settings.php">Bobot Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_interval_settings.php">Interval Settings</a></li><?php endif; ?>
+                        <?php if ($canNakerStage1 || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_stage1_shortlisted_c.php">Stage 1 Shortlisted C</a></li><?php endif; ?>
+                        <?php if ($canNakerSecond): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_second_assessment.php">Second Assessment</a></li><?php endif; ?>
+                        <?php if ($canNakerStage2): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_stage2_shortlisted_c.php">Stage 2 Shortlisted C</a></li><?php endif; ?>
+                        <?php if ($canNakerThird): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_third_assessment.php">Third Assessment</a></li><?php endif; ?>
+                        <?php if ($canNakerVerify): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_verification.php">Verification</a></li><?php endif; ?>
+                        <?php if ($canNakerFinal): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_final_nominees.php">Final Nominees</a></li><?php endif; ?>
+                        <?php if (current_user_can('naker_award_backup_nominees')): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_backup_nominees.php">Backup Data Nominees</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
