@@ -57,7 +57,7 @@
     $canDatabaseContact = current_user_can('settings_database_contact_manage');
     $canIframe = current_user_can('settings_iframe_manage');
     $canRegistrasiKehadiran = current_user_can('registrasi_kehadiran_manage');
-    $canSplitScreen = true; // Split Screen was previously always visible
+    $canSplitScreen = current_user_can('split_screen_access') || $canManageSettings;
     $canAuditTrails = current_user_can('view_audit_trails');
     $canAccessControl = current_user_can('manage_access_control');
     $canBroadcast = current_user_can('use_broadcast');
