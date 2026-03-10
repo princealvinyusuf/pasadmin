@@ -3,9 +3,9 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-require_once __DIR__ . '/auth_guard.php';
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/access_helper.php';
+require_once __DIR__ . '/../auth_guard.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../access_helper.php';
 if (!(current_user_can('naker_award_manage_intervals') || current_user_can('manage_settings'))) { http_response_code(403); echo 'Forbidden'; exit; }
 
 // Create intervals table if not exists
@@ -164,7 +164,7 @@ $grouped = get_all_intervals_grouped($conn);
     </style>
 </head>
 <body class="bg-light">
-<?php include 'navbar.php'; ?>
+<?php include __DIR__ . '/../navbar.php'; ?>
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">WLLP Award - Interval Settings</h2>

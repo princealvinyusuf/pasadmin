@@ -3,9 +3,9 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-require_once __DIR__ . '/auth_guard.php';
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/access_helper.php';
+require_once __DIR__ . '/../auth_guard.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../access_helper.php';
 if (!current_user_can('naker_award_manage_third') && !current_user_can('manage_settings')) { http_response_code(403); echo 'Forbidden'; exit; }
 
 $assessmentId = isset($_GET['assessment_id']) ? intval($_GET['assessment_id']) : 0;
@@ -30,8 +30,16 @@ $stmt->bind_result($companyName);
 $stmt->fetch();
 $stmt->close();
 
-$uploadDir = __DIR__ . '/uploads/naker_award_third/';
+$uploadDir = __DIR__ . '/../uploads/naker_award_third/';
 if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0777, true); }
+
+function naker_public_href(?string $path): string {
+    $path = trim((string)$path);
+    if ($path === '') { return ''; }
+    if (preg_match('#^(?:[a-z]+:)?//#i', $path)) { return $path; }
+    if (strpos($path, '/') === 0 || strpos($path, '../') === 0) { return $path; }
+    return '../' . ltrim($path, '/');
+}
 
 function save_file_third(mysqli $conn, int $assessmentId, string $field, array $file, string $uploadDir): ?string {
     $allowed = ['legal_entity_status_doc_path','operational_permit_doc_path'];
@@ -91,7 +99,7 @@ $isLocked = intval($data['final_submitted']) === 1;
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="bg-light">
-<?php include 'navbar.php'; ?>
+<?php include __DIR__ . '/../navbar.php'; ?>
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">General Data: <?php echo htmlspecialchars($companyName ?: ('ID ' . $assessmentId)); ?></h2>
@@ -126,7 +134,7 @@ $isLocked = intval($data['final_submitted']) === 1;
                                     <button class="btn btn-primary" type="submit" <?php echo $isLocked?'disabled':''; ?>>Save</button>
                                 </form>
                                 <?php if (!empty($data['legal_entity_status_doc_path'])): ?>
-                                <div class="mt-1"><a href="<?php echo htmlspecialchars($data['legal_entity_status_doc_path']); ?>" target="_blank">View document</a></div>
+                                <div class="mt-1"><a href="<?php echo htmlspecialchars(naker_public_href((string)$data['legal_entity_status_doc_path'])); ?>" target="_blank">View document</a></div>
                                 <?php endif; ?>
                             </td>
                             <td>Dokumen</td>
@@ -142,7 +150,7 @@ $isLocked = intval($data['final_submitted']) === 1;
                                     <button class="btn btn-primary" type="submit" <?php echo $isLocked?'disabled':''; ?>>Save</button>
                                 </form>
                                 <?php if (!empty($data['operational_permit_doc_path'])): ?>
-                                <div class="mt-1"><a href="<?php echo htmlspecialchars($data['operational_permit_doc_path']); ?>" target="_blank">View document</a></div>
+                                <div class="mt-1"><a href="<?php echo htmlspecialchars(naker_public_href((string)$data['operational_permit_doc_path'])); ?>" target="_blank">View document</a></div>
                                 <?php endif; ?>
                             </td>
                             <td>Dokumen</td>

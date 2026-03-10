@@ -3,9 +3,9 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-require_once __DIR__ . '/auth_guard.php';
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/access_helper.php';
+require_once __DIR__ . '/../auth_guard.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../access_helper.php';
 if (!current_user_can('naker_award_backup_nominees')) { http_response_code(403); echo 'Forbidden'; exit; }
 
 // Ensure metadata table exists
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'backu
     $ts = date('Ymd_His');
     $baseName = 'naker_award_nominees_' . $ts . '.csv';
     $safeName = sanitize_filename($baseName);
-    $dir = __DIR__ . '/downloads';
+    $dir = __DIR__ . '/../downloads';
     if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
     $filePath = $dir . '/' . $safeName;
 
@@ -88,7 +88,7 @@ while ($r = $resRuns->fetch_assoc()) { $runs[] = $r; }
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="bg-light">
-<?php include 'navbar.php'; ?>
+<?php include __DIR__ . '/../navbar.php'; ?>
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Naker Award - Backup Data Nominees</h2>
@@ -131,7 +131,7 @@ while ($r = $resRuns->fetch_assoc()) { $runs[] = $r; }
                         </td>
                         <td>
                             <?php
-                            $rel = 'downloads/' . rawurlencode($run['file_name']);
+                            $rel = '../downloads/' . rawurlencode($run['file_name']);
                             ?>
                             <a class="btn btn-sm btn-outline-secondary" href="<?php echo $rel; ?>" download>
                                 <i class="bi bi-download me-1"></i>Download

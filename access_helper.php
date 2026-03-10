@@ -72,6 +72,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		['settings_partnership_type_manage','Manage Partnership Types','Settings'],
 		['walkin_gallery_manage','Manage Walk-in Gallery','Layanan'],
 		['walkin_survey_manage','Manage Walk-in Survey','Layanan'],
+		['pasker_drive_manage','Manage Pasker Drive','Layanan'],
 		['use_broadcast','Use Broadcast','Tools'],
 		['view_extensions','View Extensions','Tools'],
 		['view_db_sessions','View Active DB Sessions','Tools'],
@@ -100,7 +101,10 @@ function ac_seed_permissions(mysqli $conn): void {
 		['career_boost_day_booked_view','Career Boost Day: View Booked','Career Boost Day'],
 		['career_boost_day_testimonial_manage','Career Boost Day: Manage Testimonials','Career Boost Day'],
 		// Konseling permissions
-		['form_hasil_konseling_manage','Form Hasil Konseling: Manage Submissions','Konseling']
+		['form_hasil_konseling_manage','Form Hasil Konseling: Manage Submissions','Konseling'],
+		// Extensions permissions
+		['split_screen_access','Split Screen: Access Menu','Extensions'],
+		['oui_access','OUI: Access Menu','Extensions']
 	];
 	$stmt = $conn->prepare('INSERT IGNORE INTO access_permissions (code,label,category) VALUES (?,?,?)');
 	foreach ($perms as [$c,$l,$cat]) { $stmt->bind_param('sss',$c,$l,$cat); $stmt->execute(); }

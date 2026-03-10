@@ -349,6 +349,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $pend = trim((string)($_POST['pendidikan_terakhir'] ?? ''));
         $jurusan = trim((string)($_POST['jurusan'] ?? ''));
         $bookedDate = trim((string)($_POST['booked_date'] ?? '')); // optional (YYYY-MM-DD)
+        $picId = intval($_POST['pic_id'] ?? 0); // optional, 0 means no PIC
 
         if ($name === '' || $whatsapp === '' || $status === '' || $jenis === '' || $jadwal === '') {
             $_SESSION['error'] = 'Nama, WhatsApp, Status, Jenis Konseling, dan Jadwal wajib diisi.';
@@ -368,6 +369,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $checkStmt->close();
         }
 
+        // For accepted records, PIC must be assigned during edit.
+        if ($currentStatus === 'accepted' && $picId <= 0) {
+            $_SESSION['error'] = 'PIC wajib dipilih untuk data dengan status accepted.';
+            header('Location: ' . $redir);
+            exit;
+        }
+
         $timeStart = null;
         $timeFinish = null;
         
@@ -383,10 +391,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         // If we have time values, update them; otherwise, keep existing values or set to NULL
         if ($timeStart && $timeFinish) {
             $stmt = $conn->prepare("UPDATE career_boostday_consultations
-                SET name=?, whatsapp=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, jurusan=NULLIF(?, ''), booked_date=NULLIF(?, ''), booked_time_start=?, booked_time_finish=?, admin_updated_at=NOW()
+                SET name=?, whatsapp=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, jurusan=NULLIF(?, ''), pic_id=NULLIF(?, 0), booked_date=NULLIF(?, ''), booked_time_start=?, booked_time_finish=?, admin_updated_at=NOW()
                 WHERE id=?");
             if ($stmt) {
-                $stmt->bind_param('ssssssssssi', $name, $whatsapp, $status, $jenis, $jadwal, $pend, $jurusan, $bookedDate, $timeStart, $timeFinish, $id);
+                $stmt->bind_param('sssssssisssi', $name, $whatsapp, $status, $jenis, $jadwal, $pend, $jurusan, $picId, $bookedDate, $timeStart, $timeFinish, $id);
                 $stmt->execute();
                 $stmt->close();
                 $_SESSION['success'] = 'Data berhasil di-update.';
@@ -394,10 +402,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         } else {
             // No time calculation needed, just update other fields
             $stmt = $conn->prepare("UPDATE career_boostday_consultations
-                SET name=?, whatsapp=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, jurusan=NULLIF(?, ''), booked_date=NULLIF(?, ''), admin_updated_at=NOW()
+                SET name=?, whatsapp=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, jurusan=NULLIF(?, ''), pic_id=NULLIF(?, 0), booked_date=NULLIF(?, ''), admin_updated_at=NOW()
                 WHERE id=?");
             if ($stmt) {
-                $stmt->bind_param('ssssssssi', $name, $whatsapp, $status, $jenis, $jadwal, $pend, $jurusan, $bookedDate, $id);
+                $stmt->bind_param('sssssssisi', $name, $whatsapp, $status, $jenis, $jadwal, $pend, $jurusan, $picId, $bookedDate, $id);
                 $stmt->execute();
                 $stmt->close();
                 $_SESSION['success'] = 'Data berhasil di-update.';
@@ -789,6 +797,8 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
                                         data-jadwal="<?php echo h($r['jadwal_konseling']); ?>"
                                         data-pendidikan="<?php echo h($r['pendidikan_terakhir']); ?>"
                                         data-jurusan="<?php echo h($r['jurusan'] ?? ''); ?>"
+                                        data-pic-id="<?php echo h($r['pic_id'] ?? ''); ?>"
+                                        data-pic-name="<?php echo h($r['pic_name'] ?? ''); ?>"
                                         data-booked-date="<?php echo h($r['booked_date']); ?>"
                                     ><i class="bi bi-pencil-square me-1"></i>Edit</button>
 
@@ -886,6 +896,16 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
               <label class="form-label">Tanggal Booked</label>
               <input class="form-control" type="date" name="booked_date" id="edit_booked_date">
               <div class="form-text">Opsional. Digunakan untuk tampilan kalender Booked.</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">PIC <span class="text-muted">(opsional)</span></label>
+              <select class="form-select" name="pic_id" id="edit_pic_id">
+                <option value="0">- Tanpa PIC -</option>
+                <?php foreach ($pics as $p): ?>
+                  <option value="<?php echo h($p['id']); ?>"><?php echo h($p['name']); ?></option>
+                <?php endforeach; ?>
+              </select>
+              <div class="form-text">Daftar PIC dapat dikelola di menu PIC.</div>
             </div>
             <div class="col-12">
               <label class="form-label">Pendidikan Terakhir</label>
@@ -1064,6 +1084,23 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
         var bd = btn.getAttribute('data-booked-date') || '';
         var bdEl = document.getElementById('edit_booked_date');
         if (bdEl) bdEl.value = bd;
+        var picId = btn.getAttribute('data-pic-id') || '0';
+        var picName = btn.getAttribute('data-pic-name') || '';
+        var picEl = document.getElementById('edit_pic_id');
+        if (picEl) {
+          // Keep current PIC selectable even if no longer active.
+          var picExists = false;
+          for (var j = 0; j < picEl.options.length; j++) {
+            if (picEl.options[j].value === picId) { picExists = true; break; }
+          }
+          if (!picExists && picId && picId !== '0') {
+            var picOpt = document.createElement('option');
+            picOpt.value = picId;
+            picOpt.text = (picName || ('PIC #' + picId)) + ' (inactive)';
+            picEl.appendChild(picOpt);
+          }
+          picEl.value = picId && picId !== '' ? picId : '0';
+        }
       });
     }
 

@@ -100,6 +100,28 @@ if ($hasResponseTable && isset($_GET['delete'])) {
     exit();
 }
 
+if ($hasResponseTable && isset($_GET['remove_duplicate']) && $_GET['remove_duplicate'] === '1') {
+    $deleteDuplicateSql = "DELETE older
+        FROM walk_in_survey_responses AS older
+        INNER JOIN walk_in_survey_responses AS latest
+            ON LOWER(TRIM(older.email)) = LOWER(TRIM(latest.email))
+            AND TRIM(COALESCE(older.email, '')) <> ''
+            AND (
+                older.created_at < latest.created_at
+                OR (older.created_at = latest.created_at AND older.id < latest.id)
+            )";
+    if ($conn->query($deleteDuplicateSql)) {
+        $deletedRows = (int) $conn->affected_rows;
+        $_SESSION['success'] = $deletedRows > 0
+            ? "Berhasil menghapus {$deletedRows} duplicate response (menyisakan data terbaru per email)."
+            : 'Tidak ada duplicate response untuk dihapus.';
+    } else {
+        $_SESSION['error'] = 'Gagal menghapus duplicate response: ' . $conn->error;
+    }
+    header('Location: walkin_survey_responses.php');
+    exit();
+}
+
 $companies = [];
 $filtersApplied = false;
 $search = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
@@ -280,6 +302,11 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
                         <a href="walkin_survey_responses.php" class="btn btn-secondary">Reset</a>
                         <a href="<?php echo htmlspecialchars($duplicateToggleUrl); ?>" class="btn <?php echo $showDuplicateEmails ? 'btn-outline-dark' : 'btn-outline-info'; ?>">
                             <i class="bi bi-copy me-1"></i><?php echo $showDuplicateEmails ? 'Hide Duplicate Email' : 'See Duplicate Email'; ?>
+                        </a>
+                        <a href="walkin_survey_responses.php?remove_duplicate=1"
+                           class="btn btn-outline-danger"
+                           onclick="return confirm('Hapus semua duplicate response berdasarkan email? Data terbaru per email akan dipertahankan.');">
+                            <i class="bi bi-trash3 me-1"></i>Remove Duplicate Response
                         </a>
                         <button class="btn btn-success" type="button" id="btnDownloadExcel"><i class="bi bi-file-earmark-excel me-1"></i>Download To Excel</button>
                     </div>

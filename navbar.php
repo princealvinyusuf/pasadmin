@@ -57,7 +57,8 @@
     $canDatabaseContact = current_user_can('settings_database_contact_manage');
     $canIframe = current_user_can('settings_iframe_manage');
     $canRegistrasiKehadiran = current_user_can('registrasi_kehadiran_manage');
-    $canSplitScreen = true; // Split Screen was previously always visible
+    $canSplitScreen = current_user_can('split_screen_access') || $canManageSettings;
+    $canOUI = current_user_can('oui_access') || $canManageSettings;
     $canAuditTrails = current_user_can('view_audit_trails');
     $canAccessControl = current_user_can('manage_access_control');
     $canBroadcast = current_user_can('use_broadcast');
@@ -84,6 +85,7 @@
     $canMiniJobi = current_user_can('settings_minijobi_manage') || $canManageSettings;
     $canCareerBoostDaySlot = $canCareerBoostDay; // same permission
     $canWalkinSurvey = current_user_can('walkin_survey_manage') || $canManageSettings;
+    $canPaskerDrive = current_user_can('pasker_drive_manage') || $canManageSettings;
 
     $hasLayanan = (
         $canManageSettings ||
@@ -261,16 +263,16 @@
                         WLLP Award
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="nakerAwardDropdown">
-                        <?php if ($canNakerAssessment || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_initial_assessment.php">Initial Assessment</a></li><?php endif; ?>
-                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_bobot_settings.php">Bobot Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_interval_settings.php">Interval Settings</a></li><?php endif; ?>
-                        <?php if ($canNakerStage1 || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_stage1_shortlisted_c.php">Stage 1 Shortlisted C</a></li><?php endif; ?>
-                        <?php if ($canNakerSecond): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_second_assessment.php">Second Assessment</a></li><?php endif; ?>
-                        <?php if ($canNakerStage2): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_stage2_shortlisted_c.php">Stage 2 Shortlisted C</a></li><?php endif; ?>
-                        <?php if ($canNakerThird): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_third_assessment.php">Third Assessment</a></li><?php endif; ?>
-                        <?php if ($canNakerVerify): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_verification.php">Verification</a></li><?php endif; ?>
-                        <?php if ($canNakerFinal): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_final_nominees.php">Final Nominees</a></li><?php endif; ?>
-                        <?php if (current_user_can('naker_award_backup_nominees')): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award_backup_nominees.php">Backup Data Nominees</a></li><?php endif; ?>
+                        <?php if ($canNakerAssessment || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_initial_assessment.php">Initial Assessment</a></li><?php endif; ?>
+                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_bobot_settings.php">Bobot Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_interval_settings.php">Interval Settings</a></li><?php endif; ?>
+                        <?php if ($canNakerStage1 || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_stage1_shortlisted_c.php">Stage 1 Shortlisted C</a></li><?php endif; ?>
+                        <?php if ($canNakerSecond): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_second_assessment.php">Second Assessment</a></li><?php endif; ?>
+                        <?php if ($canNakerStage2): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_stage2_shortlisted_c.php">Stage 2 Shortlisted C</a></li><?php endif; ?>
+                        <?php if ($canNakerThird): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_third_assessment.php">Third Assessment</a></li><?php endif; ?>
+                        <?php if ($canNakerVerify): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_verification.php">Verification</a></li><?php endif; ?>
+                        <?php if ($canNakerFinal): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_final_nominees.php">Final Nominees</a></li><?php endif; ?>
+                        <?php if (current_user_can('naker_award_backup_nominees')): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_backup_nominees.php">Backup Data Nominees</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -286,9 +288,16 @@
                     </ul>
                 </li>
                 <?php endif; ?>
+                <?php if ($canPaskerDrive): ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>pasker_drive.php"><i class="bi bi-cloud me-1"></i>Pasker Drive</a>
+                </li>
+                <?php endif; ?>
+                <?php if ($canOUI): ?>
                 <li class="nav-item">
                     <a class="nav-link" href="<?php echo $rootUrl; ?>oui.php">OUI</a>
                 </li>
+                <?php endif; ?>
                 <!-- <li class="nav-item">
                     <a class="nav-link" href="<?php echo $rootUrl; ?>classification_magang.php">
                         Magang
