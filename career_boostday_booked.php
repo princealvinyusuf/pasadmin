@@ -105,6 +105,57 @@ function fmt_time(?string $t): string {
     // 'HH:MM:SS' -> 'HH:MM'
     return substr($t, 0, 5);
 }
+
+function build_export_booking_row(array $b): array {
+    $t1 = fmt_time($b['booked_time_start'] ?? null);
+    $t2 = fmt_time($b['booked_time_finish'] ?? null);
+    $time = ($t1 && $t2) ? ($t1 . ' - ' . $t2) : (($b['jadwal_konseling'] ?? '') ?: '-');
+    $confirmedAt = (string)($b['attendance_confirmed_at'] ?? '');
+    $statusKehadiran = $confirmedAt !== '' ? 'Sudah Konfirmasi Hadir' : 'Belum Konfirmasi';
+
+    return [
+        'id' => (int)($b['id'] ?? 0),
+        'tanggal_booked' => (string)($b['booked_date'] ?? ''),
+        'waktu_booked' => $time,
+        'nama' => (string)($b['name'] ?? ''),
+        'pic' => (string)($b['pic_name'] ?? '-'),
+        'jenis_konseling' => (string)($b['jenis_konseling'] ?? ''),
+        'jadwal_konseling' => (string)($b['jadwal_konseling'] ?? ''),
+        'status_kehadiran' => $statusKehadiran,
+        'attendance_confirmed_at' => $confirmedAt,
+    ];
+}
+
+// Fetch all accepted bookings (whole data export)
+$allBookings = [];
+$stmtAll = $conn->prepare("
+    SELECT c.id, c.booked_date, c.booked_time_start, c.booked_time_finish, c.name, c.jenis_konseling, c.jadwal_konseling, c.attendance_confirmed_at,
+           c.pic_id, p.name AS pic_name
+    FROM career_boostday_consultations c
+    LEFT JOIN career_boostday_pics p ON p.id=c.pic_id
+    WHERE c.admin_status='accepted'
+      AND c.booked_date IS NOT NULL
+    ORDER BY c.booked_date ASC, c.booked_time_start ASC, c.created_at ASC
+");
+if ($stmtAll) {
+    $stmtAll->execute();
+    $resAll = $stmtAll->get_result();
+    if ($resAll) {
+        while ($r = $resAll->fetch_assoc()) {
+            $allBookings[] = $r;
+        }
+    }
+    $stmtAll->close();
+}
+
+$exportAllRows = [];
+foreach ($allBookings as $b) {
+    $exportAllRows[] = build_export_booking_row($b);
+}
+$exportAllRowsJson = json_encode($exportAllRows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+if ($exportAllRowsJson === false) {
+    $exportAllRowsJson = '[]';
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -143,6 +194,9 @@ function fmt_time(?string $t): string {
             <div class="text-muted small">Database: <code><?php echo h($activeDb); ?></code> • Hanya data <b>accepted</b> yang punya Tanggal Booked.</div>
         </div>
         <div class="d-flex gap-2">
+            <button type="button" class="btn btn-success" id="btnExportExcel">
+                <i class="bi bi-file-earmark-excel me-1"></i>Export to Excel
+            </button>
             <a class="btn btn-outline-secondary" href="career_boostday.php"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
         </div>
     </div>
@@ -250,7 +304,54 @@ function fmt_time(?string $t): string {
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  (function () {
+    var btn = document.getElementById('btnExportExcel');
+    var allRows = <?php echo $exportAllRowsJson; ?>;
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      if (typeof XLSX === 'undefined') {
+        alert('Library Excel belum termuat.');
+        return;
+      }
+      if (!Array.isArray(allRows) || allRows.length === 0) {
+        alert('Belum ada data booked untuk diexport.');
+        return;
+      }
+      var headers = [
+        'ID',
+        'Tanggal Booked',
+        'Waktu Booked',
+        'Nama',
+        'PIC',
+        'Jenis Konseling',
+        'Jadwal Konseling',
+        'Status Kehadiran',
+        'Attendance Confirmed At'
+      ];
+      var aoa = [headers];
+      allRows.forEach(function (row) {
+        aoa.push([
+          String(row.id || ''),
+          String(row.tanggal_booked || ''),
+          String(row.waktu_booked || ''),
+          String(row.nama || ''),
+          String(row.pic || ''),
+          String(row.jenis_konseling || ''),
+          String(row.jadwal_konseling || ''),
+          String(row.status_kehadiran || ''),
+          String(row.attendance_confirmed_at || '')
+        ]);
+      });
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Career Boost Day');
+      XLSX.writeFile(wb, 'career_boostday_booked_all.xlsx');
+    });
+  })();
+</script>
 </body>
 </html>
 
