@@ -572,18 +572,23 @@ $today = date('Y-m-d');
 
     <div class="card shadow-sm mt-4">
         <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex justify-content-between align-items-center mb-2 gap-2 flex-wrap">
                 <h5 class="mb-0">Kelola Informasi Lainnya (Jadwal Walk In)</h5>
-                <div class="text-muted small">Bisa diisi link, gambar, atau PDF.</div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="text-muted small">Bisa diisi link, gambar, atau PDF.</div>
+                    <button type="button" class="btn btn-success btn-sm" id="btnExportExcel">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Export to Excel
+                    </button>
+                </div>
             </div>
             <div class="table-responsive">
-                <table class="table table-bordered align-middle mb-0">
+                <table class="table table-bordered align-middle mb-0" id="bookedInfoTable">
                     <thead class="table-light">
                         <tr>
                             <th style="width: 150px;">Tanggal</th>
                             <th>Instansi</th>
                             <th style="width: 220px;">Informasi Lainnya</th>
-                            <th style="width: 210px;">Aksi</th>
+                            <th style="width: 210px;" data-export-ignore="1">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -627,7 +632,7 @@ $today = date('Y-m-d');
                                         </div>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td data-export-ignore="1">
                                     <div class="d-flex flex-wrap gap-1">
                                         <button
                                             class="btn btn-outline-primary btn-sm"
@@ -700,9 +705,68 @@ $today = date('Y-m-d');
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   (function () {
+    var exportBtn = document.getElementById('btnExportExcel');
+    var exportTable = document.getElementById('bookedInfoTable');
+    if (exportBtn && exportTable) {
+      exportBtn.addEventListener('click', function () {
+        if (typeof XLSX === 'undefined') {
+          alert('Library Excel belum termuat.');
+          return;
+        }
+        var aoa = [];
+        var headerRow = [];
+        var ths = exportTable.querySelectorAll('thead th');
+        ths.forEach(function (th, idx) {
+          if (th.getAttribute('data-export-ignore') === '1') return;
+          headerRow.push({
+            index: idx,
+            label: String(th.textContent || '').trim()
+          });
+        });
+        if (headerRow.length === 0) {
+          alert('Header tabel tidak ditemukan untuk export.');
+          return;
+        }
+        aoa.push(headerRow.map(function (h) { return h.label; }));
+
+        var bodyRows = exportTable.querySelectorAll('tbody tr');
+        bodyRows.forEach(function (tr) {
+          var tds = tr.querySelectorAll('td');
+          var row = [];
+          headerRow.forEach(function (h) {
+            var td = tds[h.index];
+            if (!td) {
+              row.push('');
+              return;
+            }
+            if (h.label.toLowerCase() === 'informasi lainnya') {
+              var links = Array.from(td.querySelectorAll('a[href]'))
+                .map(function (a) { return a.getAttribute('href') || ''; })
+                .filter(Boolean);
+              if (links.length > 0) {
+                row.push(links.join('\n'));
+              } else {
+                row.push(String(td.textContent || '').trim());
+              }
+              return;
+            }
+            row.push(String(td.textContent || '').trim());
+          });
+          aoa.push(row);
+        });
+
+        var ws = XLSX.utils.aoa_to_sheet(aoa);
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Booked');
+        var filename = 'kemitraan_booked_<?php echo h($year); ?>_<?php echo str_pad((string) $month, 2, '0', STR_PAD_LEFT); ?>.xlsx';
+        XLSX.writeFile(wb, filename);
+      });
+    }
+
     var infoModal = document.getElementById('infoModal');
     if (!infoModal) return;
     infoModal.addEventListener('show.bs.modal', function (event) {
