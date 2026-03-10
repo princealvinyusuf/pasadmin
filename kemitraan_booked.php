@@ -41,6 +41,14 @@ function column_exists(mysqli $conn, string $table, string $column): bool
     return $res && $res->num_rows > 0;
 }
 
+function table_exists(mysqli $conn, string $table): bool
+{
+    $t = $conn->real_escape_string($table);
+    $sql = "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='$t' LIMIT 1";
+    $res = $conn->query($sql);
+    return $res && $res->num_rows > 0;
+}
+
 function parse_info_items($raw): array
 {
     $value = trim((string) ($raw ?? ''));
@@ -341,6 +349,20 @@ $time_select = $has_range
     ? ($has_time_range ? 'bd.booked_time_start, bd.booked_time_finish' : 'NULL AS booked_time_start, NULL AS booked_time_finish')
     : ($has_time_single ? 'bd.booked_time AS booked_time_start, NULL AS booked_time_finish' : 'NULL AS booked_time_start, NULL AS booked_time_finish');
 
+$has_detail_lowongan = table_exists($conn, 'kemitraan_detail_lowongan');
+$has_kdl_jumlah = $has_detail_lowongan && column_exists($conn, 'kemitraan_detail_lowongan', 'jumlah_kebutuhan');
+$has_kdl_jabatan = $has_detail_lowongan && column_exists($conn, 'kemitraan_detail_lowongan', 'jabatan_yang_dibuka');
+$has_kdl_lokasi = $has_detail_lowongan && column_exists($conn, 'kemitraan_detail_lowongan', 'lokasi_penempatan');
+$kebutuhan_total_select = $has_kdl_jumlah
+    ? "(SELECT COALESCE(SUM(CASE WHEN TRIM(kdl.jumlah_kebutuhan) REGEXP '^[0-9]+$' THEN CAST(TRIM(kdl.jumlah_kebutuhan) AS UNSIGNED) ELSE 0 END), 0) FROM kemitraan_detail_lowongan kdl WHERE kdl.kemitraan_id = k.id) AS total_jumlah_kebutuhan"
+    : "NULL AS total_jumlah_kebutuhan";
+$jabatan_concat_select = $has_kdl_jabatan
+    ? "(SELECT GROUP_CONCAT(DISTINCT NULLIF(TRIM(kdl2.jabatan_yang_dibuka), '') ORDER BY kdl2.jabatan_yang_dibuka SEPARATOR ', ') FROM kemitraan_detail_lowongan kdl2 WHERE kdl2.kemitraan_id = k.id) AS jabatan_dibuka_concat"
+    : "NULL AS jabatan_dibuka_concat";
+$lokasi_concat_select = $has_kdl_lokasi
+    ? "(SELECT GROUP_CONCAT(DISTINCT NULLIF(TRIM(kdl3.lokasi_penempatan), '') ORDER BY kdl3.lokasi_penempatan SEPARATOR ', ') FROM kemitraan_detail_lowongan kdl3 WHERE kdl3.kemitraan_id = k.id) AS lokasi_penempatan_concat"
+    : "NULL AS lokasi_penempatan_concat";
+
 $sql = "
     SELECT
         bd.id AS booked_id,
@@ -362,7 +384,10 @@ $sql = "
         (SELECT GROUP_CONCAT(DISTINCT pf2.facility_name ORDER BY pf2.facility_name SEPARATOR ', ')
            FROM kemitraan_pasker_facility kpf2
            LEFT JOIN pasker_facility pf2 ON pf2.id = kpf2.pasker_facility_id
-          WHERE kpf2.kemitraan_id = k.id) AS facilities_concat
+          WHERE kpf2.kemitraan_id = k.id) AS facilities_concat,
+        $kebutuhan_total_select,
+        $jabatan_concat_select,
+        $lokasi_concat_select
     FROM booked_date bd
     JOIN kemitraan k ON bd.kemitraan_id = k.id
     LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id
@@ -408,6 +433,72 @@ usort($bookedRows, function ($a, $b) {
     }
     return $aDate <=> $bDate;
 });
+
+$exportScheduleRows = [];
+foreach ($bookedRows as $r) {
+    $start = (string) ($r['booked_date_start'] ?? '');
+    $finish = (string) ($r['booked_date_finish'] ?? '');
+
+    $dateLabel = $start;
+    if ($start !== '' && $finish !== '' && $start !== $finish) {
+        $dateLabel = date('d M Y', strtotime($start)) . ' s/d ' . date('d M Y', strtotime($finish));
+    } elseif ($start !== '') {
+        $dateLabel = date('d M Y', strtotime($start));
+    }
+
+    $tStart = (string) ($r['booked_time_start'] ?? '');
+    $tFinish = (string) ($r['booked_time_finish'] ?? '');
+    if ($tStart === '' && isset($r['scheduletimestart'])) $tStart = (string) $r['scheduletimestart'];
+    if ($tFinish === '' && isset($r['scheduletimefinish'])) $tFinish = (string) $r['scheduletimefinish'];
+    $tStartFmt = $tStart !== '' ? substr($tStart, 0, 5) : '';
+    $tFinishFmt = $tFinish !== '' ? substr($tFinish, 0, 5) : '';
+    $timeLabel = '';
+    if ($tStartFmt !== '' && $tFinishFmt !== '') $timeLabel = $tStartFmt . ' - ' . $tFinishFmt;
+    elseif ($tStartFmt !== '') $timeLabel = $tStartFmt;
+
+    $durationDays = '';
+    if ($start !== '') {
+        $startTs = strtotime($start);
+        $finishTs = strtotime($finish !== '' ? $finish : $start);
+        if ($startTs !== false && $finishTs !== false && $finishTs >= $startTs) {
+            $durationDays = (string) intval((($finishTs - $startTs) / 86400) + 1);
+        }
+    }
+
+    $roomLabel = (($r['rooms_concat'] ?? '') !== '' ? $r['rooms_concat'] : (($r['room_name'] ?? '') !== '' ? $r['room_name'] : ($r['other_pasker_room'] ?? '-')));
+    $facilityLabel = (($r['facilities_concat'] ?? '') !== '' ? $r['facilities_concat'] : (($r['facility_name'] ?? '') !== '' ? $r['facility_name'] : ($r['other_pasker_facility'] ?? '-')));
+
+    $infoRaw = trim((string) ($r['informasi_lainnya'] ?? ''));
+    $infoItems = parse_info_items($infoRaw);
+    $infoLinks = [];
+    foreach ($infoItems as $infoOne) {
+        $href = normalize_info_href((string) $infoOne);
+        if ($href !== '') {
+            $infoLinks[] = $href;
+        }
+    }
+
+    $exportScheduleRows[] = [
+        'booked_id' => intval($r['booked_id'] ?? 0),
+        'periode_tanggal' => $dateLabel,
+        'tanggal_mulai' => $start,
+        'tanggal_selesai' => $finish,
+        'durasi_hari' => $durationDays,
+        'waktu' => $timeLabel,
+        'instansi' => (string) ($r['institution_name'] ?? '-'),
+        'jenis_kemitraan' => (string) (($r['partnership_type_name'] ?? '') !== '' ? $r['partnership_type_name'] : '-'),
+        'ruangan' => (string) $roomLabel,
+        'fasilitas' => (string) $facilityLabel,
+        'total_jumlah_kebutuhan' => (string) ($r['total_jumlah_kebutuhan'] ?? ''),
+        'jabatan_dibuka' => (string) (($r['jabatan_dibuka_concat'] ?? '') ?: ''),
+        'lokasi_penempatan' => (string) (($r['lokasi_penempatan_concat'] ?? '') ?: ''),
+        'informasi_lainnya' => empty($infoLinks) ? '-' : implode("\n", $infoLinks),
+    ];
+}
+$exportScheduleJson = json_encode($exportScheduleRows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+if ($exportScheduleJson === false) {
+    $exportScheduleJson = '[]';
+}
 
 $first_day_of_week = intval(date('w', strtotime($first_day))); // 0=Sunday
 $days_in_month = intval(date('t', strtotime($first_day)));
@@ -710,58 +801,56 @@ $today = date('Y-m-d');
 <script>
   (function () {
     var exportBtn = document.getElementById('btnExportExcel');
-    var exportTable = document.getElementById('bookedInfoTable');
-    if (exportBtn && exportTable) {
+    var exportRows = <?php echo $exportScheduleJson; ?>;
+    if (exportBtn) {
       exportBtn.addEventListener('click', function () {
         if (typeof XLSX === 'undefined') {
           alert('Library Excel belum termuat.');
           return;
         }
-        var aoa = [];
-        var headerRow = [];
-        var ths = exportTable.querySelectorAll('thead th');
-        ths.forEach(function (th, idx) {
-          if (th.getAttribute('data-export-ignore') === '1') return;
-          headerRow.push({
-            index: idx,
-            label: String(th.textContent || '').trim()
-          });
-        });
-        if (headerRow.length === 0) {
-          alert('Header tabel tidak ditemukan untuk export.');
+        if (!Array.isArray(exportRows) || exportRows.length === 0) {
+          alert('Belum ada data jadwal untuk diexport.');
           return;
         }
-        aoa.push(headerRow.map(function (h) { return h.label; }));
-
-        var bodyRows = exportTable.querySelectorAll('tbody tr');
-        bodyRows.forEach(function (tr) {
-          var tds = tr.querySelectorAll('td');
-          var row = [];
-          headerRow.forEach(function (h) {
-            var td = tds[h.index];
-            if (!td) {
-              row.push('');
-              return;
-            }
-            if (h.label.toLowerCase() === 'informasi lainnya') {
-              var links = Array.from(td.querySelectorAll('a[href]'))
-                .map(function (a) { return a.getAttribute('href') || ''; })
-                .filter(Boolean);
-              if (links.length > 0) {
-                row.push(links.join('\n'));
-              } else {
-                row.push(String(td.textContent || '').trim());
-              }
-              return;
-            }
-            row.push(String(td.textContent || '').trim());
-          });
-          aoa.push(row);
+        var headers = [
+          'Booked ID',
+          'Periode Tanggal',
+          'Tanggal Mulai',
+          'Tanggal Selesai',
+          'Durasi (Hari)',
+          'Waktu',
+          'Instansi',
+          'Jenis Kemitraan',
+          'Ruangan',
+          'Fasilitas',
+          'Total Jumlah Kebutuhan',
+          'Jabatan Dibuka',
+          'Lokasi Penempatan',
+          'Informasi Lainnya'
+        ];
+        var aoa = [headers];
+        exportRows.forEach(function (item) {
+          aoa.push([
+            String(item.booked_id || ''),
+            String(item.periode_tanggal || ''),
+            String(item.tanggal_mulai || ''),
+            String(item.tanggal_selesai || ''),
+            String(item.durasi_hari || ''),
+            String(item.waktu || ''),
+            String(item.instansi || ''),
+            String(item.jenis_kemitraan || ''),
+            String(item.ruangan || ''),
+            String(item.fasilitas || ''),
+            String(item.total_jumlah_kebutuhan || ''),
+            String(item.jabatan_dibuka || ''),
+            String(item.lokasi_penempatan || ''),
+            String(item.informasi_lainnya || '')
+          ]);
         });
 
         var ws = XLSX.utils.aoa_to_sheet(aoa);
         var wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Booked');
+        XLSX.utils.book_append_sheet(wb, ws, 'Jadwal');
         var filename = 'kemitraan_booked_<?php echo h($year); ?>_<?php echo str_pad((string) $month, 2, '0', STR_PAD_LEFT); ?>.xlsx';
         XLSX.writeFile(wb, filename);
       });
