@@ -258,6 +258,7 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
     <div class="d-flex align-items-center justify-content-between mb-3">
         <h3 class="mb-0">Walk-in Survey Responses</h3>
         <div class="d-flex gap-2">
+            <a href="walkin_survey_statistics.php" class="btn btn-primary btn-sm"><i class="bi bi-bar-chart-line me-1"></i>Statistik</a>
             <a href="walkin_survey_initiator_settings.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-people me-1"></i>Manage Initiators</a>
             <a href="walkin_survey_company_settings.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-building me-1"></i>Manage Companies</a>
         </div>
