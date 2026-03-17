@@ -214,6 +214,10 @@ function format_kerjasama_value(?string $text): string {
     return implode(', ', parse_api_labels($text));
 }
 
+function h(string $value): string {
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
+
 ensure_karirhub_mitra_monitoring_tables($conn);
 seed_karirhub_mitra_monitoring($conn);
 
@@ -223,6 +227,44 @@ while ($r = $qMain->fetch_assoc()) {
     $r['progress_indicator'] = normalize_indicator($r['progress_indicator'] ?? '', $r);
     $r['card_color'] = normalize_hex_color($r['card_color'] ?? '');
     $rows[] = $r;
+}
+
+$portalOptions = [];
+foreach ($rows as $r) {
+    $portalName = trim((string) ($r['portal_name'] ?? ''));
+    if ($portalName !== '' && !in_array($portalName, $portalOptions, true)) {
+        $portalOptions[] = $portalName;
+    }
+}
+sort($portalOptions, SORT_NATURAL | SORT_FLAG_CASE);
+
+$statusOptions = [
+    'all' => 'Semua Status',
+    'red' => 'Belum Mulai',
+    'yellow' => 'On Progress',
+    'green' => 'Selesai',
+];
+
+$selectedPortal = trim((string) ($_GET['portal_name'] ?? 'all'));
+if ($selectedPortal !== 'all' && !in_array($selectedPortal, $portalOptions, true)) {
+    $selectedPortal = 'all';
+}
+
+$selectedStatus = strtolower(trim((string) ($_GET['integration_status'] ?? 'all')));
+if (!array_key_exists($selectedStatus, $statusOptions)) {
+    $selectedStatus = 'all';
+}
+
+if ($selectedPortal !== 'all' || $selectedStatus !== 'all') {
+    $rows = array_values(array_filter($rows, static function (array $row) use ($selectedPortal, $selectedStatus): bool {
+        if ($selectedPortal !== 'all' && ($row['portal_name'] ?? '') !== $selectedPortal) {
+            return false;
+        }
+        if ($selectedStatus !== 'all' && ($row['progress_indicator'] ?? '') !== $selectedStatus) {
+            return false;
+        }
+        return true;
+    }));
 }
 
 $itemsByMonitoring = [];
@@ -316,8 +358,46 @@ if ($userIsLoggedIn) {
         <span class="d-inline-flex align-items-center gap-1"><span class="indicator-lamp lamp-green"></span>Selesai</span>
     </div>
 
+    <form method="GET" class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-3">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-5">
+                    <label for="portal_name" class="form-label mb-1">Nama Job Portal</label>
+                    <select id="portal_name" name="portal_name" class="form-select form-select-sm">
+                        <option value="all"<?php echo $selectedPortal === 'all' ? ' selected' : ''; ?>>Semua Job Portal</option>
+                        <?php foreach ($portalOptions as $portal): ?>
+                            <option value="<?php echo h($portal); ?>"<?php echo $selectedPortal === $portal ? ' selected' : ''; ?>>
+                                <?php echo h($portal); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-12 col-md-5">
+                    <label for="integration_status" class="form-label mb-1">Status Integrasi</label>
+                    <select id="integration_status" name="integration_status" class="form-select form-select-sm">
+                        <?php foreach ($statusOptions as $statusKey => $statusLabel): ?>
+                            <option value="<?php echo h($statusKey); ?>"<?php echo $selectedStatus === $statusKey ? ' selected' : ''; ?>>
+                                <?php echo h($statusLabel); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2 d-grid">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-funnel me-1"></i>Filter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+
     <?php if (empty($rows)): ?>
-        <div class="alert alert-warning">Belum ada data monitoring. Tambahkan data melalui halaman settings.</div>
+        <div class="alert alert-warning">
+            Tidak ada data yang sesuai filter.
+            <?php if ($selectedPortal !== 'all' || $selectedStatus !== 'all'): ?>
+                <a class="alert-link" href="dashboard_monitoring_integrasi_karirhub_mitra.php">Reset filter</a>
+            <?php endif; ?>
+        </div>
     <?php endif; ?>
 
     <?php foreach ($rows as $row): ?>
@@ -330,32 +410,32 @@ if ($userIsLoggedIn) {
             $lampClass = $indicator === 'green' ? 'lamp-green' : ($indicator === 'red' ? 'lamp-red' : 'lamp-yellow');
             $apiLabels = parse_api_labels($row['kerjasama_apis'] ?? '');
         ?>
-        <div class="card monitor-card mb-4" style="--card-accent: <?php echo htmlspecialchars($row['card_color']); ?>;">
+        <div class="card monitor-card mb-4" style="--card-accent: <?php echo h($row['card_color']); ?>;">
             <div class="monitor-card-header">
                 <div class="d-flex align-items-center justify-content-between gap-3">
                     <div class="d-flex align-items-center gap-3">
                         <div class="logo-box">
                             <?php if (!empty($row['logo_url'])): ?>
-                                <img src="<?php echo htmlspecialchars($row['logo_url']); ?>" alt="logo <?php echo htmlspecialchars($row['portal_name']); ?>">
+                                <img src="<?php echo h($row['logo_url']); ?>" alt="logo <?php echo h($row['portal_name']); ?>">
                             <?php else: ?>
-                                <?php echo htmlspecialchars(substr($row['portal_name'], 0, 1)); ?>
+                                <?php echo h(substr($row['portal_name'], 0, 1)); ?>
                             <?php endif; ?>
                         </div>
                         <div>
-                            <h4 class="mb-0"><?php echo htmlspecialchars($row['company_name']); ?></h4>
-                            <div class="opacity-75 small"><?php echo htmlspecialchars($row['portal_name']); ?></div>
+                            <h4 class="mb-0"><?php echo h($row['company_name']); ?></h4>
+                            <div class="opacity-75 small"><?php echo h($row['portal_name']); ?></div>
                         </div>
                     </div>
                     <div class="indicator-panel">
                         <div class="indicator-wrap">
                             <span class="indicator-lamp <?php echo $lampClass; ?>"></span>
-                            <span class="indicator-badge"><?php echo htmlspecialchars(indicator_label($indicator)); ?></span>
+                            <span class="indicator-badge"><?php echo h(indicator_label($indicator)); ?></span>
                         </div>
                         <div class="kerjasama-label">Kerjasama:</div>
                         <div class="api-chip-wrap">
                             <?php foreach ($apiLabels as $apiIdx => $api): ?>
                                 <?php $apiClass = 'api-chip-' . ((($apiIdx % 3) + 1)); ?>
-                                <span class="api-chip <?php echo $apiClass; ?>"><?php echo htmlspecialchars($api); ?></span>
+                                <span class="api-chip <?php echo $apiClass; ?>"><?php echo h($api); ?></span>
                             <?php endforeach; ?>
                         </div>
                     </div>
@@ -371,7 +451,7 @@ if ($userIsLoggedIn) {
                                 <div class="text-muted">-</div>
                             <?php else: ?>
                                 <?php foreach ($cooperationTypes as $t): ?>
-                                    <div><?php echo htmlspecialchars($t); ?></div>
+                                    <div><?php echo h($t); ?></div>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </div>
@@ -379,7 +459,7 @@ if ($userIsLoggedIn) {
                     <div class="col-md-6">
                         <div class="progress-card p-3 h-100">
                             <h5 class="mb-2">Progress</h5>
-                            <div><?php echo nl2br(htmlspecialchars($row['progress_summary'] ?? '-')); ?></div>
+                            <div><?php echo nl2br(h($row['progress_summary'] ?? '-')); ?></div>
                         </div>
                     </div>
                 </div>
@@ -396,16 +476,16 @@ if ($userIsLoggedIn) {
                         </thead>
                         <tbody>
                             <?php if (empty($details)): ?>
-                                <tr><td><?php echo htmlspecialchars($row['portal_name']); ?></td><td>Integrasi Lowongan</td><td>-</td><td>-</td></tr>
+                                <tr><td><?php echo h($row['portal_name']); ?></td><td>Integrasi Lowongan</td><td>-</td><td>-</td></tr>
                             <?php else: ?>
                                 <?php foreach ($details as $idx => $d): ?>
                                     <tr>
                                         <?php if ($idx === 0): ?>
-                                            <td rowspan="<?php echo count($details); ?>"><?php echo htmlspecialchars($row['portal_name']); ?></td>
+                                            <td rowspan="<?php echo count($details); ?>"><?php echo h($row['portal_name']); ?></td>
                                         <?php endif; ?>
-                                        <td><?php echo htmlspecialchars($d['integration_scope']); ?></td>
-                                        <td><?php echo htmlspecialchars($d['status_progress']); ?></td>
-                                        <td><?php echo htmlspecialchars($d['latest_progress_detail']); ?></td>
+                                        <td><?php echo h($d['integration_scope']); ?></td>
+                                        <td><?php echo h($d['status_progress']); ?></td>
+                                        <td><?php echo h($d['latest_progress_detail']); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -442,11 +522,11 @@ if ($userIsLoggedIn) {
                                     $lampClass = $indicator === 'green' ? 'lamp-green' : ($indicator === 'red' ? 'lamp-red' : 'lamp-yellow');
                                 ?>
                                 <tr>
-                                    <td><strong><?php echo strtoupper(htmlspecialchars($row['portal_name'])); ?></strong></td>
+                                    <td><strong><?php echo strtoupper(h($row['portal_name'])); ?></strong></td>
                                     <td class="text-center">
                                         <span class="d-inline-flex align-items-center gap-1">
                                             <span class="indicator-lamp <?php echo $lampClass; ?>"></span>
-                                            <small><?php echo htmlspecialchars(indicator_label($indicator)); ?></small>
+                                            <small><?php echo h(indicator_label($indicator)); ?></small>
                                         </span>
                                     </td>
                                     <td class="tick"><?php echo status_mark(intval($row['perizinan_done'])); ?></td>
@@ -454,10 +534,10 @@ if ($userIsLoggedIn) {
                                     <td class="tick"><?php echo status_mark(intval($row['pks_done'])); ?></td>
                                     <td class="tick"><?php echo status_mark(intval($row['nda_done'])); ?></td>
                                     <td class="tick"><?php echo status_mark(intval($row['integrasi_done'])); ?></td>
-                                    <td><?php echo htmlspecialchars(format_kerjasama_value($row['kerjasama_apis'] ?? '')); ?></td>
+                                    <td><?php echo h(format_kerjasama_value($row['kerjasama_apis'] ?? '')); ?></td>
                                     <td>
                                         <?php foreach (split_lines($row['notes'] ?? '') as $note): ?>
-                                            <div>- <?php echo htmlspecialchars($note); ?></div>
+                                            <div>- <?php echo h($note); ?></div>
                                         <?php endforeach; ?>
                                     </td>
                                 </tr>
