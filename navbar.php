@@ -64,6 +64,7 @@
     $canAuditTrails = current_user_can('view_audit_trails');
     $canAccessControl = current_user_can('manage_access_control');
     $canBroadcast = current_user_can('use_broadcast');
+    $canEmailNotification = current_user_can('use_email_notification');
     $canExtensions = current_user_can('view_extensions');
     $canApiKeys = current_user_can('manage_api_keys');
     $canAsmenDashboard = current_user_can('asmen_view_dashboard');
@@ -76,7 +77,7 @@
     $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || $canDashBlk || $canDashIntegrasiKarirhubMitra || current_user_can('manage_settings'));
     $hasBlk = ($canDashBlk || $canManageSettings);
     
-    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canAccessControl || $canBroadcast || $canIframe || $canAuditTrails);
+    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canAuditTrails);
     $hasApiKeys = ($canManageSettings || $canApiKeys);
     $canCareerBoostDay = current_user_can('career_boost_day_manage') || $canManageSettings;
     $canCareerBoostDayPic = current_user_can('career_boost_day_pic_manage') || $canManageSettings;
@@ -205,6 +206,7 @@
                         <?php if ($canManageSettings || $canAuditTrails): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>audit_trails.php">Audit Trails</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings || $canBroadcast): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>broadcast.php">Broadcast</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canEmailNotification): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>email_notification.php">Email Notification</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>karirhub_ads_settings.php">KarirHub Ads Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>split_screen_settings.php">Split Screen Settings</a></li><?php endif; ?>

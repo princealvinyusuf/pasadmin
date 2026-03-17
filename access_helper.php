@@ -76,6 +76,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		['walkin_survey_manage','Manage Walk-in Survey','Layanan'],
 		['pasker_drive_manage','Manage Pasker Drive','Layanan'],
 		['use_broadcast','Use Broadcast','Tools'],
+		['use_email_notification','Use Email Notification','Tools'],
 		['view_extensions','View Extensions','Tools'],
 		['view_db_sessions','View Active DB Sessions','Tools'],
 		['kill_db_session','Kill DB Session','Tools'],
