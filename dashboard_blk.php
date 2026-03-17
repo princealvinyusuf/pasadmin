@@ -71,9 +71,6 @@ foreach ($dashboardData['panels'] as $panel) {
         .chart-box { min-height: 300px; }
         .metric-tile { border: 1px solid #e9edf4; border-radius: 10px; padding: .85rem; background: #fff; }
         .progress-thin { height: 8px; border-radius: 999px; }
-        .quality-row { display: flex; justify-content: space-between; align-items: center; font-size: .9rem; margin-bottom: .55rem; }
-        .quality-row:last-child { margin-bottom: 0; }
-        .badge-status { font-size: .72rem; }
     </style>
 </head>
 <body>
@@ -295,67 +292,6 @@ foreach ($dashboardData['panels'] as $panel) {
         </div>
     </div>
 
-    <h5 class="section-title">G. Teknis & Kualitas Data</h5>
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-lg-4">
-            <div class="card panel-card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><?php echo e($panelsById['teknis-skor']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail.php?item=teknis-skor&<?php echo e($baseFilterQuery); ?>">Detail</a>
-                </div>
-                <div class="card-body">
-                    <div class="quality-row"><span>Kelengkapan</span><strong>92%</strong></div>
-                    <div class="progress progress-thin mb-2"><div class="progress-bar bg-primary" style="width: 92%;"></div></div>
-                    <div class="quality-row"><span>Konsistensi</span><strong>95%</strong></div>
-                    <div class="progress progress-thin mb-2"><div class="progress-bar bg-success" style="width: 95%;"></div></div>
-                    <div class="quality-row"><span>Ketepatan Waktu</span><strong>88%</strong></div>
-                    <div class="progress progress-thin"><div class="progress-bar bg-warning" style="width: 88%;"></div></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-lg-8">
-            <div class="card panel-card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><?php echo e($panelsById['teknis-isu']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail.php?item=teknis-isu&<?php echo e($baseFilterQuery); ?>">Detail</a>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle">
-                            <thead>
-                            <tr>
-                                <th>Jenis Isu</th>
-                                <th>Jumlah Terdampak</th>
-                                <th>Tingkat Keparahan</th>
-                                <th>Status</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr>
-                                <td>NIK Duplikat</td>
-                                <td>12 Record</td>
-                                <td><span class="badge rounded-pill text-bg-danger">High</span></td>
-                                <td><span class="badge rounded-pill text-bg-warning badge-status">Perlu Review</span></td>
-                            </tr>
-                            <tr>
-                                <td>Format Tanggal Salah</td>
-                                <td>45 Record</td>
-                                <td><span class="badge rounded-pill text-bg-warning">Medium</span></td>
-                                <td><span class="badge rounded-pill text-bg-warning badge-status">Perlu Review</span></td>
-                            </tr>
-                            <tr>
-                                <td>Data Profil Tidak Lengkap</td>
-                                <td>126 Record</td>
-                                <td><span class="badge rounded-pill text-bg-primary">Low</span></td>
-                                <td><span class="badge rounded-pill text-bg-warning badge-status">Perlu Review</span></td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script>
