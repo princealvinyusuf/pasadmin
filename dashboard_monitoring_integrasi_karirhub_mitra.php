@@ -210,6 +210,10 @@ function parse_api_labels(?string $text): array {
     return !empty($out) ? $out : ['API 1', 'API 2', 'API 3'];
 }
 
+function format_kerjasama_value(?string $text): string {
+    return implode(', ', parse_api_labels($text));
+}
+
 ensure_karirhub_mitra_monitoring_tables($conn);
 seed_karirhub_mitra_monitoring($conn);
 
@@ -427,6 +431,7 @@ if ($userIsLoggedIn) {
                                 <th class="text-center">PKS</th>
                                 <th class="text-center">NDA</th>
                                 <th class="text-center">Integrasi</th>
+                                <th>Kerjasama</th>
                                 <th>Keterangan</th>
                             </tr>
                         </thead>
@@ -449,6 +454,7 @@ if ($userIsLoggedIn) {
                                     <td class="tick"><?php echo status_mark(intval($row['pks_done'])); ?></td>
                                     <td class="tick"><?php echo status_mark(intval($row['nda_done'])); ?></td>
                                     <td class="tick"><?php echo status_mark(intval($row['integrasi_done'])); ?></td>
+                                    <td><?php echo htmlspecialchars(format_kerjasama_value($row['kerjasama_apis'] ?? '')); ?></td>
                                     <td>
                                         <?php foreach (split_lines($row['notes'] ?? '') as $note): ?>
                                             <div>- <?php echo htmlspecialchars($note); ?></div>
