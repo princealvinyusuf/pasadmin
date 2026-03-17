@@ -31,6 +31,7 @@ function ensure_karirhub_mitra_monitoring_tables(mysqli $conn): void {
         portal_code VARCHAR(64) NOT NULL UNIQUE,
         portal_name VARCHAR(120) NOT NULL,
         company_name VARCHAR(180) NOT NULL,
+        card_color VARCHAR(20) NOT NULL DEFAULT '#0f8f92',
         logo_url VARCHAR(500) DEFAULT '',
         cooperation_types TEXT DEFAULT NULL,
         progress_summary TEXT DEFAULT NULL,
@@ -49,6 +50,9 @@ function ensure_karirhub_mitra_monitoring_tables(mysqli $conn): void {
 
     if (!column_exists($conn, 'karirhub_mitra_monitoring', 'progress_indicator')) {
         $conn->query("ALTER TABLE karirhub_mitra_monitoring ADD COLUMN progress_indicator VARCHAR(10) NOT NULL DEFAULT 'yellow' AFTER integrasi_done");
+    }
+    if (!column_exists($conn, 'karirhub_mitra_monitoring', 'card_color')) {
+        $conn->query("ALTER TABLE karirhub_mitra_monitoring ADD COLUMN card_color VARCHAR(20) NOT NULL DEFAULT '#0f8f92' AFTER company_name");
     }
 
     $conn->query("CREATE TABLE IF NOT EXISTS karirhub_mitra_monitoring_items (
@@ -73,26 +77,26 @@ function seed_karirhub_mitra_monitoring(mysqli $conn): void {
     }
 
     $seedRows = [
-        ['hired_today', 'HiredToday', 'PT. Indo HR (Hired Today)', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Hired Today dan Karirhub sudah terintegrasi.', 1, 1, 1, 1, 1, 'green', "Adendum NDA proses TTD Job Portal\nLive in production", 1],
-        ['glints', 'Glints', 'Glints Indonesia (Glints)', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Proses testing di staging area sandbox dan progres migrasi ke production.', 0, 1, 1, 0, 0, 'yellow', "NDA proses biro hukum\nProses migrasi ke production\nPerizinan masih dalam proses", 2],
-        ['toploker', 'Toploker', 'PT Bisnis Digital Ekonomi (Top Loker)', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Integrasi Top Loker-Karirhub telah berjalan.', 1, 1, 1, 0, 1, 'green', "NDA proses TTD Job Portal\nLive in production", 3],
-        ['redy', 'Redy', 'PT Rekrutmen Indonesia (getredy.id)', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Proses testing di staging area sandbox dan progres migrasi ke production.', 1, 1, 1, 0, 0, 'yellow', "NDA proses TTD Pasker\nProses migrasi ke production", 4],
-        ['kitalulus', 'KitaLulus', 'KitaLulus Internasional', '', "Kesepahaman Bersama (KB)", 'Pihak KitaLulus sudah setuju untuk melakukan integrasi menggunakan sistem API.', 1, 1, 0, 0, 0, 'yellow', "Dijadwalkan pembahasan PKS dan NDA\nBelum integrasi", 5],
-        ['kalibrr', 'Kalibrr', 'PT Kalibrr Technology Access (Kalibrr)', '', "Kesepahaman Bersama (KB)", 'Draft PKS dan NDA sedang proses penelaahan oleh tim Legal Kalibrr.', 0, 1, 0, 0, 0, 'yellow', "PKS dan NDA proses legal Kalibrr\nPerizinan masih dalam proses\nBelum integrasi", 6],
-        ['dki', 'DKI', 'PT Disabilitas Kerja Indonesia (disabilitaskerja.co.id)', '', "Kesepahaman Bersama (KB)", "Belum menyelesaikan perizinan Aktivitas Penempatan Tenaga Kerja Daring (Job Portal), KBLI 78104.\nBelum memasuki pembahasan mengenai draft PKS dan NDA.", 0, 1, 0, 0, 0, 'red', "Dijadwalkan pembahasan PKS dan NDA\nPerizinan masih dalam proses\nBelum integrasi", 7],
-        ['diploy', 'Diploy', 'Diploy Komdigi', '', "Kesepahaman Bersama (KB)\n(Kemnaker dengan Komdigi)", 'Draft PKS dan NDA sudah dikirimkan ke pihak Diploy.', 1, 1, 0, 0, 0, 'yellow', "PKS dan NDA menunggu feedback\nProses migrasi ke production", 8],
-        ['jobstreet', 'Jobstreet', 'Jobstreet', '', '', 'Dijadwalkan penjajakan awal.', 1, 0, 0, 0, 0, 'red', "Dijadwalkan penjajakan\nBelum integrasi", 9],
+        ['hired_today', 'HiredToday', 'PT. Indo HR (Hired Today)', '#0f8f92', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Hired Today dan Karirhub sudah terintegrasi.', 1, 1, 1, 1, 1, 'green', "Adendum NDA proses TTD Job Portal\nLive in production", 1],
+        ['glints', 'Glints', 'Glints Indonesia (Glints)', '#007b8a', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Proses testing di staging area sandbox dan progres migrasi ke production.', 0, 1, 1, 0, 0, 'yellow', "NDA proses biro hukum\nProses migrasi ke production\nPerizinan masih dalam proses", 2],
+        ['toploker', 'Toploker', 'PT Bisnis Digital Ekonomi (Top Loker)', '#0a9b7a', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Integrasi Top Loker-Karirhub telah berjalan.', 1, 1, 1, 0, 1, 'green', "NDA proses TTD Job Portal\nLive in production", 3],
+        ['redy', 'Redy', 'PT Rekrutmen Indonesia (getredy.id)', '#0083b8', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Proses testing di staging area sandbox dan progres migrasi ke production.', 1, 1, 1, 0, 0, 'yellow', "NDA proses TTD Pasker\nProses migrasi ke production", 4],
+        ['kitalulus', 'KitaLulus', 'KitaLulus Internasional', '#0f9a8d', '', "Kesepahaman Bersama (KB)", 'Pihak KitaLulus sudah setuju untuk melakukan integrasi menggunakan sistem API.', 1, 1, 0, 0, 0, 'yellow', "Dijadwalkan pembahasan PKS dan NDA\nBelum integrasi", 5],
+        ['kalibrr', 'Kalibrr', 'PT Kalibrr Technology Access (Kalibrr)', '#2f8f60', '', "Kesepahaman Bersama (KB)", 'Draft PKS dan NDA sedang proses penelaahan oleh tim Legal Kalibrr.', 0, 1, 0, 0, 0, 'yellow', "PKS dan NDA proses legal Kalibrr\nPerizinan masih dalam proses\nBelum integrasi", 6],
+        ['dki', 'DKI', 'PT Disabilitas Kerja Indonesia (disabilitaskerja.co.id)', '#a56a2a', '', "Kesepahaman Bersama (KB)", "Belum menyelesaikan perizinan Aktivitas Penempatan Tenaga Kerja Daring (Job Portal), KBLI 78104.\nBelum memasuki pembahasan mengenai draft PKS dan NDA.", 0, 1, 0, 0, 0, 'red', "Dijadwalkan pembahasan PKS dan NDA\nPerizinan masih dalam proses\nBelum integrasi", 7],
+        ['diploy', 'Diploy', 'Diploy Komdigi', '#5661b3', '', "Kesepahaman Bersama (KB)\n(Kemnaker dengan Komdigi)", 'Draft PKS dan NDA sudah dikirimkan ke pihak Diploy.', 1, 1, 0, 0, 0, 'yellow', "PKS dan NDA menunggu feedback\nProses migrasi ke production", 8],
+        ['jobstreet', 'Jobstreet', 'Jobstreet', '#6c757d', '', '', 'Dijadwalkan penjajakan awal.', 1, 0, 0, 0, 0, 'red', "Dijadwalkan penjajakan\nBelum integrasi", 9],
     ];
 
     $insMain = $conn->prepare("INSERT INTO karirhub_mitra_monitoring (
-        portal_code, portal_name, company_name, logo_url, cooperation_types, progress_summary,
+        portal_code, portal_name, company_name, card_color, logo_url, cooperation_types, progress_summary,
         perizinan_done, kb_done, pks_done, nda_done, integrasi_done, progress_indicator, notes, display_order
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
     foreach ($seedRows as $row) {
         $insMain->bind_param(
-            'ssssssiiiiissi',
+            'sssssssiiiiissi',
             $row[0], $row[1], $row[2], $row[3], $row[4], $row[5],
-            $row[6], $row[7], $row[8], $row[9], $row[10], $row[11], $row[12], $row[13]
+            $row[6], $row[7], $row[8], $row[9], $row[10], $row[11], $row[12], $row[13], $row[14]
         );
         $insMain->execute();
     }
@@ -170,6 +174,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $portalCode = trim($_POST['portal_code'] ?? '');
         $portalName = trim($_POST['portal_name'] ?? '');
         $companyName = trim($_POST['company_name'] ?? '');
+        $cardColor = strtoupper(trim($_POST['card_color'] ?? '#0F8F92'));
+        if (!preg_match('/^#[0-9A-F]{6}$/', $cardColor)) {
+            $cardColor = '#0F8F92';
+        }
         $logoUrl = trim($_POST['logo_url'] ?? '');
         $cooperationTypes = trim($_POST['cooperation_types'] ?? '');
         $progressSummary = trim($_POST['progress_summary'] ?? '');
@@ -195,12 +203,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($id > 0) {
             $stmt = $conn->prepare("UPDATE karirhub_mitra_monitoring
-                SET portal_code=?, portal_name=?, company_name=?, logo_url=?, cooperation_types=?, progress_summary=?,
+                SET portal_code=?, portal_name=?, company_name=?, card_color=?, logo_url=?, cooperation_types=?, progress_summary=?,
                     perizinan_done=?, kb_done=?, pks_done=?, nda_done=?, integrasi_done=?, progress_indicator=?, notes=?, display_order=?, is_active=?
                 WHERE id=?");
             $stmt->bind_param(
-                'ssssssiiiiissiii',
-                $portalCode, $portalName, $companyName, $logoUrl, $cooperationTypes, $progressSummary,
+                'sssssssiiiiissiii',
+                $portalCode, $portalName, $companyName, $cardColor, $logoUrl, $cooperationTypes, $progressSummary,
                 $perizinanDone, $kbDone, $pksDone, $ndaDone, $integrasiDone, $progressIndicator, $notes, $displayOrder, $isActive, $id
             );
             $stmt->execute();
@@ -208,12 +216,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $monitoringId = $id;
         } else {
             $stmt = $conn->prepare("INSERT INTO karirhub_mitra_monitoring (
-                portal_code, portal_name, company_name, logo_url, cooperation_types, progress_summary,
+                portal_code, portal_name, company_name, card_color, logo_url, cooperation_types, progress_summary,
                 perizinan_done, kb_done, pks_done, nda_done, integrasi_done, progress_indicator, notes, display_order, is_active
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
             $stmt->bind_param(
-                'ssssssiiiiissii',
-                $portalCode, $portalName, $companyName, $logoUrl, $cooperationTypes, $progressSummary,
+                'sssssssiiiiissii',
+                $portalCode, $portalName, $companyName, $cardColor, $logoUrl, $cooperationTypes, $progressSummary,
                 $perizinanDone, $kbDone, $pksDone, $ndaDone, $integrasiDone, $progressIndicator, $notes, $displayOrder, $isActive
             );
             $stmt->execute();
@@ -331,7 +339,11 @@ while ($r = $resMain->fetch_assoc()) {
                         <label class="form-label">Nama Perusahaan / Judul Kartu</label>
                         <input class="form-control" type="text" name="company_name" required value="<?php echo htmlspecialchars($editRow['company_name'] ?? ''); ?>">
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-2">
+                        <label class="form-label">Card Color</label>
+                        <input class="form-control form-control-color" type="color" name="card_color" value="<?php echo htmlspecialchars($editRow['card_color'] ?? '#0F8F92'); ?>" title="Choose card color">
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label">Logo URL</label>
                         <input class="form-control" type="text" name="logo_url" value="<?php echo htmlspecialchars($editRow['logo_url'] ?? ''); ?>" placeholder="/images/... atau https://...">
                     </div>
@@ -395,6 +407,7 @@ while ($r = $resMain->fetch_assoc()) {
                             <th>ID</th>
                             <th>Portal</th>
                             <th>Company</th>
+                            <th>Color</th>
                             <th>Indicator</th>
                             <th>Order</th>
                             <th>Aktif</th>
@@ -403,13 +416,17 @@ while ($r = $resMain->fetch_assoc()) {
                     </thead>
                     <tbody>
                         <?php if (empty($allRows)): ?>
-                            <tr><td colspan="7" class="text-center">No data</td></tr>
+                            <tr><td colspan="8" class="text-center">No data</td></tr>
                         <?php else: ?>
                             <?php foreach ($allRows as $row): ?>
                                 <tr>
                                     <td><?php echo intval($row['id']); ?></td>
                                     <td><?php echo htmlspecialchars($row['portal_name']); ?><br><span class="text-muted small"><?php echo htmlspecialchars($row['portal_code']); ?></span></td>
                                     <td><?php echo htmlspecialchars($row['company_name']); ?></td>
+                                    <td>
+                                        <span class="d-inline-block rounded border" style="width:22px;height:22px;background:<?php echo htmlspecialchars($row['card_color'] ?? '#0F8F92'); ?>;"></span>
+                                        <small class="ms-1"><?php echo htmlspecialchars($row['card_color'] ?? '#0F8F92'); ?></small>
+                                    </td>
                                     <td><?php echo htmlspecialchars(strtoupper($row['progress_indicator'] ?? 'YELLOW')); ?></td>
                                     <td><?php echo intval($row['display_order']); ?></td>
                                     <td><?php echo intval($row['is_active']) === 1 ? 'Ya' : 'Tidak'; ?></td>

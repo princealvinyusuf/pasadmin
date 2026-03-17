@@ -35,6 +35,7 @@ function ensure_karirhub_mitra_monitoring_tables(mysqli $conn): void {
         portal_code VARCHAR(64) NOT NULL UNIQUE,
         portal_name VARCHAR(120) NOT NULL,
         company_name VARCHAR(180) NOT NULL,
+        card_color VARCHAR(20) NOT NULL DEFAULT '#0f8f92',
         logo_url VARCHAR(500) DEFAULT '',
         cooperation_types TEXT DEFAULT NULL,
         progress_summary TEXT DEFAULT NULL,
@@ -53,6 +54,9 @@ function ensure_karirhub_mitra_monitoring_tables(mysqli $conn): void {
 
     if (!column_exists($conn, 'karirhub_mitra_monitoring', 'progress_indicator')) {
         $conn->query("ALTER TABLE karirhub_mitra_monitoring ADD COLUMN progress_indicator VARCHAR(10) NOT NULL DEFAULT 'yellow' AFTER integrasi_done");
+    }
+    if (!column_exists($conn, 'karirhub_mitra_monitoring', 'card_color')) {
+        $conn->query("ALTER TABLE karirhub_mitra_monitoring ADD COLUMN card_color VARCHAR(20) NOT NULL DEFAULT '#0f8f92' AFTER company_name");
     }
 
     $conn->query("CREATE TABLE IF NOT EXISTS karirhub_mitra_monitoring_items (
@@ -77,26 +81,26 @@ function seed_karirhub_mitra_monitoring(mysqli $conn): void {
     }
 
     $seedRows = [
-        ['hired_today', 'HiredToday', 'PT. Indo HR (Hired Today)', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Hired Today dan Karirhub sudah terintegrasi.', 1, 1, 1, 1, 1, 'green', "Adendum NDA proses TTD Job Portal\nLive in production", 1],
-        ['glints', 'Glints', 'Glints Indonesia (Glints)', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Proses testing di staging area sandbox dan progres migrasi ke production.', 0, 1, 1, 0, 0, 'yellow', "NDA proses biro hukum\nProses migrasi ke production\nPerizinan masih dalam proses", 2],
-        ['toploker', 'Toploker', 'PT Bisnis Digital Ekonomi (Top Loker)', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Integrasi Top Loker-Karirhub telah berjalan.', 1, 1, 1, 0, 1, 'green', "NDA proses TTD Job Portal\nLive in production", 3],
-        ['redy', 'Redy', 'PT Rekrutmen Indonesia (getredy.id)', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Proses testing di staging area sandbox dan progres migrasi ke production.', 1, 1, 1, 0, 0, 'yellow', "NDA proses TTD Pasker\nProses migrasi ke production", 4],
-        ['kitalulus', 'KitaLulus', 'KitaLulus Internasional', '', "Kesepahaman Bersama (KB)", 'Pihak KitaLulus sudah setuju untuk melakukan integrasi menggunakan sistem API.', 1, 1, 0, 0, 0, 'yellow', "Dijadwalkan pembahasan PKS dan NDA\nBelum integrasi", 5],
-        ['kalibrr', 'Kalibrr', 'PT Kalibrr Technology Access (Kalibrr)', '', "Kesepahaman Bersama (KB)", 'Draft PKS dan NDA sedang proses penelaahan oleh tim Legal Kalibrr.', 0, 1, 0, 0, 0, 'yellow', "PKS dan NDA proses legal Kalibrr\nPerizinan masih dalam proses\nBelum integrasi", 6],
-        ['dki', 'DKI', 'PT Disabilitas Kerja Indonesia (disabilitaskerja.co.id)', '', "Kesepahaman Bersama (KB)", "Belum menyelesaikan perizinan Aktivitas Penempatan Tenaga Kerja Daring (Job Portal), KBLI 78104.\nBelum memasuki pembahasan mengenai draft PKS dan NDA.", 0, 1, 0, 0, 0, 'red', "Dijadwalkan pembahasan PKS dan NDA\nPerizinan masih dalam proses\nBelum integrasi", 7],
-        ['diploy', 'Diploy', 'Diploy Komdigi', '', "Kesepahaman Bersama (KB)\n(Kemnaker dengan Komdigi)", 'Draft PKS dan NDA sudah dikirimkan ke pihak Diploy.', 1, 1, 0, 0, 0, 'yellow', "PKS dan NDA menunggu feedback\nProses migrasi ke production", 8],
-        ['jobstreet', 'Jobstreet', 'Jobstreet', '', '', 'Dijadwalkan penjajakan awal.', 1, 0, 0, 0, 0, 'red', "Dijadwalkan penjajakan\nBelum integrasi", 9],
+        ['hired_today', 'HiredToday', 'PT. Indo HR (Hired Today)', '#0f8f92', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Hired Today dan Karirhub sudah terintegrasi.', 1, 1, 1, 1, 1, 'green', "Adendum NDA proses TTD Job Portal\nLive in production", 1],
+        ['glints', 'Glints', 'Glints Indonesia (Glints)', '#007b8a', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Proses testing di staging area sandbox dan progres migrasi ke production.', 0, 1, 1, 0, 0, 'yellow', "NDA proses biro hukum\nProses migrasi ke production\nPerizinan masih dalam proses", 2],
+        ['toploker', 'Toploker', 'PT Bisnis Digital Ekonomi (Top Loker)', '#0a9b7a', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Integrasi Top Loker-Karirhub telah berjalan.', 1, 1, 1, 0, 1, 'green', "NDA proses TTD Job Portal\nLive in production", 3],
+        ['redy', 'Redy', 'PT Rekrutmen Indonesia (getredy.id)', '#0083b8', '', "Kesepahaman Bersama (KB)\nPerjanjian Kerjasama (PKS)\nNon-Disclosure Agreement (NDA)", 'Proses testing di staging area sandbox dan progres migrasi ke production.', 1, 1, 1, 0, 0, 'yellow', "NDA proses TTD Pasker\nProses migrasi ke production", 4],
+        ['kitalulus', 'KitaLulus', 'KitaLulus Internasional', '#0f9a8d', '', "Kesepahaman Bersama (KB)", 'Pihak KitaLulus sudah setuju untuk melakukan integrasi menggunakan sistem API.', 1, 1, 0, 0, 0, 'yellow', "Dijadwalkan pembahasan PKS dan NDA\nBelum integrasi", 5],
+        ['kalibrr', 'Kalibrr', 'PT Kalibrr Technology Access (Kalibrr)', '#2f8f60', '', "Kesepahaman Bersama (KB)", 'Draft PKS dan NDA sedang proses penelaahan oleh tim Legal Kalibrr.', 0, 1, 0, 0, 0, 'yellow', "PKS dan NDA proses legal Kalibrr\nPerizinan masih dalam proses\nBelum integrasi", 6],
+        ['dki', 'DKI', 'PT Disabilitas Kerja Indonesia (disabilitaskerja.co.id)', '#a56a2a', '', "Kesepahaman Bersama (KB)", "Belum menyelesaikan perizinan Aktivitas Penempatan Tenaga Kerja Daring (Job Portal), KBLI 78104.\nBelum memasuki pembahasan mengenai draft PKS dan NDA.", 0, 1, 0, 0, 0, 'red', "Dijadwalkan pembahasan PKS dan NDA\nPerizinan masih dalam proses\nBelum integrasi", 7],
+        ['diploy', 'Diploy', 'Diploy Komdigi', '#5661b3', '', "Kesepahaman Bersama (KB)\n(Kemnaker dengan Komdigi)", 'Draft PKS dan NDA sudah dikirimkan ke pihak Diploy.', 1, 1, 0, 0, 0, 'yellow', "PKS dan NDA menunggu feedback\nProses migrasi ke production", 8],
+        ['jobstreet', 'Jobstreet', 'Jobstreet', '#6c757d', '', '', 'Dijadwalkan penjajakan awal.', 1, 0, 0, 0, 0, 'red', "Dijadwalkan penjajakan\nBelum integrasi", 9],
     ];
 
     $insMain = $conn->prepare("INSERT INTO karirhub_mitra_monitoring (
-        portal_code, portal_name, company_name, logo_url, cooperation_types, progress_summary,
+        portal_code, portal_name, company_name, card_color, logo_url, cooperation_types, progress_summary,
         perizinan_done, kb_done, pks_done, nda_done, integrasi_done, progress_indicator, notes, display_order
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
     foreach ($seedRows as $row) {
         $insMain->bind_param(
-            'ssssssiiiiissi',
+            'sssssssiiiiissi',
             $row[0], $row[1], $row[2], $row[3], $row[4], $row[5],
-            $row[6], $row[7], $row[8], $row[9], $row[10], $row[11], $row[12], $row[13]
+            $row[6], $row[7], $row[8], $row[9], $row[10], $row[11], $row[12], $row[13], $row[14]
         );
         $insMain->execute();
     }
@@ -178,6 +182,14 @@ function indicator_label(string $indicator): string {
     return 'On Progress';
 }
 
+function normalize_hex_color(?string $value): string {
+    $v = trim((string) $value);
+    if (preg_match('/^#[0-9a-fA-F]{6}$/', $v)) {
+        return strtoupper($v);
+    }
+    return '#0F8F92';
+}
+
 ensure_karirhub_mitra_monitoring_tables($conn);
 seed_karirhub_mitra_monitoring($conn);
 
@@ -185,6 +197,7 @@ $rows = [];
 $qMain = $conn->query("SELECT * FROM karirhub_mitra_monitoring WHERE is_active=1 ORDER BY display_order ASC, id ASC");
 while ($r = $qMain->fetch_assoc()) {
     $r['progress_indicator'] = normalize_indicator($r['progress_indicator'] ?? '', $r);
+    $r['card_color'] = normalize_hex_color($r['card_color'] ?? '');
     $rows[] = $r;
 }
 
@@ -209,7 +222,7 @@ while ($item = $qItems->fetch_assoc()) {
     <style>
         body { background: #edf2f4; }
         .monitor-card { border: 0; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 22px rgba(0, 0, 0, 0.08); }
-        .monitor-card-header { background: linear-gradient(90deg, #0f8f92, #0a7c81); color: #fff; padding: 20px 24px; }
+        .monitor-card-header { background: linear-gradient(90deg, var(--card-accent), rgba(0,0,0,0.15)); color: #fff; padding: 20px 24px; }
         .logo-box {
             width: 110px; height: 72px; border-radius: 10px; background: #fff; color: #0e4953;
             border: 1px solid rgba(0, 0, 0, 0.08); display: flex; align-items: center; justify-content: center; font-weight: 700;
@@ -217,7 +230,7 @@ while ($item = $qItems->fetch_assoc()) {
         }
         .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
         .cooperation-card { background: #f8fbfc; border: 1px solid #deecef; border-radius: 12px; }
-        .progress-card { background: #0f8f92; color: #fff; border-radius: 12px; }
+        .progress-card { background: var(--card-accent); color: #fff; border-radius: 12px; }
         .small-table th, .small-table td { font-size: 0.88rem; padding: 0.4rem 0.5rem; }
         .summary-table th, .summary-table td { vertical-align: top; font-size: 0.88rem; }
         .tick { font-weight: 700; color: #0e4f5f; text-align: center; }
@@ -280,7 +293,7 @@ if ($userIsLoggedIn) {
             $indicator = $row['progress_indicator'] ?? 'yellow';
             $lampClass = $indicator === 'green' ? 'lamp-green' : ($indicator === 'red' ? 'lamp-red' : 'lamp-yellow');
         ?>
-        <div class="card monitor-card mb-4">
+        <div class="card monitor-card mb-4" style="--card-accent: <?php echo htmlspecialchars($row['card_color']); ?>;">
             <div class="monitor-card-header">
                 <div class="d-flex align-items-center justify-content-between gap-3">
                     <div class="d-flex align-items-center gap-3">
