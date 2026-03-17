@@ -275,6 +275,9 @@ while ($item = $qItems->fetch_assoc()) {
             border: 1px solid rgba(255,255,255,0.75); background: rgba(255,255,255,0.15);
             color: #fff; font-size: 0.74rem; font-weight: 600; line-height: 1;
         }
+        .api-chip.api-chip-1 { background: rgba(23, 162, 245, 0.35); border-color: rgba(190, 233, 255, 0.9); }
+        .api-chip.api-chip-2 { background: rgba(136, 84, 208, 0.35); border-color: rgba(227, 205, 255, 0.9); }
+        .api-chip.api-chip-3 { background: rgba(46, 204, 113, 0.35); border-color: rgba(194, 250, 218, 0.9); }
         .legend { font-size: 0.86rem; color: #335; }
         .legend .indicator-lamp { width: 14px; height: 14px; border-color: rgba(0, 0, 0, 0.2); box-shadow: none; }
     </style>
@@ -346,8 +349,9 @@ if ($userIsLoggedIn) {
                         </div>
                         <div class="kerjasama-label">Kerjasama:</div>
                         <div class="api-chip-wrap">
-                            <?php foreach ($apiLabels as $api): ?>
-                                <span class="api-chip"><?php echo htmlspecialchars($api); ?></span>
+                            <?php foreach ($apiLabels as $apiIdx => $api): ?>
+                                <?php $apiClass = 'api-chip-' . ((($apiIdx % 3) + 1)); ?>
+                                <span class="api-chip <?php echo $apiClass; ?>"><?php echo htmlspecialchars($api); ?></span>
                             <?php endforeach; ?>
                         </div>
                     </div>
