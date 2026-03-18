@@ -33,6 +33,14 @@ function normalize_recipients(array $rows): array {
     return $valid;
 }
 
+function decode_b64_post_field(string $key, string $fallback = ''): string {
+    $raw = isset($_POST[$key]) ? (string)$_POST[$key] : '';
+    if ($raw === '') { return $fallback; }
+    $decoded = base64_decode($raw, true);
+    if ($decoded === false) { return $fallback; }
+    return $decoded;
+}
+
 function ensure_email_log_tables(mysqli $conn): void {
     $conn->query("CREATE TABLE IF NOT EXISTS email_campaign_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -125,6 +133,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (($formAction === 'save_template' || $formAction === 'update_template' || $formAction === 'delete_template') && (!$logConn || $logConn->connect_error)) {
         $warning = 'DB template tidak tersedia.';
     } elseif ($formAction === 'save_template' || $formAction === 'update_template') {
+        $subject = decode_b64_post_field('subject_b64', $subject);
+        $messageBodyText = decode_b64_post_field('message_body_text_b64', $messageBodyText);
+        $messageBodyHtml = decode_b64_post_field('message_body_html_b64', $messageBodyHtml);
         $templateName = trim((string)($_POST['template_name'] ?? ''));
         $templateId = (int)($_POST['template_id'] ?? 0);
         if ($templateName === '') {
@@ -658,9 +669,9 @@ if ($selectedCampaignId > 0 && $logConn && !$logConn->connect_error) {
     <input type="hidden" name="form_action" id="template_form_action" value="">
     <input type="hidden" name="template_id" id="template_form_template_id" value="">
     <input type="hidden" name="template_name" id="template_form_template_name" value="">
-    <input type="hidden" name="subject" id="template_form_subject" value="">
-    <input type="hidden" name="message_body_text" id="template_form_text" value="">
-    <input type="hidden" name="message_body_html" id="template_form_html" value="">
+    <input type="hidden" name="subject_b64" id="template_form_subject" value="">
+    <input type="hidden" name="message_body_text_b64" id="template_form_text" value="">
+    <input type="hidden" name="message_body_html_b64" id="template_form_html" value="">
 </form>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -931,12 +942,16 @@ function getSelectedTemplate() {
 }
 
 function populateTemplateForm(action, templateId, templateName) {
+    const toBase64 = (value) => {
+        const str = String(value || '');
+        return window.btoa(unescape(encodeURIComponent(str)));
+    };
     templateFormAction.value = action;
     templateFormTemplateId.value = templateId ? String(templateId) : '';
     templateFormTemplateName.value = templateName || '';
-    templateFormSubject.value = subjectInput.value || '';
-    templateFormText.value = textTextarea.value || '';
-    templateFormHtml.value = htmlTextarea.value || '';
+    templateFormSubject.value = toBase64(subjectInput.value || '');
+    templateFormText.value = toBase64(textTextarea.value || '');
+    templateFormHtml.value = toBase64(htmlTextarea.value || '');
 }
 
 function applySelectedTemplate() {
