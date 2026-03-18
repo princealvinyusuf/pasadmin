@@ -372,13 +372,25 @@ if ($selectedCampaignId > 0 && $logConn && !$logConn->connect_error) {
                     </div>
                     <div class="col-12">
                         <label class="form-label">Subject</label>
-                        <input type="text" class="form-control" name="subject" value="<?php echo htmlspecialchars($subject); ?>" required>
+                        <input type="text" class="form-control" id="subject_input" name="subject" value="<?php echo htmlspecialchars($subject); ?>" required>
                         <div class="hint">Variables supported: <code>{name}</code>, <code>{email}</code></div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Template Library</label>
+                        <div class="d-flex gap-2">
+                            <select class="form-select" id="template_selector">
+                                <option value="">Select template...</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="applyTemplateBtn">
+                                <i class="bi bi-magic me-1"></i>Apply Template
+                            </button>
+                        </div>
+                        <div class="hint">Pilih template, otomatis isi subject + text + HTML, lalu bisa langsung Anda edit.</div>
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label">Text Body (fallback/plain)</label>
-                        <textarea class="form-control" name="message_body_text" rows="8"><?php echo htmlspecialchars($messageBodyText); ?></textarea>
+                        <textarea class="form-control" id="message_body_text" name="message_body_text" rows="8"><?php echo htmlspecialchars($messageBodyText); ?></textarea>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">HTML Body (template editor)</label>
@@ -557,9 +569,163 @@ if ($selectedCampaignId > 0 && $logConn && !$logConn->connect_error) {
 <script>
 const importInput = document.getElementById('importFile');
 const recipientsTextarea = document.getElementById('manual_recipients');
+const subjectInput = document.getElementById('subject_input');
+const textTextarea = document.getElementById('message_body_text');
 const htmlTextarea = document.getElementById('message_body_html');
 const previewHtmlBtn = document.getElementById('previewHtmlBtn');
 const htmlPreview = document.getElementById('htmlPreview');
+const templateSelector = document.getElementById('template_selector');
+const applyTemplateBtn = document.getElementById('applyTemplateBtn');
+
+const emailTemplates = [
+    {
+        id: 'new-job-alert',
+        label: 'New Job Alert',
+        subject: 'Lowongan Baru untuk {name} - Cek Sekarang',
+        text: `Halo {name},
+
+Kami punya informasi lowongan terbaru yang sesuai dengan minat Anda.
+
+Silakan cek detail lowongan dan daftar melalui platform kami.
+
+Jika ada pertanyaan, balas email ini kapan saja.
+
+Salam,
+Tim PaskerID`,
+        html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;">
+  <p>Halo <strong>{name}</strong>,</p>
+  <p>Kami punya informasi <strong>lowongan terbaru</strong> yang sesuai dengan minat Anda.</p>
+  <p>Silakan cek detail lowongan dan daftar melalui platform kami.</p>
+  <p>Jika ada pertanyaan, balas email ini kapan saja.</p>
+  <p>Salam,<br><strong>Tim PaskerID</strong></p>
+</div>`
+    },
+    {
+        id: 'event-invitation',
+        label: 'Event Invitation',
+        subject: 'Undangan Event Karier Eksklusif untuk {name}',
+        text: `Halo {name},
+
+Anda kami undang ke event karier terbaru dari PaskerID.
+
+Agenda:
+- Insight tren rekrutmen
+- Sesi networking
+- Akses lowongan prioritas
+
+Daftar sekarang agar tidak kehabisan kuota.
+
+Sampai jumpa di event!`,
+        html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;">
+  <p>Halo <strong>{name}</strong>,</p>
+  <p>Anda kami undang ke <strong>event karier terbaru</strong> dari PaskerID.</p>
+  <div style="background:#f9fafb;padding:12px;border-radius:8px;border:1px solid #e5e7eb;">
+    <p style="margin:0 0 8px 0;"><strong>Agenda:</strong></p>
+    <ul style="margin:0;padding-left:18px;">
+      <li>Insight tren rekrutmen</li>
+      <li>Sesi networking</li>
+      <li>Akses lowongan prioritas</li>
+    </ul>
+  </div>
+  <p>Daftar sekarang agar tidak kehabisan kuota.</p>
+  <p>Sampai jumpa di event!</p>
+</div>`
+    },
+    {
+        id: 'profile-reminder',
+        label: 'Profile Completion Reminder',
+        subject: 'Lengkapi Profil Anda, {name} - Peluang Lebih Besar Menunggu',
+        text: `Halo {name},
+
+Profil Anda di PaskerID belum lengkap. Profil yang lengkap membantu perusahaan menemukan Anda lebih cepat.
+
+Pastikan data berikut sudah terisi:
+1. Riwayat pendidikan
+2. Keahlian utama
+3. Pengalaman kerja/organisasi
+
+Lengkapi sekarang untuk meningkatkan peluang dipanggil rekruter.`,
+        html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;">
+  <p>Halo <strong>{name}</strong>,</p>
+  <p>Profil Anda di PaskerID belum lengkap. Profil yang lengkap membantu perusahaan menemukan Anda lebih cepat.</p>
+  <p><strong>Pastikan data berikut sudah terisi:</strong></p>
+  <ol style="padding-left:18px;">
+    <li>Riwayat pendidikan</li>
+    <li>Keahlian utama</li>
+    <li>Pengalaman kerja/organisasi</li>
+  </ol>
+  <p>Lengkapi sekarang untuk meningkatkan peluang dipanggil rekruter.</p>
+</div>`
+    },
+    {
+        id: 'application-followup',
+        label: 'Application Follow-up',
+        subject: 'Update Lamaran Anda di PaskerID',
+        text: `Halo {name},
+
+Kami ingin mengingatkan Anda untuk memantau status lamaran secara berkala.
+
+Tips cepat:
+- Perbarui CV terbaru
+- Aktifkan notifikasi
+- Cek email secara rutin
+
+Semoga sukses pada proses seleksi Anda.`,
+        html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;">
+  <p>Halo <strong>{name}</strong>,</p>
+  <p>Kami ingin mengingatkan Anda untuk memantau status lamaran secara berkala.</p>
+  <p><strong>Tips cepat:</strong></p>
+  <ul style="padding-left:18px;">
+    <li>Perbarui CV terbaru</li>
+    <li>Aktifkan notifikasi</li>
+    <li>Cek email secara rutin</li>
+  </ul>
+  <p>Semoga sukses pada proses seleksi Anda.</p>
+</div>`
+    },
+    {
+        id: 'reactivation',
+        label: 'Dormant User Reactivation',
+        subject: '{name}, ada peluang baru menunggu Anda di PaskerID',
+        text: `Halo {name},
+
+Sudah lama Anda tidak mengakses akun PaskerID.
+
+Saat ini ada berbagai peluang baru yang bisa Anda eksplorasi.
+Kembali aktifkan akun Anda untuk mendapatkan rekomendasi lowongan terbaru.
+
+Kami siap membantu perjalanan karier Anda.`,
+        html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;">
+  <p>Halo <strong>{name}</strong>,</p>
+  <p>Sudah lama Anda tidak mengakses akun PaskerID.</p>
+  <p>Saat ini ada berbagai peluang baru yang bisa Anda eksplorasi. Kembali aktifkan akun Anda untuk mendapatkan rekomendasi lowongan terbaru.</p>
+  <p>Kami siap membantu perjalanan karier Anda.</p>
+</div>`
+    },
+    {
+        id: 'newsletter',
+        label: 'Monthly Career Newsletter',
+        subject: 'Newsletter Karier Bulanan - Insight & Peluang Terbaru',
+        text: `Halo {name},
+
+Berikut rangkuman update bulan ini:
+- Tren industri dan kebutuhan skill
+- Rekomendasi lowongan terpopuler
+- Tips lolos screening HR
+
+Terima kasih sudah menjadi bagian dari komunitas PaskerID.`,
+        html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;">
+  <p>Halo <strong>{name}</strong>,</p>
+  <p>Berikut rangkuman update bulan ini:</p>
+  <ul style="padding-left:18px;">
+    <li>Tren industri dan kebutuhan skill</li>
+    <li>Rekomendasi lowongan terpopuler</li>
+    <li>Tips lolos screening HR</li>
+  </ul>
+  <p>Terima kasih sudah menjadi bagian dari komunitas PaskerID.</p>
+</div>`
+    }
+];
 
 function pushRowsToTextarea(rows) {
     const lines = rows
@@ -599,8 +765,38 @@ function renderHtmlPreview() {
     htmlPreview.innerHTML = rendered;
 }
 
+function initTemplateLibrary() {
+    emailTemplates.forEach((tpl) => {
+        const opt = document.createElement('option');
+        opt.value = tpl.id;
+        opt.textContent = tpl.label;
+        templateSelector.appendChild(opt);
+    });
+}
+
+function applySelectedTemplate() {
+    const selectedId = templateSelector.value;
+    if (!selectedId) return;
+    const tpl = emailTemplates.find((t) => t.id === selectedId);
+    if (!tpl) return;
+
+    const hasExisting = (subjectInput.value || '').trim() || (textTextarea.value || '').trim() || (htmlTextarea.value || '').trim();
+    if (hasExisting) {
+        const ok = window.confirm('Current subject/body will be replaced by selected template. Continue?');
+        if (!ok) return;
+    }
+    subjectInput.value = tpl.subject;
+    textTextarea.value = tpl.text;
+    htmlTextarea.value = tpl.html;
+    renderHtmlPreview();
+}
+
 previewHtmlBtn.addEventListener('click', renderHtmlPreview);
-document.addEventListener('DOMContentLoaded', renderHtmlPreview);
+applyTemplateBtn.addEventListener('click', applySelectedTemplate);
+document.addEventListener('DOMContentLoaded', () => {
+    initTemplateLibrary();
+    renderHtmlPreview();
+});
 
 importInput.addEventListener('change', (e) => {
     const file = e.target.files && e.target.files[0];
