@@ -99,7 +99,9 @@ if ($logConn->connect_error) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $smtpUser = trim((string)($_POST['smtp_user'] ?? ''));
-    $smtpPass = (string)($_POST['smtp_pass'] ?? '');
+    $smtpPassRaw = (string)($_POST['smtp_pass'] ?? '');
+    // Gmail app password is 16 chars and often copied with spaces/NBSP.
+    $smtpPass = preg_replace('/\s+/u', '', $smtpPassRaw);
     $fromName = trim((string)($_POST['from_name'] ?? 'PaskerID Notification'));
     $fromEmail = trim((string)($_POST['from_email'] ?? ''));
     $subject = trim((string)($_POST['subject'] ?? ''));
