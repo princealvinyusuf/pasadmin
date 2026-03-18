@@ -160,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $totalRecipients = count($recipients);
             $campaignStatus = 'processing';
             $insertCampaign->bind_param(
-                'isssssssiiiis',
+                'isssssssiiiiis',
                 $createdByUserId,
                 $createdByUsername,
                 $smtpUserForLog,
@@ -199,13 +199,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'recipients' => $recipients
         ];
 
-        $descriptorspec = [
-            0 => ['pipe', 'r'],
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w']
-        ];
-        $process = proc_open('node send_email_broadcast.js', $descriptorspec, $pipes, __DIR__);
-        if (is_resource($process)) {
+        if (!function_exists('proc_open')) {
+            $warning = 'Server tidak mengizinkan proc_open(). Aktifkan proc_open atau gunakan worker/background service.';
+        } else {
+            $descriptorspec = [
+                0 => ['pipe', 'r'],
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w']
+            ];
+            $process = proc_open('node send_email_broadcast.js', $descriptorspec, $pipes, __DIR__);
+            if (is_resource($process)) {
             fwrite($pipes[0], json_encode($payload, JSON_UNESCAPED_UNICODE));
             fclose($pipes[0]);
             $stdout = stream_get_contents($pipes[1]);
@@ -270,16 +273,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            $result = [
-                'campaignId' => $campaignId,
-                'exitCode' => $exitCode,
-                'output' => $outputLines,
-                'totalRecipients' => count($recipients),
-                'sentCount' => count($sentList),
-                'failedCount' => count($failedList)
-            ];
-        } else {
-            $warning = 'Gagal menjalankan sender process.';
+                $result = [
+                    'campaignId' => $campaignId,
+                    'exitCode' => $exitCode,
+                    'output' => $outputLines,
+                    'totalRecipients' => count($recipients),
+                    'sentCount' => count($sentList),
+                    'failedCount' => count($failedList)
+                ];
+            } else {
+                $warning = 'Gagal menjalankan sender process. Pastikan command node tersedia di server.';
+            }
         }
     }
 }
