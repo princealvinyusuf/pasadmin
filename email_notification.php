@@ -72,6 +72,20 @@ function ensure_email_log_tables(mysqli $conn): void {
         CONSTRAINT fk_email_campaign_items_campaign
             FOREIGN KEY (campaign_id) REFERENCES email_campaign_logs(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $conn->query("CREATE TABLE IF NOT EXISTS email_templates (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        template_name VARCHAR(191) NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        message_text MEDIUMTEXT NULL,
+        message_html MEDIUMTEXT NULL,
+        created_by_user_id INT NULL,
+        created_by_username VARCHAR(191) NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_template_name (template_name),
+        INDEX idx_updated_at (updated_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
 $smtpUser = '';
@@ -89,6 +103,9 @@ $result = null;
 $failedList = [];
 $warning = '';
 $sentList = [];
+$notice = '';
+$noticeType = 'success';
+$customTemplates = [];
 
 $logConn = new mysqli('localhost', 'root', '', 'job_admin_prod');
 if ($logConn->connect_error) {
@@ -98,195 +115,253 @@ if ($logConn->connect_error) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $smtpUser = trim((string)($_POST['smtp_user'] ?? ''));
-    $smtpPassRaw = (string)($_POST['smtp_pass'] ?? '');
-    // Gmail app password is 16 chars and often copied with spaces/NBSP.
-    $smtpPass = preg_replace('/\s+/u', '', $smtpPassRaw);
-    $fromName = trim((string)($_POST['from_name'] ?? 'PaskerID Notification'));
-    $fromEmail = trim((string)($_POST['from_email'] ?? ''));
-    $subject = trim((string)($_POST['subject'] ?? ''));
-    $messageBodyText = trim((string)($_POST['message_body_text'] ?? ''));
-    $messageBodyHtml = trim((string)($_POST['message_body_html'] ?? ''));
-    $manualRecipients = trim((string)($_POST['manual_recipients'] ?? ''));
-    $includeAllUsers = isset($_POST['include_all_users']) && $_POST['include_all_users'] === '1';
-    $batchSize = max(1, min(200, (int)($_POST['batch_size'] ?? 20)));
-    $delayMs = max(0, min(60000, (int)($_POST['delay_ms'] ?? 1500)));
-    $batchDelayMs = max(0, min(120000, (int)($_POST['batch_delay_ms'] ?? 5000)));
+    $formAction = trim((string)($_POST['form_action'] ?? 'send_campaign'));
 
-    $allRecipients = parse_manual_recipients($manualRecipients);
+    // Keep editor fields sticky for all actions.
+    $subject = trim((string)($_POST['subject'] ?? $subject));
+    $messageBodyText = trim((string)($_POST['message_body_text'] ?? $messageBodyText));
+    $messageBodyHtml = trim((string)($_POST['message_body_html'] ?? $messageBodyHtml));
 
-    if ($includeAllUsers && $logConn && !$logConn->connect_error) {
-        $cols = [];
-        $resCols = $logConn->query('SHOW COLUMNS FROM users');
-        if ($resCols) {
-            while ($c = $resCols->fetch_assoc()) { $cols[] = $c['Field']; }
-        }
-        $emailField = in_array('email', $cols, true) ? 'email' : null;
-        $nameField = in_array('username', $cols, true) ? 'username' : (in_array('name', $cols, true) ? 'name' : null);
-        if ($emailField === null) {
-            $warning = 'Table users tidak punya kolom email.';
+    if (($formAction === 'save_template' || $formAction === 'update_template' || $formAction === 'delete_template') && (!$logConn || $logConn->connect_error)) {
+        $warning = 'DB template tidak tersedia.';
+    } elseif ($formAction === 'save_template' || $formAction === 'update_template') {
+        $templateName = trim((string)($_POST['template_name'] ?? ''));
+        $templateId = (int)($_POST['template_id'] ?? 0);
+        if ($templateName === '') {
+            $warning = 'Nama template wajib diisi.';
+        } elseif ($subject === '' || ($messageBodyText === '' && $messageBodyHtml === '')) {
+            $warning = 'Subject dan minimal salah satu body (text/html) wajib diisi untuk simpan template.';
         } else {
-            $sql = "SELECT {$emailField} AS email" . ($nameField ? ", {$nameField} AS name" : ", '' AS name") . " FROM users";
-            $resUsers = $logConn->query($sql);
-            if ($resUsers) {
-                while ($row = $resUsers->fetch_assoc()) {
-                    $allRecipients[] = [
-                        'email' => (string)($row['email'] ?? ''),
-                        'name' => (string)($row['name'] ?? '')
+            $createdByUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+            $createdByUsername = isset($_SESSION['username']) ? (string)$_SESSION['username'] : null;
+            if ($formAction === 'update_template' && $templateId > 0) {
+                $updTpl = $logConn->prepare('UPDATE email_templates SET template_name=?, subject=?, message_text=?, message_html=?, created_by_user_id=?, created_by_username=? WHERE id=?');
+                if ($updTpl) {
+                    $updTpl->bind_param('ssssisi', $templateName, $subject, $messageBodyText, $messageBodyHtml, $createdByUserId, $createdByUsername, $templateId);
+                    $updTpl->execute();
+                    $updTpl->close();
+                    $notice = 'Template berhasil diupdate.';
+                }
+            } else {
+                $insTpl = $logConn->prepare('INSERT INTO email_templates (template_name, subject, message_text, message_html, created_by_user_id, created_by_username) VALUES (?, ?, ?, ?, ?, ?)');
+                if ($insTpl) {
+                    $insTpl->bind_param('ssssis', $templateName, $subject, $messageBodyText, $messageBodyHtml, $createdByUserId, $createdByUsername);
+                    $insTpl->execute();
+                    $insTpl->close();
+                    $notice = 'Template berhasil disimpan.';
+                }
+            }
+        }
+    } elseif ($formAction === 'delete_template') {
+        $templateId = (int)($_POST['template_id'] ?? 0);
+        if ($templateId <= 0) {
+            $warning = 'Template yang dipilih tidak valid.';
+        } else {
+            $delTpl = $logConn->prepare('DELETE FROM email_templates WHERE id=?');
+            if ($delTpl) {
+                $delTpl->bind_param('i', $templateId);
+                $delTpl->execute();
+                $delTpl->close();
+                $notice = 'Template berhasil dihapus.';
+            }
+        }
+    } else {
+        $smtpUser = trim((string)($_POST['smtp_user'] ?? ''));
+        $smtpPassRaw = (string)($_POST['smtp_pass'] ?? '');
+        // Gmail app password is 16 chars and often copied with spaces/NBSP.
+        $smtpPass = preg_replace('/\s+/u', '', $smtpPassRaw);
+        $fromName = trim((string)($_POST['from_name'] ?? 'PaskerID Notification'));
+        $fromEmail = trim((string)($_POST['from_email'] ?? ''));
+        $manualRecipients = trim((string)($_POST['manual_recipients'] ?? ''));
+        $includeAllUsers = isset($_POST['include_all_users']) && $_POST['include_all_users'] === '1';
+        $batchSize = max(1, min(200, (int)($_POST['batch_size'] ?? 20)));
+        $delayMs = max(0, min(60000, (int)($_POST['delay_ms'] ?? 1500)));
+        $batchDelayMs = max(0, min(120000, (int)($_POST['batch_delay_ms'] ?? 5000)));
+
+        $allRecipients = parse_manual_recipients($manualRecipients);
+
+        if ($includeAllUsers && $logConn && !$logConn->connect_error) {
+            $cols = [];
+            $resCols = $logConn->query('SHOW COLUMNS FROM users');
+            if ($resCols) {
+                while ($c = $resCols->fetch_assoc()) { $cols[] = $c['Field']; }
+            }
+            $emailField = in_array('email', $cols, true) ? 'email' : null;
+            $nameField = in_array('username', $cols, true) ? 'username' : (in_array('name', $cols, true) ? 'name' : null);
+            if ($emailField === null) {
+                $warning = 'Table users tidak punya kolom email.';
+            } else {
+                $sql = "SELECT {$emailField} AS email" . ($nameField ? ", {$nameField} AS name" : ", '' AS name") . " FROM users";
+                $resUsers = $logConn->query($sql);
+                if ($resUsers) {
+                    while ($row = $resUsers->fetch_assoc()) {
+                        $allRecipients[] = [
+                            'email' => (string)($row['email'] ?? ''),
+                            'name' => (string)($row['name'] ?? '')
+                        ];
+                    }
+                }
+            }
+        }
+
+        $recipients = normalize_recipients($allRecipients);
+
+        if ($smtpUser === '' || $smtpPass === '' || $subject === '') {
+            $warning = 'SMTP username, SMTP password, dan subject wajib diisi.';
+        } elseif ($messageBodyText === '' && $messageBodyHtml === '') {
+            $warning = 'Isi minimal salah satu body template: text atau HTML.';
+        } elseif ($fromEmail !== '' && !filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
+            $warning = 'Format From Email tidak valid.';
+        } elseif (count($recipients) === 0) {
+            $warning = 'Tidak ada email recipient yang valid.';
+        } elseif (!$logConn || $logConn->connect_error) {
+            $warning = 'DB log email tidak tersedia.';
+        } else {
+            $campaignId = null;
+            $insertCampaign = $logConn->prepare('INSERT INTO email_campaign_logs (created_by_user_id, created_by_username, smtp_user, from_name, from_email, subject, message_text, message_html, include_all_users, batch_size, delay_ms, batch_delay_ms, total_recipients, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            if ($insertCampaign) {
+                $createdByUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+                $createdByUsername = isset($_SESSION['username']) ? (string)$_SESSION['username'] : null;
+                $smtpUserForLog = $smtpUser;
+                $fromEmailForLog = $fromEmail !== '' ? $fromEmail : $smtpUser;
+                $totalRecipients = count($recipients);
+                $campaignStatus = 'processing';
+                $insertCampaign->bind_param(
+                    'isssssssiiiiis',
+                    $createdByUserId,
+                    $createdByUsername,
+                    $smtpUserForLog,
+                    $fromName,
+                    $fromEmailForLog,
+                    $subject,
+                    $messageBodyText,
+                    $messageBodyHtml,
+                    $includeAllUsers,
+                    $batchSize,
+                    $delayMs,
+                    $batchDelayMs,
+                    $totalRecipients,
+                    $campaignStatus
+                );
+                $insertCampaign->execute();
+                $campaignId = (int)$insertCampaign->insert_id;
+                $insertCampaign->close();
+            }
+
+            $payload = [
+                'smtp' => [
+                    'host' => 'smtp.gmail.com',
+                    'port' => 465,
+                    'user' => $smtpUser,
+                    'pass' => $smtpPass,
+                    'fromName' => $fromName,
+                    'fromEmail' => $fromEmail !== '' ? $fromEmail : $smtpUser
+                ],
+                'subject' => $subject,
+                'textTemplate' => $messageBodyText,
+                'htmlTemplate' => $messageBodyHtml,
+                'batchSize' => $batchSize,
+                'delayMs' => $delayMs,
+                'batchDelayMs' => $batchDelayMs,
+                'recipients' => $recipients
+            ];
+
+            if (!function_exists('proc_open')) {
+                $warning = 'Server tidak mengizinkan proc_open(). Aktifkan proc_open atau gunakan worker/background service.';
+            } else {
+                $descriptorspec = [
+                    0 => ['pipe', 'r'],
+                    1 => ['pipe', 'w'],
+                    2 => ['pipe', 'w']
+                ];
+                $nodeCommand = 'env -u LD_LIBRARY_PATH node send_email_broadcast.js';
+                $process = proc_open($nodeCommand, $descriptorspec, $pipes, __DIR__);
+                if (is_resource($process)) {
+                    fwrite($pipes[0], json_encode($payload, JSON_UNESCAPED_UNICODE));
+                    fclose($pipes[0]);
+                    $stdout = stream_get_contents($pipes[1]);
+                    fclose($pipes[1]);
+                    $stderr = stream_get_contents($pipes[2]);
+                    fclose($pipes[2]);
+                    $exitCode = proc_close($process);
+
+                    $outputLines = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $stdout . "\n" . $stderr)));
+                    foreach ($outputLines as $line) {
+                        if (strpos($line, 'SENT:') === 0) {
+                            $parts = explode("\t", $line, 3);
+                            $sentList[] = [
+                                'email' => $parts[1] ?? '',
+                                'name' => $parts[2] ?? ''
+                            ];
+                        } elseif (strpos($line, 'FAILED:') === 0) {
+                            $parts = explode("\t", $line, 4);
+                            $failedList[] = [
+                                'email' => $parts[1] ?? '',
+                                'name' => $parts[2] ?? '',
+                                'error' => $parts[3] ?? 'unknown_error'
+                            ];
+                        }
+                    }
+
+                    if ($campaignId) {
+                        $insItem = $logConn->prepare('INSERT INTO email_campaign_log_items (campaign_id, recipient_email, recipient_name, send_status, error_message) VALUES (?, ?, ?, ?, ?)');
+                        if ($insItem) {
+                            foreach ($sentList as $s) {
+                                $status = 'sent';
+                                $emptyErr = null;
+                                $email = (string)$s['email'];
+                                $name = (string)$s['name'];
+                                $insItem->bind_param('issss', $campaignId, $email, $name, $status, $emptyErr);
+                                $insItem->execute();
+                            }
+                            foreach ($failedList as $f) {
+                                $status = 'failed';
+                                $email = (string)$f['email'];
+                                $name = (string)$f['name'];
+                                $error = (string)$f['error'];
+                                $insItem->bind_param('issss', $campaignId, $email, $name, $status, $error);
+                                $insItem->execute();
+                            }
+                            $insItem->close();
+                        }
+
+                        $sentCount = count($sentList);
+                        $failedCount = count($failedList);
+                        $finalStatus = $failedCount === 0 ? 'success' : ($sentCount > 0 ? 'partial_failed' : 'failed');
+                        if ($exitCode !== 0 && $sentCount === 0 && $failedCount === 0) {
+                            $finalStatus = 'error';
+                        }
+                        $rawOutput = implode("\n", $outputLines);
+
+                        $upd = $logConn->prepare('UPDATE email_campaign_logs SET sent_count=?, failed_count=?, status=?, raw_output=?, finished_at=NOW() WHERE id=?');
+                        if ($upd) {
+                            $upd->bind_param('iissi', $sentCount, $failedCount, $finalStatus, $rawOutput, $campaignId);
+                            $upd->execute();
+                            $upd->close();
+                        }
+                    }
+
+                    $result = [
+                        'campaignId' => $campaignId,
+                        'exitCode' => $exitCode,
+                        'output' => $outputLines,
+                        'totalRecipients' => count($recipients),
+                        'sentCount' => count($sentList),
+                        'failedCount' => count($failedList)
                     ];
+                } else {
+                    $warning = 'Gagal menjalankan sender process. Pastikan command node tersedia di server.';
                 }
             }
         }
     }
+}
 
-    $recipients = normalize_recipients($allRecipients);
-
-    if ($smtpUser === '' || $smtpPass === '' || $subject === '') {
-        $warning = 'SMTP username, SMTP password, dan subject wajib diisi.';
-    } elseif ($messageBodyText === '' && $messageBodyHtml === '') {
-        $warning = 'Isi minimal salah satu body template: text atau HTML.';
-    } elseif ($fromEmail !== '' && !filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
-        $warning = 'Format From Email tidak valid.';
-    } elseif (count($recipients) === 0) {
-        $warning = 'Tidak ada email recipient yang valid.';
-    } elseif (!$logConn || $logConn->connect_error) {
-        $warning = 'DB log email tidak tersedia.';
-    } else {
-        $campaignId = null;
-        $insertCampaign = $logConn->prepare('INSERT INTO email_campaign_logs (created_by_user_id, created_by_username, smtp_user, from_name, from_email, subject, message_text, message_html, include_all_users, batch_size, delay_ms, batch_delay_ms, total_recipients, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        if ($insertCampaign) {
-            $createdByUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
-            $createdByUsername = isset($_SESSION['username']) ? (string)$_SESSION['username'] : null;
-            $smtpUserForLog = $smtpUser;
-            $fromEmailForLog = $fromEmail !== '' ? $fromEmail : $smtpUser;
-            $totalRecipients = count($recipients);
-            $campaignStatus = 'processing';
-            $insertCampaign->bind_param(
-                'isssssssiiiiis',
-                $createdByUserId,
-                $createdByUsername,
-                $smtpUserForLog,
-                $fromName,
-                $fromEmailForLog,
-                $subject,
-                $messageBodyText,
-                $messageBodyHtml,
-                $includeAllUsers,
-                $batchSize,
-                $delayMs,
-                $batchDelayMs,
-                $totalRecipients,
-                $campaignStatus
-            );
-            $insertCampaign->execute();
-            $campaignId = (int)$insertCampaign->insert_id;
-            $insertCampaign->close();
-        }
-
-        $payload = [
-            'smtp' => [
-                'host' => 'smtp.gmail.com',
-                'port' => 465,
-                'user' => $smtpUser,
-                'pass' => $smtpPass,
-                'fromName' => $fromName,
-                'fromEmail' => $fromEmail !== '' ? $fromEmail : $smtpUser
-            ],
-            'subject' => $subject,
-            'textTemplate' => $messageBodyText,
-            'htmlTemplate' => $messageBodyHtml,
-            'batchSize' => $batchSize,
-            'delayMs' => $delayMs,
-            'batchDelayMs' => $batchDelayMs,
-            'recipients' => $recipients
-        ];
-
-        if (!function_exists('proc_open')) {
-            $warning = 'Server tidak mengizinkan proc_open(). Aktifkan proc_open atau gunakan worker/background service.';
-        } else {
-            $descriptorspec = [
-                0 => ['pipe', 'r'],
-                1 => ['pipe', 'w'],
-                2 => ['pipe', 'w']
-            ];
-            $nodeCommand = 'env -u LD_LIBRARY_PATH node send_email_broadcast.js';
-            $process = proc_open($nodeCommand, $descriptorspec, $pipes, __DIR__);
-            if (is_resource($process)) {
-            fwrite($pipes[0], json_encode($payload, JSON_UNESCAPED_UNICODE));
-            fclose($pipes[0]);
-            $stdout = stream_get_contents($pipes[1]);
-            fclose($pipes[1]);
-            $stderr = stream_get_contents($pipes[2]);
-            fclose($pipes[2]);
-            $exitCode = proc_close($process);
-
-            $outputLines = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $stdout . "\n" . $stderr)));
-            foreach ($outputLines as $line) {
-                if (strpos($line, 'SENT:') === 0) {
-                    $parts = explode("\t", $line, 3);
-                    $sentList[] = [
-                        'email' => $parts[1] ?? '',
-                        'name' => $parts[2] ?? ''
-                    ];
-                } elseif (strpos($line, 'FAILED:') === 0) {
-                    $parts = explode("\t", $line, 4);
-                    $failedList[] = [
-                        'email' => $parts[1] ?? '',
-                        'name' => $parts[2] ?? '',
-                        'error' => $parts[3] ?? 'unknown_error'
-                    ];
-                }
-            }
-
-            if ($campaignId) {
-                $insItem = $logConn->prepare('INSERT INTO email_campaign_log_items (campaign_id, recipient_email, recipient_name, send_status, error_message) VALUES (?, ?, ?, ?, ?)');
-                if ($insItem) {
-                    foreach ($sentList as $s) {
-                        $status = 'sent';
-                        $emptyErr = null;
-                        $email = (string)$s['email'];
-                        $name = (string)$s['name'];
-                        $insItem->bind_param('issss', $campaignId, $email, $name, $status, $emptyErr);
-                        $insItem->execute();
-                    }
-                    foreach ($failedList as $f) {
-                        $status = 'failed';
-                        $email = (string)$f['email'];
-                        $name = (string)$f['name'];
-                        $error = (string)$f['error'];
-                        $insItem->bind_param('issss', $campaignId, $email, $name, $status, $error);
-                        $insItem->execute();
-                    }
-                    $insItem->close();
-                }
-
-                $sentCount = count($sentList);
-                $failedCount = count($failedList);
-                $finalStatus = $failedCount === 0 ? 'success' : ($sentCount > 0 ? 'partial_failed' : 'failed');
-                if ($exitCode !== 0 && $sentCount === 0 && $failedCount === 0) {
-                    $finalStatus = 'error';
-                }
-                $rawOutput = implode("\n", $outputLines);
-
-                $upd = $logConn->prepare('UPDATE email_campaign_logs SET sent_count=?, failed_count=?, status=?, raw_output=?, finished_at=NOW() WHERE id=?');
-                if ($upd) {
-                    $upd->bind_param('iissi', $sentCount, $failedCount, $finalStatus, $rawOutput, $campaignId);
-                    $upd->execute();
-                    $upd->close();
-                }
-            }
-
-                $result = [
-                    'campaignId' => $campaignId,
-                    'exitCode' => $exitCode,
-                    'output' => $outputLines,
-                    'totalRecipients' => count($recipients),
-                    'sentCount' => count($sentList),
-                    'failedCount' => count($failedList)
-                ];
-            } else {
-                $warning = 'Gagal menjalankan sender process. Pastikan command node tersedia di server.';
-            }
+if ($logConn && !$logConn->connect_error) {
+    $resTemplates = $logConn->query('SELECT id, template_name, subject, message_text, message_html, updated_at FROM email_templates ORDER BY updated_at DESC, id DESC LIMIT 200');
+    if ($resTemplates) {
+        while ($row = $resTemplates->fetch_assoc()) {
+            $customTemplates[] = $row;
         }
     }
 }
@@ -351,8 +426,12 @@ if ($selectedCampaignId > 0 && $logConn && !$logConn->connect_error) {
             <?php if ($warning !== ''): ?>
                 <div class="alert alert-warning"><?php echo htmlspecialchars($warning); ?></div>
             <?php endif; ?>
+            <?php if ($notice !== ''): ?>
+                <div class="alert alert-<?php echo $noticeType === 'success' ? 'success' : 'info'; ?>"><?php echo htmlspecialchars($notice); ?></div>
+            <?php endif; ?>
 
             <form method="post" id="emailForm">
+                <input type="hidden" name="form_action" value="send_campaign">
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">SMTP Username (Gmail)</label>
@@ -386,6 +465,16 @@ if ($selectedCampaignId > 0 && $logConn && !$logConn->connect_error) {
                             </button>
                         </div>
                         <div class="hint">Pilih template, otomatis isi subject + text + HTML, lalu bisa langsung Anda edit.</div>
+                        <div class="border rounded p-3 mt-2 bg-light">
+                            <label class="form-label mb-1">Manage Custom Templates</label>
+                            <div class="d-flex gap-2 mb-2">
+                                <input type="text" class="form-control" id="template_name_input" placeholder="Template name (e.g. Promo April)">
+                                <button type="button" class="btn btn-success" id="saveTemplateBtn"><i class="bi bi-save me-1"></i>Save New</button>
+                                <button type="button" class="btn btn-warning text-white" id="updateTemplateBtn"><i class="bi bi-pencil-square me-1"></i>Update</button>
+                                <button type="button" class="btn btn-danger" id="deleteTemplateBtn"><i class="bi bi-trash me-1"></i>Delete</button>
+                            </div>
+                            <div class="hint">Pilih template custom dari dropdown lalu klik Update/Delete. Save New akan membuat template baru.</div>
+                        </div>
                     </div>
 
                     <div class="col-md-6">
@@ -565,6 +654,15 @@ if ($selectedCampaignId > 0 && $logConn && !$logConn->connect_error) {
     <?php endif; ?>
 </div>
 
+<form method="post" id="templateForm" class="d-none">
+    <input type="hidden" name="form_action" id="template_form_action" value="">
+    <input type="hidden" name="template_id" id="template_form_template_id" value="">
+    <input type="hidden" name="template_name" id="template_form_template_name" value="">
+    <input type="hidden" name="subject" id="template_form_subject" value="">
+    <input type="hidden" name="message_body_text" id="template_form_text" value="">
+    <input type="hidden" name="message_body_html" id="template_form_html" value="">
+</form>
+
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 const importInput = document.getElementById('importFile');
@@ -576,8 +674,19 @@ const previewHtmlBtn = document.getElementById('previewHtmlBtn');
 const htmlPreview = document.getElementById('htmlPreview');
 const templateSelector = document.getElementById('template_selector');
 const applyTemplateBtn = document.getElementById('applyTemplateBtn');
+const templateNameInput = document.getElementById('template_name_input');
+const saveTemplateBtn = document.getElementById('saveTemplateBtn');
+const updateTemplateBtn = document.getElementById('updateTemplateBtn');
+const deleteTemplateBtn = document.getElementById('deleteTemplateBtn');
+const templateForm = document.getElementById('templateForm');
+const templateFormAction = document.getElementById('template_form_action');
+const templateFormTemplateId = document.getElementById('template_form_template_id');
+const templateFormTemplateName = document.getElementById('template_form_template_name');
+const templateFormSubject = document.getElementById('template_form_subject');
+const templateFormText = document.getElementById('template_form_text');
+const templateFormHtml = document.getElementById('template_form_html');
 
-const emailTemplates = [
+const builtinTemplates = [
     {
         id: 'new-job-alert',
         label: 'New Job Alert',
@@ -727,6 +836,28 @@ Terima kasih sudah menjadi bagian dari komunitas PaskerID.`,
     }
 ];
 
+const customTemplates = <?php echo json_encode($customTemplates, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+const allTemplateOptions = [
+    ...builtinTemplates.map((t) => ({
+        key: `builtin:${t.id}`,
+        id: t.id,
+        kind: 'builtin',
+        label: t.label,
+        subject: t.subject,
+        text: t.text,
+        html: t.html
+    })),
+    ...customTemplates.map((t) => ({
+        key: `custom:${t.id}`,
+        id: Number(t.id),
+        kind: 'custom',
+        label: t.template_name,
+        subject: t.subject || '',
+        text: t.message_text || '',
+        html: t.message_html || ''
+    }))
+];
+
 function pushRowsToTextarea(rows) {
     const lines = rows
         .map((r) => `${(r.email || '').trim()}${r.name ? ',' + r.name.trim() : ''}`)
@@ -766,18 +897,50 @@ function renderHtmlPreview() {
 }
 
 function initTemplateLibrary() {
-    emailTemplates.forEach((tpl) => {
-        const opt = document.createElement('option');
-        opt.value = tpl.id;
-        opt.textContent = tpl.label;
-        templateSelector.appendChild(opt);
-    });
+    const builtins = allTemplateOptions.filter((t) => t.kind === 'builtin');
+    const customs = allTemplateOptions.filter((t) => t.kind === 'custom');
+
+    if (builtins.length > 0) {
+        const ogBuiltin = document.createElement('optgroup');
+        ogBuiltin.label = 'Built-in Templates';
+        builtins.forEach((tpl) => {
+            const opt = document.createElement('option');
+            opt.value = tpl.key;
+            opt.textContent = tpl.label;
+            ogBuiltin.appendChild(opt);
+        });
+        templateSelector.appendChild(ogBuiltin);
+    }
+
+    if (customs.length > 0) {
+        const ogCustom = document.createElement('optgroup');
+        ogCustom.label = 'Saved Templates';
+        customs.forEach((tpl) => {
+            const opt = document.createElement('option');
+            opt.value = tpl.key;
+            opt.textContent = tpl.label;
+            ogCustom.appendChild(opt);
+        });
+        templateSelector.appendChild(ogCustom);
+    }
+}
+
+function getSelectedTemplate() {
+    const selectedKey = templateSelector.value;
+    return allTemplateOptions.find((tpl) => tpl.key === selectedKey) || null;
+}
+
+function populateTemplateForm(action, templateId, templateName) {
+    templateFormAction.value = action;
+    templateFormTemplateId.value = templateId ? String(templateId) : '';
+    templateFormTemplateName.value = templateName || '';
+    templateFormSubject.value = subjectInput.value || '';
+    templateFormText.value = textTextarea.value || '';
+    templateFormHtml.value = htmlTextarea.value || '';
 }
 
 function applySelectedTemplate() {
-    const selectedId = templateSelector.value;
-    if (!selectedId) return;
-    const tpl = emailTemplates.find((t) => t.id === selectedId);
+    const tpl = getSelectedTemplate();
     if (!tpl) return;
 
     const hasExisting = (subjectInput.value || '').trim() || (textTextarea.value || '').trim() || (htmlTextarea.value || '').trim();
@@ -788,11 +951,53 @@ function applySelectedTemplate() {
     subjectInput.value = tpl.subject;
     textTextarea.value = tpl.text;
     htmlTextarea.value = tpl.html;
+    if (tpl.kind === 'custom') {
+        templateNameInput.value = tpl.label;
+    }
     renderHtmlPreview();
 }
 
 previewHtmlBtn.addEventListener('click', renderHtmlPreview);
 applyTemplateBtn.addEventListener('click', applySelectedTemplate);
+saveTemplateBtn.addEventListener('click', () => {
+    const name = (templateNameInput.value || '').trim();
+    if (!name) {
+        window.alert('Isi nama template terlebih dulu.');
+        return;
+    }
+    populateTemplateForm('save_template', 0, name);
+    templateForm.submit();
+});
+updateTemplateBtn.addEventListener('click', () => {
+    const tpl = getSelectedTemplate();
+    if (!tpl || tpl.kind !== 'custom') {
+        window.alert('Pilih template custom dari dropdown untuk diupdate.');
+        return;
+    }
+    const name = (templateNameInput.value || tpl.label || '').trim();
+    if (!name) {
+        window.alert('Nama template tidak boleh kosong.');
+        return;
+    }
+    populateTemplateForm('update_template', tpl.id, name);
+    templateForm.submit();
+});
+deleteTemplateBtn.addEventListener('click', () => {
+    const tpl = getSelectedTemplate();
+    if (!tpl || tpl.kind !== 'custom') {
+        window.alert('Pilih template custom dari dropdown untuk dihapus.');
+        return;
+    }
+    if (!window.confirm(`Delete template "${tpl.label}"?`)) return;
+    populateTemplateForm('delete_template', tpl.id, tpl.label);
+    templateForm.submit();
+});
+templateSelector.addEventListener('change', () => {
+    const tpl = getSelectedTemplate();
+    if (tpl && tpl.kind === 'custom') {
+        templateNameInput.value = tpl.label;
+    }
+});
 document.addEventListener('DOMContentLoaded', () => {
     initTemplateLibrary();
     renderHtmlPreview();
