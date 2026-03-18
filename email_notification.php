@@ -207,7 +207,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 1 => ['pipe', 'w'],
                 2 => ['pipe', 'w']
             ];
-            $process = proc_open('node send_email_broadcast.js', $descriptorspec, $pipes, __DIR__);
+            $nodeCommand = 'env -u LD_LIBRARY_PATH node send_email_broadcast.js';
+            $process = proc_open($nodeCommand, $descriptorspec, $pipes, __DIR__);
             if (is_resource($process)) {
             fwrite($pipes[0], json_encode($payload, JSON_UNESCAPED_UNICODE));
             fclose($pipes[0]);
