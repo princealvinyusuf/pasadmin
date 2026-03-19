@@ -16,6 +16,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Login</title>
         <link rel="icon" href="https://paskerid.kemnaker.go.id/images/services/logo.png" type="image/png">
+        <!-- Google tag (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-VVRKTYE9YB"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-VVRKTYE9YB');
+        </script>
         <style>
             body { font-family: Arial, sans-serif; background: #f4f4f4; }
             .login-container { max-width: 400px; margin: 60px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }

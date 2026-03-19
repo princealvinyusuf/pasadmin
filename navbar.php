@@ -21,6 +21,14 @@
 ?>
 <?php // Ensure favicon is set on pages that include the navbar ?>
 <link rel="icon" href="https://paskerid.kemnaker.go.id/images/services/logo.png" type="image/png">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-VVRKTYE9YB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-VVRKTYE9YB');
+</script>
 <!-- Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container">
