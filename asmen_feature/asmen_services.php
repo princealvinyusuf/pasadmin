@@ -118,7 +118,7 @@ $stmt->close();
 								<input type="hidden" name="mark_serviced_id" value="<?php echo $row['id']; ?>">
 								<button class="btn btn-sm btn-outline-success" type="submit" onclick="return confirm('Mark as serviced today?');">Mark Serviced</button>
 							</form>
-							<a class="btn btn-sm btn-outline-primary" href="asmen_asset.php?id=<?php echo $row['id']; ?>">Detail</a>
+							<a class="btn btn-sm btn-outline-primary" href="asmen_asset?id=<?php echo $row['id']; ?>">Detail</a>
 						</td>
 						<td><?php echo htmlspecialchars($row['next_service_date']); ?></td>
 						<td><?php echo htmlspecialchars($row['service_priority']); ?></td>

@@ -33,14 +33,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 <img src="https://paskerid.kemnaker.go.id/images/services/logo.png" alt="Logo" style="height:40px; width:auto;">
             </div>
             <h2>Login</h2>
-            <form action="login.php" method="post">
+            <form action="login" method="post">
                 <label for="username">Username:</label>
                 <input type="text" id="username" name="username" required>
                 <label for="password">Password:</label>
                 <input type="password" id="password" name="password" required>
                 <button type="submit">Login</button>
             </form>
-            <a class="register-link" href="register.php">Don't have an account? Register</a>
+            <a class="register-link" href="register">Don't have an account? Register</a>
         </div>
     </body>
     </html>
@@ -86,7 +86,7 @@ try {
         if (isset($user['password']) && password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
-            header('Location: index.php');
+            header('Location: index');
             exit();
         }
     }

@@ -197,7 +197,7 @@ if ($exportAllRowsJson === false) {
             <button type="button" class="btn btn-success" id="btnExportExcel">
                 <i class="bi bi-file-earmark-excel me-1"></i>Export to Excel
             </button>
-            <a class="btn btn-outline-secondary" href="career_boostday.php"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
+            <a class="btn btn-outline-secondary" href="career_boostday"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
         </div>
     </div>
 

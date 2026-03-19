@@ -44,7 +44,7 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
 
 if (!table_exists($conn, 'walkin_gallery_comments')) {
     $_SESSION['error'] = 'Tabel walkin_gallery_comments belum ada. Jalankan migration di Laravel terlebih dahulu.';
-    header('Location: walkin_gallery.php');
+    header('Location: walkin_gallery');
     exit();
 }
 
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
             }
         }
     }
-    header('Location: walkin_gallery_comments.php');
+    header('Location: walkin_gallery_comments');
     exit();
 }
 
@@ -184,7 +184,7 @@ if ($res) {
             <h3 class="mb-0">Moderasi Komentar Galeri</h3>
             <div class="text-muted">Approve/reject komentar publik (tanpa login).</div>
         </div>
-        <a class="btn btn-outline-secondary" href="walkin_gallery.php"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+        <a class="btn btn-outline-secondary" href="walkin_gallery"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
     </div>
 
     <?php if (isset($_SESSION['error'])): ?>

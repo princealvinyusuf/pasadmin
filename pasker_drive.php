@@ -1649,19 +1649,19 @@ $fullBaseUrl = app_full_base_url();
         <div class="col-lg-2">
             <div class="card shadow-sm drive-sidebar">
                 <div class="list-group list-group-flush">
-                    <a class="list-group-item list-group-item-action <?= $view === 'all' ? 'active' : ''; ?>" href="pasker_drive.php?view=all&folder=<?= urlencode($folder); ?>">
+                    <a class="list-group-item list-group-item-action <?= $view === 'all' ? 'active' : ''; ?>" href="pasker_drive?view=all&folder=<?= urlencode($folder); ?>">
                         <i class="bi bi-folder2-open me-1"></i>My Drive
                     </a>
-                    <a class="list-group-item list-group-item-action <?= $view === 'recent' ? 'active' : ''; ?>" href="pasker_drive.php?view=recent">
+                    <a class="list-group-item list-group-item-action <?= $view === 'recent' ? 'active' : ''; ?>" href="pasker_drive?view=recent">
                         <i class="bi bi-clock-history me-1"></i>Recent
                     </a>
-                    <a class="list-group-item list-group-item-action <?= $view === 'starred' ? 'active' : ''; ?>" href="pasker_drive.php?view=starred">
+                    <a class="list-group-item list-group-item-action <?= $view === 'starred' ? 'active' : ''; ?>" href="pasker_drive?view=starred">
                         <i class="bi bi-star me-1"></i>Starred
                     </a>
-                    <a class="list-group-item list-group-item-action <?= $view === 'shared' ? 'active' : ''; ?>" href="pasker_drive.php?view=shared">
+                    <a class="list-group-item list-group-item-action <?= $view === 'shared' ? 'active' : ''; ?>" href="pasker_drive?view=shared">
                         <i class="bi bi-people me-1"></i>Shared with me
                     </a>
-                    <a class="list-group-item list-group-item-action <?= $view === 'trash' ? 'active' : ''; ?>" href="pasker_drive.php?view=trash">
+                    <a class="list-group-item list-group-item-action <?= $view === 'trash' ? 'active' : ''; ?>" href="pasker_drive?view=trash">
                         <i class="bi bi-trash me-1"></i>Trash
                     </a>
                 </div>
@@ -1724,7 +1724,7 @@ $fullBaseUrl = app_full_base_url();
                             <button type="submit" class="btn btn-sm btn-outline-primary">Filter</button>
                         </div>
                         <div class="col-6 d-grid">
-                            <a class="btn btn-sm btn-outline-secondary" href="pasker_drive.php?view=<?= urlencode($view); ?>&folder=<?= urlencode($folder); ?>&q=<?= urlencode($search); ?>">Reset</a>
+                            <a class="btn btn-sm btn-outline-secondary" href="pasker_drive?view=<?= urlencode($view); ?>&folder=<?= urlencode($folder); ?>&q=<?= urlencode($search); ?>">Reset</a>
                         </div>
                     </form>
                     <?php foreach ($activityRows as $a): ?>
@@ -1747,9 +1747,9 @@ $fullBaseUrl = app_full_base_url();
                 <div>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="pasker_drive.php?view=all&folder=">My Drive</a></li>
+                            <li class="breadcrumb-item"><a href="pasker_drive?view=all&folder=">My Drive</a></li>
                             <?php foreach ($crumbs as $c): ?>
-                                <li class="breadcrumb-item"><a href="pasker_drive.php?view=all&folder=<?= urlencode($c['path']); ?>"><?= h($c['name']); ?></a></li>
+                                <li class="breadcrumb-item"><a href="pasker_drive?view=all&folder=<?= urlencode($c['path']); ?>"><?= h($c['name']); ?></a></li>
                             <?php endforeach; ?>
                         </ol>
                     </nav>
@@ -1810,7 +1810,7 @@ $fullBaseUrl = app_full_base_url();
                                     <?php $name = basename($childFolder); ?>
                                     <div class="col-md-4 col-xl-3">
                                         <div class="folder-card h-100 d-flex flex-column justify-content-between">
-                                            <a class="text-decoration-none fw-semibold mb-2" href="pasker_drive.php?view=all&folder=<?= urlencode($childFolder); ?>">
+                                            <a class="text-decoration-none fw-semibold mb-2" href="pasker_drive?view=all&folder=<?= urlencode($childFolder); ?>">
                                                 <i class="bi bi-folder-fill text-warning me-1"></i><?= h($name); ?>
                                             </a>
                                             <form method="post" onsubmit="return confirm('Delete empty folder?');">
@@ -1968,7 +1968,7 @@ $fullBaseUrl = app_full_base_url();
                                                         <i class="bi bi-eye me-1"></i>Preview
                                                     </button>
                                                 <?php endif; ?>
-                                                <a class="btn btn-sm btn-success" href="<?= h($baseUrl); ?>pasker_drive_download.php?id=<?= $fileId; ?>">
+                                                <a class="btn btn-sm btn-success" href="<?= h($baseUrl); ?>pasker_drive_download?id=<?= $fileId; ?>">
                                                     <i class="bi bi-download me-1"></i>Download
                                                 </a>
                                                 <?php if ($canEditFile): ?>
@@ -2032,7 +2032,7 @@ $fullBaseUrl = app_full_base_url();
                                                             <div class="small border rounded px-2 py-1 mb-1 d-flex justify-content-between align-items-center">
                                                                 <span><?= h('v' . intval($ver['version_no']) . ' - ' . $ver['original_name']); ?> (<?= h(format_size(intval($ver['size_bytes']))); ?>)</span>
                                                                 <div class="d-flex gap-1">
-                                                                    <a class="btn btn-sm btn-outline-secondary py-0 px-2" href="<?= h($baseUrl); ?>pasker_drive_version_download.php?version_id=<?= intval($ver['id']); ?>">Download</a>
+                                                                    <a class="btn btn-sm btn-outline-secondary py-0 px-2" href="<?= h($baseUrl); ?>pasker_drive_version_download?version_id=<?= intval($ver['id']); ?>">Download</a>
                                                                     <?php if ($canEditFile): ?>
                                                                         <form method="post" onsubmit="return confirm('Restore this version as current?');">
                                                                             <input type="hidden" name="action" value="restore_version">

@@ -3,7 +3,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 if (empty($_SESSION['user_id'])) {
-    header('Location: login.php');
+    header('Location: login');
     exit();
 } 
 // Basic audit trail: log each authenticated page hit into job_admin_prod.audits

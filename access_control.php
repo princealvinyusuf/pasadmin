@@ -55,7 +55,7 @@ if ($action === 'save_group') {
 		}
 		$ins->close();
 	}
-	header('Location: access_control.php?tab=groups');
+	header('Location: access_control?tab=groups');
 	exit;
 }
 
@@ -65,7 +65,7 @@ if ($action === 'delete_group') {
 	$stmt->bind_param('i', $gid);
 	$stmt->execute();
 	$stmt->close();
-	header('Location: access_control.php?tab=groups');
+	header('Location: access_control?tab=groups');
 	exit;
 }
 
@@ -78,7 +78,7 @@ if ($action === 'save_user_access') {
 	$stmt->bind_param('isi', $userId, $accountType, $groupId);
 	$stmt->execute();
 	$stmt->close();
-	header('Location: access_control.php?tab=users');
+	header('Location: access_control?tab=users');
 	exit;
 }
 
@@ -95,7 +95,7 @@ if ($action === 'delete_user') {
 			$conn->query('DELETE FROM users WHERE id=' . $userId);
 		} catch (Throwable $e) {}
 	}
-	header('Location: access_control.php?tab=users');
+	header('Location: access_control?tab=users');
 	exit;
 }
 
@@ -107,7 +107,7 @@ if ($action === 'add_permission') {
 	$stmt->bind_param('sss', $code, $label, $category);
 	$stmt->execute();
 	$stmt->close();
-	header('Location: access_control.php?tab=permissions');
+	header('Location: access_control?tab=permissions');
 	exit;
 }
 
@@ -157,9 +157,9 @@ while ($r = $res->fetch_assoc()) { $userAccessRows[] = $r; }
 		<h2 class="mb-0">Access Control</h2>
 	</div>
 	<ul class="nav nav-tabs mb-3">
-		<li class="nav-item"><a class="nav-link <?php echo $tab==='users'?'active':''; ?>" href="access_control.php?tab=users">Users</a></li>
-		<li class="nav-item"><a class="nav-link <?php echo $tab==='groups'?'active':''; ?>" href="access_control.php?tab=groups">Groups</a></li>
-		<li class="nav-item"><a class="nav-link <?php echo $tab==='permissions'?'active':''; ?>" href="access_control.php?tab=permissions">Permissions</a></li>
+		<li class="nav-item"><a class="nav-link <?php echo $tab==='users'?'active':''; ?>" href="access_control?tab=users">Users</a></li>
+		<li class="nav-item"><a class="nav-link <?php echo $tab==='groups'?'active':''; ?>" href="access_control?tab=groups">Groups</a></li>
+		<li class="nav-item"><a class="nav-link <?php echo $tab==='permissions'?'active':''; ?>" href="access_control?tab=permissions">Permissions</a></li>
 	</ul>
 
 	<?php if ($tab === 'users'): ?>

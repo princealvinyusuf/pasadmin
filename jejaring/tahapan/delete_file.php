@@ -8,7 +8,7 @@ $fileKey = $_GET['file_key'] ?? null;
 
 $allowedFileKeys = ['file1', 'file2', 'file3'];
 if (!$id || !is_numeric($id) || !in_array($fileKey, $allowedFileKeys)) {
-    header("Location: index.php?error=invalid_request");
+    header("Location: index?error=invalid_request");
     exit();
 }
 $id = intval($id);
@@ -32,10 +32,10 @@ $stmt_update = $conn->prepare("UPDATE tahapan_kerjasama SET `$fileKey` = NULL WH
 $stmt_update->bind_param("i", $id);
 
 if ($stmt_update->execute()) {
-    header("Location: index.php?success=file_deleted");
+    header("Location: index?success=file_deleted");
     exit();
 } else {
-    header("Location: index.php?error=db_update_failed");
+    header("Location: index?error=db_update_failed");
     exit();
 }
 

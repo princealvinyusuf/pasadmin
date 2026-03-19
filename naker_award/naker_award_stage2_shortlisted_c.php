@@ -64,7 +64,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Naker Award - Stage 2 Shortlisted C</h2>
-        <a class="btn btn-outline-secondary" href="naker_award_second_assessment.php">Back to Second Assessment</a>
+        <a class="btn btn-outline-secondary" href="naker_award_second_assessment">Back to Second Assessment</a>
     </div>
 
     <div class="card">

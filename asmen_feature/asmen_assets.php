@@ -52,7 +52,7 @@ if ($action === 'delete' && isset($_GET['id'])) {
 	$stmt = $conn->prepare('DELETE FROM asmen_assets WHERE id=?');
 	$stmt->bind_param('i', $id);
 	$stmt->execute();
-	header('Location: asmen_assets.php');
+	header('Location: asmen_assets');
 	exit;
 }
 
@@ -117,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$upd->execute();
 		$upd->close();
 	}
-	header('Location: asmen_assets.php');
+	header('Location: asmen_assets');
 	exit;
 }
 
@@ -217,11 +217,11 @@ $stmt->close();
 	<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
 		<h2 class="mb-2 mb-md-0">AsMen - Assets</h2>
 		<div class="d-flex gap-2">
-			<form class="d-flex" method="get" action="asmen_assets.php">
+			<form class="d-flex" method="get" action="asmen_assets">
 				<input class="form-control me-2" type="text" name="search" placeholder="Search..." value="<?php echo htmlspecialchars($search); ?>">
 				<button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
 			</form>
-			<a class="btn btn-success" href="asmen_assets.php?export=1<?php echo $search !== '' ? '&search=' . urlencode($search) : '';?>"><i class="bi bi-file-earmark-excel"></i> Export</a>
+			<a class="btn btn-success" href="asmen_assets?export=1<?php echo $search !== '' ? '&search=' . urlencode($search) : '';?>"><i class="bi bi-file-earmark-excel"></i> Export</a>
 		</div>
 	</div>
 
@@ -261,9 +261,9 @@ $stmt->close();
 				<?php foreach ($rows as $row): ?>
 					<tr>
 						<td class="sticky-actions">
-							<a class="btn btn-sm btn-outline-primary me-1" href="asmen_assets.php?action=edit&id=<?php echo $row['id']; ?>#edit">Edit</a>
-							<a class="btn btn-sm btn-outline-danger me-1" href="asmen_assets.php?action=delete&id=<?php echo $row['id']; ?>" onclick="return confirm('Delete this asset?');">Delete</a>
-							<a class="btn btn-sm btn-outline-success" href="asmen_asset.php?id=<?php echo $row['id']; ?>">Detail</a>
+							<a class="btn btn-sm btn-outline-primary me-1" href="asmen_assets?action=edit&id=<?php echo $row['id']; ?>#edit">Edit</a>
+							<a class="btn btn-sm btn-outline-danger me-1" href="asmen_assets?action=delete&id=<?php echo $row['id']; ?>" onclick="return confirm('Delete this asset?');">Delete</a>
+							<a class="btn btn-sm btn-outline-success" href="asmen_asset?id=<?php echo $row['id']; ?>">Detail</a>
 						</td>
 						<td><?php echo $row['id']; ?></td>
 						<?php foreach ($columns as $name => $meta): if (!$meta['show']) continue; ?>
@@ -322,7 +322,7 @@ $stmt->close();
 				</div>
 				<div class="mt-3">
 					<button class="btn btn-primary" type="submit">Update</button>
-					<a class="btn btn-secondary" href="asmen_assets.php">Cancel</a>
+					<a class="btn btn-secondary" href="asmen_assets">Cancel</a>
 				</div>
 			</form>
 		</div>

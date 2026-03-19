@@ -114,7 +114,7 @@ function has_file_upload(array $file): bool {
 // Handle create/update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array($_POST['action'], ['create', 'update'], true)) {
     if (!table_exists($conn, 'walkin_gallery_items')) {
-        header('Location: walkin_gallery.php');
+        header('Location: walkin_gallery');
         exit();
     }
 
@@ -140,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
             $media_path = store_upload($_FILES['media_file'] ?? [], $uploadDir, ['jpg','jpeg','png','webp'], $uploadError, $relativeDir);
             if (!$media_path) {
                 $_SESSION['error'] = 'Upload foto gagal: ' . ($uploadError ?: 'unknown error');
-                header('Location: walkin_gallery.php');
+                header('Location: walkin_gallery');
                 exit();
             }
         }
@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
             $media_path = store_upload($_FILES['media_file'] ?? [], $uploadDir, ['mp4','webm','ogg'], $uploadError, $relativeDir);
             if (!$media_path) {
                 $_SESSION['error'] = 'Upload video gagal: ' . ($uploadError ?: 'unknown error');
-                header('Location: walkin_gallery.php');
+                header('Location: walkin_gallery');
                 exit();
             }
         }
@@ -163,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
     } elseif ($type === 'video_embed') {
         if ($embed_url === '') {
             $_SESSION['error'] = 'Embed URL wajib diisi untuk video_embed.';
-            header('Location: walkin_gallery.php');
+            header('Location: walkin_gallery');
             exit();
         }
         // no media upload; optional thumbnail upload (stored to thumbnail_path)
@@ -173,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
         $media_path = null;
     } else {
         $_SESSION['error'] = 'Type tidak valid.';
-        header('Location: walkin_gallery.php');
+        header('Location: walkin_gallery');
         exit();
     }
 
@@ -253,7 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
         }
     }
 
-    header('Location: walkin_gallery.php');
+    header('Location: walkin_gallery');
     exit();
 }
 
@@ -269,7 +269,7 @@ if (isset($_GET['delete'])) {
             $_SESSION['success'] = 'Item galeri dihapus.';
         }
     }
-    header('Location: walkin_gallery.php');
+    header('Location: walkin_gallery');
     exit();
 }
 
@@ -291,7 +291,7 @@ if (isset($_GET['edit'])) {
         }
         if (!$editItem) {
             $_SESSION['error'] = 'Item tidak ditemukan untuk diedit.';
-            header('Location: walkin_gallery.php');
+            header('Location: walkin_gallery');
             exit();
         }
     }
@@ -344,7 +344,7 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
             <h3 class="mb-0">Walk-in Gallery</h3>
             <div class="text-muted">Manage items shown on `kemitraan/create` gallery.</div>
         </div>
-        <a class="btn btn-outline-secondary" href="walkin_gallery_comments.php"><i class="bi bi-chat-dots me-1"></i>Moderasi Komentar</a>
+        <a class="btn btn-outline-secondary" href="walkin_gallery_comments"><i class="bi bi-chat-dots me-1"></i>Moderasi Komentar</a>
     </div>
 
     <?php if (isset($_SESSION['error'])): ?>
@@ -359,7 +359,7 @@ function h($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES)
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0"><?= $editItem ? 'Edit Item #' . intval($editItem['id']) : 'Tambah Item'; ?></h5>
                 <?php if ($editItem): ?>
-                    <a class="btn btn-sm btn-outline-secondary" href="walkin_gallery.php"><i class="bi bi-x-circle me-1"></i>Batal Edit</a>
+                    <a class="btn btn-sm btn-outline-secondary" href="walkin_gallery"><i class="bi bi-x-circle me-1"></i>Batal Edit</a>
                 <?php endif; ?>
             </div>
             <form method="post" enctype="multipart/form-data">

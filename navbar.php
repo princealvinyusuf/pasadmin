@@ -139,10 +139,10 @@
                             
                             
                         <li><hr class="dropdown-divider"></li>
-                            <?php if ($canDashKebutuhan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_kebutuhan_tenaga_kerja.php">Dashboard Kebutuhan Tenaga Kerja</a></li><?php endif; ?>
-                            <?php if ($canDashPersediaan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_persediaan_tenaga_kerja.php">Dashboard Persediaan Tenaga Kerja</a></li><?php endif; ?>
-                            <?php if ($canDashBlk || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_blk.php">Dashboard BLK</a></li><?php endif; ?>
-                            <?php if ($canDashIntegrasiKarirhubMitra || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_monitoring_integrasi_karirhub_mitra.php">Dashboard Monitoring Integrasi Karirhub x Mitra</a></li><?php endif; ?>
+                            <?php if ($canDashKebutuhan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_kebutuhan_tenaga_kerja">Dashboard Kebutuhan Tenaga Kerja</a></li><?php endif; ?>
+                            <?php if ($canDashPersediaan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_persediaan_tenaga_kerja">Dashboard Persediaan Tenaga Kerja</a></li><?php endif; ?>
+                            <?php if ($canDashBlk || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_blk">Dashboard BLK</a></li><?php endif; ?>
+                            <?php if ($canDashIntegrasiKarirhubMitra || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_monitoring_integrasi_karirhub_mitra">Dashboard Monitoring Integrasi Karirhub x Mitra</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -152,7 +152,7 @@
                         BLK
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="blkDropdown">
-                        <li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_blk.php">Dashboard Visualisasi BLK</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_blk">Dashboard Visualisasi BLK</a></li>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -162,8 +162,8 @@
                         Jejaring
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="jejaringDropdown">
-                        <?php if ($canManageSettings || $canDatabaseContact): ?><li><a class="dropdown-item" href="<?php echo $jejaringUrl; ?>database_contact.php">Database Contact</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canJejaringTahapan): ?><li><a class="dropdown-item" href="<?php echo $jejaringUrl; ?>tahapan/index.php">Tahapan Kerjasama</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canDatabaseContact): ?><li><a class="dropdown-item" href="<?php echo $jejaringUrl; ?>database_contact">Database Contact</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canJejaringTahapan): ?><li><a class="dropdown-item" href="<?php echo $jejaringUrl; ?>tahapan/index">Tahapan Kerjasama</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -173,7 +173,7 @@
                         API Key
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="apiKeyDropdown">
-                        <li><a class="dropdown-item" href="<?php echo $rootUrl; ?>api_keys.php">API Key Job Seekers</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $rootUrl; ?>api_keys">API Key Job Seekers</a></li>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -184,35 +184,35 @@
                         Settings
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="settingsDropdown">
-                        <?php if ($canManageSettings || $canChart): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>chart_settings.php">Chart Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canContribution): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>contribution_settings.php">Contribution Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canInformation): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>information_settings.php">Information Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canNews): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>news_settings.php">News Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canServices): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>services_settings.php">Services Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canStatistics): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>statistics_settings.php">Statistics Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canTestimonials): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>testimonials_settings.php">Testimonial Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canTopList): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>top_list_settings.php">Top List Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canChart): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>chart_settings">Chart Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canContribution): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>contribution_settings">Contribution Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canInformation): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>information_settings">Information Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canNews): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>news_settings">News Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canServices): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>services_settings">Services Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canStatistics): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>statistics_settings">Statistics Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canTestimonials): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>testimonials_settings">Testimonial Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canTopList): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>top_list_settings">Top List Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canManageSettings || $canAgenda): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>agenda_settings.php">Agenda Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canJobFair): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>job_fair_settings.php">Job Fair Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canVirtualKarir): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>virtual_karir_service_settings.php">Virtual Karir Service Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canAgenda): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>agenda_settings">Agenda Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canJobFair): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>job_fair_settings">Job Fair Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canVirtualKarir): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>virtual_karir_service_settings">Virtual Karir Service Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canManageSettings || current_user_can('view_db_sessions')): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>active_db_sessions.php">Active DB Sessions</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || current_user_can('view_db_sessions')): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>active_db_sessions">Active DB Sessions</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canManageSettings || $canMitraKerja): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>mitra_kerja_settings.php">Mitra Kerja Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canIntegrasiKarirhubMitraSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_monitoring_integrasi_karirhub_mitra_settings.php">Monitoring Integrasi Karirhub x Mitra Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canMitraKerja): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>mitra_kerja_settings">Mitra Kerja Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canIntegrasiKarirhubMitraSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_monitoring_integrasi_karirhub_mitra_settings">Monitoring Integrasi Karirhub x Mitra Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canManageSettings || $canAccessControl): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>access_control.php">Access Control</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canAuditTrails): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>audit_trails.php">Audit Trails</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canAccessControl): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>access_control">Access Control</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canAuditTrails): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>audit_trails">Audit Trails</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canManageSettings || $canBroadcast): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>broadcast.php">Broadcast</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canEmailNotification): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>email_notification.php">Email Notification</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canBroadcast): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>broadcast">Broadcast</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canEmailNotification): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>email_notification">Email Notification</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>karirhub_ads_settings.php">KarirHub Ads Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>split_screen_settings.php">Split Screen Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canIframe): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>iframe_settings.php">iFrame Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>karirhub_ads_settings">KarirHub Ads Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>split_screen_settings">Split Screen Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canIframe): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>iframe_settings">iFrame Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>cron_settings.php">Other Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>cron_settings">Other Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if (current_user_is_super_admin()): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>backup/">Backup</a></li><?php endif; ?>
                     </ul>
@@ -224,28 +224,28 @@
                         Layanan
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="layananDropdown">
-                        <?php if ($canManageSettings || $canPartnershipType): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>partnership_type_settings.php">Partnership Type Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canMitraSubmission): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_submission.php">Mitra Kerja Submission</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canKemitraanBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_booked.php">Kemitraan Booked</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canPaskerRoom): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>pasker_room_settings.php">Pasker Room Settings</a></li><?php endif; ?>
-                        <?php if ($canMiniJobi): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>mini_jobi_jobs.php">miniJobi Jobs</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canPartnershipType): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>partnership_type_settings">Partnership Type Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canMitraSubmission): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_submission">Mitra Kerja Submission</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canKemitraanBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_booked">Kemitraan Booked</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canPaskerRoom): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>pasker_room_settings">Pasker Room Settings</a></li><?php endif; ?>
+                        <?php if ($canMiniJobi): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>mini_jobi_jobs">miniJobi Jobs</a></li><?php endif; ?>
                         <?php if (($canManageSettings || $canPaskerRoom) && ($canCareerBoostDay || $canCareerBoostDayPic || $canCareerBoostDayBooked || $canFormHasilKonseling || $canWalkinGallery)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
-                        <?php if ($canCareerBoostDay): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday.php">Career Boost Day</a></li><?php endif; ?>
-                        <?php if ($canCareerBoostDaySlot): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_slot.php">Career Boost Day Jadwal</a></li><?php endif; ?>
-                        <?php if ($canCareerBoostDayPic): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_pic.php">Career Boost Day PIC</a></li><?php endif; ?>
-                        <?php if ($canCareerBoostDayBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_booked.php">Career Boost Day Booked</a></li><?php endif; ?>
-                        <?php if ($canCareerBoostDayAttendance): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_attendance.php">Career Boost Day Konfirmasi Kehadiran</a></li><?php endif; ?>
-                        <?php if ($canCareerBoostDayTestimonial): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_testimonial.php">Career Boost Day Testimonial</a></li><?php endif; ?>
-                        <?php if ($canFormHasilKonseling): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>form_hasil_konseling.php">Form Hasil Konseling</a></li><?php endif; ?>
+                        <?php if ($canCareerBoostDay): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday">Career Boost Day</a></li><?php endif; ?>
+                        <?php if ($canCareerBoostDaySlot): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_slot">Career Boost Day Jadwal</a></li><?php endif; ?>
+                        <?php if ($canCareerBoostDayPic): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_pic">Career Boost Day PIC</a></li><?php endif; ?>
+                        <?php if ($canCareerBoostDayBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_booked">Career Boost Day Booked</a></li><?php endif; ?>
+                        <?php if ($canCareerBoostDayAttendance): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_attendance">Career Boost Day Konfirmasi Kehadiran</a></li><?php endif; ?>
+                        <?php if ($canCareerBoostDayTestimonial): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_testimonial">Career Boost Day Testimonial</a></li><?php endif; ?>
+                        <?php if ($canFormHasilKonseling): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>form_hasil_konseling">Form Hasil Konseling</a></li><?php endif; ?>
                         <?php if ($canFormHasilKonseling && $canWalkinSurvey): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
-                        <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_initiator_settings.php">Walk-in Survey Initiators</a></li><?php endif; ?>
-                        <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_company_settings.php">Walk-in Survey Companies</a></li><?php endif; ?>
-                        <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_responses.php">Walk-in Survey Responses</a></li><?php endif; ?>
-                        <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_statistics.php">Walk-in Survey Statistik</a></li><?php endif; ?>
-                        <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_access_settings.php">Walk-in Survey Access</a></li><?php endif; ?>
-                        <?php if ($canMitraSubmission || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_form_access_settings.php">Walk-in Form Access</a></li><?php endif; ?>
+                        <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_initiator_settings">Walk-in Survey Initiators</a></li><?php endif; ?>
+                        <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_company_settings">Walk-in Survey Companies</a></li><?php endif; ?>
+                        <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_responses">Walk-in Survey Responses</a></li><?php endif; ?>
+                        <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_statistics">Walk-in Survey Statistik</a></li><?php endif; ?>
+                        <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_access_settings">Walk-in Survey Access</a></li><?php endif; ?>
+                        <?php if ($canMitraSubmission || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_form_access_settings">Walk-in Form Access</a></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
-                        <?php if ($canWalkinGallery): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_gallery.php"><i class="bi bi-images me-1"></i>Walk-in Gallery</a></li><?php endif; ?>
+                        <?php if ($canWalkinGallery): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_gallery"><i class="bi bi-images me-1"></i>Walk-in Gallery</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -255,12 +255,12 @@
                         AsMen
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="asmenDropdown">
-                        <?php if ($canAsmenDashboard): ?><li><a class="dropdown-item" href="<?php echo $asmenPrefix; ?>asmen_dashboard.php">Dashboard</a></li><?php endif; ?>
-                        <?php if ($canAsmenAssets): ?><li><a class="dropdown-item" href="<?php echo $asmenPrefix; ?>asmen_assets.php">Assets</a></li><?php endif; ?>
-                        <?php if ($canAsmenServices): ?><li><a class="dropdown-item" href="<?php echo $asmenPrefix; ?>asmen_services.php">Services</a></li><?php endif; ?>
-                        <?php if ($canAsmenCalendar): ?><li><a class="dropdown-item" href="<?php echo $asmenPrefix; ?>asmen_calendar.php">Calendar</a></li><?php endif; ?>
+                        <?php if ($canAsmenDashboard): ?><li><a class="dropdown-item" href="<?php echo $asmenPrefix; ?>asmen_dashboard">Dashboard</a></li><?php endif; ?>
+                        <?php if ($canAsmenAssets): ?><li><a class="dropdown-item" href="<?php echo $asmenPrefix; ?>asmen_assets">Assets</a></li><?php endif; ?>
+                        <?php if ($canAsmenServices): ?><li><a class="dropdown-item" href="<?php echo $asmenPrefix; ?>asmen_services">Services</a></li><?php endif; ?>
+                        <?php if ($canAsmenCalendar): ?><li><a class="dropdown-item" href="<?php echo $asmenPrefix; ?>asmen_calendar">Calendar</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <?php if ($canAsmenQR): ?><li><a class="dropdown-item" href="<?php echo $asmenPrefix; ?>asmen_qr_scan.php">QR Scanner</a></li><?php endif; ?>
+                        <?php if ($canAsmenQR): ?><li><a class="dropdown-item" href="<?php echo $asmenPrefix; ?>asmen_qr_scan">QR Scanner</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -270,16 +270,16 @@
                         WLLP Award
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="nakerAwardDropdown">
-                        <?php if ($canNakerAssessment || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_initial_assessment.php">Initial Assessment</a></li><?php endif; ?>
-                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_bobot_settings.php">Bobot Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_interval_settings.php">Interval Settings</a></li><?php endif; ?>
-                        <?php if ($canNakerStage1 || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_stage1_shortlisted_c.php">Stage 1 Shortlisted C</a></li><?php endif; ?>
-                        <?php if ($canNakerSecond): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_second_assessment.php">Second Assessment</a></li><?php endif; ?>
-                        <?php if ($canNakerStage2): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_stage2_shortlisted_c.php">Stage 2 Shortlisted C</a></li><?php endif; ?>
-                        <?php if ($canNakerThird): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_third_assessment.php">Third Assessment</a></li><?php endif; ?>
-                        <?php if ($canNakerVerify): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_verification.php">Verification</a></li><?php endif; ?>
-                        <?php if ($canNakerFinal): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_final_nominees.php">Final Nominees</a></li><?php endif; ?>
-                        <?php if (current_user_can('naker_award_backup_nominees')): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_backup_nominees.php">Backup Data Nominees</a></li><?php endif; ?>
+                        <?php if ($canNakerAssessment || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_initial_assessment">Initial Assessment</a></li><?php endif; ?>
+                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_bobot_settings">Bobot Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_interval_settings">Interval Settings</a></li><?php endif; ?>
+                        <?php if ($canNakerStage1 || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_stage1_shortlisted_c">Stage 1 Shortlisted C</a></li><?php endif; ?>
+                        <?php if ($canNakerSecond): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_second_assessment">Second Assessment</a></li><?php endif; ?>
+                        <?php if ($canNakerStage2): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_stage2_shortlisted_c">Stage 2 Shortlisted C</a></li><?php endif; ?>
+                        <?php if ($canNakerThird): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_third_assessment">Third Assessment</a></li><?php endif; ?>
+                        <?php if ($canNakerVerify): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_verification">Verification</a></li><?php endif; ?>
+                        <?php if ($canNakerFinal): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_final_nominees">Final Nominees</a></li><?php endif; ?>
+                        <?php if (current_user_can('naker_award_backup_nominees')): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_backup_nominees">Backup Data Nominees</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -289,29 +289,29 @@
                         Extensions
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="extensionsDropdown">
-                        <?php if ($canExtensions || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>extensions.php">Extensions</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canRegistrasiKehadiran): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>registrasi_kehadiran.php">Registrasi Kehadiran</a></li><?php endif; ?>
-                        <?php if ($canSplitScreen): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>split_screen.php"><i class="bi bi-layout-split me-1"></i>Split Screen</a></li><?php endif; ?>
+                        <?php if ($canExtensions || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>extensions">Extensions</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canRegistrasiKehadiran): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>registrasi_kehadiran">Registrasi Kehadiran</a></li><?php endif; ?>
+                        <?php if ($canSplitScreen): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>split_screen"><i class="bi bi-layout-split me-1"></i>Split Screen</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
                 <?php if ($canPaskerDrive): ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootUrl; ?>pasker_drive.php"><i class="bi bi-cloud me-1"></i>Pasker Drive</a>
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>pasker_drive"><i class="bi bi-cloud me-1"></i>Pasker Drive</a>
                 </li>
                 <?php endif; ?>
                 <?php if ($canOUI): ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootUrl; ?>oui.php">OUI</a>
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>oui">OUI</a>
                 </li>
                 <?php endif; ?>
                 <!-- <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootUrl; ?>classification_magang.php">
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>classification_magang">
                         Magang
                     </a>
                 </li> -->
                 <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootUrl; ?>logout.php"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>logout"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
                 </li>
             </ul>
         </div>

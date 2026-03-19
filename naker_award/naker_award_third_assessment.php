@@ -52,7 +52,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">WLLP Award - Third Assessment</h2>
-        <a class="btn btn-outline-secondary" href="naker_award_stage2_shortlisted_c.php">Back to Stage 2</a>
+        <a class="btn btn-outline-secondary" href="naker_award_stage2_shortlisted_c">Back to Stage 2</a>
     </div>
 
     <div class="card">
@@ -89,7 +89,7 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
                             ?>
                         </td>
                         <td>
-                            <a class="btn btn-sm btn-primary" href="naker_award_third_assessment_form.php?assessment_id=<?php echo intval($row['id']); ?>">General Data</a>
+                            <a class="btn btn-sm btn-primary" href="naker_award_third_assessment_form?assessment_id=<?php echo intval($row['id']); ?>">General Data</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>

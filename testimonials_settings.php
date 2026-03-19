@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param('sssss', $name, $position, $company, $photo_url, $quote);
         $stmt->execute();
     }
-    header('Location: testimonials_settings.php');
+    header('Location: testimonials_settings');
     exit;
 }
 
@@ -45,7 +45,7 @@ if ($action === 'delete' && $id) {
     $stmt = $conn->prepare("DELETE FROM testimonials WHERE id=?");
     $stmt->bind_param('i', $id);
     $stmt->execute();
-    header('Location: testimonials_settings.php');
+    header('Location: testimonials_settings');
     exit;
 }
 
@@ -107,7 +107,7 @@ $testimonials = $result->fetch_all(MYSQLI_ASSOC);
                     </div>
                     <button type="submit" class="btn btn-primary">Save</button>
                     <?php if ($edit_data): ?>
-                        <a href="testimonials_settings.php" class="btn btn-secondary">Cancel</a>
+                        <a href="testimonials_settings" class="btn btn-secondary">Cancel</a>
                     <?php endif; ?>
                 </form>
             </div>
@@ -141,8 +141,8 @@ $testimonials = $result->fetch_all(MYSQLI_ASSOC);
                             <td><?= $row['created_at'] ?></td>
                             <td><?= $row['updated_at'] ?></td>
                             <td>
-                                <a href="testimonials_settings.php?action=edit&id=<?= $row['id'] ?>" class="btn btn-sm btn-warning">Edit</a>
-                                <a href="testimonials_settings.php?action=delete&id=<?= $row['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Delete this testimonial?')">Delete</a>
+                                <a href="testimonials_settings?action=edit&id=<?= $row['id'] ?>" class="btn btn-sm btn-warning">Edit</a>
+                                <a href="testimonials_settings?action=delete&id=<?= $row['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Delete this testimonial?')">Delete</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

@@ -27,7 +27,7 @@ $stmt->close();
 <body class="bg-light">
 <?php include 'navbar.php'; ?>
 <div class="container py-4">
-    <a href="audit_trails.php" class="btn btn-outline-secondary mb-3">Back</a>
+    <a href="audit_trails" class="btn btn-outline-secondary mb-3">Back</a>
     <?php if (!$row): ?>
         <div class="alert alert-warning">Audit not found.</div>
     <?php else: ?>

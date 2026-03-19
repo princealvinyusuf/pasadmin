@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt->execute();
         $stmt->close();
     }
-    header('Location: naker_award_verification.php');
+    header('Location: naker_award_verification');
     exit;
 }
 

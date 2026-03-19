@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'assig
         $stmt->execute();
         $stmt->close();
     }
-    header('Location: naker_award_final_nominees.php');
+    header('Location: naker_award_final_nominees');
     exit;
 }
 
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'rejec
         $stmt->execute();
         $stmt->close();
     }
-    header('Location: naker_award_final_nominees.php');
+    header('Location: naker_award_final_nominees');
     exit;
 }
 

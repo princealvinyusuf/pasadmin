@@ -147,7 +147,7 @@ foreach ($dashboardData['panels'] as $panel) {
                     </div>
                     <div class="kpi-value mb-3"><?php echo e($card['value']); ?></div>
                     <div class="mt-auto d-grid">
-                        <a class="btn btn-outline-primary btn-sm" href="dashboard_blk_detail.php?item=<?php echo e($card['id']); ?>&<?php echo e($baseFilterQuery); ?>">
+                        <a class="btn btn-outline-primary btn-sm" href="dashboard_blk_detail?item=<?php echo e($card['id']); ?>&<?php echo e($baseFilterQuery); ?>">
                             <i class="bi bi-table me-1"></i>Detail
                         </a>
                     </div>
@@ -162,7 +162,7 @@ foreach ($dashboardData['panels'] as $panel) {
             <div class="card panel-card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><?php echo e($panelsById['partisipasi-tren']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail.php?item=partisipasi-tren&<?php echo e($baseFilterQuery); ?>">Detail</a>
+                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail?item=partisipasi-tren&<?php echo e($baseFilterQuery); ?>">Detail</a>
                 </div>
                 <div class="card-body chart-box"><canvas id="chart-partisipasi-tren"></canvas></div>
             </div>
@@ -171,7 +171,7 @@ foreach ($dashboardData['panels'] as $panel) {
             <div class="card panel-card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><?php echo e($panelsById['partisipasi-rasio']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail.php?item=partisipasi-rasio&<?php echo e($baseFilterQuery); ?>">Detail</a>
+                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail?item=partisipasi-rasio&<?php echo e($baseFilterQuery); ?>">Detail</a>
                 </div>
                 <div class="card-body chart-box"><canvas id="chart-partisipasi-rasio"></canvas></div>
             </div>
@@ -184,7 +184,7 @@ foreach ($dashboardData['panels'] as $panel) {
             <div class="card panel-card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><?php echo e($panelsById['output-lulusan-sertifikat']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail.php?item=output-lulusan-sertifikat&<?php echo e($baseFilterQuery); ?>">Detail</a>
+                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail?item=output-lulusan-sertifikat&<?php echo e($baseFilterQuery); ?>">Detail</a>
                 </div>
                 <div class="card-body chart-box"><canvas id="chart-output-lulusan-sertifikat"></canvas></div>
             </div>
@@ -193,7 +193,7 @@ foreach ($dashboardData['panels'] as $panel) {
             <div class="card panel-card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><?php echo e($panelsById['output-kelulusan']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail.php?item=output-kelulusan&<?php echo e($baseFilterQuery); ?>">Detail</a>
+                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail?item=output-kelulusan&<?php echo e($baseFilterQuery); ?>">Detail</a>
                 </div>
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-1"><strong>88.5%</strong><span class="text-success">+1.2%</span></div>
@@ -203,7 +203,7 @@ foreach ($dashboardData['panels'] as $panel) {
             <div class="card panel-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><?php echo e($panelsById['output-sertifikasi']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail.php?item=output-sertifikasi&<?php echo e($baseFilterQuery); ?>">Detail</a>
+                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail?item=output-sertifikasi&<?php echo e($baseFilterQuery); ?>">Detail</a>
                 </div>
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-1"><strong>92.1%</strong><span class="text-success">+0.8%</span></div>
@@ -219,7 +219,7 @@ foreach ($dashboardData['panels'] as $panel) {
             <div class="card panel-card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><?php echo e($panelsById['distribusi-kejuruan']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail.php?item=distribusi-kejuruan&<?php echo e($baseFilterQuery); ?>">Detail</a>
+                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail?item=distribusi-kejuruan&<?php echo e($baseFilterQuery); ?>">Detail</a>
                 </div>
                 <div class="card-body chart-box"><canvas id="chart-distribusi-kejuruan"></canvas></div>
             </div>
@@ -228,7 +228,7 @@ foreach ($dashboardData['panels'] as $panel) {
             <div class="card panel-card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><?php echo e($panelsById['distribusi-provinsi']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail.php?item=distribusi-provinsi&<?php echo e($baseFilterQuery); ?>">Detail</a>
+                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail?item=distribusi-provinsi&<?php echo e($baseFilterQuery); ?>">Detail</a>
                 </div>
                 <div class="card-body chart-box"><canvas id="chart-distribusi-provinsi"></canvas></div>
             </div>
@@ -241,7 +241,7 @@ foreach ($dashboardData['panels'] as $panel) {
             <div class="card panel-card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><?php echo e($panelsById['integrasi-kpi']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail.php?item=integrasi-kpi&<?php echo e($baseFilterQuery); ?>">Detail</a>
+                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail?item=integrasi-kpi&<?php echo e($baseFilterQuery); ?>">Detail</a>
                 </div>
                 <div class="card-body d-grid gap-2">
                     <div class="metric-tile">
@@ -263,7 +263,7 @@ foreach ($dashboardData['panels'] as $panel) {
             <div class="card panel-card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><?php echo e($panelsById['integrasi-gap']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail.php?item=integrasi-gap&<?php echo e($baseFilterQuery); ?>">Detail</a>
+                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail?item=integrasi-gap&<?php echo e($baseFilterQuery); ?>">Detail</a>
                 </div>
                 <div class="card-body chart-box"><canvas id="chart-integrasi-gap"></canvas></div>
             </div>
@@ -276,7 +276,7 @@ foreach ($dashboardData['panels'] as $panel) {
             <div class="card panel-card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><?php echo e($panelsById['outcome-konversi']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail.php?item=outcome-konversi&<?php echo e($baseFilterQuery); ?>">Detail</a>
+                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail?item=outcome-konversi&<?php echo e($baseFilterQuery); ?>">Detail</a>
                 </div>
                 <div class="card-body chart-box"><canvas id="chart-outcome-konversi"></canvas></div>
             </div>
@@ -285,7 +285,7 @@ foreach ($dashboardData['panels'] as $panel) {
             <div class="card panel-card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><?php echo e($panelsById['outcome-penempatan']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail.php?item=outcome-penempatan&<?php echo e($baseFilterQuery); ?>">Detail</a>
+                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail?item=outcome-penempatan&<?php echo e($baseFilterQuery); ?>">Detail</a>
                 </div>
                 <div class="card-body chart-box"><canvas id="chart-outcome-penempatan"></canvas></div>
             </div>

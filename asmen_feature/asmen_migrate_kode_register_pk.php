@@ -85,7 +85,7 @@ if ($action === 'migrate' && $canMigrate) {
 				</li>
 			</ul>
 			<?php if ($canMigrate): ?>
-				<a class="btn btn-primary" href="asmen_migrate_kode_register_pk.php?action=migrate" onclick="return confirm('Proceed with migration?');">Run Migration</a>
+				<a class="btn btn-primary" href="asmen_migrate_kode_register_pk?action=migrate" onclick="return confirm('Proceed with migration?');">Run Migration</a>
 			<?php else: ?>
 				<div class="alert alert-warning">Fix NULL/empty or duplicate kode_register values before migrating.</div>
 			<?php endif; ?>

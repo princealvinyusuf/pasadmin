@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $max = isset($_POST['max_bookings']) ? sanitize_int($_POST['max_bookings']) : 0;
     if ($name === '') {
         $_SESSION['error'] = 'Name is required';
-        header('Location: partnership_type_settings.php');
+        header('Location: partnership_type_settings');
         exit();
     }
     if ($id > 0) {
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-    header('Location: partnership_type_settings.php');
+    header('Location: partnership_type_settings');
     exit();
 }
 
@@ -115,7 +115,7 @@ if (isset($_GET['delete'])) {
             $_SESSION['success'] = 'Deleted successfully';
         }
     }
-    header('Location: partnership_type_settings.php');
+    header('Location: partnership_type_settings');
     exit();
 }
 

@@ -96,7 +96,7 @@ if ($hasResponseTable && isset($_GET['delete'])) {
     } else {
         $_SESSION['error'] = 'Gagal menghapus response: ' . $conn->error;
     }
-    header('Location: walkin_survey_responses.php');
+    header('Location: walkin_survey_responses');
     exit();
 }
 
@@ -118,7 +118,7 @@ if ($hasResponseTable && isset($_GET['remove_duplicate']) && $_GET['remove_dupli
     } else {
         $_SESSION['error'] = 'Gagal menghapus duplicate response: ' . $conn->error;
     }
-    header('Location: walkin_survey_responses.php');
+    header('Location: walkin_survey_responses');
     exit();
 }
 
@@ -258,9 +258,9 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
     <div class="d-flex align-items-center justify-content-between mb-3">
         <h3 class="mb-0">Walk-in Survey Responses</h3>
         <div class="d-flex gap-2">
-            <a href="walkin_survey_statistics.php" class="btn btn-primary btn-sm"><i class="bi bi-bar-chart-line me-1"></i>Statistik</a>
-            <a href="walkin_survey_initiator_settings.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-people me-1"></i>Manage Initiators</a>
-            <a href="walkin_survey_company_settings.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-building me-1"></i>Manage Companies</a>
+            <a href="walkin_survey_statistics" class="btn btn-primary btn-sm"><i class="bi bi-bar-chart-line me-1"></i>Statistik</a>
+            <a href="walkin_survey_initiator_settings" class="btn btn-outline-primary btn-sm"><i class="bi bi-people me-1"></i>Manage Initiators</a>
+            <a href="walkin_survey_company_settings" class="btn btn-outline-primary btn-sm"><i class="bi bi-building me-1"></i>Manage Companies</a>
         </div>
     </div>
 
@@ -300,11 +300,11 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
                 <div class="col-12 col-xl-2 d-flex align-items-end">
                     <div class="d-flex flex-wrap gap-2 w-100 justify-content-xl-end">
                         <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Filter</button>
-                        <a href="walkin_survey_responses.php" class="btn btn-secondary">Reset</a>
+                        <a href="walkin_survey_responses" class="btn btn-secondary">Reset</a>
                         <a href="<?php echo htmlspecialchars($duplicateToggleUrl); ?>" class="btn <?php echo $showDuplicateEmails ? 'btn-outline-dark' : 'btn-outline-info'; ?>">
                             <i class="bi bi-copy me-1"></i><?php echo $showDuplicateEmails ? 'Hide Duplicate Email' : 'See Duplicate Email'; ?>
                         </a>
-                        <a href="walkin_survey_responses.php?remove_duplicate=1"
+                        <a href="walkin_survey_responses?remove_duplicate=1"
                            class="btn btn-outline-danger"
                            onclick="return confirm('Hapus semua duplicate response berdasarkan email? Data terbaru per email akan dipertahankan.');">
                             <i class="bi bi-trash3 me-1"></i>Remove Duplicate Response

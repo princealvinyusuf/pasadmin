@@ -91,7 +91,7 @@ $totalPages = max(1, (int)ceil($totalRows / $pageSize));
         </div>
         <div class="col-12 col-md-3 d-flex gap-2">
             <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Filter</button>
-            <a class="btn btn-outline-secondary" href="audit_trails.php">Reset</a>
+            <a class="btn btn-outline-secondary" href="audit_trails">Reset</a>
         </div>
     </form>
 
@@ -120,7 +120,7 @@ $totalPages = max(1, (int)ceil($totalRows / $pageSize));
                             <td><?php echo htmlspecialchars($r['method'] ?? ''); ?></td>
                             <td><code><?php echo htmlspecialchars($r['path']); ?></code></td>
                             <td><?php echo htmlspecialchars($r['created_at']); ?></td>
-                            <td><a class="btn btn-sm btn-outline-primary" href="audit_trails_view.php?id=<?php echo $r['id']; ?>">View</a></td>
+                            <td><a class="btn btn-sm btn-outline-primary" href="audit_trails_view?id=<?php echo $r['id']; ?>">View</a></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>

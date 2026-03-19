@@ -43,7 +43,7 @@ if ($action === 'create') {
         $stmt->execute();
         $stmt->close();
     }
-    header('Location: api_keys.php');
+    header('Location: api_keys');
     exit;
 }
 
@@ -52,7 +52,7 @@ if ($action === 'toggle') {
     if ($id > 0) {
         $conn->query('UPDATE api_keys SET is_active = IF(is_active=1,0,1) WHERE id=' . $id);
     }
-    header('Location: api_keys.php');
+    header('Location: api_keys');
     exit;
 }
 
@@ -65,7 +65,7 @@ if ($action === 'regenerate') {
         $stmt->execute();
         $stmt->close();
     }
-    header('Location: api_keys.php');
+    header('Location: api_keys');
     exit;
 }
 
@@ -77,7 +77,7 @@ if ($action === 'delete') {
         $stmt->execute();
         $stmt->close();
     }
-    header('Location: api_keys.php');
+    header('Location: api_keys');
     exit;
 }
 
@@ -91,7 +91,7 @@ if ($action === 'set_expiry') {
         $stmt->execute();
         $stmt->close();
     }
-    header('Location: api_keys.php');
+    header('Location: api_keys');
     exit;
 }
 
@@ -100,7 +100,7 @@ if ($action === 'clear_expiry') {
     if ($id > 0) {
         $conn->query('UPDATE api_keys SET expires_at=NULL WHERE id=' . $id);
     }
-    header('Location: api_keys.php');
+    header('Location: api_keys');
     exit;
 }
 

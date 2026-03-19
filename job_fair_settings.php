@@ -26,7 +26,7 @@ if (isset($_POST['add'])) {
     $stmt->bind_param("ssssss", $title, $description, $image_url, $date, $author, $register_url);
     $stmt->execute();
     $stmt->close();
-    header("Location: job_fair_settings.php");
+    header("Location: job_fair_settings");
     exit();
 }
 
@@ -43,7 +43,7 @@ if (isset($_POST['update'])) {
     $stmt->bind_param("ssssssi", $title, $description, $image_url, $date, $author, $register_url, $id);
     $stmt->execute();
     $stmt->close();
-    header("Location: job_fair_settings.php");
+    header("Location: job_fair_settings");
     exit();
 }
 
@@ -54,7 +54,7 @@ if (isset($_GET['delete'])) {
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
-    header("Location: job_fair_settings.php");
+    header("Location: job_fair_settings");
     exit();
 }
 
@@ -220,7 +220,7 @@ $job_fairs = $conn->query("SELECT * FROM virtual_karir_job_fairs ORDER BY id DES
             </label>
             <button type="submit" class="btn" name="<?php echo $edit_job_fair ? 'update' : 'add'; ?>"><?php echo $edit_job_fair ? 'Update' : 'Add'; ?></button>
             <?php if ($edit_job_fair): ?>
-                <a href="job_fair_settings.php" class="btn cancel">Cancel</a>
+                <a href="job_fair_settings" class="btn cancel">Cancel</a>
             <?php endif; ?>
         </form>
         <h3>All Job Fairs</h3>
@@ -249,8 +249,8 @@ $job_fairs = $conn->query("SELECT * FROM virtual_karir_job_fairs ORDER BY id DES
                 <td><?php echo $row['created_at']; ?></td>
                 <td><?php echo $row['updated_at']; ?></td>
                 <td class="actions">
-                    <a href="job_fair_settings.php?edit=<?php echo $row['id']; ?>" class="btn">Edit</a>
-                    <a href="job_fair_settings.php?delete=<?php echo $row['id']; ?>" class="btn delete" onclick="return confirm('Delete this job fair?');">Delete</a>
+                    <a href="job_fair_settings?edit=<?php echo $row['id']; ?>" class="btn">Edit</a>
+                    <a href="job_fair_settings?delete=<?php echo $row['id']; ?>" class="btn delete" onclick="return confirm('Delete this job fair?');">Delete</a>
                 </td>
             </tr>
             <?php endwhile; ?>

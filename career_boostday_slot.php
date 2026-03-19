@@ -144,7 +144,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $_SESSION[$ok ? 'success' : 'error'] = $ok ? 'Jadwal berhasil ditambahkan.' : 'Gagal menambahkan jadwal (kemungkinan label duplikat).';
             }
         }
-        header('Location: career_boostday_slot.php');
+        header('Location: career_boostday_slot');
         exit;
     }
 
@@ -170,7 +170,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $_SESSION[$ok ? 'success' : 'error'] = $ok ? 'Jadwal berhasil diupdate.' : 'Gagal mengupdate jadwal (kemungkinan label duplikat).';
             }
         }
-        header('Location: career_boostday_slot.php');
+        header('Location: career_boostday_slot');
         exit;
     }
 
@@ -186,7 +186,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $_SESSION['success'] = 'Jadwal berhasil dinonaktifkan.';
             }
         }
-        header('Location: career_boostday_slot.php');
+        header('Location: career_boostday_slot');
         exit;
     }
 }
@@ -219,7 +219,7 @@ if ($res) {
             <div class="text-muted small">Database: <code><?php echo h($activeDb); ?></code></div>
         </div>
         <div class="d-flex gap-2">
-            <a class="btn btn-outline-secondary" href="career_boostday.php"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
+            <a class="btn btn-outline-secondary" href="career_boostday"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
         </div>
     </div>
 

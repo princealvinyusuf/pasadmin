@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $stmt->close();
     }
-    header("Location: karirhub_ads_settings.php");
+    header("Location: karirhub_ads_settings");
     exit();
 }
 
@@ -111,7 +111,7 @@ if (isset($_GET['delete'])) {
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
-    header("Location: karirhub_ads_settings.php");
+    header("Location: karirhub_ads_settings");
     exit();
 }
 
@@ -151,7 +151,7 @@ $records = $conn->query("SELECT * FROM karirhub_ads ORDER BY id DESC");
                     Edit Ad
                 </div>
                 <div class="card-body">
-                    <form action="karirhub_ads_settings.php" method="POST" enctype="multipart/form-data">
+                    <form action="karirhub_ads_settings" method="POST" enctype="multipart/form-data">
                         <input type="hidden" name="id" value="<?php echo htmlspecialchars($edit_ad['id']); ?>">
                         <div class="mb-3">
                             <label for="job_title" class="form-label">Job Title</label>
@@ -191,7 +191,7 @@ $records = $conn->query("SELECT * FROM karirhub_ads ORDER BY id DESC");
                             <?php endif; ?>
                         </div>
                         <button type="submit" name="update" class="btn btn-primary">Update Ad</button>
-                        <a href="karirhub_ads_settings.php" class="btn btn-secondary">Cancel</a>
+                        <a href="karirhub_ads_settings" class="btn btn-secondary">Cancel</a>
                     </form>
                 </div>
             </div>
@@ -201,7 +201,7 @@ $records = $conn->query("SELECT * FROM karirhub_ads ORDER BY id DESC");
                     Add New Ad
                 </div>
                 <div class="card-body">
-                    <form action="karirhub_ads_settings.php" method="POST" enctype="multipart/form-data">
+                    <form action="karirhub_ads_settings" method="POST" enctype="multipart/form-data">
                         <div class="mb-3">
                             <label for="job_title" class="form-label">Job Title</label>
                             <input type="text" class="form-control" id="job_title" name="job_title" required>
@@ -281,8 +281,8 @@ $records = $conn->query("SELECT * FROM karirhub_ads ORDER BY id DESC");
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <a href="karirhub_ads_settings.php?edit=<?php echo htmlspecialchars($row['id']); ?>" class="btn btn-sm btn-warning">Edit</a>
-                                            <a href="karirhub_ads_settings.php?delete=<?php echo htmlspecialchars($row['id']); ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this ad?');">Delete</a>
+                                            <a href="karirhub_ads_settings?edit=<?php echo htmlspecialchars($row['id']); ?>" class="btn btn-sm btn-warning">Edit</a>
+                                            <a href="karirhub_ads_settings?delete=<?php echo htmlspecialchars($row['id']); ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this ad?');">Delete</a>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>

@@ -86,7 +86,7 @@ $qrUrl = $scheme . '://' . $host . $basePath . '/asmen_qr.php?s=' . urlencode($a
 <div class="container py-4">
 	<div class="d-flex justify-content-between align-items-center mb-3">
 		<h2 class="mb-0">Asset Detail (ID: <?php echo $asset['id']; ?>)</h2>
-		<a class="btn btn-secondary" href="asmen_assets.php">Back</a>
+		<a class="btn btn-secondary" href="asmen_assets">Back</a>
 	</div>
 
 	<div class="row g-3">

@@ -607,7 +607,7 @@ if ($selectedCampaignId > 0 && $logConn && !$logConn->connect_error) {
                                     <?php echo (int)$c['delay_ms']; ?>ms + <?php echo (int)$c['batch_delay_ms']; ?>ms
                                 </td>
                                 <td><?php echo htmlspecialchars((string)$c['created_at']); ?></td>
-                                <td><a class="btn btn-sm btn-outline-primary" href="email_notification.php?campaign_id=<?php echo (int)$c['id']; ?>">View</a></td>
+                                <td><a class="btn btn-sm btn-outline-primary" href="email_notification?campaign_id=<?php echo (int)$c['id']; ?>">View</a></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>

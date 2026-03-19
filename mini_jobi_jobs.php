@@ -85,7 +85,7 @@ if (isset($_POST['add'])) {
     $stmt->execute();
     $stmt->close();
 
-    header('Location: mini_jobi_jobs.php');
+    header('Location: mini_jobi_jobs');
     exit();
 }
 
@@ -143,7 +143,7 @@ if (isset($_POST['update'])) {
     $stmt->execute();
     $stmt->close();
 
-    header('Location: mini_jobi_jobs.php');
+    header('Location: mini_jobi_jobs');
     exit();
 }
 
@@ -156,7 +156,7 @@ if (isset($_GET['delete'])) {
     $stmt->execute();
     $stmt->close();
 
-    header('Location: mini_jobi_jobs.php');
+    header('Location: mini_jobi_jobs');
     exit();
 }
 
@@ -270,7 +270,7 @@ $jobs = $conn->query("SELECT * FROM mini_jobi_jobs ORDER BY id DESC");
                     <?php echo $editJob ? 'Update Job' : 'Add Job'; ?>
                 </button>
                 <?php if ($editJob): ?>
-                    <a href="mini_jobi_jobs.php" class="btn btn-secondary">Cancel</a>
+                    <a href="mini_jobi_jobs" class="btn btn-secondary">Cancel</a>
                 <?php endif; ?>
             </div>
         </form>
@@ -325,8 +325,8 @@ $jobs = $conn->query("SELECT * FROM mini_jobi_jobs ORDER BY id DESC");
                             <td><?php echo nl2br(h($row['requirements'])); ?></td>
                             <td><?php echo h($row['updated_at']); ?></td>
                             <td>
-                                <a href="mini_jobi_jobs.php?edit=<?php echo (int) $row['id']; ?>" class="btn btn-sm btn-primary-custom mb-1">Edit</a>
-                                <a href="mini_jobi_jobs.php?delete=<?php echo (int) $row['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Delete this job posting?');">Delete</a>
+                                <a href="mini_jobi_jobs?edit=<?php echo (int) $row['id']; ?>" class="btn btn-sm btn-primary-custom mb-1">Edit</a>
+                                <a href="mini_jobi_jobs?delete=<?php echo (int) $row['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Delete this job posting?');">Delete</a>
                             </td>
                         </tr>
                     <?php endwhile; ?>

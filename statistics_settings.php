@@ -38,7 +38,7 @@ if (isset($_POST['create'])) {
         $stmt->bind_param("sssssi", $title, $value, $unit, $description, $type, $order);
         $stmt->execute();
         $stmt->close();
-        header("Location: statistics_settings.php");
+        header("Location: statistics_settings");
         exit();
     }
 }
@@ -66,7 +66,7 @@ if (isset($_POST['update'])) {
         $stmt->bind_param("ssssssi", $title, $value, $unit, $description, $type, $order, $id);
         $stmt->execute();
         $stmt->close();
-        header("Location: statistics_settings.php");
+        header("Location: statistics_settings");
         exit();
     }
 }
@@ -78,7 +78,7 @@ if (isset($_GET['delete'])) {
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
-    header("Location: statistics_settings.php");
+    header("Location: statistics_settings");
     exit();
 }
 
@@ -292,7 +292,7 @@ if (isset($_GET['edit'])) {
                 </label>
                 <button type="submit" name="<?php echo $edit ? 'update' : 'create'; ?>"><?php echo $edit ? 'Update' : 'Add'; ?></button>
                 <?php if ($edit): ?>
-                    <a href="statistics_settings.php">Cancel</a>
+                    <a href="statistics_settings">Cancel</a>
                 <?php endif; ?>
             </form>
         </div>
@@ -323,8 +323,8 @@ if (isset($_GET['edit'])) {
                 <td><?php echo $row['created_at']; ?></td>
                 <td><?php echo $row['updated_at']; ?></td>
                 <td class="actions">
-                    <a href="statistics_settings.php?edit=<?php echo $row['id']; ?>">Edit</a>
-                    <a href="statistics_settings.php?delete=<?php echo $row['id']; ?>" onclick="return confirm('Delete this statistic?');">Delete</a>
+                    <a href="statistics_settings?edit=<?php echo $row['id']; ?>">Edit</a>
+                    <a href="statistics_settings?delete=<?php echo $row['id']; ?>" onclick="return confirm('Delete this statistic?');">Delete</a>
                 </td>
             </tr>
             <?php endwhile; ?>

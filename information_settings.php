@@ -118,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
             $stmt->close();
             // Redirect to page 1 since new record appears at the top
-            header('Location: information_settings.php?page=1');
+            header('Location: information_settings?page=1');
             exit();
         } elseif (isset($_POST['update'])) {
             // Update record, set updated_at to NOW()

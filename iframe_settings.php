@@ -30,7 +30,7 @@ if (isset($_POST['add'])) {
     $stmt->bind_param("sssssi", $slug, $title, $logo_url, $external_link, $description, $is_active);
     
     if ($stmt->execute()) {
-        header("Location: iframe_settings.php?success=1");
+        header("Location: iframe_settings?success=1");
         exit();
     } else {
         $error = "Error: " . $stmt->error;
@@ -52,7 +52,7 @@ if (isset($_POST['update'])) {
     $stmt->bind_param("sssssii", $slug, $title, $logo_url, $external_link, $description, $is_active, $id);
     
     if ($stmt->execute()) {
-        header("Location: iframe_settings.php?success=1");
+        header("Location: iframe_settings?success=1");
         exit();
     } else {
         $error = "Error: " . $stmt->error;
@@ -67,7 +67,7 @@ if (isset($_GET['delete'])) {
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
-    header("Location: iframe_settings.php?success=1");
+    header("Location: iframe_settings?success=1");
     exit();
 }
 
@@ -188,7 +188,7 @@ $baseUrl = 'http' . (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 's
             </label>
             <?php if ($edit_iframe): ?>
                 <button class="btn" type="submit" name="update">Update</button>
-                <a class="btn cancel" href="iframe_settings.php">Cancel</a>
+                <a class="btn cancel" href="iframe_settings">Cancel</a>
             <?php else: ?>
                 <button class="btn" type="submit" name="add">Add</button>
             <?php endif; ?>
@@ -224,8 +224,8 @@ $baseUrl = 'http' . (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 's
                     <td><?php echo $row['created_at']; ?></td>
                     <td><?php echo $row['updated_at']; ?></td>
                     <td class="actions">
-                        <a class="btn" href="iframe_settings.php?edit=<?php echo $row['id']; ?>">Edit</a>
-                        <a class="btn delete" href="iframe_settings.php?delete=<?php echo $row['id']; ?>" onclick="return confirm('Are you sure you want to delete this iframe?');">Delete</a>
+                        <a class="btn" href="iframe_settings?edit=<?php echo $row['id']; ?>">Edit</a>
+                        <a class="btn delete" href="iframe_settings?delete=<?php echo $row['id']; ?>" onclick="return confirm('Are you sure you want to delete this iframe?');">Delete</a>
                     </td>
                 </tr>
             <?php endwhile; ?>

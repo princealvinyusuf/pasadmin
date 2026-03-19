@@ -98,7 +98,7 @@ function build_individual_link(string $itemId, int $recordIndex, int $individual
                 Filter aktif: <?php echo e($selectedPeriod); ?> | <?php echo e($selectedLocation); ?> | <?php echo e($selectedMajor); ?> | <?php echo e($selectedSource); ?>
             </div>
         </div>
-        <a href="dashboard_blk.php?<?php echo e($backQuery); ?>" class="btn btn-outline-secondary btn-sm">
+        <a href="dashboard_blk?<?php echo e($backQuery); ?>" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Kembali ke Dashboard BLK
         </a>
     </div>
@@ -111,7 +111,7 @@ function build_individual_link(string $itemId, int $recordIndex, int $individual
                         <strong>Ringkasan KPI Terpilih:</strong>
                         <?php echo e(($item['columns'][0] ?? 'Data') . ' - ' . ($item['rows'][$selectedRecordIndex][0] ?? '')); ?>
                     </div>
-                    <a href="dashboard_blk_detail.php?item=<?php echo e($itemId); ?>&<?php echo e($backQuery); ?>" class="btn btn-sm btn-outline-primary">
+                    <a href="dashboard_blk_detail?item=<?php echo e($itemId); ?>&<?php echo e($backQuery); ?>" class="btn btn-sm btn-outline-primary">
                         Reset Detail Record
                     </a>
                 </div>

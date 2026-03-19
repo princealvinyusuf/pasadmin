@@ -100,7 +100,7 @@ if (isset($_POST['add'])) {
     );
     $stmt->execute();
     $stmt->close();
-    header('Location: registrasi_kehadiran.php');
+    header('Location: registrasi_kehadiran');
     exit;
 }
 
@@ -141,7 +141,7 @@ if (isset($_POST['update'])) {
     );
     $stmt->execute();
     $stmt->close();
-    header('Location: registrasi_kehadiran.php');
+    header('Location: registrasi_kehadiran');
     exit;
 }
 
@@ -152,7 +152,7 @@ if (isset($_GET['delete'])) {
     $stmt->bind_param('i', $id);
     $stmt->execute();
     $stmt->close();
-    header('Location: registrasi_kehadiran.php');
+    header('Location: registrasi_kehadiran');
     exit;
 }
 
@@ -622,7 +622,7 @@ if ($types !== '') {
                                     <?php echo $edit_row ? 'Simpan Perubahan' : 'Tambah Data'; ?>
                                 </button>
                                 <?php if ($edit_row): ?>
-                                    <a href="registrasi_kehadiran.php" class="btn btn-outline-secondary">
+                                    <a href="registrasi_kehadiran" class="btn btn-outline-secondary">
                                         Batal
                                     </a>
                                 <?php endif; ?>
@@ -668,7 +668,7 @@ if ($types !== '') {
                                     <i class="bi bi-search me-1"></i>Cari
                                 </button>
                                 <?php if ($search !== '' || $filterKehad !== ''): ?>
-                                    <a href="registrasi_kehadiran.php" class="btn btn-outline-secondary">
+                                    <a href="registrasi_kehadiran" class="btn btn-outline-secondary">
                                         Reset
                                     </a>
                                 <?php endif; ?>
@@ -701,11 +701,11 @@ if ($types !== '') {
                                             <tr>
                                                 <td><?php echo $i++; ?></td>
                                                 <td class="text-end actions">
-                                                    <a href="registrasi_kehadiran.php?edit=<?php echo (int)$r['id']; ?>"
+                                                    <a href="registrasi_kehadiran?edit=<?php echo (int)$r['id']; ?>"
                                                        class="btn btn-sm btn-outline-primary me-1">
                                                         <i class="bi bi-pencil-square"></i>
                                                     </a>
-                                                    <a href="registrasi_kehadiran.php?delete=<?php echo (int)$r['id']; ?>"
+                                                    <a href="registrasi_kehadiran?delete=<?php echo (int)$r['id']; ?>"
                                                        class="btn btn-sm btn-outline-danger"
                                                        onclick="return confirm('Hapus data ini?');">
                                                         <i class="bi bi-trash"></i>

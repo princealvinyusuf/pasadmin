@@ -89,7 +89,7 @@ if (isset($_GET['delete'])) {
         $stmt->close();
     }
 
-    header("Location: kemitraan_submission.php");
+    header("Location: kemitraan_submission");
     exit();
 }
 
@@ -100,7 +100,7 @@ if (isset($_POST['approve_id'])) {
     $stmt = $conn->prepare("SELECT k.schedule, k.scheduletimestart, k.scheduletimefinish, k.type_of_partnership_id, top.name AS type_name FROM kemitraan k LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id WHERE k.id = ?");
     if (!$stmt) {
         $_SESSION['error'] = 'DB prepare failed: ' . $conn->error;
-        header("Location: kemitraan_submission.php");
+        header("Location: kemitraan_submission");
         exit();
     }
     $stmt->bind_param("i", $id);
@@ -111,7 +111,7 @@ if (isset($_POST['approve_id'])) {
 
     if (!$found) {
         $_SESSION['error'] = "Data kemitraan tidak ditemukan.";
-        header("Location: kemitraan_submission.php");
+        header("Location: kemitraan_submission");
         exit();
     }
 
@@ -153,7 +153,7 @@ if (isset($_POST['approve_id'])) {
     foreach ($dates_to_check as $date) {
         if ($date < $today) {
             $_SESSION['error'] = "Tanggal $date sudah lewat. Tidak dapat approve.";
-            header("Location: kemitraan_submission.php");
+            header("Location: kemitraan_submission");
             exit();
         }
     }
@@ -167,7 +167,7 @@ if (isset($_POST['approve_id'])) {
         $checkStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM booked_date bd WHERE ? BETWEEN bd.booked_date_start AND bd.booked_date_finish AND bd.type_of_partnership_id = ?");
         if (!$checkStmt) {
             $_SESSION['error'] = 'DB prepare failed: ' . $conn->error;
-            header("Location: kemitraan_submission.php");
+            header("Location: kemitraan_submission");
             exit();
         }
         foreach ($dates_to_check as $date) {
@@ -191,7 +191,7 @@ if (isset($_POST['approve_id'])) {
         $checkStmt = $conn->prepare($sql);
         if (!$checkStmt) {
             $_SESSION['error'] = 'DB prepare failed: ' . $conn->error;
-            header("Location: kemitraan_submission.php");
+            header("Location: kemitraan_submission");
             exit();
         }
         foreach ($dates_to_check as $date) {
@@ -214,7 +214,7 @@ if (isset($_POST['approve_id'])) {
 
     if ($fully_booked_date) {
         $_SESSION['error'] = "Tanggal $fully_booked_date untuk $type_name sudah penuh. Tidak dapat approve.";
-        header("Location: kemitraan_submission.php");
+        header("Location: kemitraan_submission");
         exit();
     }
 
@@ -271,7 +271,7 @@ if (isset($_POST['approve_id'])) {
     }
 
     $_SESSION['success'] = 'Pengajuan berhasil di-approve!';
-    header("Location: kemitraan_submission.php");
+    header("Location: kemitraan_submission");
     exit();
 }
 
@@ -284,7 +284,7 @@ if (isset($_POST['reject_id'])) {
         $stmt->execute();
         $stmt->close();
     }
-    header("Location: kemitraan_submission.php");
+    header("Location: kemitraan_submission");
     exit();
 }
 
@@ -598,7 +598,7 @@ if (isset($_POST['update_id'])) {
         $_SESSION['error'] = 'Gagal update: ' . $conn->error;
     }
     
-    header("Location: kemitraan_submission.php");
+    header("Location: kemitraan_submission");
     exit();
 }
 
@@ -866,7 +866,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 <td class="actions">
                     <button type="button" class="btn btn-detail btn-sm detail-btn mb-1" data-id="<?php echo $row['id']; ?>">Detail</button>
                     <button type="button" class="btn btn-edit btn-sm edit-btn mb-1" data-id="<?php echo $row['id']; ?>" data-row='<?php echo htmlspecialchars(json_encode($row), ENT_QUOTES); ?>'>Edit</button>
-                    <a href="kemitraan_submission.php?delete=<?php echo $row['id']; ?>" class="btn btn-delete btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
+                    <a href="kemitraan_submission?delete=<?php echo $row['id']; ?>" class="btn btn-delete btn-sm mb-1" onclick="return confirm('Delete this submission?');">Delete</a>
                     <?php if (isset($row['status']) && $row['status'] === 'pending'): ?>
                         <button type="button" class="btn btn-approve btn-sm approve-btn mb-1" data-id="<?php echo $row['id']; ?>">Approved</button>
                     <?php endif; ?>

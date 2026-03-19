@@ -28,7 +28,7 @@ if (isset($_POST['add'])) {
     } else {
         $sql = "INSERT INTO charts (title, description, chart_type, data_json, `order`) VALUES ('$title', '$description', '$chart_type', '$data_json', $order)";
         $conn->query($sql);
-        header('Location: chart_settings.php');
+        header('Location: chart_settings');
         exit();
     }
 }
@@ -48,7 +48,7 @@ if (isset($_POST['update'])) {
     } else {
         $sql = "UPDATE charts SET title='$title', description='$description', chart_type='$chart_type', data_json='$data_json', `order`=$order WHERE id=$id";
         $conn->query($sql);
-        header('Location: chart_settings.php');
+        header('Location: chart_settings');
         exit();
     }
 }
@@ -57,7 +57,7 @@ if (isset($_POST['update'])) {
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
     $conn->query("DELETE FROM charts WHERE id=$id");
-    header('Location: chart_settings.php');
+    header('Location: chart_settings');
     exit();
 }
 
@@ -233,7 +233,7 @@ if (isset($_GET['edit'])) {
             </label>
             <button type="submit" name="<?php echo $edit_chart ? 'update' : 'add'; ?>"><?php echo $edit_chart ? 'Update' : 'Add'; ?></button>
             <?php if ($edit_chart): ?>
-                <a href="chart_settings.php" class="btn-cancel">Cancel</a>
+                <a href="chart_settings" class="btn-cancel">Cancel</a>
             <?php endif; ?>
         </form>
         <h2>All Charts</h2>
@@ -261,8 +261,8 @@ if (isset($_GET['edit'])) {
                 <td><?php echo $row['created_at']; ?></td>
                 <td><?php echo $row['updated_at']; ?></td>
                 <td class="actions">
-                    <a href="chart_settings.php?edit=<?php echo $row['id']; ?>">Edit</a>
-                    <a href="chart_settings.php?delete=<?php echo $row['id']; ?>" onclick="return confirm('Delete this chart?');">Delete</a>
+                    <a href="chart_settings?edit=<?php echo $row['id']; ?>">Edit</a>
+                    <a href="chart_settings?delete=<?php echo $row['id']; ?>" onclick="return confirm('Delete this chart?');">Delete</a>
                 </td>
             </tr>
             <?php endwhile; ?>

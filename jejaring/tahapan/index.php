@@ -141,7 +141,7 @@ function formatValue($value) {
                         <option value="0">Bukan Prioritas</option>
                     </select>
                 </div>
-                <div class="col-lg-3 col-md-6 text-end"><a href="create.php" class="btn btn-primary w-100"><i class="bi bi-plus-circle"></i> Tambah Mitra Baru</a></div>
+                <div class="col-lg-3 col-md-6 text-end"><a href="create" class="btn btn-primary w-100"><i class="bi bi-plus-circle"></i> Tambah Mitra Baru</a></div>
             </div>
         </div>
 
@@ -248,7 +248,7 @@ if ($result && $result->num_rows > 0) {
                                 <a href="uploads/<?= htmlspecialchars($row[$fileKey]) ?>" class="btn btn-sm btn-outline-success" download>
                                     <i class="bi bi-download"></i> Download
                                 </a>
-                                <a href="delete_file.php?id=<?= $row['id'] ?>&file_key=<?= $fileKey ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Anda yakin ingin menghapus file ini secara permanen?')">
+                                <a href="delete_file?id=<?= $row['id'] ?>&file_key=<?= $fileKey ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Anda yakin ingin menghapus file ini secara permanen?')">
                                     <i class="bi bi-trash"></i> Hapus
                                 </a>
                             </div>
@@ -265,9 +265,9 @@ if ($result && $result->num_rows > 0) {
 
             </div>
             <div class="modal-footer">
-                <a href="edit.php?id=<?= $row['id'] ?>" class="btn btn-warning"><i class="bi bi-pencil-square"></i> Edit</a>
-                <a href="export_word.php?id=<?= $row['id'] ?>" class="btn btn-primary"><i class="bi bi-file-earmark-word-fill"></i> Export Word</a>
-                <a href="export_excel.php?id=<?= $row['id'] ?>" class="btn btn-success"><i class="bi bi-file-earmark-excel-fill"></i> Export Excel</a>
+                <a href="edit?id=<?= $row['id'] ?>" class="btn btn-warning"><i class="bi bi-pencil-square"></i> Edit</a>
+                <a href="export_word?id=<?= $row['id'] ?>" class="btn btn-primary"><i class="bi bi-file-earmark-word-fill"></i> Export Word</a>
+                <a href="export_excel?id=<?= $row['id'] ?>" class="btn btn-success"><i class="bi bi-file-earmark-excel-fill"></i> Export Excel</a>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>

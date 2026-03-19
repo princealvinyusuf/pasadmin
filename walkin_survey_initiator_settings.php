@@ -73,7 +73,7 @@ if ($tableReady && $hasKemitraanTable && isset($_GET['sync_from_kemitraan'])) {
         $syncRes->free();
     }
     $_SESSION['success'] = "Berhasil sinkronisasi $synced initiator dari Kemitraan.";
-    header('Location: walkin_survey_initiator_settings.php');
+    header('Location: walkin_survey_initiator_settings');
     exit();
 }
 
@@ -97,7 +97,7 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($initiatorName === '') {
         $_SESSION['error'] = 'Nama initiator wajib diisi.';
-        header('Location: walkin_survey_initiator_settings.php');
+        header('Location: walkin_survey_initiator_settings');
         exit();
     }
 
@@ -123,7 +123,7 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    header('Location: walkin_survey_initiator_settings.php');
+    header('Location: walkin_survey_initiator_settings');
     exit();
 }
 
@@ -155,7 +155,7 @@ if ($tableReady && isset($_GET['delete'])) {
         }
     }
 
-    header('Location: walkin_survey_initiator_settings.php');
+    header('Location: walkin_survey_initiator_settings');
     exit();
 }
 
@@ -217,7 +217,7 @@ if ($tableReady) {
                     <i class="bi bi-arrow-repeat me-1"></i>Sync from Kemitraan
                 </a>
             <?php endif; ?>
-            <a href="walkin_survey_company_settings.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-building me-1"></i>Manage Companies</a>
+            <a href="walkin_survey_company_settings" class="btn btn-outline-primary btn-sm"><i class="bi bi-building me-1"></i>Manage Companies</a>
         </div>
     </div>
 

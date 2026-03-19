@@ -68,12 +68,12 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($companyName === '') {
         $_SESSION['error'] = 'Nama perusahaan wajib diisi.';
-        header('Location: walkin_survey_company_settings.php');
+        header('Location: walkin_survey_company_settings');
         exit();
     }
     if ($hasInitiatorColumn && $initiatorId <= 0) {
         $_SESSION['error'] = 'Walk In Initiator wajib dipilih.';
-        header('Location: walkin_survey_company_settings.php');
+        header('Location: walkin_survey_company_settings');
         exit();
     }
 
@@ -115,7 +115,7 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    header('Location: walkin_survey_company_settings.php');
+    header('Location: walkin_survey_company_settings');
     exit();
 }
 
@@ -147,7 +147,7 @@ if ($tableReady && isset($_GET['delete'])) {
         }
     }
 
-    header('Location: walkin_survey_company_settings.php');
+    header('Location: walkin_survey_company_settings');
     exit();
 }
 
@@ -212,7 +212,7 @@ if (table_exists($conn, 'kemitraan')) {
 <div class="container mt-4">
     <div class="d-flex align-items-center justify-content-between mb-3">
         <h3 class="mb-0">Walk-in Survey Company Settings</h3>
-        <a href="walkin_survey_initiator_settings.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-people me-1"></i>Manage Initiators</a>
+        <a href="walkin_survey_initiator_settings" class="btn btn-outline-primary btn-sm"><i class="bi bi-people me-1"></i>Manage Initiators</a>
     </div>
 
     <?php if (isset($_SESSION['error'])): ?>

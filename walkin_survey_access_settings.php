@@ -52,12 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($newPasscode !== '') {
         if (strlen($newPasscode) < 4) {
             $_SESSION['error'] = 'Passcode minimal 4 karakter.';
-            header('Location: walkin_survey_access_settings.php');
+            header('Location: walkin_survey_access_settings');
             exit;
         }
         if ($newPasscode !== $confirmPasscode) {
             $_SESSION['error'] = 'Konfirmasi passcode tidak sama.';
-            header('Location: walkin_survey_access_settings.php');
+            header('Location: walkin_survey_access_settings');
             exit;
         }
         $hash = password_hash($newPasscode, PASSWORD_BCRYPT);
@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($hash === '') {
         $_SESSION['error'] = 'Passcode hash tidak valid. Silakan set passcode baru.';
-        header('Location: walkin_survey_access_settings.php');
+        header('Location: walkin_survey_access_settings');
         exit;
     }
 
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['error'] = 'Gagal menyimpan pengaturan: ' . $conn->error;
     }
 
-    header('Location: walkin_survey_access_settings.php');
+    header('Location: walkin_survey_access_settings');
     exit;
 }
 
@@ -106,7 +106,7 @@ if ($res && $row = $res->fetch_assoc()) {
 <div class="container mt-4">
     <div class="d-flex align-items-center justify-content-between mb-3">
         <h3 class="mb-0">Walk-in Survey Access Settings</h3>
-        <a href="walkin_survey_responses.php" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back to Responses</a>
+        <a href="walkin_survey_responses" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back to Responses</a>
     </div>
 
     <?php if (isset($_SESSION['error'])): ?>

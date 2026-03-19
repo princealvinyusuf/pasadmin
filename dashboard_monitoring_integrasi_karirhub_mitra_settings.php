@@ -202,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($portalCode === '' || $portalName === '' || $companyName === '') {
             $_SESSION['error'] = 'Portal code, portal name, and company name are required.';
-            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings.php');
+            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
             exit;
         }
 
@@ -247,7 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $_SESSION['success'] = 'Data saved successfully.';
-        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings.php');
+        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
         exit;
     }
 
@@ -260,7 +260,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
             $_SESSION['success'] = 'Data deleted.';
         }
-        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings.php');
+        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
         exit;
     }
 }
@@ -308,7 +308,7 @@ while ($r = $resMain->fetch_assoc()) {
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0">Monitoring Integrasi Karirhub x Mitra Settings</h3>
-        <a href="dashboard_monitoring_integrasi_karirhub_mitra.php" class="btn btn-outline-primary btn-sm">
+        <a href="dashboard_monitoring_integrasi_karirhub_mitra" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-eye me-1"></i>Lihat Dashboard
         </a>
     </div>
@@ -400,7 +400,7 @@ while ($r = $resMain->fetch_assoc()) {
 
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit"><i class="bi bi-save me-1"></i>Simpan</button>
-                        <a class="btn btn-secondary" href="dashboard_monitoring_integrasi_karirhub_mitra_settings.php">Reset</a>
+                        <a class="btn btn-secondary" href="dashboard_monitoring_integrasi_karirhub_mitra_settings">Reset</a>
                     </div>
                 </div>
             </form>

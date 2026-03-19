@@ -21,7 +21,7 @@ if (isset($_POST['add'])) {
     $now = date('Y-m-d H:i:s');
     $sql = "INSERT INTO contributions (icon, title, description, created_at, updated_at) VALUES ('$icon', '$title', '$description', '$now', '$now')";
     $conn->query($sql);
-    header('Location: contribution_settings.php');
+    header('Location: contribution_settings');
     exit();
 }
 // Handle Edit
@@ -39,14 +39,14 @@ if (isset($_POST['update'])) {
     $now = date('Y-m-d H:i:s');
     $sql = "UPDATE contributions SET icon='$icon', title='$title', description='$description', updated_at='$now' WHERE id=$id";
     $conn->query($sql);
-    header('Location: contribution_settings.php');
+    header('Location: contribution_settings');
     exit();
 }
 // Handle Delete
 if (isset($_GET['delete'])) {
     $delete_id = intval($_GET['delete']);
     $conn->query("DELETE FROM contributions WHERE id=$delete_id");
-    header('Location: contribution_settings.php');
+    header('Location: contribution_settings');
     exit();
 }
 // Fetch all contributions
@@ -227,7 +227,7 @@ $contributions = $conn->query("SELECT * FROM contributions ORDER BY id ASC");
                             <?php echo isset($edit_contribution) ? '<i class="bi bi-save"></i> Update' : '<i class="bi bi-plus-circle"></i> Add'; ?>
                         </button>
                         <?php if (isset($edit_contribution)): ?>
-                            <a href="contribution_settings.php" class="btn btn-secondary ms-2 px-4"><i class="bi bi-x-circle"></i> Cancel</a>
+                            <a href="contribution_settings" class="btn btn-secondary ms-2 px-4"><i class="bi bi-x-circle"></i> Cancel</a>
                         <?php endif; ?>
                     </div>
                 </form>
@@ -257,8 +257,8 @@ $contributions = $conn->query("SELECT * FROM contributions ORDER BY id ASC");
                         <td><span class="badge bg-light text-dark border border-1 border-secondary-subtle"><?php echo $row['created_at']; ?></span></td>
                         <td><span class="badge bg-light text-dark border border-1 border-secondary-subtle"><?php echo $row['updated_at']; ?></span></td>
                         <td class="actions">
-                            <a href="contribution_settings.php?edit=<?php echo $row['id']; ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Edit</a>
-                            <a href="contribution_settings.php?delete=<?php echo $row['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this contribution?');"><i class="bi bi-trash"></i> Delete</a>
+                            <a href="contribution_settings?edit=<?php echo $row['id']; ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Edit</a>
+                            <a href="contribution_settings?delete=<?php echo $row['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this contribution?');"><i class="bi bi-trash"></i> Delete</a>
                         </td>
                     </tr>
                 <?php endwhile; ?>

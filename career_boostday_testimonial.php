@@ -351,7 +351,7 @@ $conn->close();
             <div class="text-muted small">Database: <code><?php echo h($activeDb); ?></code> • Total: <b><?php echo count($testimonials); ?></b></div>
         </div>
         <div>
-            <a href="career_boostday.php" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+            <a href="career_boostday" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
         </div>
     </div>
     
@@ -427,7 +427,7 @@ $conn->close();
                             <?php echo $editData ? 'Simpan Perubahan' : 'Tambah Testimoni'; ?>
                         </button>
                         <?php if ($editData): ?>
-                        <a href="career_boostday_testimonial.php" class="btn btn-secondary">Batal</a>
+                        <a href="career_boostday_testimonial" class="btn btn-secondary">Batal</a>
                         <?php endif; ?>
                     </div>
                 </div>

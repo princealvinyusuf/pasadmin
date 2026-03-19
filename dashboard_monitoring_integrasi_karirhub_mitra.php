@@ -336,7 +336,7 @@ if ($userIsLoggedIn) {
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="dashboard_monitoring_integrasi_karirhub_mitra.php">
+        <a class="navbar-brand d-flex align-items-center" href="dashboard_monitoring_integrasi_karirhub_mitra">
             <img src="https://paskerid.kemnaker.go.id/images/services/logo.png" alt="Logo" style="height:24px; width:auto;" class="me-2">
             Dashboard Monitoring Integrasi
         </a>
@@ -347,7 +347,7 @@ if ($userIsLoggedIn) {
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0">Dashboard Monitoring Integrasi Karirhub x Mitra</h3>
         <?php if (current_user_can('settings_integrasi_karirhub_mitra_manage') || current_user_can('manage_settings')): ?>
-            <a class="btn btn-outline-primary btn-sm" href="dashboard_monitoring_integrasi_karirhub_mitra_settings.php">
+            <a class="btn btn-outline-primary btn-sm" href="dashboard_monitoring_integrasi_karirhub_mitra_settings">
                 <i class="bi bi-gear me-1"></i>Kelola Data
             </a>
         <?php endif; ?>
@@ -395,7 +395,7 @@ if ($userIsLoggedIn) {
         <div class="alert alert-warning">
             Tidak ada data yang sesuai filter.
             <?php if ($selectedPortal !== 'all' || $selectedStatus !== 'all'): ?>
-                <a class="alert-link" href="dashboard_monitoring_integrasi_karirhub_mitra.php">Reset filter</a>
+                <a class="alert-link" href="dashboard_monitoring_integrasi_karirhub_mitra">Reset filter</a>
             <?php endif; ?>
         </div>
     <?php endif; ?>

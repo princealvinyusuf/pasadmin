@@ -215,7 +215,7 @@ if ($userIsLoggedIn) {
 <!-- Minimal Navigation Bar for Public Access -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="<?php echo $rootUrl; ?>split_screen.php">
+        <a class="navbar-brand d-flex align-items-center" href="<?php echo $rootUrl; ?>split_screen">
             <img src="https://paskerid.kemnaker.go.id/images/services/logo.png" alt="Logo" style="height:24px; width:auto;" class="me-2">
             Job Admin - Split Screen
         </a>
@@ -225,7 +225,7 @@ if ($userIsLoggedIn) {
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootUrl; ?>login.php">
+                    <a class="nav-link" href="<?php echo $rootUrl; ?>login">
                         <i class="bi bi-box-arrow-in-right me-1"></i>Login
                     </a>
                 </li>
@@ -244,7 +244,7 @@ if ($userIsLoggedIn) {
 		<div class="d-flex justify-content-between align-items-center mb-3">
 			<h5 class="mb-0">Split Screen Tool</h5>
 			<?php if (!empty($_SESSION['user_id']) && function_exists('current_user_can') && current_user_can('manage_settings')): ?>
-				<a href="split_screen_settings.php" class="btn btn-sm btn-outline-primary">
+				<a href="split_screen_settings" class="btn btn-sm btn-outline-primary">
 					<i class="bi bi-gear me-1"></i>Configure Default URLs
 				</a>
 			<?php endif; ?>

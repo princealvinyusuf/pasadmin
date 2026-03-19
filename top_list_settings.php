@@ -21,7 +21,7 @@ if (isset($_POST['add'])) {
     $now = date('Y-m-d H:i:s');
     $sql = "INSERT INTO top_lists (title, type, data_json, date, created_at, updated_at) VALUES ('$title', '$type', '$data_json', '$date', '$now', '$now')";
     $conn->query($sql);
-    header('Location: top_list_settings.php');
+    header('Location: top_list_settings');
     exit();
 }
 // Handle Edit
@@ -40,14 +40,14 @@ if (isset($_POST['update'])) {
     $now = date('Y-m-d H:i:s');
     $sql = "UPDATE top_lists SET title='$title', type='$type', data_json='$data_json', date='$date', updated_at='$now' WHERE id=$id";
     $conn->query($sql);
-    header('Location: top_list_settings.php');
+    header('Location: top_list_settings');
     exit();
 }
 // Handle Delete
 if (isset($_GET['delete'])) {
     $delete_id = intval($_GET['delete']);
     $conn->query("DELETE FROM top_lists WHERE id=$delete_id");
-    header('Location: top_list_settings.php');
+    header('Location: top_list_settings');
     exit();
 }
 // Fetch all top lists
@@ -134,7 +134,7 @@ $top_lists = $conn->query("SELECT * FROM top_lists ORDER BY id DESC");
                             <?php echo isset($edit_top_list) ? '<i class="bi bi-save"></i> Update' : '<i class="bi bi-plus-circle"></i> Add'; ?>
                         </button>
                         <?php if (isset($edit_top_list)): ?>
-                            <a href="top_list_settings.php" class="btn btn-secondary ms-2 px-4"><i class="bi bi-x-circle"></i> Cancel</a>
+                            <a href="top_list_settings" class="btn btn-secondary ms-2 px-4"><i class="bi bi-x-circle"></i> Cancel</a>
                         <?php endif; ?>
                     </div>
                 </form>
@@ -166,8 +166,8 @@ $top_lists = $conn->query("SELECT * FROM top_lists ORDER BY id DESC");
                         <td><span class="badge bg-light text-dark border border-1 border-secondary-subtle"><?php echo $row['created_at']; ?></span></td>
                         <td><span class="badge bg-light text-dark border border-1 border-secondary-subtle"><?php echo $row['updated_at']; ?></span></td>
                         <td class="actions">
-                            <a href="top_list_settings.php?edit=<?php echo $row['id']; ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Edit</a>
-                            <a href="top_list_settings.php?delete=<?php echo $row['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this top list?');"><i class="bi bi-trash"></i> Delete</a>
+                            <a href="top_list_settings?edit=<?php echo $row['id']; ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Edit</a>
+                            <a href="top_list_settings?delete=<?php echo $row['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this top list?');"><i class="bi bi-trash"></i> Delete</a>
                         </td>
                     </tr>
                 <?php endwhile; ?>

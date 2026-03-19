@@ -81,7 +81,7 @@ if (isset($_POST['add'])) {
     $stmt->bind_param("sssssssss", $name, $wilayah, $divider, $address, $contact, $email, $website_url, $pic, $logoPath);
     $stmt->execute();
     $stmt->close();
-    header("Location: mitra_kerja_settings.php");
+    header("Location: mitra_kerja_settings");
     exit();
 }
 
@@ -111,7 +111,7 @@ if (isset($_POST['update'])) {
     $stmt->bind_param("sssssssssi", $name, $wilayah, $divider, $address, $contact, $email, $website_url, $pic, $logoPath, $id);
     $stmt->execute();
     $stmt->close();
-    header("Location: mitra_kerja_settings.php");
+    header("Location: mitra_kerja_settings");
     exit();
 }
 
@@ -130,7 +130,7 @@ if (isset($_GET['delete'])) {
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
-    header("Location: mitra_kerja_settings.php");
+    header("Location: mitra_kerja_settings");
     exit();
 }
 
@@ -314,7 +314,7 @@ $mitras = $conn->query("SELECT * FROM mitra_kerja ORDER BY id DESC");
             <?php endif; ?>
             <button type="submit" class="btn" name="<?php echo $edit_mitra ? 'update' : 'add'; ?>"><?php echo $edit_mitra ? 'Update' : 'Add'; ?></button>
             <?php if ($edit_mitra): ?>
-                <a href="mitra_kerja_settings.php" class="btn cancel">Cancel</a>
+                <a href="mitra_kerja_settings" class="btn cancel">Cancel</a>
             <?php endif; ?>
         </form>
         <h3>All Mitra Kerja</h3>
@@ -353,8 +353,8 @@ $mitras = $conn->query("SELECT * FROM mitra_kerja ORDER BY id DESC");
                 <td><?php echo $row['created_at']; ?></td>
                 <td><?php echo $row['updated_at']; ?></td>
                 <td class="actions">
-                    <a href="mitra_kerja_settings.php?edit=<?php echo $row['id']; ?>" class="btn">Edit</a>
-                    <a href="mitra_kerja_settings.php?delete=<?php echo $row['id']; ?>" class="btn delete" onclick="return confirm('Delete this mitra kerja?');">Delete</a>
+                    <a href="mitra_kerja_settings?edit=<?php echo $row['id']; ?>" class="btn">Edit</a>
+                    <a href="mitra_kerja_settings?delete=<?php echo $row['id']; ?>" class="btn delete" onclick="return confirm('Delete this mitra kerja?');">Delete</a>
                 </td>
             </tr>
             <?php endwhile; ?>

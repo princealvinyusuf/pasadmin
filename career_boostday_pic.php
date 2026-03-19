@@ -101,7 +101,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $_SESSION['success'] = 'PIC berhasil ditambahkan.';
             }
         }
-        header('Location: career_boostday_pic.php');
+        header('Location: career_boostday_pic');
         exit;
     }
 
@@ -120,7 +120,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $_SESSION['success'] = 'PIC berhasil diupdate.';
             }
         }
-        header('Location: career_boostday_pic.php');
+        header('Location: career_boostday_pic');
         exit;
     }
 
@@ -136,7 +136,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $_SESSION['success'] = 'PIC berhasil dinonaktifkan.';
             }
         }
-        header('Location: career_boostday_pic.php');
+        header('Location: career_boostday_pic');
         exit;
     }
 }
@@ -166,7 +166,7 @@ if ($res) {
             <div class="text-muted small">Database: <code><?php echo h($activeDb); ?></code></div>
         </div>
         <div class="d-flex gap-2">
-            <a class="btn btn-outline-secondary" href="career_boostday.php"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
+            <a class="btn btn-outline-secondary" href="career_boostday"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
         </div>
     </div>
 

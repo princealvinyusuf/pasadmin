@@ -104,7 +104,7 @@ if (!$settings) {
 <div class="container py-4">
 	<div class="d-flex justify-content-between align-items-center mb-3">
 		<h2 class="mb-0">Split Screen Settings</h2>
-		<a href="split_screen.php" class="btn btn-primary">
+		<a href="split_screen" class="btn btn-primary">
 			<i class="bi bi-eye me-1"></i>View Split Screen
 		</a>
 	</div>
@@ -173,7 +173,7 @@ if (!$settings) {
 					<button class="btn btn-primary" type="submit">
 						<i class="bi bi-save me-1"></i>Save Settings
 					</button>
-					<a href="split_screen.php" class="btn btn-secondary ms-2">
+					<a href="split_screen" class="btn btn-secondary ms-2">
 						<i class="bi bi-x me-1"></i>Cancel
 					</a>
 				</div>

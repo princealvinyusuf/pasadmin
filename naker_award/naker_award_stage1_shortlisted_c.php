@@ -167,12 +167,12 @@ while ($r = $res->fetch_assoc()) { $rows[] = $r; }
             <div class="text-muted small">All data is under authority of Datin</div>
         </div>
         <div class="d-flex gap-2">
-            <a class="btn btn-outline-secondary" href="naker_award_initial_assessment.php">Add Assessment</a>
-            <a class="btn btn-primary" href="naker_award_stage1_shortlisted_c.php?all=1">Show All Data</a>
+            <a class="btn btn-outline-secondary" href="naker_award_initial_assessment">Add Assessment</a>
+            <a class="btn btn-primary" href="naker_award_stage1_shortlisted_c?all=1">Show All Data</a>
             <?php if ($useCriteria): ?>
-            <a class="btn btn-outline-warning" href="naker_award_stage1_shortlisted_c.php">Clear Criteria Filter</a>
+            <a class="btn btn-outline-warning" href="naker_award_stage1_shortlisted_c">Clear Criteria Filter</a>
             <?php else: ?>
-            <a class="btn btn-warning" href="naker_award_stage1_shortlisted_c.php?criteria=1">Filter Top 72 Indeks By Criteria</a>
+            <a class="btn btn-warning" href="naker_award_stage1_shortlisted_c?criteria=1">Filter Top 72 Indeks By Criteria</a>
             <?php endif; ?>
         </div>
     </div>

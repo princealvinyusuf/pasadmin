@@ -10,7 +10,7 @@ ini_set('display_errors', 1);
 // 1. Validasi dan ambil ID dari URL
 $id = $_GET['id'] ?? null;
 if (!$id || !is_numeric($id)) {
-    header("Location: index.php?error=invalid_id");
+    header("Location: index?error=invalid_id");
     exit();
 }
 $id = intval($id);
@@ -23,7 +23,7 @@ $result = $stmt->get_result();
 $data = $result->fetch_assoc();
 
 if (!$data) {
-    header("Location: index.php?error=not_found");
+    header("Location: index?error=not_found");
     exit();
 }
 
@@ -120,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt_update->bind_param($types, ...$params);
 
         if ($stmt_update->execute()) {
-            header("Location: index.php?success=updated");
+            header("Location: index?success=updated");
             exit();
         } else {
             $errors['db_error'] = "Gagal memperbarui data: " . htmlspecialchars($stmt_update->error);
@@ -377,7 +377,7 @@ $pksDataExists = !empty($data['status_pks']) || !empty($data['nomor_pks']) || !e
                             
                             <hr class="my-5">
                             <div class="d-flex justify-content-end gap-2">
-                                <a href="index.php" class="btn btn-secondary">Batal</a>
+                                <a href="index" class="btn btn-secondary">Batal</a>
                                 <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-save-fill me-2"></i>Update Data
                                 </button>

@@ -24,7 +24,7 @@ if (isset($_POST['add'])) {
     $now = date('Y-m-d H:i:s');
     $sql = "INSERT INTO pasker_room (room_name, image_base64, mime_type, created_at, updated_at) VALUES ('$room_name', '$image_base64', '$mime_type', '$now', '$now')";
     $conn->query($sql);
-    header('Location: pasker_room_settings.php');
+    header('Location: pasker_room_settings');
     exit();
 }
 // Handle Edit
@@ -55,14 +55,14 @@ if (isset($_POST['update'])) {
         $sql = "UPDATE pasker_room SET room_name='$room_name', updated_at='$now' WHERE id=$id";
     }
     $conn->query($sql);
-    header('Location: pasker_room_settings.php');
+    header('Location: pasker_room_settings');
     exit();
 }
 // Handle Delete
 if (isset($_GET['delete'])) {
     $delete_id = intval($_GET['delete']);
     $conn->query("DELETE FROM pasker_room WHERE id=$delete_id");
-    header('Location: pasker_room_settings.php');
+    header('Location: pasker_room_settings');
     exit();
 }
 // Fetch all rooms
@@ -118,7 +118,7 @@ $rooms = $conn->query("SELECT * FROM pasker_room ORDER BY id DESC");
         </label>
         <?php if ($edit_room): ?>
             <button class="btn" type="submit" name="update">Update</button>
-            <a class="btn cancel" href="pasker_room_settings.php">Cancel</a>
+            <a class="btn cancel" href="pasker_room_settings">Cancel</a>
         <?php else: ?>
             <button class="btn" type="submit" name="add">Add</button>
         <?php endif; ?>
@@ -149,8 +149,8 @@ $rooms = $conn->query("SELECT * FROM pasker_room ORDER BY id DESC");
             <td><?php echo $row['created_at']; ?></td>
             <td><?php echo $row['updated_at']; ?></td>
             <td class="actions">
-                <a class="btn" href="pasker_room_settings.php?edit=<?php echo $row['id']; ?>">Edit</a>
-                <a class="btn delete" href="pasker_room_settings.php?delete=<?php echo $row['id']; ?>" onclick="return confirm('Delete this room?');">Delete</a>
+                <a class="btn" href="pasker_room_settings?edit=<?php echo $row['id']; ?>">Edit</a>
+                <a class="btn delete" href="pasker_room_settings?delete=<?php echo $row['id']; ?>" onclick="return confirm('Delete this room?');">Delete</a>
             </td>
         </tr>
         <?php endwhile; ?>

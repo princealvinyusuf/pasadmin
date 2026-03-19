@@ -165,23 +165,23 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">WLLP Award - Second Assessment</h2>
         <div class="d-flex gap-2">
-            <a class="btn btn-success" href="naker_award_second_assessment.php?export=1">Export Top 72 (criteria) CSV</a>
+            <a class="btn btn-success" href="naker_award_second_assessment?export=1">Export Top 72 (criteria) CSV</a>
             <?php if ($criteria1Active): ?>
                 <a class="btn btn-warning" href="naker_award_second_assessment.php<?php echo $criteria2Active ? '?criteria2=1' : ''; ?>">Criteria 1 Active (Clear)</a>
             <?php else: ?>
-                <a class="btn btn-outline-primary" href="naker_award_second_assessment.php?criteria1=1<?php echo $criteria2Active ? '&criteria2=1' : ''; ?>">Criteria 1</a>
+                <a class="btn btn-outline-primary" href="naker_award_second_assessment?criteria1=1<?php echo $criteria2Active ? '&criteria2=1' : ''; ?>">Criteria 1</a>
             <?php endif; ?>
             <?php if ($criteria2Active): ?>
                 <a class="btn btn-warning" href="naker_award_second_assessment.php<?php echo $criteria1Active ? '?criteria1=1' : ''; ?>">Criteria 2 Active (Clear)</a>
             <?php else: ?>
-                <a class="btn btn-outline-secondary" href="naker_award_second_assessment.php?criteria2=1<?php echo $criteria1Active ? '&criteria1=1' : ''; ?>">Criteria 2</a>
+                <a class="btn btn-outline-secondary" href="naker_award_second_assessment?criteria2=1<?php echo $criteria1Active ? '&criteria1=1' : ''; ?>">Criteria 2</a>
             <?php endif; ?>
             <?php if ($bothCriteriaActive): ?>
-                <a class="btn btn-warning" href="naker_award_second_assessment.php">Both Criteria Active (Clear)</a>
+                <a class="btn btn-warning" href="naker_award_second_assessment">Both Criteria Active (Clear)</a>
             <?php else: ?>
-                <a class="btn btn-outline-dark" href="naker_award_second_assessment.php?criteria1=1&criteria2=1">Both Criteria</a>
+                <a class="btn btn-outline-dark" href="naker_award_second_assessment?criteria1=1&criteria2=1">Both Criteria</a>
             <?php endif; ?>
-            <a class="btn btn-outline-secondary" href="naker_award_stage1_shortlisted_c.php">Back to Stage 1</a>
+            <a class="btn btn-outline-secondary" href="naker_award_stage1_shortlisted_c">Back to Stage 1</a>
         </div>
     </div>
 
@@ -232,7 +232,7 @@ while ($r = $result->fetch_assoc()) { $rows[] = $r; }
                             ?>
                         </td>
                         <td>
-                            <a class="btn btn-sm btn-primary" href="naker_award_second_assessment_form.php?assessment_id=<?php echo intval($row['id']); ?>">Mandatory Data</a>
+                            <a class="btn btn-sm btn-primary" href="naker_award_second_assessment_form?assessment_id=<?php echo intval($row['id']); ?>">Mandatory Data</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>

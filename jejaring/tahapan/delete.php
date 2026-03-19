@@ -2,13 +2,13 @@
 include "init.php";
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    header("Location: index.php?error=invalid_id");
+    header("Location: index?error=invalid_id");
     exit;
 }
 
 $id = intval($_GET['id']);
 if ($id <= 0) {
-    header("Location: index.php?error=invalid_id");
+    header("Location: index?error=invalid_id");
     exit;
 }
 
@@ -18,11 +18,11 @@ $stmt->execute();
 
 if ($stmt->affected_rows > 0) {
     $stmt->close();
-    header("Location: index.php?success=deleted");
+    header("Location: index?success=deleted");
     exit;
 } else {
     $stmt->close();
-    header("Location: index.php?error=not_found");
+    header("Location: index?error=not_found");
     exit;
 }
 

@@ -154,7 +154,7 @@ foreach ($rows as $r) {
 
 	<div class="card mb-3">
 		<div class="card-body">
-			<form class="row g-3" method="get" action="active_db_sessions.php">
+			<form class="row g-3" method="get" action="active_db_sessions">
 				<div class="col-12 col-md-2">
 					<label class="form-label">User</label>
 					<input class="form-control" type="text" name="user" value="<?php echo htmlspecialchars($userFilter); ?>">
@@ -181,7 +181,7 @@ foreach ($rows as $r) {
 				</div>
 				<div class="col-12">
 					<button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Filter</button>
-					<a class="btn btn-secondary" href="active_db_sessions.php">Reset</a>
+					<a class="btn btn-secondary" href="active_db_sessions">Reset</a>
 				</div>
 			</form>
 		</div>
@@ -209,13 +209,13 @@ foreach ($rows as $r) {
 						<td>
 							<?php if (current_user_can('kill_db_session') || current_user_can('manage_settings')): ?>
 								<?php if ((int)$row['ID'] !== (int)$currentId): ?>
-								<form method="post" action="active_db_sessions.php" onsubmit="return confirm('Kill session ID <?php echo (int)$row['ID']; ?>?');" style="display:inline-block">
+								<form method="post" action="active_db_sessions" onsubmit="return confirm('Kill session ID <?php echo (int)$row['ID']; ?>?');" style="display:inline-block">
 									<input type="hidden" name="action" value="kill">
 									<input type="hidden" name="id" value="<?php echo (int)$row['ID']; ?>">
 									<button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-x-circle"></i> Kill</button>
 								</form>
 								<?php endif; ?>
-								<form method="post" action="active_db_sessions.php" onsubmit="return confirm('Kill ALL sessions for user <?php echo htmlspecialchars((string)$row['USER']); ?><?php $hOnly = explode(':', (string)$row['HOST'])[0]; echo $hOnly !== '' ? '@' . htmlspecialchars($hOnly) : ''; ?>?');" style="display:inline-block">
+								<form method="post" action="active_db_sessions" onsubmit="return confirm('Kill ALL sessions for user <?php echo htmlspecialchars((string)$row['USER']); ?><?php $hOnly = explode(':', (string)$row['HOST'])[0]; echo $hOnly !== '' ? '@' . htmlspecialchars($hOnly) : ''; ?>?');" style="display:inline-block">
 									<input type="hidden" name="action" value="kill_user">
 									<input type="hidden" name="user" value="<?php echo htmlspecialchars((string)$row['USER']); ?>">
 									<input type="hidden" name="host" value="<?php echo htmlspecialchars((string)$row['HOST']); ?>">

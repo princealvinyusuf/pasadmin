@@ -331,7 +331,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     });
 
     btnNext.addEventListener('click', function(){
-        window.location.href = 'view_classification_comment.php';
+        window.location.href = 'view_classification_comment';
     });
 })();
 </script>

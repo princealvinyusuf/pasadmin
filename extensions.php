@@ -89,7 +89,7 @@
             </div>
             <div class="card">
                 <div class="card-title">Jobita</div>
-                <a class="card-btn" href="https://jfo.kemnaker.go.id/tu/login.php" target="_blank">Go to Jobita</a>
+                <a class="card-btn" href="https://jfo.kemnaker.go.id/tu/login" target="_blank">Go to Jobita</a>
             </div>
             <div class="card">
                 <div class="card-title">Job Portal</div>

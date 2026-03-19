@@ -25,12 +25,12 @@ require_once __DIR__ . '/auth_guard.php';
 						<div class="display-4 mb-3">🎉</div>
 						<h1 class="h3 mb-2">Welcome, Admin!</h1>
 						<p class="text-muted mb-4">Use the button below to open your job dashboard.</p>
-						<a href="index.php" class="btn btn-primary btn-lg">
+						<a href="index" class="btn btn-primary btn-lg">
 							<i class="bi bi-speedometer2 me-1"></i>
 							Open Job Dashboard
 						</a>
 						<div class="mt-3">
-							<a class="text-decoration-none" href="index.php">Go to Jobs</a>
+							<a class="text-decoration-none" href="index">Go to Jobs</a>
 						</div>
 					</div>
 				</div>

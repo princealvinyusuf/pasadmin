@@ -103,7 +103,7 @@ $isLocked = intval($data['final_submitted']) === 1;
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">General Data: <?php echo htmlspecialchars($companyName ?: ('ID ' . $assessmentId)); ?></h2>
-        <a class="btn btn-outline-secondary" href="naker_award_third_assessment.php">Back</a>
+        <a class="btn btn-outline-secondary" href="naker_award_third_assessment">Back</a>
     </div>
 
     <?php if ($isLocked): ?>

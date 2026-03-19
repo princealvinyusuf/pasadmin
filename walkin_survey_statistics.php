@@ -261,7 +261,7 @@ $positiveRate = $totalResponses > 0 ? round(($positiveResponses / $totalResponse
 <div class="container mt-4">
     <div class="d-flex align-items-center justify-content-between mb-3">
         <h3 class="mb-0">Walk-in Survey Statistik</h3>
-        <a href="walkin_survey_responses.php" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Kembali ke Responses</a>
+        <a href="walkin_survey_responses" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Kembali ke Responses</a>
     </div>
 
     <?php if (!$hasResponseTable): ?>
@@ -292,7 +292,7 @@ $positiveRate = $totalResponses > 0 ? round(($positiveResponses / $totalResponse
                 <div class="col-12 col-xl-2 d-flex align-items-end">
                     <div class="d-flex gap-2 w-100 justify-content-xl-end">
                         <button class="btn btn-primary w-100" type="submit"><i class="bi bi-search me-1"></i>Filter</button>
-                        <a href="walkin_survey_statistics.php" class="btn btn-secondary">Reset</a>
+                        <a href="walkin_survey_statistics" class="btn btn-secondary">Reset</a>
                     </div>
                 </div>
             </form>

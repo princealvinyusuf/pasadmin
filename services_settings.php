@@ -24,7 +24,7 @@ if (isset($_POST['add'])) {
     $stmt->bind_param("ssss", $icon, $title, $description, $link);
     $stmt->execute();
     $stmt->close();
-    header("Location: services_settings.php");
+    header("Location: services_settings");
     exit();
 }
 
@@ -39,7 +39,7 @@ if (isset($_POST['update'])) {
     $stmt->bind_param("ssssi", $icon, $title, $description, $link, $id);
     $stmt->execute();
     $stmt->close();
-    header("Location: services_settings.php");
+    header("Location: services_settings");
     exit();
 }
 
@@ -50,7 +50,7 @@ if (isset($_GET['delete'])) {
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
-    header("Location: services_settings.php");
+    header("Location: services_settings");
     exit();
 }
 
@@ -138,7 +138,7 @@ $services = $conn->query("SELECT * FROM services ORDER BY id DESC");
             </label>
             <?php if ($edit_service): ?>
                 <button class="btn" type="submit" name="update">Update</button>
-                <a class="btn cancel" href="services_settings.php">Cancel</a>
+                <a class="btn cancel" href="services_settings">Cancel</a>
             <?php else: ?>
                 <button class="btn" type="submit" name="add">Add</button>
             <?php endif; ?>
@@ -165,8 +165,8 @@ $services = $conn->query("SELECT * FROM services ORDER BY id DESC");
                     <td><?php echo $row['created_at']; ?></td>
                     <td><?php echo $row['updated_at']; ?></td>
                     <td class="actions">
-                        <a class="btn" href="services_settings.php?edit=<?php echo $row['id']; ?>">Edit</a>
-                        <a class="btn delete" href="services_settings.php?delete=<?php echo $row['id']; ?>" onclick="return confirm('Are you sure you want to delete this service?');">Delete</a>
+                        <a class="btn" href="services_settings?edit=<?php echo $row['id']; ?>">Edit</a>
+                        <a class="btn delete" href="services_settings?delete=<?php echo $row['id']; ?>" onclick="return confirm('Are you sure you want to delete this service?');">Delete</a>
                     </td>
                 </tr>
             <?php endwhile; ?>

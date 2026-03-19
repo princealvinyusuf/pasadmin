@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
         
         if (empty($errors) && $stmt->execute()) { 
-            header("Location: index.php?success=created"); 
+            header("Location: index?success=created"); 
             exit(); 
         } else { 
             if (empty($errors)) {
@@ -202,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <hr class="my-5">
-                <div class="d-flex justify-content-end gap-2"><a href="index.php" class="btn btn-secondary">Batal</a><button type="submit" class="btn btn-primary"><i class="bi bi-save-fill me-2"></i>Simpan Mitra</button></div>
+                <div class="d-flex justify-content-end gap-2"><a href="index" class="btn btn-secondary">Batal</a><button type="submit" class="btn btn-primary"><i class="bi bi-save-fill me-2"></i>Simpan Mitra</button></div>
             </form>
         </div>
     </div></div></div></div>

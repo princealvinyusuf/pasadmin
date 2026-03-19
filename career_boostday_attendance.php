@@ -359,7 +359,7 @@ if ($bookedTo !== '') $baseQuery .= '&booked_to=' . urlencode($bookedTo);
             <div class="text-muted small">Database: <code><?php echo h($activeDb); ?></code> • Data accepted + booked</div>
         </div>
         <div class="d-flex gap-2">
-            <a class="btn btn-outline-secondary" href="career_boostday.php"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
+            <a class="btn btn-outline-secondary" href="career_boostday"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
         </div>
     </div>
 

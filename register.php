@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     <body>
         <div class="register-container">
             <h2>Register User</h2>
-            <form id="register-form" action="register.php" method="post">
+            <form id="register-form" action="register" method="post">
                 <label for="username">Username:</label>
                 <input type="text" id="username" name="username" required>
                 <label for="email">Email:</label>
@@ -167,7 +167,7 @@ try {
     $stmt->close();
 
     header('Content-Type: text/html; charset=utf-8');
-    echo "User registered successfully. <a href='login.php'>Login here</a>";
+    echo "User registered successfully. <a href='login'>Login here</a>";
 } catch (Throwable $e) {
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
