@@ -235,42 +235,7 @@ foreach ($dashboardData['panels'] as $panel) {
         </div>
     </div>
 
-    <h5 class="section-title">E. Integrasi Data (Kritis)</h5>
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-lg-4">
-            <div class="card panel-card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><?php echo e($panelsById['integrasi-kpi']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail?item=integrasi-kpi&<?php echo e($baseFilterQuery); ?>">Detail</a>
-                </div>
-                <div class="card-body d-grid gap-2">
-                    <div class="metric-tile">
-                        <div class="small-muted">Sinkronisasi Karirhub</div>
-                        <div class="d-flex justify-content-between"><strong>94.5%</strong><i class="bi bi-arrow-repeat text-primary"></i></div>
-                    </div>
-                    <div class="metric-tile">
-                        <div class="small-muted">Data Belum Sinkron</div>
-                        <div class="d-flex justify-content-between"><strong>145 Peserta</strong><i class="bi bi-exclamation-triangle text-warning"></i></div>
-                    </div>
-                    <div class="metric-tile">
-                        <div class="small-muted">Rata-rata Waktu Sinkron</div>
-                        <div class="d-flex justify-content-between"><strong>1.2 Hari</strong><i class="bi bi-clock text-success"></i></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-lg-8">
-            <div class="card panel-card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><?php echo e($panelsById['integrasi-gap']['title']); ?></span>
-                    <a class="btn btn-sm btn-outline-primary" href="dashboard_blk_detail?item=integrasi-gap&<?php echo e($baseFilterQuery); ?>">Detail</a>
-                </div>
-                <div class="card-body chart-box"><canvas id="chart-integrasi-gap"></canvas></div>
-            </div>
-        </div>
-    </div>
-
-    <h5 class="section-title">F. Outcome Pasca Pelatihan</h5>
+    <h5 class="section-title">E. Outcome Pasca Pelatihan</h5>
     <div class="row g-3 mb-4">
         <div class="col-12 col-lg-6">
             <div class="card panel-card h-100">
@@ -387,30 +352,6 @@ buildChart(
         responsive: true,
         maintainAspectRatio: false,
         plugins: { legend: { display: false } }
-    }
-);
-
-buildChart(
-    'chart-integrasi-gap',
-    'bar',
-    <?php echo json_encode($panelsById['integrasi-gap']['chart_labels']); ?>,
-    [
-        {
-            label: 'Belum Sinkron',
-            data: <?php echo json_encode($panelsById['integrasi-gap']['series'][1]['data']); ?>,
-            backgroundColor: 'rgba(148, 163, 184, 0.8)'
-        },
-        {
-            label: 'Tersinkron',
-            data: <?php echo json_encode($panelsById['integrasi-gap']['series'][0]['data']); ?>,
-            backgroundColor: 'rgba(59, 130, 246, 0.85)'
-        }
-    ],
-    {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: { x: { stacked: true, max: 100 }, y: { stacked: true } }
     }
 );
 
