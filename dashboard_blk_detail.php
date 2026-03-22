@@ -16,7 +16,30 @@ function e($value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+function blk_app_base_path(): string
+{
+    $candidates = [
+        $_SERVER['REQUEST_URI'] ?? '',
+        $_SERVER['PHP_SELF'] ?? '',
+        $_SERVER['SCRIPT_NAME'] ?? '',
+    ];
+    foreach ($candidates as $candidate) {
+        $path = parse_url((string)$candidate, PHP_URL_PATH);
+        if (!is_string($path) || $path === '') {
+            continue;
+        }
+        $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+        foreach ($segments as $segment) {
+            if (strcasecmp($segment, 'pasadmin') === 0) {
+                return '/' . $segment . '/';
+            }
+        }
+    }
+    return '/pasadmin/';
+}
+
 $dashboardData = blk_get_dashboard_data();
+$appBasePath = blk_app_base_path();
 $itemId = $_GET['item'] ?? '';
 $item = blk_find_item_by_id($dashboardData, $itemId);
 
@@ -49,9 +72,9 @@ $backQuery = http_build_query([
     'source' => $selectedSource,
 ]);
 
-function build_detail_link(string $itemId, int $recordIndex, string $selectedPeriod, string $selectedLocation, string $selectedMajor, string $selectedSource): string
+function build_detail_link(string $appBasePath, string $itemId, int $recordIndex, string $selectedPeriod, string $selectedLocation, string $selectedMajor, string $selectedSource): string
 {
-    return 'dashboard_blk_detail.php?' . http_build_query([
+    return $appBasePath . 'dashboard_blk_detail?' . http_build_query([
         'item' => $itemId,
         'record' => $recordIndex,
         'period' => $selectedPeriod,
@@ -61,9 +84,9 @@ function build_detail_link(string $itemId, int $recordIndex, string $selectedPer
     ]);
 }
 
-function build_individual_link(string $itemId, int $recordIndex, int $individualIndex, string $selectedPeriod, string $selectedLocation, string $selectedMajor, string $selectedSource): string
+function build_individual_link(string $appBasePath, string $itemId, int $recordIndex, int $individualIndex, string $selectedPeriod, string $selectedLocation, string $selectedMajor, string $selectedSource): string
 {
-    return 'dashboard_blk_detail.php?' . http_build_query([
+    return $appBasePath . 'dashboard_blk_detail?' . http_build_query([
         'item' => $itemId,
         'record' => $recordIndex,
         'individual' => $individualIndex,
@@ -98,7 +121,7 @@ function build_individual_link(string $itemId, int $recordIndex, int $individual
                 Filter aktif: <?php echo e($selectedPeriod); ?> | <?php echo e($selectedLocation); ?> | <?php echo e($selectedMajor); ?> | <?php echo e($selectedSource); ?>
             </div>
         </div>
-        <a href="dashboard_blk?<?php echo e($backQuery); ?>" class="btn btn-outline-secondary btn-sm">
+        <a href="<?php echo e($appBasePath); ?>dashboard_blk?<?php echo e($backQuery); ?>" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Kembali ke Dashboard BLK
         </a>
     </div>
@@ -111,7 +134,7 @@ function build_individual_link(string $itemId, int $recordIndex, int $individual
                         <strong>Ringkasan KPI Terpilih:</strong>
                         <?php echo e(($item['columns'][0] ?? 'Data') . ' - ' . ($item['rows'][$selectedRecordIndex][0] ?? '')); ?>
                     </div>
-                    <a href="dashboard_blk_detail?item=<?php echo e($itemId); ?>&<?php echo e($backQuery); ?>" class="btn btn-sm btn-outline-primary">
+                    <a href="<?php echo e($appBasePath); ?>dashboard_blk_detail?item=<?php echo e($itemId); ?>&<?php echo e($backQuery); ?>" class="btn btn-sm btn-outline-primary">
                         Reset Detail Record
                     </a>
                 </div>
@@ -136,7 +159,7 @@ function build_individual_link(string $itemId, int $recordIndex, int $individual
                                     <td><?php echo e((string)$cell); ?></td>
                                 <?php endforeach; ?>
                                 <td>
-                                    <a href="<?php echo e(build_detail_link($itemId, $rowIndex, $selectedPeriod, $selectedLocation, $selectedMajor, $selectedSource)); ?>" class="btn btn-sm btn-outline-primary">
+                                    <a href="<?php echo e(build_detail_link($appBasePath, $itemId, $rowIndex, $selectedPeriod, $selectedLocation, $selectedMajor, $selectedSource)); ?>" class="btn btn-sm btn-outline-primary">
                                         Detail
                                     </a>
                                 </td>
@@ -174,7 +197,7 @@ function build_individual_link(string $itemId, int $recordIndex, int $individual
                                     <td><?php echo e($value); ?></td>
                                 <?php endforeach; ?>
                                 <td>
-                                    <a href="<?php echo e(build_individual_link($itemId, (int)$selectedRecordIndex, $individualIndex, $selectedPeriod, $selectedLocation, $selectedMajor, $selectedSource)); ?>" class="btn btn-sm btn-primary">
+                                    <a href="<?php echo e(build_individual_link($appBasePath, $itemId, (int)$selectedRecordIndex, $individualIndex, $selectedPeriod, $selectedLocation, $selectedMajor, $selectedSource)); ?>" class="btn btn-sm btn-primary">
                                         Detail
                                     </a>
                                 </td>

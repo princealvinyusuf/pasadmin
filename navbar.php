@@ -1,15 +1,32 @@
 <?php require_once __DIR__ . '/access_helper.php'; ?>
 <?php
-    // Determine context early so brand link uses correct root
-    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-    $isAsmenContext = strpos($scriptName, '/asmen_feature/') !== false;
-    $isJejaringContext = strpos($scriptName, '/jejaring/') !== false;
-    $isBackupContext = strpos($scriptName, '/backup/') !== false;
+    // Determine context and robust app base path from URL-like server vars.
+    $rawContextPath = (string)($_SERVER['REQUEST_URI'] ?? ($_SERVER['PHP_SELF'] ?? ($_SERVER['SCRIPT_NAME'] ?? '')));
+    $isAsmenContext = strpos($rawContextPath, '/asmen_feature/') !== false;
+    $isJejaringContext = strpos($rawContextPath, '/jejaring/') !== false;
+    $isBackupContext = strpos($rawContextPath, '/backup/') !== false;
     $isSubdirContext = ($isAsmenContext || $isJejaringContext || $isBackupContext);
-    // Compute absolute base URL for this app (ending with /pasadmin/)
-    $appRootMarker = '/pasadmin/';
-    $posApp = strpos($scriptName, $appRootMarker);
-    $appBaseUrl = ($posApp !== false) ? substr($scriptName, 0, $posApp + strlen($appRootMarker)) : '/';
+
+    $appBaseUrl = '/pasadmin/';
+    $candidateVars = [
+        $_SERVER['REQUEST_URI'] ?? '',
+        $_SERVER['PHP_SELF'] ?? '',
+        $_SERVER['SCRIPT_NAME'] ?? '',
+    ];
+    foreach ($candidateVars as $candidate) {
+        $path = parse_url((string)$candidate, PHP_URL_PATH);
+        if (!is_string($path) || $path === '') {
+            continue;
+        }
+        $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+        foreach ($segments as $segment) {
+            if (strcasecmp($segment, 'pasadmin') === 0) {
+                $appBaseUrl = '/' . $segment . '/';
+                break 2;
+            }
+        }
+    }
+
     // Absolute prefixes
     $rootUrl = $appBaseUrl; // e.g., /pasadmin/
     $asmenUrl = $appBaseUrl . 'asmen_feature/';
