@@ -208,6 +208,29 @@ function slot_time_range_from_label(mysqli $conn, string $label): array
     return [$t1 ?: null, $t2 ?: null];
 }
 
+function app_base_url(): string
+{
+    $default = '/pasadmin/';
+    $candidates = [
+        $_SERVER['REQUEST_URI'] ?? '',
+        $_SERVER['PHP_SELF'] ?? '',
+        $_SERVER['SCRIPT_NAME'] ?? '',
+    ];
+    foreach ($candidates as $candidate) {
+        $path = parse_url((string)$candidate, PHP_URL_PATH);
+        if (!is_string($path) || $path === '') {
+            continue;
+        }
+        $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+        foreach ($segments as $segment) {
+            if (strcasecmp($segment, 'pasadmin') === 0) {
+                return '/' . $segment . '/';
+            }
+        }
+    }
+    return $default;
+}
+
 // Try both DBs used in this repo's admin pages.
 $candidates = ['job_admin_prod', 'paskerid_db_prod'];
 $conn = null;
@@ -232,6 +255,10 @@ if (!$conn) {
 
 $conn->set_charset('utf8mb4');
 ensure_schema($conn);
+$appBaseUrl = app_base_url();
+$selfPath = $appBaseUrl . 'career_boostday';
+$currentQuery = http_build_query($_GET ?? []);
+$selfUrlWithQuery = $selfPath . ($currentQuery !== '' ? ('?' . $currentQuery) : '');
 
 // Handle actions (accept/reject/edit)
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
@@ -240,7 +267,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     $qs = '';
     if (!empty($_GET['q'])) $qs .= 'q=' . urlencode((string)$_GET['q']);
     if (!empty($_GET['page'])) $qs .= ($qs ? '&' : '') . 'page=' . urlencode((string)$_GET['page']);
-    $redir = 'career_boostday.php' . ($qs ? ('?' . $qs) : '');
+    $redir = $selfPath . ($qs ? ('?' . $qs) : '');
 
     if ($id <= 0) {
         $_SESSION['error'] = 'ID tidak valid.';
@@ -629,16 +656,16 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
             <div class="text-muted small">Database: <code><?php echo h($activeDb); ?></code> • Total: <b><?php echo number_format($total); ?></b></div>
         </div>
         <div class="d-flex gap-2 align-items-center">
-            <a class="btn btn-outline-secondary" href="career_boostday_slot"><i class="bi bi-calendar-week me-1"></i>Jadwal</a>
-            <a class="btn btn-outline-secondary" href="career_boostday_pic"><i class="bi bi-people me-1"></i>PIC</a>
-            <a class="btn btn-outline-secondary" href="career_boostday_attendance"><i class="bi bi-check2-square me-1"></i>Konfirmasi Kehadiran</a>
-            <form class="d-flex gap-2" method="GET" action="">
+            <a class="btn btn-outline-secondary" href="<?php echo h($appBaseUrl . 'career_boostday_slot'); ?>"><i class="bi bi-calendar-week me-1"></i>Jadwal</a>
+            <a class="btn btn-outline-secondary" href="<?php echo h($appBaseUrl . 'career_boostday_pic'); ?>"><i class="bi bi-people me-1"></i>PIC</a>
+            <a class="btn btn-outline-secondary" href="<?php echo h($appBaseUrl . 'career_boostday_attendance'); ?>"><i class="bi bi-check2-square me-1"></i>Konfirmasi Kehadiran</a>
+            <form class="d-flex gap-2" method="GET" action="<?php echo h($selfPath); ?>">
             <input class="form-control" type="date" name="date_from" value="<?php echo h($dateFrom); ?>" title="Tanggal awal">
             <input class="form-control" type="date" name="date_to" value="<?php echo h($dateTo); ?>" title="Tanggal akhir">
             <input class="form-control" name="q" value="<?php echo h($q); ?>" placeholder="Cari nama / WA / email / status / jadwal" style="min-width: 220px;">
             <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Cari</button>
             <?php
-                $excelUrl = '?export=json';
+                $excelUrl = $selfPath . '?export=json';
                 if ($q !== '') $excelUrl .= '&q=' . urlencode($q);
                 if ($dateFrom !== '') $excelUrl .= '&date_from=' . urlencode($dateFrom);
                 if ($dateTo !== '') $excelUrl .= '&date_to=' . urlencode($dateTo);
@@ -797,6 +824,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
                             <td>
                                 <div class="d-flex flex-wrap gap-1">
                                     <button
+                                        type="button"
                                         class="btn btn-outline-secondary btn-sm"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editModal"
@@ -816,6 +844,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
 
                                     <?php if (($r['admin_status'] ?? 'pending') === 'pending'): ?>
                                         <button
+                                            type="button"
                                             class="btn btn-outline-success btn-sm"
                                             data-bs-toggle="modal"
                                             data-bs-target="#acceptModal"
@@ -823,6 +852,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
                                         ><i class="bi bi-check2-circle me-1"></i>Accept</button>
 
                                         <button
+                                            type="button"
                                             class="btn btn-outline-danger btn-sm"
                                             data-bs-toggle="modal"
                                             data-bs-target="#rejectModal"
@@ -830,7 +860,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
                                         ><i class="bi bi-x-circle me-1"></i>Reject</button>
                                     <?php endif; ?>
 
-                                    <form method="POST" action="" onsubmit="return confirm('Hapus data ini?');" class="d-inline">
+                                    <form method="POST" action="<?php echo h($selfUrlWithQuery); ?>" onsubmit="return confirm('Hapus data ini?');" class="d-inline">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id" value="<?php echo h($r['id']); ?>">
                                         <button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-trash me-1"></i>Delete</button>
@@ -853,10 +883,10 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
                         $next = min($totalPages, $page + 1);
                     ?>
                     <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="?page=<?php echo $prev . $baseQuery; ?>">Prev</a>
+                        <a class="page-link" href="<?php echo h($selfPath . '?page=' . $prev . $baseQuery); ?>">Prev</a>
                     </li>
                     <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="?page=<?php echo $next . $baseQuery; ?>">Next</a>
+                        <a class="page-link" href="<?php echo h($selfPath . '?page=' . $next . $baseQuery); ?>">Next</a>
                     </li>
                 </ul>
             </nav>
@@ -868,7 +898,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
 <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
-      <form method="POST" action="">
+      <form method="POST" action="<?php echo h($selfUrlWithQuery); ?>">
         <div class="modal-header">
           <h5 class="modal-title">Edit Data</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -946,7 +976,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
 <div class="modal fade" id="acceptModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
-      <form method="POST" action="">
+      <form method="POST" action="<?php echo h($selfUrlWithQuery); ?>">
         <div class="modal-header">
           <h5 class="modal-title">Accept Konsultasi</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -990,7 +1020,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
 <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
-      <form method="POST" action="">
+      <form method="POST" action="<?php echo h($selfUrlWithQuery); ?>">
         <div class="modal-header">
           <h5 class="modal-title">Reject Konsultasi</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
