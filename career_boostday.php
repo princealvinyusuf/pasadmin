@@ -135,6 +135,9 @@ function ensure_schema(mysqli $conn): void
 
     // Add workflow columns to consultations table (if missing)
     if (table_exists($conn, 'career_boostday_consultations')) {
+        if (!column_exists($conn, 'career_boostday_consultations', 'email')) {
+            $conn->query("ALTER TABLE career_boostday_consultations ADD COLUMN email VARCHAR(120) NULL AFTER whatsapp");
+        }
         // Optional extra field from public form
         if (!column_exists($conn, 'career_boostday_consultations', 'jurusan')) {
             $conn->query("ALTER TABLE career_boostday_consultations ADD COLUMN jurusan VARCHAR(120) NULL AFTER pendidikan_terakhir");
@@ -343,6 +346,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     if ($action === 'edit') {
         $name = trim((string)($_POST['name'] ?? ''));
         $whatsapp = trim((string)($_POST['whatsapp'] ?? ''));
+        $email = trim((string)($_POST['email'] ?? ''));
         $status = trim((string)($_POST['status'] ?? ''));
         $jenis = trim((string)($_POST['jenis_konseling'] ?? ''));
         $jadwal = trim((string)($_POST['jadwal_konseling'] ?? ''));
@@ -351,8 +355,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $bookedDate = trim((string)($_POST['booked_date'] ?? '')); // optional (YYYY-MM-DD)
         $picId = intval($_POST['pic_id'] ?? 0); // optional, 0 means no PIC
 
-        if ($name === '' || $whatsapp === '' || $status === '' || $jenis === '' || $jadwal === '') {
-            $_SESSION['error'] = 'Nama, WhatsApp, Status, Jenis Konseling, dan Jadwal wajib diisi.';
+        if ($name === '' || $whatsapp === '' || $email === '' || $status === '' || $jenis === '' || $jadwal === '') {
+            $_SESSION['error'] = 'Nama, WhatsApp, Email, Status, Jenis Konseling, dan Jadwal wajib diisi.';
+            header('Location: ' . $redir);
+            exit;
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = 'Format email tidak valid.';
             header('Location: ' . $redir);
             exit;
         }
@@ -391,10 +400,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         // If we have time values, update them; otherwise, keep existing values or set to NULL
         if ($timeStart && $timeFinish) {
             $stmt = $conn->prepare("UPDATE career_boostday_consultations
-                SET name=?, whatsapp=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, jurusan=NULLIF(?, ''), pic_id=NULLIF(?, 0), booked_date=NULLIF(?, ''), booked_time_start=?, booked_time_finish=?, admin_updated_at=NOW()
+                SET name=?, whatsapp=?, email=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, jurusan=NULLIF(?, ''), pic_id=NULLIF(?, 0), booked_date=NULLIF(?, ''), booked_time_start=?, booked_time_finish=?, admin_updated_at=NOW()
                 WHERE id=?");
             if ($stmt) {
-                $stmt->bind_param('sssssssisssi', $name, $whatsapp, $status, $jenis, $jadwal, $pend, $jurusan, $picId, $bookedDate, $timeStart, $timeFinish, $id);
+                $stmt->bind_param('ssssssssisssi', $name, $whatsapp, $email, $status, $jenis, $jadwal, $pend, $jurusan, $picId, $bookedDate, $timeStart, $timeFinish, $id);
                 $stmt->execute();
                 $stmt->close();
                 $_SESSION['success'] = 'Data berhasil di-update.';
@@ -402,10 +411,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         } else {
             // No time calculation needed, just update other fields
             $stmt = $conn->prepare("UPDATE career_boostday_consultations
-                SET name=?, whatsapp=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, jurusan=NULLIF(?, ''), pic_id=NULLIF(?, 0), booked_date=NULLIF(?, ''), admin_updated_at=NOW()
+                SET name=?, whatsapp=?, email=?, status=?, jenis_konseling=?, jadwal_konseling=?, pendidikan_terakhir=?, jurusan=NULLIF(?, ''), pic_id=NULLIF(?, 0), booked_date=NULLIF(?, ''), admin_updated_at=NOW()
                 WHERE id=?");
             if ($stmt) {
-                $stmt->bind_param('sssssssisi', $name, $whatsapp, $status, $jenis, $jadwal, $pend, $jurusan, $picId, $bookedDate, $id);
+                $stmt->bind_param('ssssssssisi', $name, $whatsapp, $email, $status, $jenis, $jadwal, $pend, $jurusan, $picId, $bookedDate, $id);
                 $stmt->execute();
                 $stmt->close();
                 $_SESSION['success'] = 'Data berhasil di-update.';
@@ -432,10 +441,10 @@ $params = [];
 $types = '';
 
 if ($q !== '') {
-    $whereClauses[] = "(c.name LIKE ? OR c.whatsapp LIKE ? OR c.status LIKE ? OR c.jadwal_konseling LIKE ? OR c.admin_status LIKE ? OR p.name LIKE ?)";
+    $whereClauses[] = "(c.name LIKE ? OR c.whatsapp LIKE ? OR c.email LIKE ? OR c.status LIKE ? OR c.jadwal_konseling LIKE ? OR c.admin_status LIKE ? OR p.name LIKE ?)";
     $like = '%' . $q . '%';
-    $params = array_merge($params, [$like, $like, $like, $like, $like, $like]);
-    $types .= 'ssssss';
+    $params = array_merge($params, [$like, $like, $like, $like, $like, $like, $like]);
+    $types .= 'sssssss';
 }
 if ($dateFrom !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
     $whereClauses[] = "DATE(c.created_at) >= ?";
@@ -453,7 +462,7 @@ $where = !empty($whereClauses) ? ('WHERE ' . implode(' AND ', $whereClauses)) : 
 $export = isset($_GET['export']) ? trim((string)$_GET['export']) : '';
 if ($export === 'json') {
     $exportRows = [];
-    $sqlExport = "SELECT c.id, c.created_at, c.name, c.whatsapp, c.status, c.jenis_konseling, c.jadwal_konseling, c.pendidikan_terakhir, c.jurusan,
+    $sqlExport = "SELECT c.id, c.created_at, c.name, c.whatsapp, c.email, c.status, c.jenis_konseling, c.jadwal_konseling, c.pendidikan_terakhir, c.jurusan,
                          c.admin_status, p.name AS pic_name, c.booked_date, c.booked_time_start, c.booked_time_finish, c.keterangan, c.alasan
                   FROM career_boostday_consultations c
                   LEFT JOIN career_boostday_pics p ON p.id=c.pic_id
@@ -570,7 +579,7 @@ if (table_exists($conn, 'career_boostday_slots')) {
 
 // Fetch rows
 $rows = [];
-$sql = "SELECT c.id, c.created_at, c.name, c.whatsapp, c.status, c.jenis_konseling, c.jadwal_konseling, c.pendidikan_terakhir, c.jurusan, c.cv_path, c.cv_original_name,
+$sql = "SELECT c.id, c.created_at, c.name, c.whatsapp, c.email, c.status, c.jenis_konseling, c.jadwal_konseling, c.pendidikan_terakhir, c.jurusan, c.cv_path, c.cv_original_name,
                c.admin_status, c.pic_id, c.keterangan, c.alasan, c.admin_updated_at, c.booked_date, c.booked_time_start, c.booked_time_finish,
                p.name AS pic_name
         FROM career_boostday_consultations c
@@ -626,7 +635,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
             <form class="d-flex gap-2" method="GET" action="">
             <input class="form-control" type="date" name="date_from" value="<?php echo h($dateFrom); ?>" title="Tanggal awal">
             <input class="form-control" type="date" name="date_to" value="<?php echo h($dateTo); ?>" title="Tanggal akhir">
-            <input class="form-control" name="q" value="<?php echo h($q); ?>" placeholder="Cari nama / WA / status / jadwal" style="min-width: 220px;">
+            <input class="form-control" name="q" value="<?php echo h($q); ?>" placeholder="Cari nama / WA / email / status / jadwal" style="min-width: 220px;">
             <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Cari</button>
             <?php
                 $excelUrl = '?export=json';
@@ -727,6 +736,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
                         <th style="width: 170px;">Timestamp</th>
                         <th>Nama</th>
                         <th style="width: 170px;">Nomor WhatsApp</th>
+                        <th style="width: 220px;">Email</th>
                         <th style="width: 220px;">Apakah Saudara/i</th>
                         <th style="width: 150px;">Jenis Konseling</th>
                         <th style="width: 220px;">Jadwal Konseling</th>
@@ -740,7 +750,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
                 </thead>
                 <tbody>
                 <?php if (empty($rows)): ?>
-                    <tr><td colspan="12" class="text-center text-muted py-4">Belum ada data.</td></tr>
+                    <tr><td colspan="13" class="text-center text-muted py-4">Belum ada data.</td></tr>
                 <?php else: ?>
                     <?php foreach ($rows as $r): ?>
                         <?php
@@ -758,6 +768,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
                             <td><?php echo h(fmt_ts_gmt7($r['created_at'] ?? '')); ?></td>
                             <td class="fw-semibold"><?php echo h($r['name']); ?></td>
                             <td><?php echo h($r['whatsapp']); ?></td>
+                            <td><?php echo h(trim((string)($r['email'] ?? '')) !== '' ? $r['email'] : '-'); ?></td>
                             <td><?php echo h($r['status']); ?></td>
                             <td><?php echo h($r['jenis_konseling']); ?></td>
                             <td><?php echo h($r['jadwal_konseling']); ?></td>
@@ -792,6 +803,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
                                         data-id="<?php echo h($r['id']); ?>"
                                         data-name="<?php echo h($r['name']); ?>"
                                         data-whatsapp="<?php echo h($r['whatsapp']); ?>"
+                                        data-email="<?php echo h($r['email'] ?? ''); ?>"
                                         data-status="<?php echo h($r['status']); ?>"
                                         data-jenis="<?php echo h($r['jenis_konseling']); ?>"
                                         data-jadwal="<?php echo h($r['jadwal_konseling']); ?>"
@@ -873,6 +885,10 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
             <div class="col-12 col-md-6">
               <label class="form-label">Nomor WhatsApp</label>
               <input class="form-control" name="whatsapp" id="edit_whatsapp" required>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Email</label>
+              <input class="form-control" name="email" id="edit_email" type="email" required>
             </div>
             <div class="col-12">
               <label class="form-label">Apakah Saudara/i</label>
@@ -1021,6 +1037,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
               'Timestamp (GMT+7)': r.created_at_gmt7 || r.created_at || '',
               'Nama': r.name || '',
               'WhatsApp': r.whatsapp || '',
+              'Email': r.email || '',
               'Status Peserta': r.status || '',
               'Jenis Konseling': r.jenis_konseling || '',
               'Jadwal Konseling': r.jadwal_konseling || '',
@@ -1060,6 +1077,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
         document.getElementById('edit_id').value = btn.getAttribute('data-id') || '';
         document.getElementById('edit_name').value = btn.getAttribute('data-name') || '';
         document.getElementById('edit_whatsapp').value = btn.getAttribute('data-whatsapp') || '';
+        document.getElementById('edit_email').value = btn.getAttribute('data-email') || '';
         document.getElementById('edit_status').value = btn.getAttribute('data-status') || '';
         document.getElementById('edit_jenis').value = btn.getAttribute('data-jenis') || '';
         var jadwalVal = btn.getAttribute('data-jadwal') || '';
