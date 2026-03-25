@@ -7,6 +7,21 @@ require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
 if (!current_user_can('view_audit_trails') && !current_user_can('manage_settings')) { http_response_code(403); echo 'Forbidden'; exit; }
 
+function normalize_audit_path(string $path): string {
+    $path = trim($path);
+    if ($path === '') {
+        return '';
+    }
+
+    $path = str_replace('\\', '/', $path);
+    $pasadminPos = strpos($path, '/pasadmin/');
+    if ($pasadminPos !== false) {
+        return substr($path, $pasadminPos);
+    }
+
+    return $path;
+}
+
 // Separate connection to job_admin_prod (audits table lives here)
 $conn = new mysqli('localhost','root','', 'job_admin_prod');
 
@@ -118,7 +133,7 @@ $totalPages = max(1, (int)ceil($totalRows / $pageSize));
                             <td><?php echo htmlspecialchars(($r['username'] ?? '') . ' (#' . $r['user_id'] . ')'); ?></td>
                             <td><?php echo htmlspecialchars($r['ip_address'] ?? ''); ?></td>
                             <td><?php echo htmlspecialchars($r['method'] ?? ''); ?></td>
-                            <td><code><?php echo htmlspecialchars($r['path']); ?></code></td>
+                            <td><code><?php echo htmlspecialchars(normalize_audit_path((string)($r['path'] ?? ''))); ?></code></td>
                             <td><?php echo htmlspecialchars($r['created_at']); ?></td>
                             <td><a class="btn btn-sm btn-outline-primary" href="audit_trails_view?id=<?php echo $r['id']; ?>">View</a></td>
                         </tr>

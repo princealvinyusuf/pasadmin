@@ -7,6 +7,21 @@ require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
 if (!current_user_can('view_audit_trails') && !current_user_can('manage_settings')) { http_response_code(403); echo 'Forbidden'; exit; }
 
+function normalize_audit_path(string $path): string {
+    $path = trim($path);
+    if ($path === '') {
+        return '';
+    }
+
+    $path = str_replace('\\', '/', $path);
+    $pasadminPos = strpos($path, '/pasadmin/');
+    if ($pasadminPos !== false) {
+        return substr($path, $pasadminPos);
+    }
+
+    return $path;
+}
+
 $conn = new mysqli('localhost','root','', 'job_admin_prod');
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $stmt = $conn->prepare('SELECT * FROM audits WHERE id=?');
@@ -39,7 +54,7 @@ $stmt->close();
                     <dt class="col-sm-3">IP</dt><dd class="col-sm-9"><?php echo htmlspecialchars($row['ip_address'] ?? ''); ?></dd>
                     <dt class="col-sm-3">User-Agent</dt><dd class="col-sm-9"><small><?php echo htmlspecialchars($row['user_agent'] ?? ''); ?></small></dd>
                     <dt class="col-sm-3">Method</dt><dd class="col-sm-9"><?php echo htmlspecialchars($row['method'] ?? ''); ?></dd>
-                    <dt class="col-sm-3">Path</dt><dd class="col-sm-9"><code><?php echo htmlspecialchars($row['path'] ?? ''); ?></code></dd>
+                    <dt class="col-sm-3">Path</dt><dd class="col-sm-9"><code><?php echo htmlspecialchars(normalize_audit_path((string)($row['path'] ?? ''))); ?></code></dd>
                     <dt class="col-sm-3">Query</dt><dd class="col-sm-9"><code><?php echo htmlspecialchars($row['query_string'] ?? ''); ?></code></dd>
                     <dt class="col-sm-3">Post Data</dt><dd class="col-sm-9"><pre class="mb-0" style="white-space: pre-wrap;"><?php echo htmlspecialchars($row['post_data'] ?? ''); ?></pre></dd>
                     <dt class="col-sm-3">Time</dt><dd class="col-sm-9"><?php echo htmlspecialchars($row['created_at'] ?? ''); ?></dd>

@@ -6,6 +6,44 @@ if (empty($_SESSION['user_id'])) {
     header('Location: login');
     exit();
 } 
+
+function resolve_audit_path(): string {
+    $candidates = [
+        $_SERVER['REQUEST_URI'] ?? '',
+        $_SERVER['PHP_SELF'] ?? '',
+        $_SERVER['SCRIPT_NAME'] ?? '',
+        $_SERVER['SCRIPT_FILENAME'] ?? '',
+    ];
+
+    foreach ($candidates as $candidate) {
+        $candidate = trim((string)$candidate);
+        if ($candidate === '') {
+            continue;
+        }
+
+        $path = parse_url($candidate, PHP_URL_PATH);
+        if (!is_string($path) || $path === '') {
+            continue;
+        }
+
+        $path = str_replace('\\', '/', $path);
+
+        // Normalize filesystem-like values to app web path.
+        $pasadminPos = strpos($path, '/pasadmin/');
+        if ($pasadminPos !== false) {
+            $path = substr($path, $pasadminPos);
+        }
+
+        if ($path === '') {
+            continue;
+        }
+
+        return $path;
+    }
+
+    return '/';
+}
+
 // Basic audit trail: log each authenticated page hit into job_admin_prod.audits
 try {
     $auditConn = new mysqli('localhost','root','', 'job_admin_prod');
@@ -29,7 +67,7 @@ try {
     $ip = $_SERVER['REMOTE_ADDR'] ?? null;
     $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
     $method = $_SERVER['REQUEST_METHOD'] ?? null;
-    $path = $_SERVER['SCRIPT_NAME'] ?? '';
+    $path = resolve_audit_path();
     $query = $_SERVER['QUERY_STRING'] ?? '';
     // Only capture small POST bodies to avoid bloat; redact passwords
     $post = '';
