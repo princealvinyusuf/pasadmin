@@ -95,6 +95,29 @@ function label_for_slot(string $day, string $t1, string $t2): string
     return $day . ' (pukul ' . $t1s . ' s/d ' . $t2s . ')';
 }
 
+function app_base_url(): string
+{
+    $default = '/pasadmin/';
+    $candidates = [
+        $_SERVER['REQUEST_URI'] ?? '',
+        $_SERVER['PHP_SELF'] ?? '',
+        $_SERVER['SCRIPT_NAME'] ?? '',
+    ];
+    foreach ($candidates as $candidate) {
+        $path = parse_url((string)$candidate, PHP_URL_PATH);
+        if (!is_string($path) || $path === '') {
+            continue;
+        }
+        $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+        foreach ($segments as $segment) {
+            if (strcasecmp($segment, 'pasadmin') === 0) {
+                return '/' . $segment . '/';
+            }
+        }
+    }
+    return $default;
+}
+
 // Connect to DB used by submissions table
 $candidates = ['job_admin_prod', 'paskerid_db_prod'];
 $conn = null;
@@ -117,6 +140,8 @@ if (!$conn) {
 }
 
 ensure_slots_schema($conn);
+$appBaseUrl = app_base_url();
+$selfPath = $appBaseUrl . 'career_boostday_slot';
 
 $days = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
 
@@ -144,7 +169,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $_SESSION[$ok ? 'success' : 'error'] = $ok ? 'Jadwal berhasil ditambahkan.' : 'Gagal menambahkan jadwal (kemungkinan label duplikat).';
             }
         }
-        header('Location: career_boostday_slot');
+        header('Location: ' . $selfPath);
         exit;
     }
 
@@ -170,7 +195,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $_SESSION[$ok ? 'success' : 'error'] = $ok ? 'Jadwal berhasil diupdate.' : 'Gagal mengupdate jadwal (kemungkinan label duplikat).';
             }
         }
-        header('Location: career_boostday_slot');
+        header('Location: ' . $selfPath);
         exit;
     }
 
@@ -186,7 +211,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $_SESSION['success'] = 'Jadwal berhasil dinonaktifkan.';
             }
         }
-        header('Location: career_boostday_slot');
+        header('Location: ' . $selfPath);
         exit;
     }
 }
@@ -219,7 +244,7 @@ if ($res) {
             <div class="text-muted small">Database: <code><?php echo h($activeDb); ?></code></div>
         </div>
         <div class="d-flex gap-2">
-            <a class="btn btn-outline-secondary" href="career_boostday"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
+            <a class="btn btn-outline-secondary" href="<?php echo h($appBaseUrl . 'career_boostday'); ?>"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
         </div>
     </div>
 
@@ -232,7 +257,7 @@ if ($res) {
 
     <div class="card shadow-sm mb-3">
         <div class="card-body">
-            <form class="row g-2 align-items-end" method="POST" action="">
+            <form class="row g-2 align-items-end" method="POST" action="<?php echo h($selfPath); ?>">
                 <input type="hidden" name="action" value="create">
                 <div class="col-12 col-md-3">
                     <label class="form-label">Hari</label>
@@ -304,7 +329,7 @@ if ($res) {
                             </td>
                             <td>
                                 <div class="d-flex flex-wrap gap-2">
-                                    <button class="btn btn-outline-secondary btn-sm"
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editSlotModal"
                                         data-id="<?php echo h($s['id']); ?>"
@@ -315,7 +340,7 @@ if ($res) {
                                         data-active="<?php echo h($s['is_active']); ?>"
                                     ><i class="bi bi-pencil-square me-1"></i>Edit</button>
 
-                                    <form method="POST" action="" onsubmit="return confirm('Nonaktifkan jadwal ini?');">
+                                    <form method="POST" action="<?php echo h($selfPath); ?>" onsubmit="return confirm('Nonaktifkan jadwal ini?');">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id" value="<?php echo h($s['id']); ?>">
                                         <button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-slash-circle me-1"></i>Nonaktif</button>
@@ -335,7 +360,7 @@ if ($res) {
 <div class="modal fade" id="editSlotModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <form method="POST" action="">
+      <form method="POST" action="<?php echo h($selfPath); ?>">
         <div class="modal-header">
           <h5 class="modal-title">Edit Jadwal</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

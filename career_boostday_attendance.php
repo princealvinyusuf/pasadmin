@@ -116,6 +116,29 @@ function local_input_to_utc_sql(string $local): ?string
     }
 }
 
+function app_base_url(): string
+{
+    $default = '/pasadmin/';
+    $candidates = [
+        $_SERVER['REQUEST_URI'] ?? '',
+        $_SERVER['PHP_SELF'] ?? '',
+        $_SERVER['SCRIPT_NAME'] ?? '',
+    ];
+    foreach ($candidates as $candidate) {
+        $path = parse_url((string)$candidate, PHP_URL_PATH);
+        if (!is_string($path) || $path === '') {
+            continue;
+        }
+        $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+        foreach ($segments as $segment) {
+            if (strcasecmp($segment, 'pasadmin') === 0) {
+                return '/' . $segment . '/';
+            }
+        }
+    }
+    return $default;
+}
+
 $candidates = ['job_admin_prod', 'paskerid_db_prod'];
 $conn = null;
 $activeDb = null;
@@ -139,6 +162,10 @@ if (!$conn) {
 }
 
 ensure_schema($conn);
+$appBaseUrl = app_base_url();
+$selfPath = $appBaseUrl . 'career_boostday_attendance';
+$currentQuery = http_build_query($_GET ?? []);
+$selfUrlWithQuery = $selfPath . ($currentQuery !== '' ? ('?' . $currentQuery) : '');
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $action = trim((string) ($_POST['action'] ?? ''));
@@ -156,7 +183,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!empty($_GET['page'])) {
         $qs .= ($qs ? '&' : '') . 'page=' . urlencode((string) $_GET['page']);
     }
-    $redir = 'career_boostday_attendance.php' . ($qs ? ('?' . $qs) : '');
+    $redir = $selfPath . ($qs ? ('?' . $qs) : '');
 
     if ($action === 'create' || $action === 'update' || $action === 'delete') {
         if ($id <= 0) {
@@ -359,7 +386,7 @@ if ($bookedTo !== '') $baseQuery .= '&booked_to=' . urlencode($bookedTo);
             <div class="text-muted small">Database: <code><?php echo h($activeDb); ?></code> • Data accepted + booked</div>
         </div>
         <div class="d-flex gap-2">
-            <a class="btn btn-outline-secondary" href="career_boostday"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
+            <a class="btn btn-outline-secondary" href="<?php echo h($appBaseUrl . 'career_boostday'); ?>"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
         </div>
     </div>
 
@@ -400,7 +427,7 @@ if ($bookedTo !== '') $baseQuery .= '&booked_to=' . urlencode($bookedTo);
     <div class="card shadow-sm mb-3">
         <div class="card-body">
             <div class="fw-semibold mb-2">Tambah Konfirmasi Kehadiran (Create)</div>
-            <form method="POST" action="" class="row g-2 align-items-end">
+            <form method="POST" action="<?php echo h($selfUrlWithQuery); ?>" class="row g-2 align-items-end">
                 <input type="hidden" name="action" value="create">
                 <div class="col-12 col-lg-7">
                     <label class="form-label">Pilih Peserta</label>
@@ -430,7 +457,7 @@ if ($bookedTo !== '') $baseQuery .= '&booked_to=' . urlencode($bookedTo);
 
     <div class="card shadow-sm">
         <div class="card-body border-bottom">
-            <form class="row g-2 align-items-end" method="GET" action="">
+            <form class="row g-2 align-items-end" method="GET" action="<?php echo h($selfPath); ?>">
                 <div class="col-12 col-md-3">
                     <label class="form-label">Booked From</label>
                     <input class="form-control" type="date" name="booked_from" value="<?php echo h($bookedFrom); ?>">
@@ -489,6 +516,7 @@ if ($bookedTo !== '') $baseQuery .= '&booked_to=' . urlencode($bookedTo);
                             <td>
                                 <div class="d-flex flex-wrap gap-1">
                                     <button
+                                        type="button"
                                         class="btn btn-outline-secondary btn-sm"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editConfirmModal"
@@ -499,13 +527,13 @@ if ($bookedTo !== '') $baseQuery .= '&booked_to=' . urlencode($bookedTo);
                                         <i class="bi bi-pencil-square me-1"></i>Update
                                     </button>
                                     <?php if (!$confirmed): ?>
-                                        <form method="POST" action="" class="d-inline">
+                                        <form method="POST" action="<?php echo h($selfUrlWithQuery); ?>" class="d-inline">
                                             <input type="hidden" name="action" value="create">
                                             <input type="hidden" name="id" value="<?php echo h($r['id']); ?>">
                                             <button class="btn btn-outline-success btn-sm" type="submit"><i class="bi bi-check2 me-1"></i>Confirm</button>
                                         </form>
                                     <?php else: ?>
-                                        <form method="POST" action="" onsubmit="return confirm('Hapus konfirmasi kehadiran ini?');" class="d-inline">
+                                        <form method="POST" action="<?php echo h($selfUrlWithQuery); ?>" onsubmit="return confirm('Hapus konfirmasi kehadiran ini?');" class="d-inline">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?php echo h($r['id']); ?>">
                                             <button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-trash me-1"></i>Delete</button>
@@ -528,10 +556,10 @@ if ($bookedTo !== '') $baseQuery .= '&booked_to=' . urlencode($bookedTo);
                         $next = min($totalPages, $page + 1);
                     ?>
                     <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="?page=<?php echo $prev . $baseQuery; ?>">Prev</a>
+                        <a class="page-link" href="<?php echo h($selfPath . '?page=' . $prev . $baseQuery); ?>">Prev</a>
                     </li>
                     <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="?page=<?php echo $next . $baseQuery; ?>">Next</a>
+                        <a class="page-link" href="<?php echo h($selfPath . '?page=' . $next . $baseQuery); ?>">Next</a>
                     </li>
                 </ul>
             </nav>
@@ -542,7 +570,7 @@ if ($bookedTo !== '') $baseQuery .= '&booked_to=' . urlencode($bookedTo);
 <div class="modal fade" id="editConfirmModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form method="POST" action="">
+            <form method="POST" action="<?php echo h($selfUrlWithQuery); ?>">
                 <div class="modal-header">
                     <h5 class="modal-title">Update Konfirmasi Kehadiran</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

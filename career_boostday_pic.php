@@ -37,6 +37,29 @@ function table_exists(mysqli $conn, string $table): bool {
     return $res && $res->num_rows > 0;
 }
 
+function app_base_url(): string
+{
+    $default = '/pasadmin/';
+    $candidates = [
+        $_SERVER['REQUEST_URI'] ?? '',
+        $_SERVER['PHP_SELF'] ?? '',
+        $_SERVER['SCRIPT_NAME'] ?? '',
+    ];
+    foreach ($candidates as $candidate) {
+        $path = parse_url((string)$candidate, PHP_URL_PATH);
+        if (!is_string($path) || $path === '') {
+            continue;
+        }
+        $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+        foreach ($segments as $segment) {
+            if (strcasecmp($segment, 'pasadmin') === 0) {
+                return '/' . $segment . '/';
+            }
+        }
+    }
+    return $default;
+}
+
 // Try both DBs used in this repo's admin pages (same logic as submissions page)
 $candidates = ['job_admin_prod', 'paskerid_db_prod'];
 $conn = null;
@@ -85,6 +108,9 @@ if ($count === 0) {
     }
 }
 
+$appBaseUrl = app_base_url();
+$selfPath = $appBaseUrl . 'career_boostday_pic';
+
 // Handle CRUD
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     $action = (string)$_POST['action'];
@@ -101,7 +127,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $_SESSION['success'] = 'PIC berhasil ditambahkan.';
             }
         }
-        header('Location: career_boostday_pic');
+        header('Location: ' . $selfPath);
         exit;
     }
 
@@ -120,7 +146,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $_SESSION['success'] = 'PIC berhasil diupdate.';
             }
         }
-        header('Location: career_boostday_pic');
+        header('Location: ' . $selfPath);
         exit;
     }
 
@@ -136,7 +162,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $_SESSION['success'] = 'PIC berhasil dinonaktifkan.';
             }
         }
-        header('Location: career_boostday_pic');
+        header('Location: ' . $selfPath);
         exit;
     }
 }
@@ -166,7 +192,7 @@ if ($res) {
             <div class="text-muted small">Database: <code><?php echo h($activeDb); ?></code></div>
         </div>
         <div class="d-flex gap-2">
-            <a class="btn btn-outline-secondary" href="career_boostday"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
+            <a class="btn btn-outline-secondary" href="<?php echo h($appBaseUrl . 'career_boostday'); ?>"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
         </div>
     </div>
 
@@ -179,7 +205,7 @@ if ($res) {
 
     <div class="card shadow-sm mb-3">
         <div class="card-body">
-            <form class="row g-2 align-items-end" method="POST" action="">
+            <form class="row g-2 align-items-end" method="POST" action="<?php echo h($selfPath); ?>">
                 <input type="hidden" name="action" value="create">
                 <div class="col-12 col-md-6">
                     <label class="form-label">Tambah PIC</label>
@@ -220,7 +246,7 @@ if ($res) {
                             </td>
                             <td>
                                 <div class="d-flex flex-wrap gap-2">
-                                    <button class="btn btn-outline-secondary btn-sm"
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editPicModal"
                                         data-id="<?php echo h($p['id']); ?>"
@@ -228,7 +254,7 @@ if ($res) {
                                         data-active="<?php echo h($p['is_active']); ?>"
                                     ><i class="bi bi-pencil-square me-1"></i>Edit</button>
 
-                                    <form method="POST" action="" onsubmit="return confirm('Nonaktifkan PIC ini?');">
+                                    <form method="POST" action="<?php echo h($selfPath); ?>" onsubmit="return confirm('Nonaktifkan PIC ini?');">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id" value="<?php echo h($p['id']); ?>">
                                         <button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-slash-circle me-1"></i>Nonaktif</button>
@@ -248,7 +274,7 @@ if ($res) {
 <div class="modal fade" id="editPicModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <form method="POST" action="">
+      <form method="POST" action="<?php echo h($selfPath); ?>">
         <div class="modal-header">
           <h5 class="modal-title">Edit PIC</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

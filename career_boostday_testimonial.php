@@ -37,6 +37,29 @@ function table_exists(mysqli $conn, string $table): bool {
     return $res && $res->num_rows > 0;
 }
 
+function app_base_url(): string
+{
+    $default = '/pasadmin/';
+    $candidates = [
+        $_SERVER['REQUEST_URI'] ?? '',
+        $_SERVER['PHP_SELF'] ?? '',
+        $_SERVER['SCRIPT_NAME'] ?? '',
+    ];
+    foreach ($candidates as $candidate) {
+        $path = parse_url((string)$candidate, PHP_URL_PATH);
+        if (!is_string($path) || $path === '') {
+            continue;
+        }
+        $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+        foreach ($segments as $segment) {
+            if (strcasecmp($segment, 'pasadmin') === 0) {
+                return '/' . $segment . '/';
+            }
+        }
+    }
+    return $default;
+}
+
 function ensure_testimonials_table(mysqli $conn): void {
     if (!table_exists($conn, 'career_boostday_testimonials')) {
         $conn->query("CREATE TABLE career_boostday_testimonials (
@@ -71,6 +94,10 @@ if (!$conn) {
 }
 
 ensure_testimonials_table($conn);
+$appBaseUrl = app_base_url();
+$selfPath = $appBaseUrl . 'career_boostday_testimonial';
+$currentQuery = http_build_query($_GET ?? []);
+$selfUrlWithQuery = $selfPath . ($currentQuery !== '' ? ('?' . $currentQuery) : '');
 
 // Setup upload directory
 $images_base_dir = $_SERVER['DOCUMENT_ROOT'] . '/images/';
@@ -161,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$upload_dir_writable) {
                     $message = 'Direktori upload tidak dapat ditulis. Silakan hubungi administrator untuk memperbaiki permission folder.';
                     $messageType = 'danger';
-                    header('Location: career_boostday_testimonial.php?msg=' . urlencode($message) . '&type=' . urlencode($messageType));
+                    header('Location: ' . $selfPath . '?msg=' . urlencode($message) . '&type=' . urlencode($messageType));
                     exit;
                 }
                 
@@ -179,13 +206,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!move_uploaded_file($_FILES['photo']['tmp_name'], $target_file_system_path)) {
                         $message = 'Gagal mengupload foto. Pastikan direktori upload memiliki permission yang benar.';
                         $messageType = 'danger';
-                        header('Location: career_boostday_testimonial.php?msg=' . urlencode($message) . '&type=' . urlencode($messageType));
+                        header('Location: ' . $selfPath . '?msg=' . urlencode($message) . '&type=' . urlencode($messageType));
                         exit;
                     }
                 } else {
                     $message = 'Format file tidak didukung. Gunakan JPG, PNG, GIF, atau WEBP.';
                     $messageType = 'danger';
-                    header('Location: career_boostday_testimonial.php?msg=' . urlencode($message) . '&type=' . urlencode($messageType));
+                    header('Location: ' . $selfPath . '?msg=' . urlencode($message) . '&type=' . urlencode($messageType));
                     exit;
                 }
             } elseif ($action === 'update') {
@@ -275,7 +302,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // Redirect to avoid form resubmission
-    header('Location: career_boostday_testimonial.php?msg=' . urlencode($message) . '&type=' . urlencode($messageType));
+    header('Location: ' . $selfPath . '?msg=' . urlencode($message) . '&type=' . urlencode($messageType));
     exit;
 }
 
@@ -351,7 +378,7 @@ $conn->close();
             <div class="text-muted small">Database: <code><?php echo h($activeDb); ?></code> • Total: <b><?php echo count($testimonials); ?></b></div>
         </div>
         <div>
-            <a href="career_boostday" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+            <a href="<?php echo h($appBaseUrl . 'career_boostday'); ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
         </div>
     </div>
     
@@ -376,7 +403,7 @@ $conn->close();
             <?php echo $editData ? 'Edit Testimoni' : 'Tambah Testimoni Baru'; ?>
         </div>
         <div class="card-body">
-            <form method="POST" action="" enctype="multipart/form-data">
+            <form method="POST" action="<?php echo h($selfUrlWithQuery); ?>" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="<?php echo $editData ? 'update' : 'create'; ?>">
                 <?php if ($editData): ?>
                 <input type="hidden" name="id" value="<?php echo h($editData['id']); ?>">
@@ -427,7 +454,7 @@ $conn->close();
                             <?php echo $editData ? 'Simpan Perubahan' : 'Tambah Testimoni'; ?>
                         </button>
                         <?php if ($editData): ?>
-                        <a href="career_boostday_testimonial" class="btn btn-secondary">Batal</a>
+                        <a href="<?php echo h($selfPath); ?>" class="btn btn-secondary">Batal</a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -484,7 +511,7 @@ $conn->close();
                             </td>
                             <td class="text-center"><?php echo h($t['sort_order']); ?></td>
                             <td class="text-center">
-                                <form method="POST" action="" class="d-inline">
+                                <form method="POST" action="<?php echo h($selfUrlWithQuery); ?>" class="d-inline">
                                     <input type="hidden" name="action" value="toggle_active">
                                     <input type="hidden" name="id" value="<?php echo h($t['id']); ?>">
                                     <button type="submit" class="btn btn-sm <?php echo $t['is_active'] ? 'btn-success' : 'btn-secondary'; ?>" title="Klik untuk toggle">
@@ -493,8 +520,8 @@ $conn->close();
                                 </form>
                             </td>
                             <td>
-                                <a href="?edit=<?php echo h($t['id']); ?>" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
-                                <form method="POST" action="" class="d-inline" onsubmit="return confirm('Hapus testimoni ini?');">
+                                <a href="<?php echo h($selfPath . '?edit=' . urlencode((string)$t['id'])); ?>" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
+                                <form method="POST" action="<?php echo h($selfUrlWithQuery); ?>" class="d-inline" onsubmit="return confirm('Hapus testimoni ini?');">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo h($t['id']); ?>">
                                     <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>

@@ -33,6 +33,29 @@ function table_exists(mysqli $conn, string $table): bool {
     return $res && $res->num_rows > 0;
 }
 
+function app_base_url(): string
+{
+    $default = '/pasadmin/';
+    $candidates = [
+        $_SERVER['REQUEST_URI'] ?? '',
+        $_SERVER['PHP_SELF'] ?? '',
+        $_SERVER['SCRIPT_NAME'] ?? '',
+    ];
+    foreach ($candidates as $candidate) {
+        $path = parse_url((string)$candidate, PHP_URL_PATH);
+        if (!is_string($path) || $path === '') {
+            continue;
+        }
+        $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+        foreach ($segments as $segment) {
+            if (strcasecmp($segment, 'pasadmin') === 0) {
+                return '/' . $segment . '/';
+            }
+        }
+    }
+    return $default;
+}
+
 // Connect to same DB used by submissions table
 $candidates = ['job_admin_prod', 'paskerid_db_prod'];
 $conn = null;
@@ -52,6 +75,9 @@ if (!$conn) {
     echo "Cannot find table career_boostday_consultations in candidate databases: " . implode(', ', $candidates) . "\n";
     exit;
 }
+
+$appBaseUrl = app_base_url();
+$selfPath = $appBaseUrl . 'career_boostday_booked';
 
 // Month navigation (YYYY-MM)
 $monthParam = isset($_GET['month']) ? preg_replace('/[^0-9\-]/', '', (string)$_GET['month']) : '';
@@ -197,18 +223,18 @@ if ($exportAllRowsJson === false) {
             <button type="button" class="btn btn-success" id="btnExportExcel">
                 <i class="bi bi-file-earmark-excel me-1"></i>Export to Excel
             </button>
-            <a class="btn btn-outline-secondary" href="career_boostday"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
+            <a class="btn btn-outline-secondary" href="<?php echo h($appBaseUrl . 'career_boostday'); ?>"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
         </div>
     </div>
 
     <div class="cb-cal mb-4">
         <div class="cb-cal-head">
             <div class="cb-cal-nav">
-                <a href="?month=<?php echo h($prevMonth); ?>">&laquo; Prev</a>
+                <a href="<?php echo h($selfPath . '?month=' . $prevMonth); ?>">&laquo; Prev</a>
             </div>
             <div class="cb-cal-title"><?php echo h($monthLabel); ?></div>
             <div class="cb-cal-nav">
-                <a href="?month=<?php echo h($nextMonth); ?>">Next &raquo;</a>
+                <a href="<?php echo h($selfPath . '?month=' . $nextMonth); ?>">Next &raquo;</a>
             </div>
         </div>
 
