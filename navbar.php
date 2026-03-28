@@ -113,6 +113,7 @@
     $canMiniJobi = current_user_can('settings_minijobi_manage') || $canManageSettings;
     $canCareerBoostDaySlot = $canCareerBoostDay; // same permission
     $canWalkinSurvey = current_user_can('walkin_survey_manage') || $canManageSettings;
+    $canGrabEmail = current_user_can('grab_email_manage') || $canManageSettings;
     $canPaskerDrive = current_user_can('pasker_drive_manage') || $canManageSettings;
 
     $hasLayanan = (
@@ -129,6 +130,7 @@
         $canFormHasilKonseling ||
         $canMiniJobi
         || $canWalkinSurvey
+        || $canGrabEmail
     );
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
     $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan);
@@ -268,6 +270,7 @@
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_responses">Walk-in Survey Responses</a></li><?php endif; ?>
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_statistics">Walk-in Survey Statistik</a></li><?php endif; ?>
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_access_settings">Walk-in Survey Access</a></li><?php endif; ?>
+                        <?php if ($canGrabEmail): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>grab_email"><i class="bi bi-envelope-paper me-1"></i>Grab Email</a></li><?php endif; ?>
                         <?php if ($canMitraSubmission || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_form_access_settings">Walk-in Form Access</a></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_gallery"><i class="bi bi-images me-1"></i>Walk-in Gallery</a></li><?php endif; ?>
