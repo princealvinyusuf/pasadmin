@@ -9,6 +9,28 @@ require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
 if (!(current_user_can('settings_information_manage') || current_user_can('manage_settings'))) { http_response_code(403); echo 'Forbidden'; exit; }
 
+function app_base_url(): string {
+    $default = '/pasadmin/';
+    $candidates = [
+        $_SERVER['REQUEST_URI'] ?? '',
+        $_SERVER['PHP_SELF'] ?? '',
+        $_SERVER['SCRIPT_NAME'] ?? '',
+    ];
+    foreach ($candidates as $candidate) {
+        $path = parse_url((string)$candidate, PHP_URL_PATH);
+        if (!is_string($path) || $path === '') {
+            continue;
+        }
+        $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+        foreach ($segments as $segment) {
+            if (strcasecmp($segment, 'pasadmin') === 0) {
+                return '/' . $segment . '/';
+            }
+        }
+    }
+    return $default;
+}
+
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
@@ -48,6 +70,10 @@ $status = '';
 $created_at = $updated_at = '';
 $edit_mode = false;
 $upload_error = '';
+$appBaseUrl = app_base_url();
+$selfPath = $appBaseUrl . 'information_settings';
+$currentQuery = http_build_query($_GET ?? []);
+$selfUrlWithQuery = $selfPath . ($currentQuery !== '' ? ('?' . $currentQuery) : '');
 
 // Handle Add or Update
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -118,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
             $stmt->close();
             // Redirect to page 1 since new record appears at the top
-            header('Location: information_settings?page=1');
+            header('Location: ' . $selfPath . '?page=1');
             exit();
         } elseif (isset($_POST['update'])) {
             // Update record, set updated_at to NOW()
@@ -128,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
             // Preserve current page after update
             $current_page_param = isset($_GET['page']) ? '?page=' . intval($_GET['page']) : '';
-            header('Location: information_settings.php' . $current_page_param);
+            header('Location: ' . $selfPath . $current_page_param);
             exit();
         }
     }
@@ -160,7 +186,7 @@ if (isset($_GET['delete'])) {
     
     // If current page is beyond total pages, go to last page
     $redirect_page = min($current_page, max(1, $total_pages_after));
-    header('Location: information_settings.php?page=' . $redirect_page);
+    header('Location: ' . $selfPath . '?page=' . $redirect_page);
     exit();
 }
 
@@ -185,7 +211,8 @@ if (isset($_GET['edit'])) {
 
 // Helper function to build URL with query parameters
 function build_url($params = array()) {
-    $base_url = 'information_settings.php';
+    global $selfPath;
+    $base_url = $selfPath;
     $query_parts = array();
     foreach ($params as $key => $value) {
         if ($value !== null && $value !== '') {
@@ -216,7 +243,7 @@ $total_pages = ceil($total_records / $records_per_page);
 $current_page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 if ($total_pages > 0 && $current_page > $total_pages) {
     // Redirect to last valid page if current page is beyond total pages
-    header('Location: information_settings.php?page=' . $total_pages);
+    header('Location: ' . $selfPath . '?page=' . $total_pages);
     exit();
 } elseif ($total_pages == 0) {
     // If no records, ensure we're on page 1
@@ -540,7 +567,7 @@ $records = $conn->query("SELECT * FROM information ORDER BY id DESC LIMIT $recor
                     </div>
                 <?php endif; ?>
                 
-                <form method="post" enctype="multipart/form-data">
+                <form method="post" action="<?php echo htmlspecialchars($selfUrlWithQuery); ?>" enctype="multipart/form-data">
                     <?php if ($edit_mode): ?>
                         <input type="hidden" name="id" value="<?php echo htmlspecialchars($id); ?>">
                     <?php endif; ?>
