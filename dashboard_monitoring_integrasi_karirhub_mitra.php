@@ -440,12 +440,6 @@ if ($userIsLoggedIn) {
             </a>
         <?php endif; ?>
     </div>
-    <div class="d-flex gap-3 align-items-center mb-3 legend">
-        <span class="d-inline-flex align-items-center gap-1"><span class="indicator-lamp lamp-red"></span>Belum Mulai</span>
-        <span class="d-inline-flex align-items-center gap-1"><span class="indicator-lamp lamp-yellow"></span>On Progress</span>
-        <span class="d-inline-flex align-items-center gap-1"><span class="indicator-lamp lamp-green"></span>Selesai</span>
-    </div>
-
     <div class="card monitor-card mb-3">
         <div class="card-body">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -513,6 +507,11 @@ if ($userIsLoggedIn) {
 
     <form method="GET" class="card border-0 shadow-sm mb-3">
         <div class="card-body py-3">
+            <div class="d-flex gap-3 align-items-center mb-3 legend">
+                <span class="d-inline-flex align-items-center gap-1"><span class="indicator-lamp lamp-red"></span>Belum Mulai</span>
+                <span class="d-inline-flex align-items-center gap-1"><span class="indicator-lamp lamp-yellow"></span>On Progress</span>
+                <span class="d-inline-flex align-items-center gap-1"><span class="indicator-lamp lamp-green"></span>Selesai</span>
+            </div>
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-md-5">
                     <label for="portal_name" class="form-label mb-1">Nama Job Portal</label>
