@@ -71,6 +71,20 @@ function ensure_karirhub_mitra_monitoring_tables(mysqli $conn): void {
         CONSTRAINT fk_karirhub_monitoring_items_parent
             FOREIGN KEY (monitoring_id) REFERENCES karirhub_mitra_monitoring(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $conn->query("CREATE TABLE IF NOT EXISTS karirhub_mitra_joss_metrics (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        metric_date DATE NOT NULL,
+        portal_name VARCHAR(120) NOT NULL,
+        closed_count INT NOT NULL DEFAULT 0,
+        expired_count INT NOT NULL DEFAULT 0,
+        open_count INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_joss_metric_date_portal (metric_date, portal_name),
+        KEY idx_joss_metric_date (metric_date),
+        KEY idx_joss_portal_name (portal_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
 function seed_karirhub_mitra_monitoring(mysqli $conn): void {
@@ -142,6 +156,28 @@ function seed_karirhub_mitra_monitoring(mysqli $conn): void {
     $insItem->close();
 }
 
+function seed_karirhub_mitra_joss_metrics(mysqli $conn): void {
+    $res = $conn->query('SELECT COUNT(*) AS c FROM karirhub_mitra_joss_metrics');
+    $count = $res ? intval(($res->fetch_assoc()['c'] ?? 0)) : 0;
+    if ($count > 0) {
+        return;
+    }
+
+    $seedDate = (new DateTimeImmutable('today'))->format('Y-m-d');
+    $seedRows = [
+        ['Glints TapLoker', 1289, 5919, 4251],
+        ['HiredToday', 0, 10007, 1319],
+        ['REDY Indonesia', 0, 110, 113],
+        ['Toploker.com', 0, 1749, 2100],
+    ];
+    $ins = $conn->prepare('INSERT INTO karirhub_mitra_joss_metrics (metric_date, portal_name, closed_count, expired_count, open_count) VALUES (?,?,?,?,?)');
+    foreach ($seedRows as $row) {
+        $ins->bind_param('ssiii', $seedDate, $row[0], $row[1], $row[2], $row[3]);
+        $ins->execute();
+    }
+    $ins->close();
+}
+
 function parse_detail_lines(string $text): array {
     $result = [];
     $lines = preg_split('/\r\n|\r|\n/', $text);
@@ -169,9 +205,68 @@ function details_to_text(array $rows): string {
 
 ensure_karirhub_mitra_monitoring_tables($conn);
 seed_karirhub_mitra_monitoring($conn);
+seed_karirhub_mitra_joss_metrics($conn);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+
+    if ($action === 'joss_save') {
+        $id = intval($_POST['joss_id'] ?? 0);
+        $metricDate = trim((string) ($_POST['metric_date'] ?? ''));
+        $portalName = trim((string) ($_POST['portal_name_joss'] ?? ''));
+        $closedCount = max(0, intval($_POST['closed_count'] ?? 0));
+        $expiredCount = max(0, intval($_POST['expired_count'] ?? 0));
+        $openCount = max(0, intval($_POST['open_count'] ?? 0));
+
+        if ($metricDate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $metricDate)) {
+            $_SESSION['error'] = 'Tanggal JOSS wajib diisi dengan format yang valid.';
+            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+            exit;
+        }
+        if ($portalName === '') {
+            $_SESSION['error'] = 'Nama Job Portal JOSS wajib diisi.';
+            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+            exit;
+        }
+
+        if ($id > 0) {
+            $stmt = $conn->prepare("UPDATE karirhub_mitra_joss_metrics
+                SET metric_date=?, portal_name=?, closed_count=?, expired_count=?, open_count=?
+                WHERE id=?");
+            $stmt->bind_param('ssiiii', $metricDate, $portalName, $closedCount, $expiredCount, $openCount, $id);
+            $stmt->execute();
+            $stmt->close();
+            $_SESSION['success'] = 'Data JOSS berhasil diperbarui.';
+        } else {
+            $stmt = $conn->prepare("INSERT INTO karirhub_mitra_joss_metrics
+                (metric_date, portal_name, closed_count, expired_count, open_count)
+                VALUES (?,?,?,?,?)
+                ON DUPLICATE KEY UPDATE
+                    closed_count=VALUES(closed_count),
+                    expired_count=VALUES(expired_count),
+                    open_count=VALUES(open_count)");
+            $stmt->bind_param('ssiii', $metricDate, $portalName, $closedCount, $expiredCount, $openCount);
+            $stmt->execute();
+            $stmt->close();
+            $_SESSION['success'] = 'Data JOSS berhasil disimpan.';
+        }
+
+        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+        exit;
+    }
+
+    if ($action === 'joss_delete') {
+        $id = intval($_POST['joss_id'] ?? 0);
+        if ($id > 0) {
+            $stmt = $conn->prepare('DELETE FROM karirhub_mitra_joss_metrics WHERE id=?');
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $stmt->close();
+            $_SESSION['success'] = 'Data JOSS berhasil dihapus.';
+        }
+        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+        exit;
+    }
 
     if ($action === 'save') {
         $id = intval($_POST['id'] ?? 0);
@@ -292,6 +387,33 @@ $allRows = [];
 $resMain = $conn->query("SELECT * FROM karirhub_mitra_monitoring ORDER BY display_order ASC, id ASC");
 while ($r = $resMain->fetch_assoc()) {
     $allRows[] = $r;
+}
+
+$jossPortalOptions = [];
+foreach ($allRows as $portalRow) {
+    $portalNameOption = trim((string) ($portalRow['portal_name'] ?? ''));
+    if ($portalNameOption !== '' && !in_array($portalNameOption, $jossPortalOptions, true)) {
+        $jossPortalOptions[] = $portalNameOption;
+    }
+}
+sort($jossPortalOptions, SORT_NATURAL | SORT_FLAG_CASE);
+
+$editJossRow = null;
+if (isset($_GET['edit_joss'])) {
+    $editJossId = intval($_GET['edit_joss']);
+    if ($editJossId > 0) {
+        $stmt = $conn->prepare('SELECT * FROM karirhub_mitra_joss_metrics WHERE id=? LIMIT 1');
+        $stmt->bind_param('i', $editJossId);
+        $stmt->execute();
+        $editJossRow = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+    }
+}
+
+$jossRows = [];
+$resJoss = $conn->query("SELECT * FROM karirhub_mitra_joss_metrics ORDER BY metric_date DESC, portal_name ASC");
+while ($r = $resJoss->fetch_assoc()) {
+    $jossRows[] = $r;
 }
 ?>
 <!DOCTYPE html>
@@ -447,6 +569,95 @@ while ($r = $resMain->fetch_assoc()) {
                                         <form method="post" class="d-inline" onsubmit="return confirm('Delete this item?');">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?php echo intval($row['id']); ?>">
+                                            <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="mb-3"><?php echo $editJossRow ? 'Edit Data JOSS' : 'Tambah Data JOSS'; ?></h5>
+            <form method="post">
+                <input type="hidden" name="action" value="joss_save">
+                <input type="hidden" name="joss_id" value="<?php echo intval($editJossRow['id'] ?? 0); ?>">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Tanggal Data</label>
+                        <input type="date" class="form-control" name="metric_date" required value="<?php echo htmlspecialchars($editJossRow['metric_date'] ?? date('Y-m-d')); ?>">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Nama Job Portal</label>
+                        <input class="form-control" list="joss_portal_list" name="portal_name_joss" required value="<?php echo htmlspecialchars($editJossRow['portal_name'] ?? ''); ?>" placeholder="contoh: Glints TapLoker">
+                        <datalist id="joss_portal_list">
+                            <?php foreach ($jossPortalOptions as $portalOption): ?>
+                                <option value="<?php echo htmlspecialchars($portalOption); ?>"></option>
+                            <?php endforeach; ?>
+                        </datalist>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">closed</label>
+                        <input type="number" min="0" class="form-control" name="closed_count" required value="<?php echo intval($editJossRow['closed_count'] ?? 0); ?>">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">expired</label>
+                        <input type="number" min="0" class="form-control" name="expired_count" required value="<?php echo intval($editJossRow['expired_count'] ?? 0); ?>">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">open</label>
+                        <input type="number" min="0" class="form-control" name="open_count" required value="<?php echo intval($editJossRow['open_count'] ?? 0); ?>">
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-primary" type="submit"><i class="bi bi-save me-1"></i>Simpan Data JOSS</button>
+                        <a class="btn btn-secondary" href="dashboard_monitoring_integrasi_karirhub_mitra_settings">Reset</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="mb-3">Data Existing JOSS</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Tanggal</th>
+                            <th>Nama Job Portal</th>
+                            <th class="text-end">closed</th>
+                            <th class="text-end">expired</th>
+                            <th class="text-end">open</th>
+                            <th class="text-end">Total</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($jossRows)): ?>
+                            <tr><td colspan="8" class="text-center">No data JOSS</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($jossRows as $jossRow): ?>
+                                <?php $total = intval($jossRow['closed_count']) + intval($jossRow['expired_count']) + intval($jossRow['open_count']); ?>
+                                <tr>
+                                    <td><?php echo intval($jossRow['id']); ?></td>
+                                    <td><?php echo htmlspecialchars($jossRow['metric_date']); ?></td>
+                                    <td><?php echo htmlspecialchars($jossRow['portal_name']); ?></td>
+                                    <td class="text-end"><?php echo number_format(intval($jossRow['closed_count'])); ?></td>
+                                    <td class="text-end"><?php echo number_format(intval($jossRow['expired_count'])); ?></td>
+                                    <td class="text-end"><?php echo number_format(intval($jossRow['open_count'])); ?></td>
+                                    <td class="text-end"><strong><?php echo number_format($total); ?></strong></td>
+                                    <td>
+                                        <a class="btn btn-sm btn-outline-primary" href="?edit_joss=<?php echo intval($jossRow['id']); ?>"><i class="bi bi-pencil-square"></i></a>
+                                        <form method="post" class="d-inline" onsubmit="return confirm('Delete this JOSS item?');">
+                                            <input type="hidden" name="action" value="joss_delete">
+                                            <input type="hidden" name="joss_id" value="<?php echo intval($jossRow['id']); ?>">
                                             <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
                                         </form>
                                     </td>

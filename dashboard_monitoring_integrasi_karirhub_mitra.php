@@ -75,6 +75,20 @@ function ensure_karirhub_mitra_monitoring_tables(mysqli $conn): void {
         CONSTRAINT fk_karirhub_monitoring_items_parent
             FOREIGN KEY (monitoring_id) REFERENCES karirhub_mitra_monitoring(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $conn->query("CREATE TABLE IF NOT EXISTS karirhub_mitra_joss_metrics (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        metric_date DATE NOT NULL,
+        portal_name VARCHAR(120) NOT NULL,
+        closed_count INT NOT NULL DEFAULT 0,
+        expired_count INT NOT NULL DEFAULT 0,
+        open_count INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_joss_metric_date_portal (metric_date, portal_name),
+        KEY idx_joss_metric_date (metric_date),
+        KEY idx_joss_portal_name (portal_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
 function seed_karirhub_mitra_monitoring(mysqli $conn): void {
@@ -140,6 +154,28 @@ function seed_karirhub_mitra_monitoring(mysqli $conn): void {
         }
     }
     $insItem->close();
+}
+
+function seed_karirhub_mitra_joss_metrics(mysqli $conn): void {
+    $res = $conn->query('SELECT COUNT(*) AS c FROM karirhub_mitra_joss_metrics');
+    $count = $res ? intval(($res->fetch_assoc()['c'] ?? 0)) : 0;
+    if ($count > 0) {
+        return;
+    }
+
+    $seedDate = (new DateTimeImmutable('today'))->format('Y-m-d');
+    $seedRows = [
+        ['Glints TapLoker', 1289, 5919, 4251],
+        ['HiredToday', 0, 10007, 1319],
+        ['REDY Indonesia', 0, 110, 113],
+        ['Toploker.com', 0, 1749, 2100],
+    ];
+    $ins = $conn->prepare('INSERT INTO karirhub_mitra_joss_metrics (metric_date, portal_name, closed_count, expired_count, open_count) VALUES (?,?,?,?,?)');
+    foreach ($seedRows as $row) {
+        $ins->bind_param('ssiii', $seedDate, $row[0], $row[1], $row[2], $row[3]);
+        $ins->execute();
+    }
+    $ins->close();
 }
 
 function split_lines(?string $text): array {
@@ -220,6 +256,7 @@ function h(string $value): string {
 
 ensure_karirhub_mitra_monitoring_tables($conn);
 seed_karirhub_mitra_monitoring($conn);
+seed_karirhub_mitra_joss_metrics($conn);
 
 $rows = [];
 $qMain = $conn->query("SELECT * FROM karirhub_mitra_monitoring WHERE is_active=1 ORDER BY display_order ASC, id ASC");
@@ -254,6 +291,52 @@ $selectedStatus = strtolower(trim((string) ($_GET['integration_status'] ?? 'all'
 if (!array_key_exists($selectedStatus, $statusOptions)) {
     $selectedStatus = 'all';
 }
+
+// JOSS recap section with date range and job portal totals.
+$today = new DateTimeImmutable('today');
+$startOfMonth = $today->modify('first day of this month');
+$jossStartInput = trim((string) ($_GET['joss_start_date'] ?? $startOfMonth->format('Y-m-d')));
+$jossEndInput = trim((string) ($_GET['joss_end_date'] ?? $today->format('Y-m-d')));
+$jossStartDate = DateTimeImmutable::createFromFormat('Y-m-d', $jossStartInput) ?: $startOfMonth;
+$jossEndDate = DateTimeImmutable::createFromFormat('Y-m-d', $jossEndInput) ?: $today;
+if ($jossStartDate > $jossEndDate) {
+    [$jossStartDate, $jossEndDate] = [$jossEndDate, $jossStartDate];
+}
+
+$jossRows = [];
+$jossStmt = $conn->prepare("SELECT
+        portal_name,
+        SUM(closed_count) AS closed_total,
+        SUM(expired_count) AS expired_total,
+        SUM(open_count) AS open_total
+    FROM karirhub_mitra_joss_metrics
+    WHERE metric_date BETWEEN ? AND ?
+    GROUP BY portal_name
+    ORDER BY portal_name ASC");
+$jossStartDateSql = $jossStartDate->format('Y-m-d');
+$jossEndDateSql = $jossEndDate->format('Y-m-d');
+$jossStmt->bind_param('ss', $jossStartDateSql, $jossEndDateSql);
+$jossStmt->execute();
+$jossResult = $jossStmt->get_result();
+while ($joss = $jossResult->fetch_assoc()) {
+    $jossRows[] = [
+        'portal_name' => (string) ($joss['portal_name'] ?? ''),
+        'closed' => intval($joss['closed_total'] ?? 0),
+        'expired' => intval($joss['expired_total'] ?? 0),
+        'open' => intval($joss['open_total'] ?? 0),
+    ];
+}
+$jossStmt->close();
+
+$jossTotals = ['closed' => 0, 'expired' => 0, 'open' => 0, 'total' => 0];
+foreach ($jossRows as &$jossRow) {
+    $jossRow['total'] = intval($jossRow['closed']) + intval($jossRow['expired']) + intval($jossRow['open']);
+    $jossTotals['closed'] += intval($jossRow['closed']);
+    $jossTotals['expired'] += intval($jossRow['expired']);
+    $jossTotals['open'] += intval($jossRow['open']);
+}
+unset($jossRow);
+$jossTotals['total'] = $jossTotals['closed'] + $jossTotals['expired'] + $jossTotals['open'];
 
 if ($selectedPortal !== 'all' || $selectedStatus !== 'all') {
     $rows = array_values(array_filter($rows, static function (array $row) use ($selectedPortal, $selectedStatus): bool {
@@ -356,6 +439,71 @@ if ($userIsLoggedIn) {
         <span class="d-inline-flex align-items-center gap-1"><span class="indicator-lamp lamp-red"></span>Belum Mulai</span>
         <span class="d-inline-flex align-items-center gap-1"><span class="indicator-lamp lamp-yellow"></span>On Progress</span>
         <span class="d-inline-flex align-items-center gap-1"><span class="indicator-lamp lamp-green"></span>Selesai</span>
+    </div>
+
+    <div class="card monitor-card mb-3">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <h5 class="mb-0">Total Data Lowongan Kerja Skema JOSS</h5>
+                <span class="badge text-bg-light border">
+                    Periode: <?php echo h($jossStartDate->format('d M Y')); ?> - <?php echo h($jossEndDate->format('d M Y')); ?>
+                </span>
+            </div>
+            <form method="GET" class="row g-2 align-items-end mb-3">
+                <input type="hidden" name="portal_name" value="<?php echo h($selectedPortal); ?>">
+                <input type="hidden" name="integration_status" value="<?php echo h($selectedStatus); ?>">
+                <div class="col-12 col-md-4">
+                    <label for="joss_start_date" class="form-label mb-1">Tanggal Mulai</label>
+                    <input type="date" id="joss_start_date" name="joss_start_date" class="form-control form-control-sm" value="<?php echo h($jossStartDate->format('Y-m-d')); ?>">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label for="joss_end_date" class="form-label mb-1">Tanggal Akhir</label>
+                    <input type="date" id="joss_end_date" name="joss_end_date" class="form-control form-control-sm" value="<?php echo h($jossEndDate->format('Y-m-d')); ?>">
+                </div>
+                <div class="col-12 col-md-4 d-grid">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-calendar-range me-1"></i>Tampilkan Periode
+                    </button>
+                </div>
+            </form>
+            <div class="table-responsive">
+                <table class="table table-bordered summary-table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nama Job Portal</th>
+                            <th class="text-end">closed</th>
+                            <th class="text-end">expired</th>
+                            <th class="text-end">open</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($jossRows)): ?>
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">Tidak ada data JOSS pada rentang tanggal yang dipilih.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($jossRows as $jossRow): ?>
+                                <tr>
+                                    <td><?php echo h($jossRow['portal_name']); ?></td>
+                                    <td class="text-end"><?php echo number_format(intval($jossRow['closed'])); ?></td>
+                                    <td class="text-end"><?php echo number_format(intval($jossRow['expired'])); ?></td>
+                                    <td class="text-end"><?php echo number_format(intval($jossRow['open'])); ?></td>
+                                    <td class="text-end"><strong><?php echo number_format(intval($jossRow['total'])); ?></strong></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        <tr class="table-info">
+                            <td><strong>Total</strong></td>
+                            <td class="text-end"><strong><?php echo number_format($jossTotals['closed']); ?></strong></td>
+                            <td class="text-end"><strong><?php echo number_format($jossTotals['expired']); ?></strong></td>
+                            <td class="text-end"><strong><?php echo number_format($jossTotals['open']); ?></strong></td>
+                            <td class="text-end"><strong><?php echo number_format($jossTotals['total']); ?></strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <form method="GET" class="card border-0 shadow-sm mb-3">
