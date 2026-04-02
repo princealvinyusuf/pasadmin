@@ -380,6 +380,7 @@ while ($item = $qItems->fetch_assoc()) {
         .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
         .cooperation-card { background: #f8fbfc; border: 1px solid #deecef; border-radius: 12px; }
         .progress-card { background: var(--card-accent); color: #fff; border-radius: 12px; }
+        .issue-card { background: #fff7f7; border: 1px solid #f3d8d8; border-radius: 12px; }
         .small-table th, .small-table td { font-size: 0.88rem; padding: 0.4rem 0.5rem; }
         .summary-table th, .summary-table td { vertical-align: top; font-size: 0.88rem; }
         .tick { font-weight: 700; color: #0e4f5f; text-align: center; }
@@ -608,6 +609,20 @@ if ($userIsLoggedIn) {
                         <div class="progress-card p-3 h-100">
                             <h5 class="mb-2">Progress</h5>
                             <div><?php echo nl2br(h($row['progress_summary'] ?? '-')); ?></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-12">
+                        <div class="issue-card p-3">
+                            <h5 class="mb-2">Kendala / Issue</h5>
+                            <?php if (empty($notes)): ?>
+                                <div class="text-muted">-</div>
+                            <?php else: ?>
+                                <?php foreach ($notes as $note): ?>
+                                    <div>- <?php echo h($note); ?></div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
