@@ -81,9 +81,9 @@
     $canKemitraanBooked = current_user_can('settings_kemitraan_booked_manage');
     $canPaskerRoom = current_user_can('settings_pasker_room_manage');
     $canWalkinGallery = current_user_can('walkin_gallery_manage') || current_user_can('manage_settings');
+    $canPartnerCompany = current_user_can('partner_company_manage') || current_user_can('manage_settings');
     $canDatabaseContact = current_user_can('settings_database_contact_manage');
     $canIframe = current_user_can('settings_iframe_manage');
-    $canMaintenanceMessage = current_user_can('settings_maintenance_message_manage');
     $canRegistrasiKehadiran = current_user_can('registrasi_kehadiran_manage');
     $canSplitScreen = current_user_can('split_screen_access') || $canManageSettings;
     $canOUI = current_user_can('oui_access') || $canManageSettings;
@@ -103,7 +103,7 @@
     $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || $canDashBlk || $canDashIntegrasiKarirhubMitra || current_user_can('manage_settings'));
     $hasBlk = ($canDashBlk || $canManageSettings);
     
-    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canMaintenanceMessage || $canAuditTrails);
+    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canAuditTrails);
     $hasApiKeys = ($canManageSettings || $canApiKeys);
     $canCareerBoostDay = current_user_can('career_boost_day_manage') || $canManageSettings;
     $canCareerBoostDayPic = current_user_can('career_boost_day_pic_manage') || $canManageSettings;
@@ -132,6 +132,7 @@
         $canMiniJobi
         || $canWalkinSurvey
         || $canGrabEmail
+        || $canPartnerCompany
     );
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
     $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan);
@@ -239,7 +240,6 @@
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>karirhub_ads_settings">KarirHub Ads Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>split_screen_settings">Split Screen Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canIframe): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>iframe_settings">iFrame Settings</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canMaintenanceMessage): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>maintenance_message_settings">Maintenance Message Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>cron_settings">Other Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
@@ -274,8 +274,9 @@
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_access_settings">Walk-in Survey Access</a></li><?php endif; ?>
                         <?php if ($canGrabEmail): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>grab_email"><i class="bi bi-envelope-paper me-1"></i>Grab Email</a></li><?php endif; ?>
                         <?php if ($canMitraSubmission || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_form_access_settings">Walk-in Form Access</a></li><?php endif; ?>
-                        <?php if ($canWalkinGallery): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
+                        <?php if ($canWalkinGallery || $canPartnerCompany): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_gallery"><i class="bi bi-images me-1"></i>Walk-in Gallery</a></li><?php endif; ?>
+                        <?php if ($canPartnerCompany): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>partner_company_settings"><i class="bi bi-buildings me-1"></i>Perusahaan Mitra</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
