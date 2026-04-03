@@ -29,6 +29,15 @@ function table_exists(mysqli $conn, string $table): bool
     return $res && $res->num_rows > 0;
 }
 
+function column_exists(mysqli $conn, string $table, string $column): bool
+{
+    $t = $conn->real_escape_string($table);
+    $c = $conn->real_escape_string($column);
+    $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$t' AND COLUMN_NAME = '$c' LIMIT 1";
+    $res = $conn->query($sql);
+    return $res && $res->num_rows > 0;
+}
+
 function clean_string(mysqli $conn, string $value): string
 {
     return trim($conn->real_escape_string($value));
@@ -96,8 +105,6 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
     $companyName = isset($_POST['company_name']) ? clean_string($conn, $_POST['company_name']) : '';
     $galleryCompanyName = isset($_POST['gallery_company_name']) ? clean_string($conn, $_POST['gallery_company_name']) : '';
-    $rating = isset($_POST['rating']) ? (float) $_POST['rating'] : 0;
-    $reviewCount = isset($_POST['review_count']) ? max(0, (int) $_POST['review_count']) : 0;
     $jobCount = isset($_POST['job_count']) ? max(0, (int) $_POST['job_count']) : 0;
     $sortOrder = isset($_POST['sort_order']) ? max(0, (int) $_POST['sort_order']) : 0;
     $isActive = isset($_POST['is_active']) ? 1 : 0;
@@ -107,12 +114,6 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['error'] = 'Nama perusahaan wajib diisi.';
         header('Location: partner_company_settings');
         exit();
-    }
-
-    if ($rating < 0) {
-        $rating = 0;
-    } elseif ($rating > 5) {
-        $rating = 5;
     }
 
     $logoPath = null;
@@ -143,9 +144,9 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $logoPath = $currentLogo;
         }
 
-        $stmt = $conn->prepare("UPDATE partner_companies SET company_name = ?, gallery_company_name = ?, logo_path = ?, rating = ?, review_count = ?, job_count = ?, profile_summary = ?, sort_order = ?, is_active = ?, updated_at = NOW() WHERE id = ?");
+        $stmt = $conn->prepare("UPDATE partner_companies SET company_name = ?, gallery_company_name = ?, logo_path = ?, job_count = ?, profile_summary = ?, sort_order = ?, is_active = ?, updated_at = NOW() WHERE id = ?");
         if ($stmt) {
-            $stmt->bind_param('sssdiisiii', $companyName, $galleryCompanyName, $logoPath, $rating, $reviewCount, $jobCount, $profileSummary, $sortOrder, $isActive, $id);
+            $stmt->bind_param('sssisiii', $companyName, $galleryCompanyName, $logoPath, $jobCount, $profileSummary, $sortOrder, $isActive, $id);
             $stmt->execute();
             $stmt->close();
             $_SESSION['success'] = 'Data perusahaan mitra berhasil diperbarui.';
@@ -153,9 +154,9 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = 'Gagal update data: ' . $conn->error;
         }
     } else {
-        $stmt = $conn->prepare("INSERT INTO partner_companies (company_name, gallery_company_name, logo_path, rating, review_count, job_count, profile_summary, sort_order, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
+        $stmt = $conn->prepare("INSERT INTO partner_companies (company_name, gallery_company_name, logo_path, job_count, profile_summary, sort_order, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
         if ($stmt) {
-            $stmt->bind_param('sssdiisii', $companyName, $galleryCompanyName, $logoPath, $rating, $reviewCount, $jobCount, $profileSummary, $sortOrder, $isActive);
+            $stmt->bind_param('sssisii', $companyName, $galleryCompanyName, $logoPath, $jobCount, $profileSummary, $sortOrder, $isActive);
             $stmt->execute();
             $stmt->close();
             $_SESSION['success'] = 'Data perusahaan mitra berhasil ditambahkan.';
@@ -191,6 +192,78 @@ if ($tableReady) {
             $rows[] = $row;
         }
     }
+}
+
+$companyRatingMap = [];
+if (table_exists($conn, 'company_walk_in_survey') && table_exists($conn, 'walk_in_survey_responses')) {
+    $sql = "SELECT LOWER(TRIM(c.company_name)) AS company_key, ROUND(AVG(r.rating_satisfaction), 2) AS avg_rating
+            FROM company_walk_in_survey c
+            LEFT JOIN walk_in_survey_responses r ON r.company_walk_in_survey_id = c.id
+            WHERE c.company_name IS NOT NULL AND TRIM(c.company_name) <> ''
+            GROUP BY company_key";
+    $res = $conn->query($sql);
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $key = trim((string) ($row['company_key'] ?? ''));
+            if ($key !== '') {
+                $companyRatingMap[$key] = isset($row['avg_rating']) ? (float) $row['avg_rating'] : null;
+            }
+        }
+        $res->free();
+    }
+}
+
+$initiatorRatingMap = [];
+if (
+    table_exists($conn, 'walk_in_survey_initiators') &&
+    table_exists($conn, 'company_walk_in_survey') &&
+    table_exists($conn, 'walk_in_survey_responses') &&
+    column_exists($conn, 'company_walk_in_survey', 'walk_in_initiator_id')
+) {
+    $sql = "SELECT LOWER(TRIM(i.initiator_name)) AS initiator_key, ROUND(AVG(r.rating_satisfaction), 2) AS avg_rating
+            FROM walk_in_survey_initiators i
+            LEFT JOIN company_walk_in_survey c ON c.walk_in_initiator_id = i.id
+            LEFT JOIN walk_in_survey_responses r ON r.company_walk_in_survey_id = c.id
+            WHERE i.initiator_name IS NOT NULL AND TRIM(i.initiator_name) <> ''
+            GROUP BY initiator_key";
+    $res = $conn->query($sql);
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $key = trim((string) ($row['initiator_key'] ?? ''));
+            if ($key !== '') {
+                $initiatorRatingMap[$key] = isset($row['avg_rating']) ? (float) $row['avg_rating'] : null;
+            }
+        }
+        $res->free();
+    }
+}
+
+$reviewCountMap = [];
+if (table_exists($conn, 'walkin_gallery_comments')) {
+    $sql = "SELECT LOWER(TRIM(company_name)) AS company_key, COUNT(*) AS total
+            FROM walkin_gallery_comments
+            WHERE status = 'approved' AND company_name IS NOT NULL AND TRIM(company_name) <> ''
+            GROUP BY company_key";
+    $res = $conn->query($sql);
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $key = trim((string) ($row['company_key'] ?? ''));
+            if ($key !== '') {
+                $reviewCountMap[$key] = (int) ($row['total'] ?? 0);
+            }
+        }
+        $res->free();
+    }
+}
+
+if (!empty($rows)) {
+    foreach ($rows as &$r) {
+        $mapSource = trim((string) (($r['gallery_company_name'] ?? '') !== '' ? $r['gallery_company_name'] : ($r['company_name'] ?? '')));
+        $key = mb_strtolower($mapSource);
+        $r['computed_rating'] = $initiatorRatingMap[$key] ?? $companyRatingMap[$key] ?? null;
+        $r['computed_review_count'] = (int) ($reviewCountMap[$key] ?? 0);
+    }
+    unset($r);
 }
 
 $availableGalleryCompanies = [];
@@ -252,14 +325,6 @@ if (table_exists($conn, 'walkin_gallery_items')) {
                     <?php endif; ?>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Rating</label>
-                    <input type="number" step="0.1" min="0" max="5" class="form-control" name="rating" id="form_rating" value="0">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Jumlah Ulasan</label>
-                    <input type="number" min="0" class="form-control" name="review_count" id="form_review_count" value="0">
-                </div>
-                <div class="col-md-2">
                     <label class="form-label">Jumlah Pekerjaan</label>
                     <input type="number" min="0" class="form-control" name="job_count" id="form_job_count" value="0">
                 </div>
@@ -281,6 +346,7 @@ if (table_exists($conn, 'walkin_gallery_items')) {
                 <div class="col-12">
                     <label class="form-label">Ringkasan Profil (opsional)</label>
                     <textarea class="form-control" rows="2" name="profile_summary" id="form_profile_summary" maxlength="2000"></textarea>
+                    <div class="form-text">Rating dan jumlah ulasan dihitung otomatis dari Galeri Walk In (read-only).</div>
                 </div>
                 <div class="col-12">
                     <button type="submit" class="btn btn-primary me-2"><i class="bi bi-save me-1"></i>Simpan</button>
@@ -322,8 +388,14 @@ if (table_exists($conn, 'walkin_gallery_items')) {
                         </td>
                         <td><?php echo htmlspecialchars((string) $r['company_name']); ?></td>
                         <td><?php echo htmlspecialchars((string) ($r['gallery_company_name'] ?? '')); ?></td>
-                        <td><?php echo htmlspecialchars(number_format((float) ($r['rating'] ?? 0), 1)); ?></td>
-                        <td><?php echo (int) ($r['review_count'] ?? 0); ?></td>
+                        <td>
+                            <?php if ($r['computed_rating'] !== null): ?>
+                                <?php echo htmlspecialchars(number_format((float) $r['computed_rating'], 2)); ?>
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo (int) ($r['computed_review_count'] ?? 0); ?></td>
                         <td><?php echo (int) ($r['job_count'] ?? 0); ?></td>
                         <td><?php echo (int) ($r['sort_order'] ?? 0); ?></td>
                         <td>
@@ -349,8 +421,6 @@ function editRow(row) {
     document.getElementById('form_id').value = row.id || '';
     document.getElementById('form_company_name').value = row.company_name || '';
     document.getElementById('form_gallery_company_name').value = row.gallery_company_name || '';
-    document.getElementById('form_rating').value = row.rating || 0;
-    document.getElementById('form_review_count').value = row.review_count || 0;
     document.getElementById('form_job_count').value = row.job_count || 0;
     document.getElementById('form_sort_order').value = row.sort_order || 0;
     document.getElementById('form_profile_summary').value = row.profile_summary || '';
@@ -362,8 +432,6 @@ function resetForm() {
     document.getElementById('form_id').value = '';
     document.getElementById('form_company_name').value = '';
     document.getElementById('form_gallery_company_name').value = '';
-    document.getElementById('form_rating').value = 0;
-    document.getElementById('form_review_count').value = 0;
     document.getElementById('form_job_count').value = 0;
     document.getElementById('form_sort_order').value = 0;
     document.getElementById('form_profile_summary').value = '';
