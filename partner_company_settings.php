@@ -43,6 +43,36 @@ function clean_string(mysqli $conn, string $value): string
     return trim($conn->real_escape_string($value));
 }
 
+function compute_total_kebutuhan_by_company(mysqli $conn, string $companyName): int
+{
+    $name = trim($companyName);
+    if ($name === '' || !table_exists($conn, 'kemitraan') || !table_exists($conn, 'kemitraan_detail_lowongan')) {
+        return 0;
+    }
+
+    $hasStatus = column_exists($conn, 'kemitraan', 'status');
+    $sql = "SELECT COALESCE(SUM(kdl.jumlah_kebutuhan), 0) AS total
+            FROM kemitraan_detail_lowongan kdl
+            INNER JOIN kemitraan k ON k.id = kdl.kemitraan_id
+            WHERE LOWER(TRIM(k.institution_name)) = LOWER(TRIM(?))";
+    if ($hasStatus) {
+        $sql .= " AND k.status = 'approved'";
+    }
+    $sql .= " LIMIT 1";
+
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        return 0;
+    }
+    $stmt->bind_param('s', $name);
+    $stmt->execute();
+    $stmt->bind_result($total);
+    $stmt->fetch();
+    $stmt->close();
+
+    return (int) ($total ?? 0);
+}
+
 function resolve_storage_paths(): array
 {
     $publicDir = realpath(__DIR__ . DIRECTORY_SEPARATOR . '..');
@@ -105,7 +135,6 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
     $companyName = isset($_POST['company_name']) ? clean_string($conn, $_POST['company_name']) : '';
     $galleryCompanyName = isset($_POST['gallery_company_name']) ? clean_string($conn, $_POST['gallery_company_name']) : '';
-    $jobCount = isset($_POST['job_count']) ? max(0, (int) $_POST['job_count']) : 0;
     $sortOrder = isset($_POST['sort_order']) ? max(0, (int) $_POST['sort_order']) : 0;
     $isActive = isset($_POST['is_active']) ? 1 : 0;
     $profileSummary = isset($_POST['profile_summary']) ? trim($_POST['profile_summary']) : '';
@@ -128,6 +157,8 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $galleryCompanyName = $galleryCompanyName !== '' ? $galleryCompanyName : null;
+    $kebutuhanSourceName = $galleryCompanyName ?: $companyName;
+    $jobCount = compute_total_kebutuhan_by_company($conn, (string) $kebutuhanSourceName);
     $profileSummary = trim($profileSummary) !== '' ? trim($profileSummary) : null;
 
     if ($id > 0) {
@@ -256,12 +287,36 @@ if (table_exists($conn, 'walkin_gallery_comments')) {
     }
 }
 
+$totalKebutuhanMap = [];
+if (table_exists($conn, 'kemitraan') && table_exists($conn, 'kemitraan_detail_lowongan')) {
+    $sql = "SELECT LOWER(TRIM(k.institution_name)) AS company_key, COALESCE(SUM(kdl.jumlah_kebutuhan), 0) AS total
+            FROM kemitraan_detail_lowongan kdl
+            INNER JOIN kemitraan k ON k.id = kdl.kemitraan_id
+            WHERE k.institution_name IS NOT NULL AND TRIM(k.institution_name) <> ''";
+    if (column_exists($conn, 'kemitraan', 'status')) {
+        $sql .= " AND k.status = 'approved'";
+    }
+    $sql .= " GROUP BY company_key";
+
+    $res = $conn->query($sql);
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $key = trim((string) ($row['company_key'] ?? ''));
+            if ($key !== '') {
+                $totalKebutuhanMap[$key] = (int) ($row['total'] ?? 0);
+            }
+        }
+        $res->free();
+    }
+}
+
 if (!empty($rows)) {
     foreach ($rows as &$r) {
         $mapSource = trim((string) (($r['gallery_company_name'] ?? '') !== '' ? $r['gallery_company_name'] : ($r['company_name'] ?? '')));
         $key = mb_strtolower($mapSource);
         $r['computed_rating'] = $initiatorRatingMap[$key] ?? $companyRatingMap[$key] ?? null;
         $r['computed_review_count'] = (int) ($reviewCountMap[$key] ?? 0);
+        $r['computed_total_kebutuhan'] = (int) ($totalKebutuhanMap[$key] ?? 0);
     }
     unset($r);
 }
@@ -324,9 +379,9 @@ if (table_exists($conn, 'walkin_gallery_items')) {
                         <div class="form-text">Pilih nama perusahaan sesuai yang dipakai di Galeri Walk In.</div>
                     <?php endif; ?>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">Jumlah Pekerjaan</label>
-                    <input type="number" min="0" class="form-control" name="job_count" id="form_job_count" value="0">
+                <div class="col-md-4">
+                    <label class="form-label">Total Kebutuhan (Auto dari Galeri Walk In)</label>
+                    <input type="text" class="form-control" id="form_total_kebutuhan" value="Auto dihitung dari data Galeri Walk In" readonly>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Urutan</label>
@@ -366,7 +421,7 @@ if (table_exists($conn, 'walkin_gallery_items')) {
                     <th>Mapping Galeri</th>
                     <th style="width:90px;">Rating</th>
                     <th style="width:110px;">Ulasan</th>
-                    <th style="width:120px;">Pekerjaan</th>
+                    <th style="width:150px;">Total Kebutuhan</th>
                     <th style="width:90px;">Urutan</th>
                     <th style="width:100px;">Status</th>
                     <th style="width:130px;">Actions</th>
@@ -396,7 +451,7 @@ if (table_exists($conn, 'walkin_gallery_items')) {
                             <?php endif; ?>
                         </td>
                         <td><?php echo (int) ($r['computed_review_count'] ?? 0); ?></td>
-                        <td><?php echo (int) ($r['job_count'] ?? 0); ?></td>
+                        <td><?php echo (int) ($r['computed_total_kebutuhan'] ?? 0); ?></td>
                         <td><?php echo (int) ($r['sort_order'] ?? 0); ?></td>
                         <td>
                             <?php if ((int) ($r['is_active'] ?? 0) === 1): ?>
@@ -421,7 +476,7 @@ function editRow(row) {
     document.getElementById('form_id').value = row.id || '';
     document.getElementById('form_company_name').value = row.company_name || '';
     document.getElementById('form_gallery_company_name').value = row.gallery_company_name || '';
-    document.getElementById('form_job_count').value = row.job_count || 0;
+    document.getElementById('form_total_kebutuhan').value = (row.computed_total_kebutuhan || 0) + ' (otomatis)';
     document.getElementById('form_sort_order').value = row.sort_order || 0;
     document.getElementById('form_profile_summary').value = row.profile_summary || '';
     document.getElementById('form_is_active').checked = Number(row.is_active) === 1;
@@ -432,7 +487,7 @@ function resetForm() {
     document.getElementById('form_id').value = '';
     document.getElementById('form_company_name').value = '';
     document.getElementById('form_gallery_company_name').value = '';
-    document.getElementById('form_job_count').value = 0;
+    document.getElementById('form_total_kebutuhan').value = 'Auto dihitung dari data Galeri Walk In';
     document.getElementById('form_sort_order').value = 0;
     document.getElementById('form_profile_summary').value = '';
     document.getElementById('form_logo_file').value = '';
