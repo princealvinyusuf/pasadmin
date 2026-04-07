@@ -20,6 +20,25 @@ if (!current_user_can('manage_access_control')) {
 $tab = $_GET['tab'] ?? 'users';
 $action = $_POST['action'] ?? '';
 
+/**
+ * Ensure menu permissions are always registered in Access Control.
+ * This keeps newly added menus immediately visible in the permissions tab.
+ */
+function register_menu_permission(mysqli $conn, string $code, string $label, string $category): void {
+	$stmt = $conn->prepare('INSERT INTO access_permissions (code, label, category) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE label=VALUES(label), category=VALUES(category)');
+	if (!$stmt) { return; }
+	$stmt->bind_param('sss', $code, $label, $category);
+	$stmt->execute();
+	$stmt->close();
+}
+
+register_menu_permission(
+	$conn,
+	'partner_company_manage',
+	'Manage Partner Company Settings Menu',
+	'Layanan'
+);
+
 // Super admin guard for destructive actions
 if (isset($_POST['action']) && $_POST['action'] === 'delete_user' && !current_user_is_super_admin()) {
 	http_response_code(403);
