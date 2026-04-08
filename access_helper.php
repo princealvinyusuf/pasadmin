@@ -70,6 +70,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		['settings_minijobi_manage','Manage miniJobi Jobs','Settings'],
 		['settings_database_contact_manage','Manage Database Contact','Settings'],
 		['settings_iframe_manage','Manage iFrame Settings','Settings'],
+		['settings_home_popup_manage','Manage Home Popup Settings','Settings'],
 		['jejaring_tahapan_manage','Manage Jejaring Tahapan','Jejaring'],
 		['settings_partnership_type_manage','Manage Partnership Types','Settings'],
 		['walkin_gallery_manage','Manage Walk-in Gallery','Layanan'],

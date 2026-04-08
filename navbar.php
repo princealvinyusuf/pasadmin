@@ -94,6 +94,7 @@
     $canExtensions = current_user_can('view_extensions');
     $canApiKeys = current_user_can('manage_api_keys');
     $canMaintenanceMessage = current_user_can('settings_maintenance_message_manage');
+    $canHomePopup = current_user_can('settings_home_popup_manage');
     $canAsmenDashboard = current_user_can('asmen_view_dashboard');
     $canAsmenAssets = current_user_can('asmen_manage_assets');
     $canAsmenServices = current_user_can('asmen_view_services');
@@ -104,7 +105,7 @@
     $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || $canDashBlk || $canDashIntegrasiKarirhubMitra || current_user_can('manage_settings'));
     $hasBlk = ($canDashBlk || $canManageSettings);
     
-    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canAuditTrails || $canMaintenanceMessage);
+    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canAuditTrails || $canMaintenanceMessage || $canHomePopup);
     $hasApiKeys = ($canManageSettings || $canApiKeys);
     $canCareerBoostDay = current_user_can('career_boost_day_manage') || $canManageSettings;
     $canCareerBoostDayPic = current_user_can('career_boost_day_pic_manage') || $canManageSettings;
@@ -242,6 +243,7 @@
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>split_screen_settings">Split Screen Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canIframe): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>iframe_settings">iFrame Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canMaintenanceMessage): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>maintenance_message_settings">Maintenance Message Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canHomePopup): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>home_popup_settings">Home Popup Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>cron_settings">Other Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
