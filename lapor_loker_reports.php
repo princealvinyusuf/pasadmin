@@ -551,7 +551,11 @@ $filteredCount = count($reports);
                                         <?php if (empty($followUps)): ?>
                                             -
                                         <?php else: ?>
-                                            <?php echo nl2br(htmlspecialchars(implode("\n", $followUps))); ?>
+                                            <ul class="mb-0 ps-3">
+                                                <?php foreach ($followUps as $followUp): ?>
+                                                    <li><?php echo htmlspecialchars((string)$followUp); ?></li>
+                                                <?php endforeach; ?>
+                                            </ul>
                                         <?php endif; ?>
                                     </td>
                                     <td>
@@ -661,7 +665,15 @@ $filteredCount = count($reports);
                                         $detailFollowUps[] = $detailOther !== '' ? ('Lainnya: ' . $detailOther) : 'Lainnya';
                                     }
                                 ?>
-                                <?php echo !empty($detailFollowUps) ? nl2br(htmlspecialchars(implode("\n", $detailFollowUps))) : '-'; ?>
+                                <?php if (empty($detailFollowUps)): ?>
+                                    -
+                                <?php else: ?>
+                                    <ul class="mb-0 ps-3">
+                                        <?php foreach ($detailFollowUps as $detailFollowUp): ?>
+                                            <li><?php echo htmlspecialchars((string)$detailFollowUp); ?></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php endif; ?>
                             </div>
                             <div class="col-md-6"><strong>Status:</strong><br><?php echo htmlspecialchars((string)$r['status']); ?></div>
                             <div class="col-md-6"><strong>Waktu Dilaporkan:</strong><br><?php echo htmlspecialchars((string)$r['created_at']); ?></div>
