@@ -34,6 +34,10 @@ $conn->query("CREATE TABLE IF NOT EXISTS job_hoax_reports (
     pelapor_nama VARCHAR(120) NOT NULL,
     pelapor_email VARCHAR(255) NOT NULL,
     laporan_mitra VARCHAR(120) DEFAULT NULL,
+    tindak_lanjut_tutup_lowongan TINYINT(1) NOT NULL DEFAULT 0,
+    tindak_lanjut_tutup_akun_perusahaan TINYINT(1) NOT NULL DEFAULT 0,
+    tindak_lanjut_lainnya_checked TINYINT(1) NOT NULL DEFAULT 0,
+    tindak_lanjut_lainnya_text TEXT DEFAULT NULL,
     status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
     approved_at TIMESTAMP NULL DEFAULT NULL,
     rejected_at TIMESTAMP NULL DEFAULT NULL,
@@ -47,12 +51,16 @@ $conn->query("CREATE TABLE IF NOT EXISTS job_hoax_reports (
 $conn->query("ALTER TABLE job_hoax_reports ADD COLUMN IF NOT EXISTS bukti_pendukung_path VARCHAR(500) DEFAULT NULL AFTER tautan_informasi");
 $conn->query("ALTER TABLE job_hoax_reports ADD COLUMN IF NOT EXISTS bukti_pendukung_nama VARCHAR(255) DEFAULT NULL AFTER bukti_pendukung_path");
 $conn->query("ALTER TABLE job_hoax_reports ADD COLUMN IF NOT EXISTS laporan_mitra VARCHAR(120) DEFAULT NULL AFTER pelapor_email");
+$conn->query("ALTER TABLE job_hoax_reports ADD COLUMN IF NOT EXISTS tindak_lanjut_tutup_lowongan TINYINT(1) NOT NULL DEFAULT 0 AFTER laporan_mitra");
+$conn->query("ALTER TABLE job_hoax_reports ADD COLUMN IF NOT EXISTS tindak_lanjut_tutup_akun_perusahaan TINYINT(1) NOT NULL DEFAULT 0 AFTER tindak_lanjut_tutup_lowongan");
+$conn->query("ALTER TABLE job_hoax_reports ADD COLUMN IF NOT EXISTS tindak_lanjut_lainnya_checked TINYINT(1) NOT NULL DEFAULT 0 AFTER tindak_lanjut_tutup_akun_perusahaan");
+$conn->query("ALTER TABLE job_hoax_reports ADD COLUMN IF NOT EXISTS tindak_lanjut_lainnya_text TEXT DEFAULT NULL AFTER tindak_lanjut_lainnya_checked");
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $reportId = isset($_POST['report_id']) ? (int)$_POST['report_id'] : 0;
     $action = trim((string)($_POST['action'] ?? ''));
 
-    if ($reportId <= 0 || !in_array($action, ['approve', 'reject', 'edit', 'delete'], true)) {
+    if ($reportId <= 0 || !in_array($action, ['approve', 'reject', 'edit', 'delete', 'tindak_lanjut'], true)) {
         $_SESSION['error'] = 'Aksi tidak valid.';
         header('Location: lapor_loker_reports');
         exit;
@@ -87,6 +95,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['success'] = 'Laporan berhasil dihapus.';
         } else {
             $_SESSION['error'] = 'Gagal menghapus laporan: ' . $conn->error;
+        }
+    } elseif ($action === 'tindak_lanjut') {
+        $tutupLowongan = isset($_POST['tindak_lanjut_tutup_lowongan']) ? 1 : 0;
+        $tutupAkun = isset($_POST['tindak_lanjut_tutup_akun_perusahaan']) ? 1 : 0;
+        $lainnyaChecked = isset($_POST['tindak_lanjut_lainnya_checked']) ? 1 : 0;
+        $lainnyaText = trim((string)($_POST['tindak_lanjut_lainnya_text'] ?? ''));
+
+        if ($lainnyaChecked === 1 && $lainnyaText === '') {
+            $_SESSION['error'] = 'Mohon isi penjelasan untuk opsi Lainnya.';
+            header('Location: lapor_loker_reports');
+            exit;
+        }
+        if ($lainnyaChecked !== 1) {
+            $lainnyaText = null;
+        }
+
+        $stmt = $conn->prepare("UPDATE job_hoax_reports
+            SET tindak_lanjut_tutup_lowongan = ?,
+                tindak_lanjut_tutup_akun_perusahaan = ?,
+                tindak_lanjut_lainnya_checked = ?,
+                tindak_lanjut_lainnya_text = ?
+            WHERE id = ?");
+        if ($stmt) {
+            $stmt->bind_param('iiisi', $tutupLowongan, $tutupAkun, $lainnyaChecked, $lainnyaText, $reportId);
+            $stmt->execute();
+            $stmt->close();
+            $_SESSION['success'] = 'Tindak lanjut berhasil disimpan.';
+        } else {
+            $_SESSION['error'] = 'Gagal menyimpan tindak lanjut: ' . $conn->error;
         }
     } else {
         $emailTerdugaPelaku = trim((string)($_POST['email_terduga_pelaku'] ?? ''));
@@ -234,6 +271,10 @@ $query = "SELECT
     pelapor_nama,
     pelapor_email,
     laporan_mitra,
+    tindak_lanjut_tutup_lowongan,
+    tindak_lanjut_tutup_akun_perusahaan,
+    tindak_lanjut_lainnya_checked,
+    tindak_lanjut_lainnya_text,
     status,
     approved_at,
     rejected_at,
@@ -446,13 +487,14 @@ $filteredCount = count($reports);
                             <th>Email Pelapor</th>
                             <th>Laporan Mitra</th>
                             <th>Status</th>
+                            <th>Tindak Lanjut</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($reports)): ?>
                             <tr>
-                                <td colspan="16" class="text-center text-muted py-4">Belum ada data laporan.</td>
+                                <td colspan="17" class="text-center text-muted py-4">Belum ada data laporan.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($reports as $r): ?>
@@ -492,6 +534,26 @@ $filteredCount = count($reports);
                                     <td><?php echo htmlspecialchars((string)$r['pelapor_email']); ?></td>
                                     <td><?php echo htmlspecialchars((string)($r['laporan_mitra'] ?: '-')); ?></td>
                                     <td><span class="badge bg-<?php echo $badge; ?>"><?php echo htmlspecialchars((string)$r['status']); ?></span></td>
+                                    <td style="min-width: 240px;">
+                                        <?php
+                                            $followUps = [];
+                                            if ((int)($r['tindak_lanjut_tutup_lowongan'] ?? 0) === 1) {
+                                                $followUps[] = 'Menutup Lowongan Kerja';
+                                            }
+                                            if ((int)($r['tindak_lanjut_tutup_akun_perusahaan'] ?? 0) === 1) {
+                                                $followUps[] = 'Menutup Akun Perusahaan';
+                                            }
+                                            if ((int)($r['tindak_lanjut_lainnya_checked'] ?? 0) === 1) {
+                                                $other = trim((string)($r['tindak_lanjut_lainnya_text'] ?? ''));
+                                                $followUps[] = $other !== '' ? ('Lainnya: ' . $other) : 'Lainnya';
+                                            }
+                                        ?>
+                                        <?php if (empty($followUps)): ?>
+                                            -
+                                        <?php else: ?>
+                                            <?php echo nl2br(htmlspecialchars(implode("\n", $followUps))); ?>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <div class="d-flex flex-wrap gap-1">
                                             <button
@@ -509,6 +571,14 @@ $filteredCount = count($reports);
                                                 data-bs-target="#editModal<?php echo (int)$r['id']; ?>"
                                             >
                                                 Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-info"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#tindakLanjutModal<?php echo (int)$r['id']; ?>"
+                                            >
+                                                Tindak Lanjut
                                             </button>
                                             <form method="POST" class="d-inline">
                                                 <input type="hidden" name="report_id" value="<?php echo (int)$r['id']; ?>">
@@ -576,10 +646,70 @@ $filteredCount = count($reports);
                             <div class="col-md-6"><strong>Nama Pelapor:</strong><br><?php echo htmlspecialchars((string)($r['pelapor_nama'] ?? '-')); ?></div>
                             <div class="col-md-6"><strong>Email Pelapor:</strong><br><?php echo htmlspecialchars((string)($r['pelapor_email'] ?? '-')); ?></div>
                             <div class="col-md-6"><strong>Laporan Mitra:</strong><br><?php echo htmlspecialchars((string)($r['laporan_mitra'] ?? '-')); ?></div>
+                            <div class="col-12">
+                                <strong>Tindak Lanjut:</strong><br>
+                                <?php
+                                    $detailFollowUps = [];
+                                    if ((int)($r['tindak_lanjut_tutup_lowongan'] ?? 0) === 1) {
+                                        $detailFollowUps[] = 'Menutup Lowongan Kerja';
+                                    }
+                                    if ((int)($r['tindak_lanjut_tutup_akun_perusahaan'] ?? 0) === 1) {
+                                        $detailFollowUps[] = 'Menutup Akun Perusahaan';
+                                    }
+                                    if ((int)($r['tindak_lanjut_lainnya_checked'] ?? 0) === 1) {
+                                        $detailOther = trim((string)($r['tindak_lanjut_lainnya_text'] ?? ''));
+                                        $detailFollowUps[] = $detailOther !== '' ? ('Lainnya: ' . $detailOther) : 'Lainnya';
+                                    }
+                                ?>
+                                <?php echo !empty($detailFollowUps) ? nl2br(htmlspecialchars(implode("\n", $detailFollowUps))) : '-'; ?>
+                            </div>
                             <div class="col-md-6"><strong>Status:</strong><br><?php echo htmlspecialchars((string)$r['status']); ?></div>
                             <div class="col-md-6"><strong>Waktu Dilaporkan:</strong><br><?php echo htmlspecialchars((string)$r['created_at']); ?></div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="tindakLanjutModal<?php echo (int)$r['id']; ?>" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="tindak_lanjut">
+                        <input type="hidden" name="report_id" value="<?php echo (int)$r['id']; ?>">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Tindak Lanjut Laporan #<?php echo (int)$r['id']; ?></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="tindak_lanjut_tutup_lowongan_<?php echo (int)$r['id']; ?>" name="tindak_lanjut_tutup_lowongan" <?php echo ((int)($r['tindak_lanjut_tutup_lowongan'] ?? 0) === 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="tindak_lanjut_tutup_lowongan_<?php echo (int)$r['id']; ?>">
+                                    Menutup Lowongan Kerja
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="tindak_lanjut_tutup_akun_<?php echo (int)$r['id']; ?>" name="tindak_lanjut_tutup_akun_perusahaan" <?php echo ((int)($r['tindak_lanjut_tutup_akun_perusahaan'] ?? 0) === 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="tindak_lanjut_tutup_akun_<?php echo (int)$r['id']; ?>">
+                                    Menutup Akun Perusahaan
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input js-tindak-lanjut-lainnya-toggle" type="checkbox" id="tindak_lanjut_lainnya_checked_<?php echo (int)$r['id']; ?>" name="tindak_lanjut_lainnya_checked" data-target="#tindak_lanjut_lainnya_text_<?php echo (int)$r['id']; ?>" <?php echo ((int)($r['tindak_lanjut_lainnya_checked'] ?? 0) === 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="tindak_lanjut_lainnya_checked_<?php echo (int)$r['id']; ?>">
+                                    Lainnya
+                                </label>
+                            </div>
+                            <div>
+                                <label class="form-label" for="tindak_lanjut_lainnya_text_<?php echo (int)$r['id']; ?>">Penjelasan Lainnya</label>
+                                <textarea class="form-control js-tindak-lanjut-lainnya-text" id="tindak_lanjut_lainnya_text_<?php echo (int)$r['id']; ?>" name="tindak_lanjut_lainnya_text" rows="3" <?php echo ((int)($r['tindak_lanjut_lainnya_checked'] ?? 0) === 1) ? '' : 'disabled'; ?>><?php echo htmlspecialchars((string)($r['tindak_lanjut_lainnya_text'] ?? '')); ?></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-info text-white">Simpan Tindak Lanjut</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -677,6 +807,34 @@ $filteredCount = count($reports);
     <?php endforeach; ?>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    (function () {
+        var toggles = document.querySelectorAll('.js-tindak-lanjut-lainnya-toggle');
+        toggles.forEach(function (checkbox) {
+            var targetSelector = checkbox.getAttribute('data-target');
+            if (!targetSelector) {
+                return;
+            }
+
+            var textarea = document.querySelector(targetSelector);
+            if (!textarea) {
+                return;
+            }
+
+            var sync = function () {
+                var enabled = checkbox.checked;
+                textarea.disabled = !enabled;
+                textarea.required = enabled;
+                if (!enabled) {
+                    textarea.value = '';
+                }
+            };
+
+            checkbox.addEventListener('change', sync);
+            sync();
+        });
+    })();
+</script>
 </body>
 </html>
 <?php $conn->close(); ?>
