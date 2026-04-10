@@ -192,6 +192,31 @@ if (!in_array($statusFilter, $allowedFilters, true)) {
     $statusFilter = 'all';
 }
 
+$platformFilter = trim((string)($_GET['platform_sumber'] ?? 'all'));
+$mitraFilter = trim((string)($_GET['laporan_mitra'] ?? 'all'));
+
+$platformOptions = [];
+$resPlatform = $conn->query("SELECT DISTINCT platform_sumber FROM job_hoax_reports WHERE platform_sumber IS NOT NULL AND platform_sumber <> '' ORDER BY platform_sumber ASC");
+if ($resPlatform) {
+    while ($row = $resPlatform->fetch_assoc()) {
+        $platformOptions[] = (string) $row['platform_sumber'];
+    }
+}
+if ($platformFilter !== 'all' && !in_array($platformFilter, $platformOptions, true)) {
+    $platformFilter = 'all';
+}
+
+$mitraOptions = [];
+$resMitra = $conn->query("SELECT DISTINCT laporan_mitra FROM job_hoax_reports WHERE laporan_mitra IS NOT NULL AND laporan_mitra <> '' ORDER BY laporan_mitra ASC");
+if ($resMitra) {
+    while ($row = $resMitra->fetch_assoc()) {
+        $mitraOptions[] = (string) $row['laporan_mitra'];
+    }
+}
+if ($mitraFilter !== 'all' && !in_array($mitraFilter, $mitraOptions, true)) {
+    $mitraFilter = 'all';
+}
+
 $query = "SELECT
     id,
     email_terduga_pelaku,
@@ -218,10 +243,26 @@ FROM job_hoax_reports";
 
 $params = [];
 $types = '';
+$conditions = [];
+
 if ($statusFilter !== 'all') {
-    $query .= " WHERE status = ?";
+    $conditions[] = "status = ?";
     $params[] = $statusFilter;
     $types .= 's';
+}
+if ($platformFilter !== 'all') {
+    $conditions[] = "platform_sumber = ?";
+    $params[] = $platformFilter;
+    $types .= 's';
+}
+if ($mitraFilter !== 'all') {
+    $conditions[] = "laporan_mitra = ?";
+    $params[] = $mitraFilter;
+    $types .= 's';
+}
+
+if (!empty($conditions)) {
+    $query .= " WHERE " . implode(" AND ", $conditions);
 }
 
 $query .= " ORDER BY created_at DESC, id DESC LIMIT 300";
@@ -239,6 +280,26 @@ if ($stmt) {
     }
     $stmt->close();
 }
+
+$summary = [
+    'total' => 0,
+    'pending' => 0,
+    'approved' => 0,
+    'rejected' => 0,
+];
+$resSummary = $conn->query("SELECT
+    COUNT(*) AS total,
+    SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) AS pending,
+    SUM(CASE WHEN status='approved' THEN 1 ELSE 0 END) AS approved,
+    SUM(CASE WHEN status='rejected' THEN 1 ELSE 0 END) AS rejected
+FROM job_hoax_reports");
+if ($resSummary && $rowSummary = $resSummary->fetch_assoc()) {
+    $summary['total'] = (int) ($rowSummary['total'] ?? 0);
+    $summary['pending'] = (int) ($rowSummary['pending'] ?? 0);
+    $summary['approved'] = (int) ($rowSummary['approved'] ?? 0);
+    $summary['rejected'] = (int) ($rowSummary['rejected'] ?? 0);
+}
+$filteredCount = count($reports);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -275,14 +336,42 @@ if ($stmt) {
 <div class="container mt-4 mb-5">
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
         <h3 class="mb-0">Lapor Loker Reports</h3>
-        <form method="GET" class="d-flex align-items-center gap-2">
-            <label for="status" class="form-label mb-0">Filter Status</label>
-            <select name="status" id="status" class="form-select" onchange="this.form.submit()">
-                <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>Semua</option>
-                <option value="pending" <?php echo $statusFilter === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                <option value="approved" <?php echo $statusFilter === 'approved' ? 'selected' : ''; ?>>Approved</option>
-                <option value="rejected" <?php echo $statusFilter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
-            </select>
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label for="status" class="form-label mb-0">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>Semua</option>
+                    <option value="pending" <?php echo $statusFilter === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                    <option value="approved" <?php echo $statusFilter === 'approved' ? 'selected' : ''; ?>>Approved</option>
+                    <option value="rejected" <?php echo $statusFilter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label for="platform_sumber" class="form-label mb-0">Platform Sumber</label>
+                <select name="platform_sumber" id="platform_sumber" class="form-select">
+                    <option value="all" <?php echo $platformFilter === 'all' ? 'selected' : ''; ?>>Semua</option>
+                    <?php foreach ($platformOptions as $platformOption): ?>
+                        <option value="<?php echo htmlspecialchars($platformOption); ?>" <?php echo $platformFilter === $platformOption ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($platformOption); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label for="laporan_mitra" class="form-label mb-0">Laporan Mitra</label>
+                <select name="laporan_mitra" id="laporan_mitra" class="form-select">
+                    <option value="all" <?php echo $mitraFilter === 'all' ? 'selected' : ''; ?>>Semua</option>
+                    <?php foreach ($mitraOptions as $mitraOption): ?>
+                        <option value="<?php echo htmlspecialchars($mitraOption); ?>" <?php echo $mitraFilter === $mitraOption ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($mitraOption); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary">Terapkan</button>
+                <a href="lapor_loker_reports" class="btn btn-outline-secondary">Reset</a>
+            </div>
         </form>
     </div>
 
@@ -292,6 +381,49 @@ if ($stmt) {
     <?php if (isset($_SESSION['success'])): ?>
         <div class="alert alert-success"><?php echo htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?></div>
     <?php endif; ?>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-sm-6 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Total Laporan</div>
+                    <div class="h4 mb-0"><?php echo number_format($summary['total']); ?></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Pending</div>
+                    <div class="h4 mb-0 text-warning"><?php echo number_format($summary['pending']); ?></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Approved</div>
+                    <div class="h4 mb-0 text-success"><?php echo number_format($summary['approved']); ?></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Rejected</div>
+                    <div class="h4 mb-0 text-danger"><?php echo number_format($summary['rejected']); ?></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Data Ditampilkan (maks 300)</div>
+                    <div class="h4 mb-0"><?php echo number_format($filteredCount); ?></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="card shadow-sm">
         <div class="card-body">
