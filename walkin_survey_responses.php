@@ -81,6 +81,8 @@ function fetch_rows_with_params(mysqli $conn, string $sql, string $types, array 
 $hasResponseTable = table_exists($conn, 'walk_in_survey_responses');
 $hasInitiatorSnapshotCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'walkin_initiator_snapshot');
 $hasWalkinDateCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'walkin_date');
+$hasWalkinBenefitCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'walkin_benefit');
+$hasWalkinBenefitReasonCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'walkin_benefit_reason');
 if (!$hasResponseTable) {
     $_SESSION['error'] = 'Table walk_in_survey_responses belum ada. Jalankan migration Laravel terlebih dahulu.';
 }
@@ -181,12 +183,30 @@ if ($hasResponseTable) {
         $filtersApplied = true;
     }
     if ($search !== '') {
-        $whereSql .= " AND (name LIKE ? OR email LIKE ? OR company_name_snapshot LIKE ?)";
+        $searchParts = [
+            "name LIKE ?",
+            "email LIKE ?",
+            "company_name_snapshot LIKE ?",
+        ];
+        if ($hasWalkinBenefitCol) {
+            $searchParts[] = "walkin_benefit LIKE ?";
+        }
+        if ($hasWalkinBenefitReasonCol) {
+            $searchParts[] = "walkin_benefit_reason LIKE ?";
+        }
+        $whereSql .= " AND (" . implode(' OR ', $searchParts) . ")";
         $like = '%' . $search . '%';
-        $types .= 'sss';
+        $searchCount = count($searchParts);
+        $types .= str_repeat('s', $searchCount);
         $params[] = $like;
         $params[] = $like;
         $params[] = $like;
+        if ($hasWalkinBenefitCol) {
+            $params[] = $like;
+        }
+        if ($hasWalkinBenefitReasonCol) {
+            $params[] = $like;
+        }
         $filtersApplied = true;
     }
     if ($filterDateFrom !== '' && $filterDateTo !== '') {
@@ -209,7 +229,9 @@ if ($hasResponseTable) {
 
     $initiatorSelect = $hasInitiatorSnapshotCol ? 'walkin_initiator_snapshot' : 'NULL AS walkin_initiator_snapshot';
     $walkinDateSelect = $hasWalkinDateCol ? 'walkin_date' : 'NULL AS walkin_date';
-    $sql = "SELECT id, company_name_snapshot, {$initiatorSelect}, {$walkinDateSelect}, name, email, phone, rating_satisfaction, created_at
+    $walkinBenefitSelect = $hasWalkinBenefitCol ? 'walkin_benefit' : 'NULL AS walkin_benefit';
+    $walkinBenefitReasonSelect = $hasWalkinBenefitReasonCol ? 'walkin_benefit_reason' : 'NULL AS walkin_benefit_reason';
+    $sql = "SELECT id, company_name_snapshot, {$initiatorSelect}, {$walkinDateSelect}, name, email, phone, rating_satisfaction, {$walkinBenefitSelect}, {$walkinBenefitReasonSelect}, created_at
             FROM walk_in_survey_responses" . $whereSql . " ORDER BY id DESC LIMIT 500";
     $rows = fetch_rows_with_params($conn, $sql, $types, $params);
 
@@ -384,6 +406,8 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
                     <div class="col-md-12"><strong>Masukan Umum:</strong><br><?php echo nl2br(htmlspecialchars($selected['general_feedback'])); ?></div>
                     <div class="col-md-12"><strong>Aspek Perbaikan:</strong> <?php echo htmlspecialchars(implode(', ', decode_json_array($selected['improvement_aspects']))); ?></div>
                     <div class="col-md-12"><strong>Kritik &amp; Saran Aspek Perbaikan:</strong><br><?php echo nl2br(htmlspecialchars($selected['feedback_improvement_aspects'])); ?></div>
+                    <div class="col-md-4"><strong>Kegiatan bermanfaat:</strong> <?php echo htmlspecialchars((string) ($selected['walkin_benefit'] ?? '-')); ?></div>
+                    <div class="col-md-12"><strong>Alasan jawaban manfaat:</strong><br><?php echo nl2br(htmlspecialchars((string) ($selected['walkin_benefit_reason'] ?? '-'))); ?></div>
                 </div>
                 <hr>
                 <div class="row g-2 small">
@@ -407,13 +431,15 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
                     <th>Email</th>
                     <th style="width:140px;">Tanggal Walk In</th>
                     <th style="width:110px;">Kepuasan</th>
+                    <th style="width:100px;">Manfaat</th>
+                    <th>Alasan</th>
                     <th style="width:180px;">Submitted</th>
                     <th style="width:150px;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($rows)): ?>
-                    <tr><td colspan="9" class="text-center text-muted">Belum ada data response survey.</td></tr>
+                    <tr><td colspan="11" class="text-center text-muted">Belum ada data response survey.</td></tr>
                 <?php else: foreach ($rows as $r): ?>
                     <tr>
                         <td><?php echo (int) $r['id']; ?></td>
@@ -423,6 +449,8 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
                         <td><?php echo htmlspecialchars($r['email']); ?></td>
                         <td><?php echo htmlspecialchars((string) ($r['walkin_date'] ?? '-')); ?></td>
                         <td><?php echo (int) $r['rating_satisfaction']; ?>/5</td>
+                        <td><?php echo htmlspecialchars((string) ($r['walkin_benefit'] ?? '-')); ?></td>
+                        <td><?php echo htmlspecialchars(mb_strimwidth((string) ($r['walkin_benefit_reason'] ?? '-'), 0, 100, '...')); ?></td>
                         <td><?php echo htmlspecialchars((string) $r['created_at']); ?></td>
                         <td>
                             <a class="btn btn-sm btn-outline-primary" href="?<?php echo http_build_query(array_merge(['view' => (int) $r['id']], $filterQuery)); ?>">
