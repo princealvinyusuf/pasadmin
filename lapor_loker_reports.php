@@ -283,21 +283,16 @@ if ($stmt) {
                             <th>Platform Sumber</th>
                             <th>Tautan Informasi</th>
                             <th>Bukti Pendukung</th>
-                            <th>Kronologi</th>
                             <th>Nama Pelapor</th>
                             <th>Email Pelapor</th>
                             <th>Status</th>
-                            <th>Approved At</th>
-                            <th>Rejected At</th>
-                            <th>Created At</th>
-                            <th>Updated At</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($reports)): ?>
                             <tr>
-                                <td colspan="20" class="text-center text-muted py-4">Belum ada data laporan.</td>
+                                <td colspan="15" class="text-center text-muted py-4">Belum ada data laporan.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($reports as $r): ?>
@@ -333,14 +328,9 @@ if ($stmt) {
                                             -
                                         <?php endif; ?>
                                     </td>
-                                    <td style="min-width: 220px;"><?php echo nl2br(htmlspecialchars((string)($r['kronologi'] ?: '-'))); ?></td>
                                     <td><?php echo htmlspecialchars((string)$r['pelapor_nama']); ?></td>
                                     <td><?php echo htmlspecialchars((string)$r['pelapor_email']); ?></td>
                                     <td><span class="badge bg-<?php echo $badge; ?>"><?php echo htmlspecialchars((string)$r['status']); ?></span></td>
-                                    <td><?php echo htmlspecialchars((string)($r['approved_at'] ?: '-')); ?></td>
-                                    <td><?php echo htmlspecialchars((string)($r['rejected_at'] ?: '-')); ?></td>
-                                    <td><?php echo htmlspecialchars((string)($r['created_at'] ?: '-')); ?></td>
-                                    <td><?php echo htmlspecialchars((string)($r['updated_at'] ?: '-')); ?></td>
                                     <td>
                                         <div class="d-flex flex-wrap gap-1">
                                             <button
@@ -421,11 +411,9 @@ if ($stmt) {
                                     -
                                 <?php endif; ?>
                             </div>
-                            <div class="col-12"><strong>Kronologi:</strong><br><?php echo nl2br(htmlspecialchars((string)($r['kronologi'] ?? '-'))); ?></div>
                             <div class="col-md-6"><strong>Nama Pelapor:</strong><br><?php echo htmlspecialchars((string)($r['pelapor_nama'] ?? '-')); ?></div>
                             <div class="col-md-6"><strong>Email Pelapor:</strong><br><?php echo htmlspecialchars((string)($r['pelapor_email'] ?? '-')); ?></div>
                             <div class="col-md-6"><strong>Status:</strong><br><?php echo htmlspecialchars((string)$r['status']); ?></div>
-                            <div class="col-md-6"><strong>Waktu Dilaporkan:</strong><br><?php echo htmlspecialchars((string)$r['created_at']); ?></div>
                         </div>
                     </div>
                 </div>
@@ -489,8 +477,7 @@ if ($stmt) {
                                     <input type="text" class="form-control" name="bukti_pendukung_nama" value="<?php echo htmlspecialchars((string)($r['bukti_pendukung_nama'] ?? '')); ?>">
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label">Kronologi</label>
-                                    <textarea class="form-control" name="kronologi" rows="4"><?php echo htmlspecialchars((string)($r['kronologi'] ?? '')); ?></textarea>
+                                    <input type="hidden" name="kronologi" value="<?php echo htmlspecialchars((string)($r['kronologi'] ?? '')); ?>">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Nama Pelapor</label>
