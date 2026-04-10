@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $reportId = isset($_POST['report_id']) ? (int)$_POST['report_id'] : 0;
     $action = trim((string)($_POST['action'] ?? ''));
 
-    if ($reportId <= 0 || !in_array($action, ['approve', 'reject'], true)) {
+    if ($reportId <= 0 || !in_array($action, ['approve', 'reject', 'edit', 'delete'], true)) {
         $_SESSION['error'] = 'Aksi tidak valid.';
         header('Location: lapor_loker_reports');
         exit;
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $_SESSION['error'] = 'Gagal memproses persetujuan: ' . $conn->error;
         }
-    } else {
+    } elseif ($action === 'reject') {
         $stmt = $conn->prepare("UPDATE job_hoax_reports SET status = 'rejected', rejected_at = NOW(), approved_at = NULL WHERE id = ?");
         if ($stmt) {
             $stmt->bind_param('i', $reportId);
@@ -75,6 +75,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['success'] = 'Laporan berhasil ditolak.';
         } else {
             $_SESSION['error'] = 'Gagal memproses penolakan: ' . $conn->error;
+        }
+    } elseif ($action === 'delete') {
+        $stmt = $conn->prepare("DELETE FROM job_hoax_reports WHERE id = ?");
+        if ($stmt) {
+            $stmt->bind_param('i', $reportId);
+            $stmt->execute();
+            $stmt->close();
+            $_SESSION['success'] = 'Laporan berhasil dihapus.';
+        } else {
+            $_SESSION['error'] = 'Gagal menghapus laporan: ' . $conn->error;
+        }
+    } else {
+        $emailTerdugaPelaku = trim((string)($_POST['email_terduga_pelaku'] ?? ''));
+        $tanggalTerdeteksi = trim((string)($_POST['tanggal_terdeteksi'] ?? ''));
+        $namaPerusahaan = trim((string)($_POST['nama_perusahaan_digunakan'] ?? ''));
+        $namaHr = trim((string)($_POST['nama_hr_digunakan'] ?? ''));
+        $provinsi = trim((string)($_POST['provinsi'] ?? ''));
+        $kota = trim((string)($_POST['kota'] ?? ''));
+        $nomorKontak = trim((string)($_POST['nomor_kontak_terduga'] ?? ''));
+        $platformSumber = trim((string)($_POST['platform_sumber'] ?? ''));
+        $tautanInformasi = trim((string)($_POST['tautan_informasi'] ?? ''));
+        $buktiPath = trim((string)($_POST['bukti_pendukung_path'] ?? ''));
+        $buktiNama = trim((string)($_POST['bukti_pendukung_nama'] ?? ''));
+        $kronologi = trim((string)($_POST['kronologi'] ?? ''));
+        $pelaporNama = trim((string)($_POST['pelapor_nama'] ?? ''));
+        $pelaporEmail = trim((string)($_POST['pelapor_email'] ?? ''));
+        $status = trim((string)($_POST['status'] ?? 'pending'));
+
+        if (
+            $emailTerdugaPelaku === '' ||
+            $tanggalTerdeteksi === '' ||
+            $namaPerusahaan === '' ||
+            $namaHr === '' ||
+            $provinsi === '' ||
+            $kota === '' ||
+            $nomorKontak === '' ||
+            $platformSumber === '' ||
+            $tautanInformasi === '' ||
+            $pelaporNama === '' ||
+            $pelaporEmail === ''
+        ) {
+            $_SESSION['error'] = 'Gagal update: field wajib tidak boleh kosong.';
+            header('Location: lapor_loker_reports');
+            exit;
+        }
+
+        if (!in_array($status, ['pending', 'approved', 'rejected'], true)) {
+            $_SESSION['error'] = 'Status tidak valid.';
+            header('Location: lapor_loker_reports');
+            exit;
+        }
+
+        $stmt = $conn->prepare("UPDATE job_hoax_reports SET
+            email_terduga_pelaku = ?,
+            tanggal_terdeteksi = ?,
+            nama_perusahaan_digunakan = ?,
+            nama_hr_digunakan = ?,
+            provinsi = ?,
+            kota = ?,
+            nomor_kontak_terduga = ?,
+            platform_sumber = ?,
+            tautan_informasi = ?,
+            bukti_pendukung_path = ?,
+            bukti_pendukung_nama = ?,
+            kronologi = ?,
+            pelapor_nama = ?,
+            pelapor_email = ?,
+            status = ?,
+            approved_at = CASE WHEN ? = 'approved' THEN NOW() ELSE NULL END,
+            rejected_at = CASE WHEN ? = 'rejected' THEN NOW() ELSE NULL END
+            WHERE id = ?");
+
+        if ($stmt) {
+            $stmt->bind_param(
+                'sssssssssssssssssi',
+                $emailTerdugaPelaku,
+                $tanggalTerdeteksi,
+                $namaPerusahaan,
+                $namaHr,
+                $provinsi,
+                $kota,
+                $nomorKontak,
+                $platformSumber,
+                $tautanInformasi,
+                $buktiPath,
+                $buktiNama,
+                $kronologi,
+                $pelaporNama,
+                $pelaporEmail,
+                $status,
+                $status,
+                $status,
+                $reportId
+            );
+            $stmt->execute();
+            $stmt->close();
+            $_SESSION['success'] = 'Laporan berhasil diperbarui.';
+        } else {
+            $_SESSION['error'] = 'Gagal memperbarui laporan: ' . $conn->error;
         }
     }
 
@@ -105,7 +204,10 @@ $query = "SELECT
     pelapor_nama,
     pelapor_email,
     status,
-    created_at
+    approved_at,
+    rejected_at,
+    created_at,
+    updated_at
 FROM job_hoax_reports";
 
 $params = [];
@@ -177,14 +279,25 @@ if ($stmt) {
                             <th>Nama HR</th>
                             <th>Provinsi</th>
                             <th>Kota</th>
+                            <th>Nomor Kontak</th>
+                            <th>Platform Sumber</th>
+                            <th>Tautan Informasi</th>
+                            <th>Bukti Pendukung</th>
+                            <th>Kronologi</th>
+                            <th>Nama Pelapor</th>
+                            <th>Email Pelapor</th>
                             <th>Status</th>
+                            <th>Approved At</th>
+                            <th>Rejected At</th>
+                            <th>Created At</th>
+                            <th>Updated At</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($reports)): ?>
                             <tr>
-                                <td colspan="9" class="text-center text-muted py-4">Belum ada data laporan.</td>
+                                <td colspan="20" class="text-center text-muted py-4">Belum ada data laporan.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($reports as $r): ?>
@@ -206,7 +319,28 @@ if ($stmt) {
                                     <td><?php echo htmlspecialchars((string)$r['nama_hr_digunakan']); ?></td>
                                     <td><?php echo htmlspecialchars((string)$r['provinsi']); ?></td>
                                     <td><?php echo htmlspecialchars((string)$r['kota']); ?></td>
+                                    <td><?php echo htmlspecialchars((string)$r['nomor_kontak_terduga']); ?></td>
+                                    <td><?php echo htmlspecialchars((string)$r['platform_sumber']); ?></td>
+                                    <td style="min-width: 180px;">
+                                        <a href="<?php echo htmlspecialchars((string)$r['tautan_informasi']); ?>" target="_blank" rel="noopener noreferrer">Buka Tautan</a>
+                                    </td>
+                                    <td style="min-width: 180px;">
+                                        <?php if (!empty($r['bukti_pendukung_path'])): ?>
+                                            <a href="/storage/<?php echo htmlspecialchars((string)$r['bukti_pendukung_path']); ?>" target="_blank" rel="noopener noreferrer">
+                                                <?php echo htmlspecialchars((string)($r['bukti_pendukung_nama'] ?: basename((string)$r['bukti_pendukung_path']))); ?>
+                                            </a>
+                                        <?php else: ?>
+                                            -
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="min-width: 220px;"><?php echo nl2br(htmlspecialchars((string)($r['kronologi'] ?: '-'))); ?></td>
+                                    <td><?php echo htmlspecialchars((string)$r['pelapor_nama']); ?></td>
+                                    <td><?php echo htmlspecialchars((string)$r['pelapor_email']); ?></td>
                                     <td><span class="badge bg-<?php echo $badge; ?>"><?php echo htmlspecialchars((string)$r['status']); ?></span></td>
+                                    <td><?php echo htmlspecialchars((string)($r['approved_at'] ?: '-')); ?></td>
+                                    <td><?php echo htmlspecialchars((string)($r['rejected_at'] ?: '-')); ?></td>
+                                    <td><?php echo htmlspecialchars((string)($r['created_at'] ?: '-')); ?></td>
+                                    <td><?php echo htmlspecialchars((string)($r['updated_at'] ?: '-')); ?></td>
                                     <td>
                                         <div class="d-flex flex-wrap gap-1">
                                             <button
@@ -217,6 +351,14 @@ if ($stmt) {
                                             >
                                                 Detail
                                             </button>
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editModal<?php echo (int)$r['id']; ?>"
+                                            >
+                                                Edit
+                                            </button>
                                             <form method="POST" class="d-inline">
                                                 <input type="hidden" name="report_id" value="<?php echo (int)$r['id']; ?>">
                                                 <input type="hidden" name="action" value="approve">
@@ -226,6 +368,11 @@ if ($stmt) {
                                                 <input type="hidden" name="report_id" value="<?php echo (int)$r['id']; ?>">
                                                 <input type="hidden" name="action" value="reject">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                                            </form>
+                                            <form method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus laporan ini?');">
+                                                <input type="hidden" name="report_id" value="<?php echo (int)$r['id']; ?>">
+                                                <input type="hidden" name="action" value="delete">
+                                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                                             </form>
                                         </div>
                                     </td>
@@ -281,6 +428,93 @@ if ($stmt) {
                             <div class="col-md-6"><strong>Waktu Dilaporkan:</strong><br><?php echo htmlspecialchars((string)$r['created_at']); ?></div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="editModal<?php echo (int)$r['id']; ?>" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="edit">
+                        <input type="hidden" name="report_id" value="<?php echo (int)$r['id']; ?>">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Edit Laporan #<?php echo (int)$r['id']; ?></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Email Terduga Pelaku</label>
+                                    <input type="email" class="form-control" name="email_terduga_pelaku" required value="<?php echo htmlspecialchars((string)$r['email_terduga_pelaku']); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Tanggal Terdeteksi</label>
+                                    <input type="date" class="form-control" name="tanggal_terdeteksi" required value="<?php echo htmlspecialchars((string)$r['tanggal_terdeteksi']); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Nama Perusahaan</label>
+                                    <input type="text" class="form-control" name="nama_perusahaan_digunakan" required value="<?php echo htmlspecialchars((string)$r['nama_perusahaan_digunakan']); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Nama HR</label>
+                                    <input type="text" class="form-control" name="nama_hr_digunakan" required value="<?php echo htmlspecialchars((string)$r['nama_hr_digunakan']); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Provinsi</label>
+                                    <input type="text" class="form-control" name="provinsi" required value="<?php echo htmlspecialchars((string)$r['provinsi']); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Kota</label>
+                                    <input type="text" class="form-control" name="kota" required value="<?php echo htmlspecialchars((string)$r['kota']); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Nomor Kontak</label>
+                                    <input type="text" class="form-control" name="nomor_kontak_terduga" required value="<?php echo htmlspecialchars((string)$r['nomor_kontak_terduga']); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Platform Sumber</label>
+                                    <input type="text" class="form-control" name="platform_sumber" required value="<?php echo htmlspecialchars((string)$r['platform_sumber']); ?>">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Tautan Informasi</label>
+                                    <input type="url" class="form-control" name="tautan_informasi" required value="<?php echo htmlspecialchars((string)$r['tautan_informasi']); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Bukti Path</label>
+                                    <input type="text" class="form-control" name="bukti_pendukung_path" value="<?php echo htmlspecialchars((string)($r['bukti_pendukung_path'] ?? '')); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Bukti Nama</label>
+                                    <input type="text" class="form-control" name="bukti_pendukung_nama" value="<?php echo htmlspecialchars((string)($r['bukti_pendukung_nama'] ?? '')); ?>">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Kronologi</label>
+                                    <textarea class="form-control" name="kronologi" rows="4"><?php echo htmlspecialchars((string)($r['kronologi'] ?? '')); ?></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Nama Pelapor</label>
+                                    <input type="text" class="form-control" name="pelapor_nama" required value="<?php echo htmlspecialchars((string)$r['pelapor_nama']); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email Pelapor</label>
+                                    <input type="email" class="form-control" name="pelapor_email" required value="<?php echo htmlspecialchars((string)$r['pelapor_email']); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-select" name="status" required>
+                                        <option value="pending" <?php echo $r['status'] === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                                        <option value="approved" <?php echo $r['status'] === 'approved' ? 'selected' : ''; ?>>Approved</option>
+                                        <option value="rejected" <?php echo $r['status'] === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
