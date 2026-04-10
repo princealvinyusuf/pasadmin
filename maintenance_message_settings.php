@@ -21,18 +21,35 @@ $conn->query("CREATE TABLE IF NOT EXISTS maintenance_message_settings (
     is_enabled TINYINT(1) NOT NULL DEFAULT 0,
     maintenance_at DATETIME NULL,
     duration_minutes INT UNSIGNED NOT NULL DEFAULT 60,
+    message_template TEXT NULL,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+$conn->query("ALTER TABLE maintenance_message_settings ADD COLUMN IF NOT EXISTS message_template TEXT NULL AFTER duration_minutes");
+
+$defaultTemplate = 'Dalam rangka peningkatan kualitas layanan dan performa sistem, website kami akan menjalani maintenance pada [maintenance_at] WIB selama [duration_minutes] menit, sehingga untuk sementara tidak dapat diakses, mohon maaf atas ketidaknyamanannya.';
+
 $resInit = $conn->query("SELECT id FROM maintenance_message_settings WHERE id = 1 LIMIT 1");
 if (!$resInit || $resInit->num_rows === 0) {
-    $conn->query("INSERT INTO maintenance_message_settings (id, is_enabled, maintenance_at, duration_minutes) VALUES (1, 0, NULL, 60)");
+    $stmtInit = $conn->prepare("INSERT INTO maintenance_message_settings (id, is_enabled, maintenance_at, duration_minutes, message_template) VALUES (1, 0, NULL, 60, ?)");
+    if ($stmtInit) {
+        $stmtInit->bind_param('s', $defaultTemplate);
+        $stmtInit->execute();
+        $stmtInit->close();
+    } else {
+        $conn->query("INSERT INTO maintenance_message_settings (id, is_enabled, maintenance_at, duration_minutes) VALUES (1, 0, NULL, 60)");
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $isEnabled = isset($_POST['is_enabled']) ? 1 : 0;
     $maintenanceAtInput = trim((string)($_POST['maintenance_at'] ?? ''));
     $durationMinutes = (int)($_POST['duration_minutes'] ?? 0);
+    $messageTemplate = trim((string)($_POST['message_template'] ?? ''));
+
+    if ($messageTemplate === '') {
+        $messageTemplate = $defaultTemplate;
+    }
 
     if ($durationMinutes < 1) {
         $_SESSION['error'] = 'Durasi maintenance minimal 1 menit.';
@@ -57,9 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $stmt = $conn->prepare('UPDATE maintenance_message_settings SET is_enabled = ?, maintenance_at = ?, duration_minutes = ? WHERE id = 1');
+    $stmt = $conn->prepare('UPDATE maintenance_message_settings SET is_enabled = ?, maintenance_at = ?, duration_minutes = ?, message_template = ? WHERE id = 1');
     if ($stmt) {
-        $stmt->bind_param('isi', $isEnabled, $maintenanceAtSql, $durationMinutes);
+        $stmt->bind_param('isis', $isEnabled, $maintenanceAtSql, $durationMinutes, $messageTemplate);
         $stmt->execute();
         $stmt->close();
         $_SESSION['success'] = 'Pengaturan maintenance message berhasil disimpan.';
@@ -75,12 +92,16 @@ $settings = [
     'is_enabled' => 0,
     'maintenance_at' => null,
     'duration_minutes' => 60,
+    'message_template' => $defaultTemplate,
     'updated_at' => null,
 ];
 
-$res = $conn->query('SELECT is_enabled, maintenance_at, duration_minutes, updated_at FROM maintenance_message_settings WHERE id = 1 LIMIT 1');
+$res = $conn->query('SELECT is_enabled, maintenance_at, duration_minutes, message_template, updated_at FROM maintenance_message_settings WHERE id = 1 LIMIT 1');
 if ($res && $row = $res->fetch_assoc()) {
     $settings = $row;
+    if (empty($settings['message_template'])) {
+        $settings['message_template'] = $defaultTemplate;
+    }
 }
 
 $maintenanceAtValue = '';
@@ -133,10 +154,10 @@ if (!empty($settings['maintenance_at'])) {
                 </div>
 
                 <div class="col-12">
-                    <div class="alert alert-secondary mb-0">
-                        Template pesan:
-                        <br>
-                        <em>Dalam rangka peningkatan kualitas layanan dan performa sistem, website kami akan menjalani maintenance pada [tanggal & jam] selama XX menit, sehingga untuk sementara tidak dapat diakses, mohon maaf atas ketidaknyamanannya.</em>
+                    <label for="message_template" class="form-label">Template Pesan</label>
+                    <textarea class="form-control" id="message_template" name="message_template" rows="4" required><?php echo htmlspecialchars((string)($settings['message_template'] ?? $defaultTemplate)); ?></textarea>
+                    <div class="form-text">
+                        Gunakan placeholder <code>[maintenance_at]</code> untuk tanggal & jam dan <code>[duration_minutes]</code> untuk durasi menit.
                     </div>
                 </div>
 
