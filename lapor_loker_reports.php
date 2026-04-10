@@ -25,12 +25,14 @@ $conn->query("CREATE TABLE IF NOT EXISTS job_hoax_reports (
     nama_hr_digunakan VARCHAR(255) NOT NULL,
     provinsi VARCHAR(150) NOT NULL,
     kota VARCHAR(150) NOT NULL,
-    nomor_kontak_terduga VARCHAR(60) DEFAULT NULL,
-    platform_sumber VARCHAR(120) DEFAULT NULL,
-    tautan_informasi VARCHAR(500) DEFAULT NULL,
+    nomor_kontak_terduga VARCHAR(60) NOT NULL,
+    platform_sumber VARCHAR(120) NOT NULL,
+    tautan_informasi VARCHAR(500) NOT NULL,
+    bukti_pendukung_path VARCHAR(500) DEFAULT NULL,
+    bukti_pendukung_nama VARCHAR(255) DEFAULT NULL,
     kronologi TEXT DEFAULT NULL,
-    pelapor_nama VARCHAR(120) DEFAULT NULL,
-    pelapor_email VARCHAR(255) DEFAULT NULL,
+    pelapor_nama VARCHAR(120) NOT NULL,
+    pelapor_email VARCHAR(255) NOT NULL,
     status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
     approved_at TIMESTAMP NULL DEFAULT NULL,
     rejected_at TIMESTAMP NULL DEFAULT NULL,
@@ -40,6 +42,9 @@ $conn->query("CREATE TABLE IF NOT EXISTS job_hoax_reports (
     KEY idx_tanggal_terdeteksi (tanggal_terdeteksi),
     KEY idx_provinsi_kota (provinsi, kota)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$conn->query("ALTER TABLE job_hoax_reports ADD COLUMN IF NOT EXISTS bukti_pendukung_path VARCHAR(500) DEFAULT NULL AFTER tautan_informasi");
+$conn->query("ALTER TABLE job_hoax_reports ADD COLUMN IF NOT EXISTS bukti_pendukung_nama VARCHAR(255) DEFAULT NULL AFTER bukti_pendukung_path");
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $reportId = isset($_POST['report_id']) ? (int)$_POST['report_id'] : 0;
@@ -94,6 +99,8 @@ $query = "SELECT
     nomor_kontak_terduga,
     platform_sumber,
     tautan_informasi,
+    bukti_pendukung_path,
+    bukti_pendukung_nama,
     kronologi,
     pelapor_nama,
     pelapor_email,
@@ -253,6 +260,16 @@ if ($stmt) {
                                 <strong>Tautan Informasi:</strong><br>
                                 <?php if (!empty($r['tautan_informasi'])): ?>
                                     <a href="<?php echo htmlspecialchars((string)$r['tautan_informasi']); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars((string)$r['tautan_informasi']); ?></a>
+                                <?php else: ?>
+                                    -
+                                <?php endif; ?>
+                            </div>
+                            <div class="col-12">
+                                <strong>Lampiran Bukti Pendukung:</strong><br>
+                                <?php if (!empty($r['bukti_pendukung_path'])): ?>
+                                    <a href="/storage/<?php echo htmlspecialchars((string)$r['bukti_pendukung_path']); ?>" target="_blank" rel="noopener noreferrer">
+                                        <?php echo htmlspecialchars((string)($r['bukti_pendukung_nama'] ?: basename((string)$r['bukti_pendukung_path']))); ?>
+                                    </a>
                                 <?php else: ?>
                                     -
                                 <?php endif; ?>
