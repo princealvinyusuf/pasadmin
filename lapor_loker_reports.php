@@ -33,6 +33,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS job_hoax_reports (
     kronologi TEXT DEFAULT NULL,
     pelapor_nama VARCHAR(120) NOT NULL,
     pelapor_email VARCHAR(255) NOT NULL,
+    laporan_mitra VARCHAR(120) DEFAULT NULL,
     status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
     approved_at TIMESTAMP NULL DEFAULT NULL,
     rejected_at TIMESTAMP NULL DEFAULT NULL,
@@ -45,6 +46,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS job_hoax_reports (
 
 $conn->query("ALTER TABLE job_hoax_reports ADD COLUMN IF NOT EXISTS bukti_pendukung_path VARCHAR(500) DEFAULT NULL AFTER tautan_informasi");
 $conn->query("ALTER TABLE job_hoax_reports ADD COLUMN IF NOT EXISTS bukti_pendukung_nama VARCHAR(255) DEFAULT NULL AFTER bukti_pendukung_path");
+$conn->query("ALTER TABLE job_hoax_reports ADD COLUMN IF NOT EXISTS laporan_mitra VARCHAR(120) DEFAULT NULL AFTER pelapor_email");
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $reportId = isset($_POST['report_id']) ? (int)$_POST['report_id'] : 0;
@@ -101,6 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $kronologi = trim((string)($_POST['kronologi'] ?? ''));
         $pelaporNama = trim((string)($_POST['pelapor_nama'] ?? ''));
         $pelaporEmail = trim((string)($_POST['pelapor_email'] ?? ''));
+        $laporanMitra = trim((string)($_POST['laporan_mitra'] ?? ''));
         $status = trim((string)($_POST['status'] ?? 'pending'));
 
         if (
@@ -142,6 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             kronologi = ?,
             pelapor_nama = ?,
             pelapor_email = ?,
+            laporan_mitra = ?,
             status = ?,
             approved_at = CASE WHEN ? = 'approved' THEN NOW() ELSE NULL END,
             rejected_at = CASE WHEN ? = 'rejected' THEN NOW() ELSE NULL END
@@ -149,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($stmt) {
             $stmt->bind_param(
-                'sssssssssssssssssi',
+                'ssssssssssssssssssi',
                 $emailTerdugaPelaku,
                 $tanggalTerdeteksi,
                 $namaPerusahaan,
@@ -164,6 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $kronologi,
                 $pelaporNama,
                 $pelaporEmail,
+                $laporanMitra,
                 $status,
                 $status,
                 $status,
@@ -203,6 +208,7 @@ $query = "SELECT
     kronologi,
     pelapor_nama,
     pelapor_email,
+    laporan_mitra,
     status,
     approved_at,
     rejected_at,
@@ -306,6 +312,7 @@ if ($stmt) {
                             <th>Bukti Pendukung</th>
                             <th>Nama Pelapor</th>
                             <th>Email Pelapor</th>
+                            <th>Laporan Mitra</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
@@ -313,7 +320,7 @@ if ($stmt) {
                     <tbody>
                         <?php if (empty($reports)): ?>
                             <tr>
-                                <td colspan="15" class="text-center text-muted py-4">Belum ada data laporan.</td>
+                                <td colspan="16" class="text-center text-muted py-4">Belum ada data laporan.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($reports as $r): ?>
@@ -351,6 +358,7 @@ if ($stmt) {
                                     </td>
                                     <td><?php echo htmlspecialchars((string)$r['pelapor_nama']); ?></td>
                                     <td><?php echo htmlspecialchars((string)$r['pelapor_email']); ?></td>
+                                    <td><?php echo htmlspecialchars((string)($r['laporan_mitra'] ?: '-')); ?></td>
                                     <td><span class="badge bg-<?php echo $badge; ?>"><?php echo htmlspecialchars((string)$r['status']); ?></span></td>
                                     <td>
                                         <div class="d-flex flex-wrap gap-1">
@@ -435,6 +443,7 @@ if ($stmt) {
                             <div class="col-12"><strong>Kronologi:</strong><br><?php echo nl2br(htmlspecialchars((string)($r['kronologi'] ?? '-'))); ?></div>
                             <div class="col-md-6"><strong>Nama Pelapor:</strong><br><?php echo htmlspecialchars((string)($r['pelapor_nama'] ?? '-')); ?></div>
                             <div class="col-md-6"><strong>Email Pelapor:</strong><br><?php echo htmlspecialchars((string)($r['pelapor_email'] ?? '-')); ?></div>
+                            <div class="col-md-6"><strong>Laporan Mitra:</strong><br><?php echo htmlspecialchars((string)($r['laporan_mitra'] ?? '-')); ?></div>
                             <div class="col-md-6"><strong>Status:</strong><br><?php echo htmlspecialchars((string)$r['status']); ?></div>
                             <div class="col-md-6"><strong>Waktu Dilaporkan:</strong><br><?php echo htmlspecialchars((string)$r['created_at']); ?></div>
                         </div>
@@ -510,6 +519,10 @@ if ($stmt) {
                                 <div class="col-md-6">
                                     <label class="form-label">Email Pelapor</label>
                                     <input type="email" class="form-control" name="pelapor_email" required value="<?php echo htmlspecialchars((string)$r['pelapor_email']); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Laporan Mitra</label>
+                                    <input type="text" class="form-control" name="laporan_mitra" value="<?php echo htmlspecialchars((string)($r['laporan_mitra'] ?? '')); ?>" placeholder="Nama Job Portal">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Status</label>
