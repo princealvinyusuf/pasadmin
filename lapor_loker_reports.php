@@ -242,6 +242,27 @@ if ($stmt) {
     <title>Lapor Loker Reports</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        .lapor-loker-edit-modal .modal-content {
+            max-height: calc(100vh - 2rem);
+            overflow: hidden;
+        }
+
+        .lapor-loker-edit-modal form {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .lapor-loker-edit-modal .modal-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+    </style>
 </head>
 <body class="bg-light">
 <?php include 'navbar.php'; ?>
@@ -411,9 +432,11 @@ if ($stmt) {
                                     -
                                 <?php endif; ?>
                             </div>
+                            <div class="col-12"><strong>Kronologi:</strong><br><?php echo nl2br(htmlspecialchars((string)($r['kronologi'] ?? '-'))); ?></div>
                             <div class="col-md-6"><strong>Nama Pelapor:</strong><br><?php echo htmlspecialchars((string)($r['pelapor_nama'] ?? '-')); ?></div>
                             <div class="col-md-6"><strong>Email Pelapor:</strong><br><?php echo htmlspecialchars((string)($r['pelapor_email'] ?? '-')); ?></div>
                             <div class="col-md-6"><strong>Status:</strong><br><?php echo htmlspecialchars((string)$r['status']); ?></div>
+                            <div class="col-md-6"><strong>Waktu Dilaporkan:</strong><br><?php echo htmlspecialchars((string)$r['created_at']); ?></div>
                         </div>
                     </div>
                 </div>
@@ -421,9 +444,9 @@ if ($stmt) {
         </div>
 
         <div class="modal fade" id="editModal<?php echo (int)$r['id']; ?>" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable lapor-loker-edit-modal">
                 <div class="modal-content">
-                    <form method="POST">
+                    <form method="POST" class="d-flex flex-column h-100">
                         <input type="hidden" name="action" value="edit">
                         <input type="hidden" name="report_id" value="<?php echo (int)$r['id']; ?>">
                         <div class="modal-header">
@@ -477,7 +500,8 @@ if ($stmt) {
                                     <input type="text" class="form-control" name="bukti_pendukung_nama" value="<?php echo htmlspecialchars((string)($r['bukti_pendukung_nama'] ?? '')); ?>">
                                 </div>
                                 <div class="col-12">
-                                    <input type="hidden" name="kronologi" value="<?php echo htmlspecialchars((string)($r['kronologi'] ?? '')); ?>">
+                                    <label class="form-label">Kronologi</label>
+                                    <textarea class="form-control" name="kronologi" rows="4"><?php echo htmlspecialchars((string)($r['kronologi'] ?? '')); ?></textarea>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Nama Pelapor</label>
