@@ -265,7 +265,7 @@ if (!empty($conditions)) {
     $query .= " WHERE " . implode(" AND ", $conditions);
 }
 
-$query .= " ORDER BY created_at DESC, id DESC LIMIT 300";
+$query .= " ORDER BY created_at DESC, id DESC";
 $stmt = $conn->prepare($query);
 if ($stmt && !empty($params)) {
     $stmt->bind_param($types, ...$params);
@@ -418,7 +418,7 @@ $filteredCount = count($reports);
         <div class="col-12 col-sm-6 col-lg-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <div class="text-muted small">Data Ditampilkan (maks 300)</div>
+                    <div class="text-muted small">Data Ditampilkan</div>
                     <div class="h4 mb-0"><?php echo number_format($filteredCount); ?></div>
                 </div>
             </div>
