@@ -76,6 +76,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		['walkin_gallery_manage','Manage Walk-in Gallery','Layanan'],
 		['partner_company_manage','Manage Partner Companies','Layanan'],
 		['walkin_survey_manage','Manage Walk-in Survey','Layanan'],
+		['lapor_loker_manage','Manage Lapor Loker Reports','Layanan'],
 		['grab_email_manage','Grab Email: Manage Imports','Layanan'],
 		['pasker_drive_manage','Manage Pasker Drive','Layanan'],
 		['use_broadcast','Use Broadcast','Tools'],

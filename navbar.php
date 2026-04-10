@@ -116,6 +116,7 @@
     $canMiniJobi = current_user_can('settings_minijobi_manage') || $canManageSettings;
     $canCareerBoostDaySlot = $canCareerBoostDay; // same permission
     $canWalkinSurvey = current_user_can('walkin_survey_manage') || $canManageSettings;
+    $canLaporLoker = current_user_can('lapor_loker_manage') || $canManageSettings;
     $canGrabEmail = current_user_can('grab_email_manage') || $canManageSettings;
     $canPaskerDrive = current_user_can('pasker_drive_manage') || $canManageSettings;
 
@@ -132,6 +133,7 @@
         $canCareerBoostDayAttendance ||
         $canFormHasilKonseling ||
         $canMiniJobi
+        || $canLaporLoker
         || $canWalkinSurvey
         || $canGrabEmail
         || $canPartnerCompany
@@ -276,6 +278,7 @@
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_responses">Walk-in Survey Responses</a></li><?php endif; ?>
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_statistics">Walk-in Survey Statistik</a></li><?php endif; ?>
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_access_settings">Walk-in Survey Access</a></li><?php endif; ?>
+                        <?php if ($canLaporLoker): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>lapor_loker_reports"><i class="bi bi-flag me-1"></i>Lapor Loker Reports</a></li><?php endif; ?>
                         <?php if ($canGrabEmail): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>grab_email"><i class="bi bi-envelope-paper me-1"></i>Grab Email</a></li><?php endif; ?>
                         <?php if ($canMitraSubmission || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_form_access_settings">Walk-in Form Access</a></li><?php endif; ?>
                         <?php if ($canWalkinGallery || $canPartnerCompany): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
