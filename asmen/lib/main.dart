@@ -42,11 +42,9 @@ class _AsmenQrScannerPageState extends State<AsmenQrScannerPage> {
     text: 'https://paskerid.kemnaker.go.id/pasadmin/asmen_feature',
   );
 
-  bool _scanFromBmn = false;
   bool _isProcessingScan = false;
   String _lastScan = '';
   String? _lastError;
-  Map<String, String>? _assetDetails;
 
   @override
   void dispose() {
@@ -66,7 +64,7 @@ class _AsmenQrScannerPageState extends State<AsmenQrScannerPage> {
     }
 
     String decodedText = value.trim();
-    if (_scanFromBmn && decodedText.startsWith('#')) {
+    if (decodedText.startsWith('#')) {
       decodedText = decodedText.substring(1);
     }
 
@@ -76,8 +74,8 @@ class _AsmenQrScannerPageState extends State<AsmenQrScannerPage> {
       _lastError = null;
     });
 
-    final Uri? apiUri = _buildApiUri(decodedText);
-    if (apiUri == null) {
+    final List<Uri> apiUris = _buildApiUris(decodedText);
+    if (apiUris.isEmpty) {
       setState(() {
         _isProcessingScan = false;
       });
@@ -85,37 +83,64 @@ class _AsmenQrScannerPageState extends State<AsmenQrScannerPage> {
     }
 
     try {
-      final http.Response response = await http.get(apiUri);
-      final Map<String, dynamic>? payload = jsonDecode(response.body) as Map<String, dynamic>?;
-      if (response.statusCode != 200 || payload == null || payload['ok'] != true) {
-        final String message = payload?['message']?.toString() ?? 'Failed to load asset details.';
-        _showSnackBar(message);
-        if (mounted) {
-          setState(() {
-            _lastError = message;
-            _assetDetails = null;
-          });
+      String lastFailure = 'Unable to fetch asset details.';
+      for (final Uri apiUri in apiUris) {
+        final http.Response response = await http.get(apiUri);
+        Map<String, dynamic>? payload;
+        try {
+          payload = jsonDecode(response.body) as Map<String, dynamic>?;
+        } catch (_) {
+          payload = null;
         }
-      } else {
-        final Map<String, dynamic> rawAsset =
-            (payload['asset'] as Map<String, dynamic>? ?? <String, dynamic>{});
-        final Map<String, String> cleanedAsset = <String, String>{};
-        rawAsset.forEach((String key, dynamic value) {
-          cleanedAsset[key] = value?.toString() ?? '';
-        });
-        if (mounted) {
+
+        if (response.statusCode == 200 && payload != null && payload['ok'] == true) {
+          final Map<String, dynamic> rawAsset =
+              (payload['asset'] as Map<String, dynamic>? ?? <String, dynamic>{});
+          final Map<String, String> cleanedAsset = <String, String>{};
+          rawAsset.forEach((String key, dynamic value) {
+            cleanedAsset[key] = value?.toString() ?? '';
+          });
+          if (!mounted) {
+            return;
+          }
+
           setState(() {
-            _assetDetails = cleanedAsset;
             _lastError = null;
           });
+
+          await _scannerController.stop();
+          if (!mounted) {
+            return;
+          }
+          await Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (BuildContext context) => AsmenAssetDetailPage(
+                assetDetails: cleanedAsset,
+                scannedValue: decodedText,
+              ),
+            ),
+          );
+          if (mounted) {
+            await _scannerController.start();
+          }
+          return;
         }
+
+        final String apiMessage = payload?['message']?.toString() ?? 'HTTP ${response.statusCode}';
+        lastFailure = '$apiMessage (${apiUri.toString()})';
+      }
+
+      _showSnackBar(lastFailure);
+      if (mounted) {
+        setState(() {
+          _lastError = lastFailure;
+        });
       }
     } catch (_) {
       _showSnackBar('Unable to fetch asset details.');
       if (mounted) {
         setState(() {
           _lastError = 'Unable to fetch asset details.';
-          _assetDetails = null;
         });
       }
     } finally {
@@ -127,48 +152,68 @@ class _AsmenQrScannerPageState extends State<AsmenQrScannerPage> {
     }
   }
 
-  Uri? _buildApiUri(String decodedText) {
-    if (decodedText.contains('asmen_qr.php') || decodedText.contains('asmen_qr_api.php')) {
+  List<Uri> _buildApiUris(String decodedText) {
+    if (decodedText.contains('asmen_qr')) {
       final Uri? scannedUri = Uri.tryParse(decodedText);
       final String? s = scannedUri?.queryParameters['s'];
       if (scannedUri == null || s == null || s.isEmpty) {
         _showSnackBar('QR URL is missing parameter s.');
-        return null;
+        return <Uri>[];
       }
 
-      if (scannedUri.path.endsWith('asmen_qr_api.php')) {
-        return scannedUri.replace(queryParameters: <String, String>{'s': s});
+      if (scannedUri.path.endsWith('asmen_qr_api.php') || scannedUri.path.endsWith('asmen_qr_api')) {
+        final Uri noExt = scannedUri.replace(
+          path: scannedUri.path.replaceAll('asmen_qr_api.php', 'asmen_qr_api'),
+          queryParameters: <String, String>{'s': s},
+        );
+        final Uri withExt = scannedUri.replace(
+          path: scannedUri.path.replaceAll('asmen_qr_api', 'asmen_qr_api.php'),
+          queryParameters: <String, String>{'s': s},
+        );
+        return <Uri>[noExt, withExt];
       }
 
-      final String apiPath = scannedUri.path.replaceAll('asmen_qr.php', 'asmen_qr_api.php');
-      return scannedUri.replace(
-        path: apiPath,
-        queryParameters: <String, String>{'s': s},
-      );
+      final String apiPathNoExt = scannedUri.path
+          .replaceAll('asmen_qr.php', 'asmen_qr_api')
+          .replaceAll('asmen_qr', 'asmen_qr_api');
+      final String apiPathWithExt = apiPathNoExt.replaceAll('asmen_qr_api', 'asmen_qr_api.php');
+      return <Uri>[
+        scannedUri.replace(
+          path: apiPathNoExt,
+          queryParameters: <String, String>{'s': s},
+        ),
+        scannedUri.replace(
+          path: apiPathWithExt,
+          queryParameters: <String, String>{'s': s},
+        ),
+      ];
     }
 
     if (_registerPattern.hasMatch(decodedText) || _legacySecretPattern.hasMatch(decodedText)) {
       final String baseInput = _baseUrlController.text.trim();
       if (baseInput.isEmpty) {
         _showSnackBar('Set your AsMen backend URL first.');
-        return null;
+        return <Uri>[];
       }
 
       final String normalizedBaseInput = baseInput.endsWith('/') ? baseInput : '$baseInput/';
       final Uri? base = Uri.tryParse(normalizedBaseInput);
       if (base == null || !base.hasScheme || !base.hasAuthority) {
         _showSnackBar('Base URL must be a full URL, example: https://domain.com/asmen_feature/');
-        return null;
+        return <Uri>[];
       }
 
-      final Uri resolved = base.resolve('asmen_qr_api.php').replace(
+      final Uri withoutExtension = base.resolve('asmen_qr_api').replace(
         queryParameters: <String, String>{'s': decodedText},
       );
-      return resolved;
+      final Uri withExtension = base.resolve('asmen_qr_api.php').replace(
+        queryParameters: <String, String>{'s': decodedText},
+      );
+      return <Uri>[withoutExtension, withExtension];
     }
 
     _showSnackBar('QR not recognized for AsMen');
-    return null;
+    return <Uri>[];
   }
 
   void _showSnackBar(String message) {
@@ -182,8 +227,6 @@ class _AsmenQrScannerPageState extends State<AsmenQrScannerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final Iterable<MapEntry<String, String>> entries = _assetDetails?.entries ?? const <MapEntry<String, String>>[];
-
     return Scaffold(
       appBar: AppBar(title: const Text('AsMen QR Scanner')),
       body: SafeArea(
@@ -192,16 +235,6 @@ class _AsmenQrScannerPageState extends State<AsmenQrScannerPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Scan from BMN QR'),
-                value: _scanFromBmn,
-                onChanged: (bool value) {
-                  setState(() {
-                    _scanFromBmn = value;
-                  });
-                },
-              ),
               TextField(
                 controller: _baseUrlController,
                 keyboardType: TextInputType.url,
@@ -238,71 +271,170 @@ class _AsmenQrScannerPageState extends State<AsmenQrScannerPage> {
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: _buildDetailsBody(entries),
-                  ),
+              if (_lastError != null) ...<Widget>[
+                const SizedBox(height: 8),
+                Text(
+                  _lastError!,
+                  style: const TextStyle(color: Colors.red),
                 ),
-              ),
+              ] else ...<Widget>[
+                const SizedBox(height: 8),
+                const Text('After successful scan, detail page will open automatically.'),
+              ],
             ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildDetailsBody(Iterable<MapEntry<String, String>> entries) {
-    if (_lastError != null) {
-      return Center(
-        child: Text(
-          _lastError!,
-          style: const TextStyle(color: Colors.red),
-          textAlign: TextAlign.center,
-        ),
-      );
-    }
+class AsmenAssetDetailPage extends StatelessWidget {
+  const AsmenAssetDetailPage({
+    required this.assetDetails,
+    required this.scannedValue,
+    super.key,
+  });
 
-    if (_assetDetails == null) {
-      return const Center(
-        child: Text('Scan a QR code to show asset detail.'),
-      );
-    }
+  final Map<String, String> assetDetails;
+  final String scannedValue;
 
-    if (_assetDetails!.isEmpty) {
-      return const Center(
-        child: Text('No detail fields returned by API.'),
-      );
-    }
+  @override
+  Widget build(BuildContext context) {
+    final List<_DetailSection> sections = _buildSections(assetDetails);
 
-    return ListView(
-      children: entries
-          .map(
-            (MapEntry<String, String> entry) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      appBar: AppBar(title: const Text('Asset Detail')),
+      body: SafeArea(
+        child: Column(
+          children: <Widget>[
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
                 children: <Widget>[
-                  Text(
-                    _labelize(entry.key),
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  Card(
+                    child: ListTile(
+                      title: const Text('Scanned Value'),
+                      subtitle: Text(scannedValue),
+                    ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(entry.value.isEmpty ? '-' : entry.value),
+                  const SizedBox(height: 8),
+                  ...sections.map(( _DetailSection section) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                section.title,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 10),
+                              ...section.entries.map((MapEntry<String, String> entry) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                      Text(
+                                        _labelize(entry.key),
+                                        style: const TextStyle(fontWeight: FontWeight.w600),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(entry.value.isEmpty ? '-' : entry.value),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
                 ],
               ),
             ),
-          )
-          .toList(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: const Text('Retake Scan'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
+}
 
-  String _labelize(String key) {
-    final List<String> words = key.split('_').where((String w) => w.isNotEmpty).toList();
-    return words
-        .map((String w) => '${w[0].toUpperCase()}${w.substring(1)}')
-        .join(' ');
+class _DetailSection {
+  const _DetailSection(this.title, this.entries);
+
+  final String title;
+  final List<MapEntry<String, String>> entries;
+}
+
+List<_DetailSection> _buildSections(Map<String, String> details) {
+  const Set<String> locationKeys = <String>{
+    'alamat',
+    'rt_rw',
+    'kelurahan_desa',
+    'kecamatan',
+    'kab_kota',
+    'kode_kab_kota',
+    'provinsi',
+    'kode_provinsi',
+    'kode_pos',
+    'lokasi_ruang',
+  };
+
+  const Set<String> serviceKeys = <String>{
+    'service_interval_months',
+    'last_service_date',
+    'next_service_date',
+    'service_priority',
+    'service_reason',
+  };
+
+  final List<MapEntry<String, String>> general = <MapEntry<String, String>>[];
+  final List<MapEntry<String, String>> location = <MapEntry<String, String>>[];
+  final List<MapEntry<String, String>> service = <MapEntry<String, String>>[];
+  final List<MapEntry<String, String>> other = <MapEntry<String, String>>[];
+
+  for (final MapEntry<String, String> entry in details.entries) {
+    if (locationKeys.contains(entry.key)) {
+      location.add(entry);
+    } else if (serviceKeys.contains(entry.key)) {
+      service.add(entry);
+    } else if (entry.key.startsWith('nilai_') ||
+        entry.key.startsWith('luas_') ||
+        entry.key.startsWith('tanggal_')) {
+      other.add(entry);
+    } else {
+      general.add(entry);
+    }
   }
+
+  final List<_DetailSection> sections = <_DetailSection>[
+    if (general.isNotEmpty) _DetailSection('General Info', general),
+    if (location.isNotEmpty) _DetailSection('Location', location),
+    if (service.isNotEmpty) _DetailSection('Service', service),
+    if (other.isNotEmpty) _DetailSection('Other Fields', other),
+  ];
+
+  return sections;
+}
+
+String _labelize(String key) {
+  final List<String> words = key.split('_').where((String w) => w.isNotEmpty).toList();
+  return words.map((String w) => '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
 }
