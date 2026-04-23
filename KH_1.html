@@ -206,6 +206,116 @@
       background: #f8fbff;
     }
 
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-green {
+      height: 34px;
+      padding: 0 14px;
+      border: 1px solid #1f9a4b;
+      background: #22c55e;
+      color: #ffffff;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-green:hover {
+      background: #1ea854;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 24, 39, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 999;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 430px;
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.24);
+      padding: 18px 18px 16px;
+    }
+
+    .modal-title {
+      margin: 0 0 14px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .modal-row {
+      margin-bottom: 12px;
+    }
+
+    .modal-row label {
+      display: block;
+      margin-bottom: 6px;
+      color: #374151;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .modal-row input[type="date"] {
+      width: 100%;
+      height: 40px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 0 10px;
+      font-size: 14px;
+      color: #111827;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .btn-modal-close {
+      height: 34px;
+      padding: 0 14px;
+      border: 1px solid #9ca3af;
+      background: #ffffff;
+      color: #374151;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-download-excel {
+      height: 34px;
+      padding: 0 14px;
+      border: 1px solid #0f3f73;
+      background: #1f4d82;
+      color: #ffffff;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-download-excel:hover {
+      background: #173e69;
+    }
+
     @media (max-width: 900px) {
       .tabs {
         gap: 18px;
@@ -328,19 +438,76 @@
 
         <div class="actions">
           <button class="btn-outline">Pilih Semua</button>
+          <button class="btn-green" id="openDownloadModal">Download Seluruh Data Pelamar</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="downloadModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="downloadModalTitle">
+      <h3 class="modal-title" id="downloadModalTitle">Pilih Periode Waktu</h3>
+
+      <div class="modal-row">
+        <label for="tanggalDari">Dari Tanggal</label>
+        <input type="date" id="tanggalDari" />
+      </div>
+
+      <div class="modal-row">
+        <label for="tanggalSampai">Sampai Tanggal</label>
+        <input type="date" id="tanggalSampai" />
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-modal-close" id="closeDownloadModal">Batal</button>
+        <button class="btn-download-excel" id="downloadToExcelBtn">Download To Excel</button>
       </div>
     </div>
   </div>
 
   <script>
     const tabs = document.querySelectorAll(".tab");
+    const modal = document.getElementById("downloadModal");
+    const openDownloadModal = document.getElementById("openDownloadModal");
+    const closeDownloadModal = document.getElementById("closeDownloadModal");
+    const downloadToExcelBtn = document.getElementById("downloadToExcelBtn");
+    const tanggalDari = document.getElementById("tanggalDari");
+    const tanggalSampai = document.getElementById("tanggalSampai");
 
     tabs.forEach(tab => {
       tab.addEventListener("click", () => {
         tabs.forEach(t => t.classList.remove("active"));
         tab.classList.add("active");
       });
+    });
+
+    openDownloadModal.addEventListener("click", () => {
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
+    });
+
+    closeDownloadModal.addEventListener("click", () => {
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+    });
+
+    modal.addEventListener("click", event => {
+      if (event.target === modal) {
+        modal.classList.remove("open");
+        modal.setAttribute("aria-hidden", "true");
+      }
+    });
+
+    downloadToExcelBtn.addEventListener("click", () => {
+      const dari = tanggalDari.value;
+      const sampai = tanggalSampai.value;
+
+      if (!dari || !sampai) {
+        alert("Silakan pilih tanggal mulai dan tanggal selesai.");
+        return;
+      }
+
+      alert(`Download To Excel untuk periode ${dari} sampai ${sampai}`);
     });
   </script>
 </body>
