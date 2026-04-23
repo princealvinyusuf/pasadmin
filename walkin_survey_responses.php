@@ -522,24 +522,63 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        var headerMap = {};
+        var preferredColumns = [
+            { key: 'id', label: 'ID' },
+            { key: 'company_name_snapshot', label: 'Perusahaan' },
+            { key: 'walkin_initiator_snapshot', label: 'Walk In Initiator' },
+            { key: 'walkin_date', label: 'Tanggal Walk In' },
+            { key: 'name', label: 'Nama' },
+            { key: 'email', label: 'Email' },
+            { key: 'phone', label: 'Phone' },
+            { key: 'domisili', label: 'Domisili' },
+            { key: 'gender', label: 'Gender' },
+            { key: 'age_range', label: 'Umur' },
+            { key: 'education', label: 'Pendidikan' },
+            { key: 'rating_satisfaction', label: 'Kepuasan (1-5)' },
+            { key: 'rating_information_clarity', label: 'Kejelasan Informasi (1-5)' },
+            { key: 'rating_service_integrity', label: 'Integritas Layanan (1-5)' },
+            { key: 'walkin_benefit', label: 'Manfaat Walk In' },
+            { key: 'walkin_benefit_reason', label: 'Alasan Manfaat' },
+            { key: 'info_sources', label: 'Sumber Informasi' },
+            { key: 'job_portals', label: 'Job Portal' },
+            { key: 'strengths', label: 'Kelebihan KarirHub' },
+            { key: 'missing_infos', label: 'Informasi Kurang/Belum Ada' },
+            { key: 'general_feedback', label: 'Masukan Umum' },
+            { key: 'improvement_aspects', label: 'Aspek Perbaikan' },
+            { key: 'feedback_improvement_aspects', label: 'Kritik & Saran Aspek Perbaikan' },
+            { key: 'created_at', label: 'Submitted At' },
+            { key: 'updated_at', label: 'Updated At' }
+        ];
+
+        var allKeysMap = {};
         exportRows.forEach(function (rowObj) {
             if (!rowObj || typeof rowObj !== 'object') return;
             Object.keys(rowObj).forEach(function (key) {
-                headerMap[key] = true;
+                allKeysMap[key] = true;
             });
         });
-        var headers = Object.keys(headerMap);
-        if (headers.length === 0) {
+
+        var columns = preferredColumns.filter(function (col) {
+            return Object.prototype.hasOwnProperty.call(allKeysMap, col.key);
+        });
+
+        Object.keys(allKeysMap).forEach(function (key) {
+            var alreadyDefined = columns.some(function (col) { return col.key === key; });
+            if (!alreadyDefined) {
+                columns.push({ key: key, label: key });
+            }
+        });
+
+        if (columns.length === 0) {
             alert('Data export tidak valid.');
             return;
         }
 
-        var data = [headers];
+        var data = [columns.map(function (col) { return col.label; })];
         exportRows.forEach(function (rowObj) {
             var row = [];
-            headers.forEach(function (key) {
-                var v = rowObj && Object.prototype.hasOwnProperty.call(rowObj, key) ? rowObj[key] : '';
+            columns.forEach(function (col) {
+                var v = rowObj && Object.prototype.hasOwnProperty.call(rowObj, col.key) ? rowObj[col.key] : '';
                 row.push(toExcelCellValue(v));
             });
             data.push(row);
