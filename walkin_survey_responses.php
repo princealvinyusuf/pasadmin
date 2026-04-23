@@ -83,6 +83,8 @@ $hasInitiatorSnapshotCol = $hasResponseTable && column_exists($conn, 'walk_in_su
 $hasWalkinDateCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'walkin_date');
 $hasWalkinBenefitCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'walkin_benefit');
 $hasWalkinBenefitReasonCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'walkin_benefit_reason');
+$hasRatingInformationClarityCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'rating_information_clarity');
+$hasRatingServiceIntegrityCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'rating_service_integrity');
 if (!$hasResponseTable) {
     $_SESSION['error'] = 'Table walk_in_survey_responses belum ada. Jalankan migration Laravel terlebih dahulu.';
 }
@@ -231,7 +233,9 @@ if ($hasResponseTable) {
     $walkinDateSelect = $hasWalkinDateCol ? 'walkin_date' : 'NULL AS walkin_date';
     $walkinBenefitSelect = $hasWalkinBenefitCol ? 'walkin_benefit' : 'NULL AS walkin_benefit';
     $walkinBenefitReasonSelect = $hasWalkinBenefitReasonCol ? 'walkin_benefit_reason' : 'NULL AS walkin_benefit_reason';
-    $sql = "SELECT id, company_name_snapshot, {$initiatorSelect}, {$walkinDateSelect}, name, email, phone, rating_satisfaction, {$walkinBenefitSelect}, {$walkinBenefitReasonSelect}, created_at
+    $ratingInformationClaritySelect = $hasRatingInformationClarityCol ? 'rating_information_clarity' : 'NULL AS rating_information_clarity';
+    $ratingServiceIntegritySelect = $hasRatingServiceIntegrityCol ? 'rating_service_integrity' : 'NULL AS rating_service_integrity';
+    $sql = "SELECT id, company_name_snapshot, {$initiatorSelect}, {$walkinDateSelect}, name, email, phone, rating_satisfaction, {$ratingInformationClaritySelect}, {$ratingServiceIntegritySelect}, {$walkinBenefitSelect}, {$walkinBenefitReasonSelect}, created_at
             FROM walk_in_survey_responses" . $whereSql . " ORDER BY id DESC LIMIT 500";
     $rows = fetch_rows_with_params($conn, $sql, $types, $params);
 
@@ -403,6 +407,8 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
                     <div class="col-md-4"><strong>Umur:</strong> <?php echo htmlspecialchars($selected['age_range']); ?></div>
                     <div class="col-md-4"><strong>Pendidikan:</strong> <?php echo htmlspecialchars($selected['education']); ?></div>
                     <div class="col-md-4"><strong>Kepuasan:</strong> <?php echo (int) $selected['rating_satisfaction']; ?>/5</div>
+                    <div class="col-md-4"><strong>Kejelasan Informasi:</strong> <?php echo $hasRatingInformationClarityCol ? ((int) ($selected['rating_information_clarity'] ?? 0) . '/5') : '-'; ?></div>
+                    <div class="col-md-4"><strong>Integritas Layanan:</strong> <?php echo $hasRatingServiceIntegrityCol ? ((int) ($selected['rating_service_integrity'] ?? 0) . '/5') : '-'; ?></div>
                     <div class="col-md-12"><strong>Masukan Umum:</strong><br><?php echo nl2br(htmlspecialchars($selected['general_feedback'])); ?></div>
                     <div class="col-md-12"><strong>Aspek Perbaikan:</strong> <?php echo htmlspecialchars(implode(', ', decode_json_array($selected['improvement_aspects']))); ?></div>
                     <div class="col-md-12"><strong>Kritik &amp; Saran Aspek Perbaikan:</strong><br><?php echo nl2br(htmlspecialchars($selected['feedback_improvement_aspects'])); ?></div>
@@ -431,6 +437,8 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
                     <th>Email</th>
                     <th style="width:140px;">Tanggal Walk In</th>
                     <th style="width:110px;">Kepuasan</th>
+                    <th style="width:140px;">Kejelasan Info</th>
+                    <th style="width:140px;">Integritas Layanan</th>
                     <th style="width:100px;">Manfaat</th>
                     <th>Alasan</th>
                     <th style="width:180px;">Submitted</th>
@@ -439,7 +447,7 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
             </thead>
             <tbody>
                 <?php if (empty($rows)): ?>
-                    <tr><td colspan="11" class="text-center text-muted">Belum ada data response survey.</td></tr>
+                    <tr><td colspan="13" class="text-center text-muted">Belum ada data response survey.</td></tr>
                 <?php else: foreach ($rows as $r): ?>
                     <tr>
                         <td><?php echo (int) $r['id']; ?></td>
@@ -449,6 +457,8 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
                         <td><?php echo htmlspecialchars($r['email']); ?></td>
                         <td><?php echo htmlspecialchars((string) ($r['walkin_date'] ?? '-')); ?></td>
                         <td><?php echo (int) $r['rating_satisfaction']; ?>/5</td>
+                        <td><?php echo $hasRatingInformationClarityCol ? ((int) ($r['rating_information_clarity'] ?? 0) . '/5') : '-'; ?></td>
+                        <td><?php echo $hasRatingServiceIntegrityCol ? ((int) ($r['rating_service_integrity'] ?? 0) . '/5') : '-'; ?></td>
                         <td><?php echo htmlspecialchars((string) ($r['walkin_benefit'] ?? '-')); ?></td>
                         <td><?php echo htmlspecialchars(mb_strimwidth((string) ($r['walkin_benefit_reason'] ?? '-'), 0, 100, '...')); ?></td>
                         <td><?php echo htmlspecialchars((string) $r['created_at']); ?></td>
