@@ -44,6 +44,26 @@ function decode_json_array($value): array {
     return is_array($decoded) ? $decoded : [];
 }
 
+function format_service_integrity_answer($value): string {
+    $score = (int) $value;
+    if ($score === 1) {
+        return 'Ya';
+    }
+    if ($score === 2) {
+        return 'Tidak';
+    }
+    if ($score === 3) {
+        return 'Kadang (legacy)';
+    }
+    if ($score === 4) {
+        return 'Sering (legacy)';
+    }
+    if ($score === 5) {
+        return 'Sangat Sering (legacy)';
+    }
+    return '-';
+}
+
 function fetch_rows_with_params(mysqli $conn, string $sql, string $types, array $params): array {
     $rows = [];
     if ($types === '') {
@@ -408,7 +428,7 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
                     <div class="col-md-4"><strong>Pendidikan:</strong> <?php echo htmlspecialchars($selected['education']); ?></div>
                     <div class="col-md-4"><strong>Kepuasan:</strong> <?php echo (int) $selected['rating_satisfaction']; ?>/5</div>
                     <div class="col-md-4"><strong>Kejelasan Informasi:</strong> <?php echo $hasRatingInformationClarityCol ? ((int) ($selected['rating_information_clarity'] ?? 0) . '/5') : '-'; ?></div>
-                    <div class="col-md-4"><strong>Integritas Layanan:</strong> <?php echo $hasRatingServiceIntegrityCol ? ((int) ($selected['rating_service_integrity'] ?? 0) . '/5') : '-'; ?></div>
+                    <div class="col-md-4"><strong>Integritas Layanan:</strong> <?php echo $hasRatingServiceIntegrityCol ? htmlspecialchars(format_service_integrity_answer($selected['rating_service_integrity'] ?? null)) : '-'; ?></div>
                     <div class="col-md-12"><strong>Masukan Umum:</strong><br><?php echo nl2br(htmlspecialchars($selected['general_feedback'])); ?></div>
                     <div class="col-md-12"><strong>Aspek Perbaikan:</strong> <?php echo htmlspecialchars(implode(', ', decode_json_array($selected['improvement_aspects']))); ?></div>
                     <div class="col-md-12"><strong>Kritik &amp; Saran Aspek Perbaikan:</strong><br><?php echo nl2br(htmlspecialchars($selected['feedback_improvement_aspects'])); ?></div>
@@ -458,7 +478,7 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
                         <td><?php echo htmlspecialchars((string) ($r['walkin_date'] ?? '-')); ?></td>
                         <td><?php echo (int) $r['rating_satisfaction']; ?>/5</td>
                         <td><?php echo $hasRatingInformationClarityCol ? ((int) ($r['rating_information_clarity'] ?? 0) . '/5') : '-'; ?></td>
-                        <td><?php echo $hasRatingServiceIntegrityCol ? ((int) ($r['rating_service_integrity'] ?? 0) . '/5') : '-'; ?></td>
+                        <td><?php echo $hasRatingServiceIntegrityCol ? htmlspecialchars(format_service_integrity_answer($r['rating_service_integrity'] ?? null)) : '-'; ?></td>
                         <td><?php echo htmlspecialchars((string) ($r['walkin_benefit'] ?? '-')); ?></td>
                         <td><?php echo htmlspecialchars(mb_strimwidth((string) ($r['walkin_benefit_reason'] ?? '-'), 0, 100, '...')); ?></td>
                         <td><?php echo htmlspecialchars((string) $r['created_at']); ?></td>
@@ -557,7 +577,7 @@ document.addEventListener('DOMContentLoaded', function () {
             { key: 'rating_access_info', label: 'Kemudahan akses informasi syarat pendaftaran akun KarirHub/Job Fair Virtual (1-5)' },
             { key: 'feedback_access_info', label: 'Kritik dan Saran Jawaban Kemudahan Akses Informasi Syarat Pendaftaran' },
             { key: 'rating_information_clarity', label: 'Kejelasan Informasi - Apakah informasi yang diberikan mudah dipahami? (1-5)' },
-            { key: 'rating_service_integrity', label: 'Integritas Layanan - Selama proses, apakah Anda menemukan indikasi pungutan liar / praktik tidak wajar? (1-5)' },
+            { key: 'rating_service_integrity', label: 'Integritas Layanan - Selama proses, apakah Anda menemukan indikasi pungutan liar / praktik tidak wajar? (Ya/Tidak)' },
             { key: 'rating_satisfaction', label: 'Seberapa Puas Anda Terhadap Penyelenggaraan Walk in Interview (1-5)' },
             { key: 'improvement_aspects', label: 'Aspek apa yang harus kami perbaiki untuk meningkatkan kepuasan anda? (Boleh lebih dari satu jawaban)' },
             { key: 'feedback_improvement_aspects', label: 'Kritik dan Saran Jawaban di Atas' },
