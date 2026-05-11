@@ -304,6 +304,7 @@ if (isset($_POST['update_id'])) {
     $tipe_penyelenggara = trim($_POST['tipe_penyelenggara'] ?? '');
     $company_sectors_id = !empty($_POST['company_sectors_id']) ? intval($_POST['company_sectors_id']) : null;
     $type_of_partnership_id = !empty($_POST['type_of_partnership_id']) ? intval($_POST['type_of_partnership_id']) : null;
+    $walkin_location_id = !empty($_POST['walkin_location_id']) ? intval($_POST['walkin_location_id']) : null;
     $pasker_room_id = !empty($_POST['pasker_room_id']) ? intval($_POST['pasker_room_id']) : null;
     $other_pasker_room = trim($_POST['other_pasker_room'] ?? '');
     $pasker_facility_id = !empty($_POST['pasker_facility_id']) ? intval($_POST['pasker_facility_id']) : null;
@@ -429,6 +430,12 @@ if (isset($_POST['update_id'])) {
     if ($type_of_partnership_id !== null && column_exists($conn, 'kemitraan', 'type_of_partnership_id')) {
         $updateFields[] = "type_of_partnership_id=?";
         $updateValues[] = $type_of_partnership_id;
+        $updateTypes .= "i";
+    }
+
+    if ($walkin_location_id !== null && column_exists($conn, 'kemitraan', 'walkin_location_id')) {
+        $updateFields[] = "walkin_location_id=?";
+        $updateValues[] = $walkin_location_id;
         $updateTypes .= "i";
     }
     
@@ -603,8 +610,17 @@ if (isset($_POST['update_id'])) {
 }
 
 // Fetch all kemitraan with joins for names
+$hasWalkinLocationTable = table_exists($conn, 'walkin_locations');
+$hasWalkinLocationColumn = column_exists($conn, 'kemitraan', 'walkin_location_id');
+$walkinLocationSelect = ($hasWalkinLocationTable && $hasWalkinLocationColumn)
+    ? "wl.location_name AS walkin_location_name,"
+    : "'' AS walkin_location_name,";
+$walkinLocationJoin = ($hasWalkinLocationTable && $hasWalkinLocationColumn)
+    ? "LEFT JOIN walkin_locations wl ON wl.id = k.walkin_location_id"
+    : "";
+
 $kemitraans = $conn->query(
-    "SELECT k.*, cs.sector_name, top.name AS partnership_type_name, pr.room_name, pf.facility_name,
+    "SELECT k.*, cs.sector_name, top.name AS partnership_type_name, {$walkinLocationSelect} pr.room_name, pf.facility_name,
     (SELECT GROUP_CONCAT(DISTINCT pr2.room_name ORDER BY pr2.room_name SEPARATOR ', ')
        FROM kemitraan_pasker_room kpr2
        LEFT JOIN pasker_room pr2 ON pr2.id = kpr2.pasker_room_id
@@ -622,6 +638,7 @@ $kemitraans = $conn->query(
      FROM kemitraan k
      LEFT JOIN company_sectors cs ON cs.id = k.company_sectors_id
      LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id
+     {$walkinLocationJoin}
      LEFT JOIN pasker_room pr ON pr.id = k.pasker_room_id
      LEFT JOIN pasker_facility pf ON pf.id = k.pasker_facility_id
      ORDER BY k.id DESC"
@@ -698,6 +715,18 @@ if ($typesRes) {
         $partnership_types[] = $t;
     }
     $typesRes->free();
+}
+
+$walkin_locations = [];
+$locationsRes = null;
+if (table_exists($conn, 'walkin_locations')) {
+    $locationsRes = $conn->query("SELECT id, location_name FROM walkin_locations ORDER BY location_name");
+}
+if ($locationsRes) {
+    while ($l = $locationsRes->fetch_assoc()) {
+        $walkin_locations[] = $l;
+    }
+    $locationsRes->free();
 }
 
 $pasker_rooms = [];
@@ -845,6 +874,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 <th>Business Sector</th>
                 <th>Institution Address</th>
                 <th>Partnership Type</th>
+                <th>Lokasi</th>
                 <th>Tipe Penyelenggara</th>
                 <th>Room</th>
                 <th>Other Room</th>
@@ -893,6 +923,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 <td><?php echo htmlspecialchars($row['business_sector']); ?></td>
                 <td><?php echo htmlspecialchars($row['institution_address']); ?></td>
                 <td><?php echo htmlspecialchars($row['partnership_type_name'] ?? ''); ?></td>
+                <td><?php echo htmlspecialchars($row['walkin_location_name'] ?? '-'); ?></td>
                 <td><?php echo htmlspecialchars($row['tipe_penyelenggara'] ?? '-'); ?></td>
                 <td><?php echo htmlspecialchars(($row['rooms_concat'] ?? '') !== '' ? $row['rooms_concat'] : ($row['room_name'] ?? '')); ?></td>
                 <td><?php echo htmlspecialchars($row['other_pasker_room'] ?? ''); ?></td>
@@ -916,7 +947,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
             </tr>
             <?php endwhile; ?>
             <?php else: ?>
-            <tr><td colspan="21" class="text-center">No submissions found or query failed.</td></tr>
+            <tr><td colspan="24" class="text-center">No submissions found or query failed.</td></tr>
             <?php endif; ?>
         </table>
         </div>
@@ -1051,6 +1082,15 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                       </select>
                     </div>
                     <div class="col-md-6">
+                      <label class="form-label">Lokasi</label>
+                      <select name="walkin_location_id" id="edit_walkin_location_id" class="form-select">
+                        <option value="">-- Select --</option>
+                        <?php foreach ($walkin_locations as $location): ?>
+                          <option value="<?php echo $location['id']; ?>"><?php echo htmlspecialchars($location['location_name']); ?></option>
+                        <?php endforeach; ?>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
                       <label class="form-label">Tipe Penyelenggara</label>
                       <input type="text" name="tipe_penyelenggara" id="edit_tipe_penyelenggara" class="form-control">
                     </div>
@@ -1167,7 +1207,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               const headers = [
                 'ID', 'PIC Name', 'PIC Position', 'PIC Email', 'PIC Whatsapp', 'Foto Kartu Pegawai PIC', 'Company Sector',
                 'Institution Name', 'Business Sector', 'Institution Address', 'Partnership Type',
-                'Tipe Penyelenggara', 'Room', 'Other Room', 'Facility', 'Other Facility', 'Schedule', 'Time', 'Request Letter', 'Status', 'Created At', 'Updated At'
+                'Lokasi', 'Tipe Penyelenggara', 'Room', 'Other Room', 'Facility', 'Other Facility', 'Schedule', 'Time', 'Request Letter', 'Status', 'Created At', 'Updated At'
               ];
               let html = '';
 
@@ -1304,6 +1344,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               if (rowData.type_of_partnership_id) {
                 document.getElementById('edit_type_of_partnership_id').value = rowData.type_of_partnership_id;
               }
+              document.getElementById('edit_walkin_location_id').value = rowData.walkin_location_id || '';
               if (rowData.pasker_room_id) {
                 document.getElementById('edit_pasker_room_id').value = rowData.pasker_room_id;
               }
