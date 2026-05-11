@@ -17,6 +17,10 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
+$isSuperAdmin = current_user_is_super_admin();
+$scopedLocationId = current_user_walkin_location_id();
+$bookedLocationWhere = $isSuperAdmin ? '1=1' : ($scopedLocationId !== null ? ('k.walkin_location_id=' . intval($scopedLocationId)) : '1=0');
+
 $host = 'localhost';
 $user = 'root';
 $pass = '';
@@ -231,6 +235,29 @@ function get_public_dir(): ?string
     return null;
 }
 
+function can_access_booked_record(mysqli $conn, int $bookedId, bool $isSuperAdmin, ?int $scopedLocationId): bool
+{
+    if ($isSuperAdmin) {
+        return true;
+    }
+    if ($scopedLocationId === null) {
+        return false;
+    }
+    if (!column_exists($conn, 'kemitraan', 'walkin_location_id')) {
+        return false;
+    }
+    $stmt = $conn->prepare("SELECT 1 FROM booked_date bd JOIN kemitraan k ON k.id = bd.kemitraan_id WHERE bd.id=? AND k.walkin_location_id=? LIMIT 1");
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('ii', $bookedId, $scopedLocationId);
+    $stmt->execute();
+    $stmt->store_result();
+    $ok = $stmt->num_rows > 0;
+    $stmt->close();
+    return $ok;
+}
+
 // Ensure schema: add booked_date.informasi_lainnya if missing.
 if (!column_exists($conn, 'booked_date', 'informasi_lainnya')) {
     $conn->query("ALTER TABLE booked_date ADD COLUMN informasi_lainnya TEXT NULL AFTER booked_time_finish");
@@ -252,6 +279,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 
     if ($bookedId <= 0) {
         $_SESSION['error'] = 'ID booked tidak valid.';
+        header('Location: ' . $redir);
+        exit;
+    }
+    if (!can_access_booked_record($conn, $bookedId, $isSuperAdmin, $scopedLocationId)) {
+        $_SESSION['error'] = 'Anda tidak memiliki akses ke data booked ini.';
         header('Location: ' . $redir);
         exit;
     }
@@ -455,7 +487,7 @@ $sql = "
     LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id
     LEFT JOIN pasker_facility pf ON pf.id = k.pasker_facility_id
     LEFT JOIN pasker_room pr ON pr.id = k.pasker_room_id
-    WHERE $date_where
+    WHERE $date_where AND $bookedLocationWhere
     ORDER BY $order_by
 ";
 $result = $conn->query($sql);
@@ -527,6 +559,7 @@ $all_sql = "
     LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id
     LEFT JOIN pasker_facility pf ON pf.id = k.pasker_facility_id
     LEFT JOIN pasker_room pr ON pr.id = k.pasker_room_id
+    WHERE $bookedLocationWhere
     ORDER BY $order_by
 ";
 $allResult = $conn->query($all_sql);

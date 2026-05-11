@@ -5,12 +5,23 @@ $user = 'root';
 $pass = '';
 $db = 'paskerid_db_prod';
 require_once __DIR__ . '/auth_guard.php';
+require_once __DIR__ . '/access_helper.php';
+if (!(current_user_can('settings_pasker_room_manage') || current_user_can('manage_settings'))) {
+    http_response_code(403);
+    echo 'Forbidden';
+    exit;
+}
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
-$locationsResult = $conn->query("SELECT id, location_name FROM walkin_locations ORDER BY location_name ASC");
+$isSuperAdmin = current_user_is_super_admin();
+$scopedLocationId = current_user_walkin_location_id();
+$locationFilterSql = $isSuperAdmin ? '1=1' : ($scopedLocationId !== null ? ('id=' . intval($scopedLocationId)) : '1=0');
+$roomFilterSql = $isSuperAdmin ? '1=1' : ($scopedLocationId !== null ? ('r.walkin_location_id=' . intval($scopedLocationId)) : '1=0');
+
+$locationsResult = $conn->query("SELECT id, location_name FROM walkin_locations WHERE {$locationFilterSql} ORDER BY location_name ASC");
 $locations = [];
 if ($locationsResult) {
     while ($loc = $locationsResult->fetch_assoc()) {
@@ -22,6 +33,10 @@ if ($locationsResult) {
 if (isset($_POST['add'])) {
     $room_name = $conn->real_escape_string($_POST['room_name']);
     $walkin_location_id = isset($_POST['walkin_location_id']) && $_POST['walkin_location_id'] !== '' ? intval($_POST['walkin_location_id']) : 'NULL';
+    if (!$isSuperAdmin && ($scopedLocationId === null || intval($walkin_location_id) !== intval($scopedLocationId))) {
+        header('Location: pasker_room_settings');
+        exit();
+    }
     $image_base64 = '';
     $mime_type = '';
     if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
@@ -40,7 +55,7 @@ if (isset($_POST['add'])) {
 $edit_room = null;
 if (isset($_GET['edit'])) {
     $edit_id = intval($_GET['edit']);
-    $edit_result = $conn->query("SELECT * FROM pasker_room WHERE id=$edit_id");
+    $edit_result = $conn->query("SELECT * FROM pasker_room r WHERE r.id=$edit_id AND {$roomFilterSql}");
     $edit_room = $edit_result->fetch_assoc();
 }
 // Handle Update
@@ -48,6 +63,10 @@ if (isset($_POST['update'])) {
     $id = intval($_POST['id']);
     $room_name = $conn->real_escape_string($_POST['room_name']);
     $walkin_location_id = isset($_POST['walkin_location_id']) && $_POST['walkin_location_id'] !== '' ? intval($_POST['walkin_location_id']) : 'NULL';
+    if (!$isSuperAdmin && ($scopedLocationId === null || intval($walkin_location_id) !== intval($scopedLocationId))) {
+        header('Location: pasker_room_settings');
+        exit();
+    }
     $image_base64 = '';
     $mime_type = '';
     $update_image = false;
@@ -60,9 +79,9 @@ if (isset($_POST['update'])) {
     }
     $now = date('Y-m-d H:i:s');
     if ($update_image) {
-        $sql = "UPDATE pasker_room SET walkin_location_id=$walkin_location_id, room_name='$room_name', image_base64='$image_base64', mime_type='$mime_type', updated_at='$now' WHERE id=$id";
+        $sql = "UPDATE pasker_room r SET walkin_location_id=$walkin_location_id, room_name='$room_name', image_base64='$image_base64', mime_type='$mime_type', updated_at='$now' WHERE id=$id AND {$roomFilterSql}";
     } else {
-        $sql = "UPDATE pasker_room SET walkin_location_id=$walkin_location_id, room_name='$room_name', updated_at='$now' WHERE id=$id";
+        $sql = "UPDATE pasker_room r SET walkin_location_id=$walkin_location_id, room_name='$room_name', updated_at='$now' WHERE id=$id AND {$roomFilterSql}";
     }
     $conn->query($sql);
     header('Location: pasker_room_settings');
@@ -71,7 +90,7 @@ if (isset($_POST['update'])) {
 // Handle Delete
 if (isset($_GET['delete'])) {
     $delete_id = intval($_GET['delete']);
-    $conn->query("DELETE FROM pasker_room WHERE id=$delete_id");
+    $conn->query("DELETE FROM pasker_room r WHERE r.id=$delete_id AND {$roomFilterSql}");
     header('Location: pasker_room_settings');
     exit();
 }
@@ -80,6 +99,7 @@ $rooms = $conn->query("
     SELECT r.*, l.location_name
     FROM pasker_room r
     LEFT JOIN walkin_locations l ON l.id = r.walkin_location_id
+    WHERE {$roomFilterSql}
     ORDER BY r.id DESC
 ");
 ?>

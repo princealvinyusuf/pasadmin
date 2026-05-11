@@ -6,6 +6,12 @@ error_reporting(E_ALL);
 mysqli_report(MYSQLI_REPORT_OFF);
 
 require_once __DIR__ . '/auth_guard.php';
+require_once __DIR__ . '/access_helper.php';
+if (!(current_user_can('settings_mitra_submission_manage') || current_user_can('manage_settings'))) {
+    http_response_code(403);
+    echo 'Forbidden';
+    exit;
+}
 
 // Standalone DB connection for paskerid_db_prod
 $host = 'localhost';
@@ -18,6 +24,10 @@ if ($conn->connect_error) {
 }
 
 if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
+
+$isSuperAdmin = current_user_is_super_admin();
+$scopedLocationId = current_user_walkin_location_id();
+$kemitraanLocationWhere = $isSuperAdmin ? '1=1' : ($scopedLocationId !== null ? ('k.walkin_location_id=' . intval($scopedLocationId)) : '1=0');
 
 // Helper for safe COUNT queries
 function safe_count(mysqli $conn, string $sql): int {
@@ -46,9 +56,36 @@ function table_exists(mysqli $conn, string $table): bool {
     return $res && $res->num_rows > 0;
 }
 
+function can_access_kemitraan_record(mysqli $conn, int $kemitraanId, bool $isSuperAdmin, ?int $scopedLocationId): bool {
+    if ($isSuperAdmin) {
+        return true;
+    }
+    if ($scopedLocationId === null) {
+        return false;
+    }
+    if (!column_exists($conn, 'kemitraan', 'walkin_location_id')) {
+        return false;
+    }
+    $stmt = $conn->prepare("SELECT 1 FROM kemitraan WHERE id=? AND walkin_location_id=? LIMIT 1");
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('ii', $kemitraanId, $scopedLocationId);
+    $stmt->execute();
+    $stmt->store_result();
+    $ok = $stmt->num_rows > 0;
+    $stmt->close();
+    return $ok;
+}
+
 // Handle Delete
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
+    if (!can_access_kemitraan_record($conn, intval($id), $isSuperAdmin, $scopedLocationId)) {
+        $_SESSION['error'] = 'Anda tidak memiliki akses ke data kemitraan ini.';
+        header("Location: kemitraan_submission");
+        exit();
+    }
 
     // Fetch request_letter path to remove file from storage
     $filePath = null;
@@ -96,6 +133,11 @@ if (isset($_GET['delete'])) {
 // Handle Approve
 if (isset($_POST['approve_id'])) {
     $id = intval($_POST['approve_id']);
+    if (!can_access_kemitraan_record($conn, $id, $isSuperAdmin, $scopedLocationId)) {
+        $_SESSION['error'] = 'Anda tidak memiliki akses ke data kemitraan ini.';
+        header("Location: kemitraan_submission");
+        exit();
+    }
     // Fetch schedule, time start/finish, and partnership type info from new schema
     $stmt = $conn->prepare("SELECT k.schedule, k.scheduletimestart, k.scheduletimefinish, k.type_of_partnership_id, top.name AS type_name FROM kemitraan k LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id WHERE k.id = ?");
     if (!$stmt) {
@@ -278,6 +320,11 @@ if (isset($_POST['approve_id'])) {
 // Handle Reject
 if (isset($_POST['reject_id'])) {
     $id = intval($_POST['reject_id']);
+    if (!can_access_kemitraan_record($conn, $id, $isSuperAdmin, $scopedLocationId)) {
+        $_SESSION['error'] = 'Anda tidak memiliki akses ke data kemitraan ini.';
+        header("Location: kemitraan_submission");
+        exit();
+    }
     $stmt = $conn->prepare("UPDATE kemitraan SET status='rejected', updated_at=NOW() WHERE id=?");
     if ($stmt) {
         $stmt->bind_param("i", $id);
@@ -291,6 +338,11 @@ if (isset($_POST['reject_id'])) {
 // Handle Update
 if (isset($_POST['update_id'])) {
     $id = intval($_POST['update_id']);
+    if (!can_access_kemitraan_record($conn, $id, $isSuperAdmin, $scopedLocationId)) {
+        $_SESSION['error'] = 'Anda tidak memiliki akses ke data kemitraan ini.';
+        header("Location: kemitraan_submission");
+        exit();
+    }
     $pic_name = trim($_POST['pic_name'] ?? '');
     $pic_position = trim($_POST['pic_position'] ?? '');
     $pic_email = trim($_POST['pic_email'] ?? '');
@@ -305,6 +357,9 @@ if (isset($_POST['update_id'])) {
     $company_sectors_id = !empty($_POST['company_sectors_id']) ? intval($_POST['company_sectors_id']) : null;
     $type_of_partnership_id = !empty($_POST['type_of_partnership_id']) ? intval($_POST['type_of_partnership_id']) : null;
     $walkin_location_id = !empty($_POST['walkin_location_id']) ? intval($_POST['walkin_location_id']) : null;
+    if (!$isSuperAdmin) {
+        $walkin_location_id = $scopedLocationId;
+    }
     $pasker_room_id = !empty($_POST['pasker_room_id']) ? intval($_POST['pasker_room_id']) : null;
     $other_pasker_room = trim($_POST['other_pasker_room'] ?? '');
     $pasker_facility_id = !empty($_POST['pasker_facility_id']) ? intval($_POST['pasker_facility_id']) : null;
@@ -641,6 +696,7 @@ $kemitraans = $conn->query(
      {$walkinLocationJoin}
      LEFT JOIN pasker_room pr ON pr.id = k.pasker_room_id
      LEFT JOIN pasker_facility pf ON pf.id = k.pasker_facility_id
+     WHERE {$kemitraanLocationWhere}
      ORDER BY k.id DESC"
 );
 if ($kemitraans === false) {
@@ -719,8 +775,9 @@ if ($typesRes) {
 
 $walkin_locations = [];
 $locationsRes = null;
+$locationFilterSql = $isSuperAdmin ? '1=1' : ($scopedLocationId !== null ? ('id=' . intval($scopedLocationId)) : '1=0');
 if (table_exists($conn, 'walkin_locations')) {
-    $locationsRes = $conn->query("SELECT id, location_name FROM walkin_locations ORDER BY location_name");
+    $locationsRes = $conn->query("SELECT id, location_name FROM walkin_locations WHERE {$locationFilterSql} ORDER BY location_name");
 }
 if ($locationsRes) {
     while ($l = $locationsRes->fetch_assoc()) {
@@ -730,7 +787,8 @@ if ($locationsRes) {
 }
 
 $pasker_rooms = [];
-$roomsRes = $conn->query("SELECT id, room_name FROM pasker_room ORDER BY room_name");
+$roomFilterSql = $isSuperAdmin ? '1=1' : ($scopedLocationId !== null ? ('walkin_location_id=' . intval($scopedLocationId)) : '1=0');
+$roomsRes = $conn->query("SELECT id, room_name FROM pasker_room WHERE {$roomFilterSql} ORDER BY room_name");
 if ($roomsRes) {
     while ($r = $roomsRes->fetch_assoc()) {
         $pasker_rooms[] = $r;
@@ -739,7 +797,8 @@ if ($roomsRes) {
 }
 
 $pasker_facilities = [];
-$facilitiesRes = $conn->query("SELECT id, facility_name FROM pasker_facility ORDER BY facility_name");
+$facilityFilterSql = $isSuperAdmin ? '1=1' : ($scopedLocationId !== null ? ('walkin_location_id=' . intval($scopedLocationId)) : '1=0');
+$facilitiesRes = $conn->query("SELECT id, facility_name FROM pasker_facility WHERE {$facilityFilterSql} ORDER BY facility_name");
 if ($facilitiesRes) {
     while ($f = $facilitiesRes->fetch_assoc()) {
         $pasker_facilities[] = $f;
@@ -748,9 +807,10 @@ if ($facilitiesRes) {
 }
 
 // Fetch summary counts safely
-$pending_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status='pending'");
-$approved_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status='approved'");
-$rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status='rejected'");
+$countWhere = $isSuperAdmin ? '1=1' : ($scopedLocationId !== null ? ('walkin_location_id=' . intval($scopedLocationId)) : '1=0');
+$pending_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status='pending' AND {$countWhere}");
+$approved_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status='approved' AND {$countWhere}");
+$rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status='rejected' AND {$countWhere}");
 ?>
 <!DOCTYPE html>
 <html lang="en">

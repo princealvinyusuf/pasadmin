@@ -34,6 +34,12 @@ function ac_ensure_tables(mysqli $conn): void {
 		group_id INT NOT NULL,
 		FOREIGN KEY (group_id) REFERENCES access_groups(id) ON DELETE CASCADE
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+	$conn->query("CREATE TABLE IF NOT EXISTS user_walkin_locations (
+		user_id INT NOT NULL UNIQUE,
+		walkin_location_id BIGINT UNSIGNED NULL,
+		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		PRIMARY KEY (user_id)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
 function ac_seed_permissions(mysqli $conn): void {
@@ -183,6 +189,35 @@ function current_user_is_super_admin(): bool {
 	$q->fetch();
 	$q->close();
 	return $gname === 'super admin';
+}
+
+function current_user_walkin_location_id(): ?int {
+	if (empty($_SESSION['user_id'])) { return null; }
+	if (current_user_is_super_admin()) { return null; }
+	global $ac_conn;
+	$userId = intval($_SESSION['user_id']);
+	$stmt = $ac_conn->prepare('SELECT walkin_location_id FROM user_walkin_locations WHERE user_id=? LIMIT 1');
+	if (!$stmt) { return null; }
+	$stmt->bind_param('i', $userId);
+	$stmt->execute();
+	$stmt->bind_result($locationId);
+	$hasRow = $stmt->fetch();
+	$stmt->close();
+	if (!$hasRow || $locationId === null) {
+		return null;
+	}
+	return intval($locationId);
+}
+
+function current_user_location_scope_sql(string $column = 'k.walkin_location_id'): string {
+	if (current_user_is_super_admin()) {
+		return '1=1';
+	}
+	$locationId = current_user_walkin_location_id();
+	if ($locationId === null) {
+		return '1=0';
+	}
+	return $column . ' = ' . intval($locationId);
 }
 
 // Bootstrap RBAC store

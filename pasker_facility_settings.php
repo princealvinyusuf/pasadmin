@@ -5,12 +5,23 @@ $pass = '';
 $db = 'paskerid_db_prod';
 
 require_once __DIR__ . '/auth_guard.php';
+require_once __DIR__ . '/access_helper.php';
+if (!(current_user_can('settings_pasker_facility_manage') || current_user_can('settings_pasker_room_manage') || current_user_can('manage_settings'))) {
+    http_response_code(403);
+    echo 'Forbidden';
+    exit;
+}
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
-$locationsResult = $conn->query("SELECT id, location_name FROM walkin_locations ORDER BY location_name ASC");
+$isSuperAdmin = current_user_is_super_admin();
+$scopedLocationId = current_user_walkin_location_id();
+$locationFilterSql = $isSuperAdmin ? '1=1' : ($scopedLocationId !== null ? ('id=' . intval($scopedLocationId)) : '1=0');
+$facilityFilterSql = $isSuperAdmin ? '1=1' : ($scopedLocationId !== null ? ('f.walkin_location_id=' . intval($scopedLocationId)) : '1=0');
+
+$locationsResult = $conn->query("SELECT id, location_name FROM walkin_locations WHERE {$locationFilterSql} ORDER BY location_name ASC");
 $locations = [];
 if ($locationsResult) {
     while ($loc = $locationsResult->fetch_assoc()) {
@@ -21,6 +32,10 @@ if ($locationsResult) {
 if (isset($_POST['add'])) {
     $facility_name = $conn->real_escape_string($_POST['facility_name']);
     $walkin_location_id = isset($_POST['walkin_location_id']) && $_POST['walkin_location_id'] !== '' ? intval($_POST['walkin_location_id']) : 'NULL';
+    if (!$isSuperAdmin && ($scopedLocationId === null || intval($walkin_location_id) !== intval($scopedLocationId))) {
+        header('Location: pasker_facility_settings');
+        exit();
+    }
     $now = date('Y-m-d H:i:s');
     $sql = "INSERT INTO pasker_facility (walkin_location_id, facility_name, created_at, updated_at) VALUES ($walkin_location_id, '$facility_name', '$now', '$now')";
     $conn->query($sql);
@@ -31,7 +46,7 @@ if (isset($_POST['add'])) {
 $edit_facility = null;
 if (isset($_GET['edit'])) {
     $edit_id = intval($_GET['edit']);
-    $edit_result = $conn->query("SELECT * FROM pasker_facility WHERE id=$edit_id");
+    $edit_result = $conn->query("SELECT * FROM pasker_facility f WHERE f.id=$edit_id AND {$facilityFilterSql}");
     $edit_facility = $edit_result ? $edit_result->fetch_assoc() : null;
 }
 
@@ -39,8 +54,12 @@ if (isset($_POST['update'])) {
     $id = intval($_POST['id']);
     $facility_name = $conn->real_escape_string($_POST['facility_name']);
     $walkin_location_id = isset($_POST['walkin_location_id']) && $_POST['walkin_location_id'] !== '' ? intval($_POST['walkin_location_id']) : 'NULL';
+    if (!$isSuperAdmin && ($scopedLocationId === null || intval($walkin_location_id) !== intval($scopedLocationId))) {
+        header('Location: pasker_facility_settings');
+        exit();
+    }
     $now = date('Y-m-d H:i:s');
-    $sql = "UPDATE pasker_facility SET walkin_location_id=$walkin_location_id, facility_name='$facility_name', updated_at='$now' WHERE id=$id";
+    $sql = "UPDATE pasker_facility f SET walkin_location_id=$walkin_location_id, facility_name='$facility_name', updated_at='$now' WHERE id=$id AND {$facilityFilterSql}";
     $conn->query($sql);
     header('Location: pasker_facility_settings');
     exit();
@@ -48,7 +67,7 @@ if (isset($_POST['update'])) {
 
 if (isset($_GET['delete'])) {
     $delete_id = intval($_GET['delete']);
-    $conn->query("DELETE FROM pasker_facility WHERE id=$delete_id");
+    $conn->query("DELETE FROM pasker_facility f WHERE f.id=$delete_id AND {$facilityFilterSql}");
     header('Location: pasker_facility_settings');
     exit();
 }
@@ -57,6 +76,7 @@ $facilities = $conn->query("
     SELECT f.*, l.location_name
     FROM pasker_facility f
     LEFT JOIN walkin_locations l ON l.id = f.walkin_location_id
+    WHERE {$facilityFilterSql}
     ORDER BY f.id DESC
 ");
 ?>
