@@ -53,6 +53,13 @@ register_menu_permission(
 	'Layanan'
 );
 
+register_menu_permission(
+	$conn,
+	'walkin_form_manage',
+	'Manage Walk-in Form Access Menu',
+	'Layanan'
+);
+
 // Super admin guard for destructive actions
 if (isset($_POST['action']) && $_POST['action'] === 'delete_user' && !current_user_is_super_admin()) {
 	http_response_code(403);
