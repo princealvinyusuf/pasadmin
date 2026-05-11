@@ -262,7 +262,9 @@
                         <?php if ($canManageSettings || $canPartnershipType): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>partnership_type_settings">Partnership Type Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canMitraSubmission): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_submission">Mitra Kerja Submission</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canKemitraanBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_booked">Kemitraan Booked</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canPaskerRoom): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_location_settings">Walk-in Location Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canPaskerRoom): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>pasker_room_settings">Pasker Room Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canPaskerRoom): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>pasker_facility_settings">Pasker Facility Settings</a></li><?php endif; ?>
                         <?php if ($canMiniJobi): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>mini_jobi_jobs">miniJobi Jobs</a></li><?php endif; ?>
                         <?php if (($canManageSettings || $canPaskerRoom) && ($canCareerBoostDay || $canCareerBoostDayPic || $canCareerBoostDayBooked || $canFormHasilKonseling || $canWalkinGallery)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
                         <?php if ($canCareerBoostDay): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday">Career Boost Day</a></li><?php endif; ?>

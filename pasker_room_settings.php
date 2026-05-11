@@ -10,9 +10,18 @@ if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
+$locationsResult = $conn->query("SELECT id, location_name FROM walkin_locations ORDER BY location_name ASC");
+$locations = [];
+if ($locationsResult) {
+    while ($loc = $locationsResult->fetch_assoc()) {
+        $locations[] = $loc;
+    }
+}
+
 // Handle Add
 if (isset($_POST['add'])) {
     $room_name = $conn->real_escape_string($_POST['room_name']);
+    $walkin_location_id = isset($_POST['walkin_location_id']) && $_POST['walkin_location_id'] !== '' ? intval($_POST['walkin_location_id']) : 'NULL';
     $image_base64 = '';
     $mime_type = '';
     if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
@@ -22,7 +31,7 @@ if (isset($_POST['add'])) {
         $image_base64 = base64_encode($image_data);
     }
     $now = date('Y-m-d H:i:s');
-    $sql = "INSERT INTO pasker_room (room_name, image_base64, mime_type, created_at, updated_at) VALUES ('$room_name', '$image_base64', '$mime_type', '$now', '$now')";
+    $sql = "INSERT INTO pasker_room (walkin_location_id, room_name, image_base64, mime_type, created_at, updated_at) VALUES ($walkin_location_id, '$room_name', '$image_base64', '$mime_type', '$now', '$now')";
     $conn->query($sql);
     header('Location: pasker_room_settings');
     exit();
@@ -38,6 +47,7 @@ if (isset($_GET['edit'])) {
 if (isset($_POST['update'])) {
     $id = intval($_POST['id']);
     $room_name = $conn->real_escape_string($_POST['room_name']);
+    $walkin_location_id = isset($_POST['walkin_location_id']) && $_POST['walkin_location_id'] !== '' ? intval($_POST['walkin_location_id']) : 'NULL';
     $image_base64 = '';
     $mime_type = '';
     $update_image = false;
@@ -50,9 +60,9 @@ if (isset($_POST['update'])) {
     }
     $now = date('Y-m-d H:i:s');
     if ($update_image) {
-        $sql = "UPDATE pasker_room SET room_name='$room_name', image_base64='$image_base64', mime_type='$mime_type', updated_at='$now' WHERE id=$id";
+        $sql = "UPDATE pasker_room SET walkin_location_id=$walkin_location_id, room_name='$room_name', image_base64='$image_base64', mime_type='$mime_type', updated_at='$now' WHERE id=$id";
     } else {
-        $sql = "UPDATE pasker_room SET room_name='$room_name', updated_at='$now' WHERE id=$id";
+        $sql = "UPDATE pasker_room SET walkin_location_id=$walkin_location_id, room_name='$room_name', updated_at='$now' WHERE id=$id";
     }
     $conn->query($sql);
     header('Location: pasker_room_settings');
@@ -66,7 +76,12 @@ if (isset($_GET['delete'])) {
     exit();
 }
 // Fetch all rooms
-$rooms = $conn->query("SELECT * FROM pasker_room ORDER BY id DESC");
+$rooms = $conn->query("
+    SELECT r.*, l.location_name
+    FROM pasker_room r
+    LEFT JOIN walkin_locations l ON l.id = r.walkin_location_id
+    ORDER BY r.id DESC
+");
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -80,7 +95,7 @@ $rooms = $conn->query("SELECT * FROM pasker_room ORDER BY id DESC");
         body { font-family: Arial, sans-serif; }
         h2 { margin-top: 0; }
         form label { display: block; margin: 12px 0 6px; }
-        form input[type="text"], form textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        form input[type="text"], form textarea, form select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
         form textarea { min-height: 60px; }
         .btn { padding: 6px 18px; border: none; border-radius: 4px; background: #3182ce; color: #fff; cursor: pointer; margin-right: 8px; }
         .btn.delete { background: #e53e3e; }
@@ -105,6 +120,16 @@ $rooms = $conn->query("SELECT * FROM pasker_room ORDER BY id DESC");
         <label>Room Name:
             <input type="text" name="room_name" required value="<?php echo htmlspecialchars($edit_room['room_name'] ?? ''); ?>">
         </label>
+        <label>Lokasi Walk In:
+            <select name="walkin_location_id" required>
+                <option value="">-- Pilih Lokasi --</option>
+                <?php foreach ($locations as $location): ?>
+                    <option value="<?php echo (int) $location['id']; ?>" <?php echo ((string)($edit_room['walkin_location_id'] ?? '') === (string)$location['id']) ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($location['location_name']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </label>
         <label>Image Upload:
             <input type="file" name="image_file" accept="image/*">
         </label>
@@ -127,6 +152,7 @@ $rooms = $conn->query("SELECT * FROM pasker_room ORDER BY id DESC");
     <table>
         <tr>
             <th>ID</th>
+            <th>Lokasi</th>
             <th>Room Name</th>
             <th>Image Preview</th>
             <th>MIME Type</th>
@@ -137,6 +163,7 @@ $rooms = $conn->query("SELECT * FROM pasker_room ORDER BY id DESC");
         <?php while ($row = $rooms->fetch_assoc()): ?>
         <tr>
             <td><?php echo $row['id']; ?></td>
+            <td><?php echo htmlspecialchars($row['location_name'] ?? '-'); ?></td>
             <td><?php echo htmlspecialchars($row['room_name']); ?></td>
             <td>
                 <?php if ($row['image_base64'] && $row['mime_type']): ?>
