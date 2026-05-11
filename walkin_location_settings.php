@@ -11,6 +11,7 @@ if (!(current_user_can('settings_walkin_location_manage') || current_user_can('s
     echo 'Forbidden';
     exit;
 }
+$canManageUserLocation = strtolower((string) ($_SESSION['username'] ?? '')) === 'datin_pasker';
 
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
@@ -53,6 +54,11 @@ if (isset($_POST['update'])) {
 }
 
 if (isset($_POST['save_user_location'])) {
+    if (!$canManageUserLocation) {
+        http_response_code(403);
+        echo 'Forbidden';
+        exit;
+    }
     $targetUserId = intval($_POST['target_user_id'] ?? 0);
     $targetLocationId = intval($_POST['target_location_id'] ?? 0);
 
@@ -68,6 +74,11 @@ if (isset($_POST['save_user_location'])) {
 }
 
 if (isset($_POST['clear_user_location'])) {
+    if (!$canManageUserLocation) {
+        http_response_code(403);
+        echo 'Forbidden';
+        exit;
+    }
     $targetUserId = intval($_POST['target_user_id'] ?? 0);
     if ($targetUserId > 0) {
         if ($stmt = $adminConn->prepare("DELETE FROM user_walkin_locations WHERE user_id=?")) {
@@ -105,45 +116,47 @@ if ($locationOptionsRes) {
 }
 
 $userLabelColumn = 'username';
-$usersCols = $adminConn->query("SHOW COLUMNS FROM users");
-if ($usersCols) {
-    $availableCols = [];
-    while ($col = $usersCols->fetch_assoc()) {
-        $availableCols[] = strtolower((string) ($col['Field'] ?? ''));
-    }
-    $usersCols->free();
-    if (!in_array('username', $availableCols, true)) {
-        if (in_array('name', $availableCols, true)) {
-            $userLabelColumn = 'name';
-        } elseif (in_array('email', $availableCols, true)) {
-            $userLabelColumn = 'email';
-        } else {
-            $userLabelColumn = 'id';
+$users = [];
+$assignments = [];
+if ($canManageUserLocation) {
+    $usersCols = $adminConn->query("SHOW COLUMNS FROM users");
+    if ($usersCols) {
+        $availableCols = [];
+        while ($col = $usersCols->fetch_assoc()) {
+            $availableCols[] = strtolower((string) ($col['Field'] ?? ''));
+        }
+        $usersCols->free();
+        if (!in_array('username', $availableCols, true)) {
+            if (in_array('name', $availableCols, true)) {
+                $userLabelColumn = 'name';
+            } elseif (in_array('email', $availableCols, true)) {
+                $userLabelColumn = 'email';
+            } else {
+                $userLabelColumn = 'id';
+            }
         }
     }
-}
 
-$users = [];
-$usersRes = $adminConn->query("SELECT id, {$userLabelColumn} AS label FROM users ORDER BY {$userLabelColumn} ASC");
-if ($usersRes) {
-    while ($u = $usersRes->fetch_assoc()) {
-        $users[] = $u;
+    $usersRes = $adminConn->query("SELECT id, {$userLabelColumn} AS label FROM users ORDER BY {$userLabelColumn} ASC");
+    if ($usersRes) {
+        while ($u = $usersRes->fetch_assoc()) {
+            $users[] = $u;
+        }
+        $usersRes->free();
     }
-    $usersRes->free();
-}
 
-$assignments = [];
-$assignmentsRes = $adminConn->query("
-    SELECT ul.user_id, ul.walkin_location_id, ul.updated_at, u.{$userLabelColumn} AS user_label
-    FROM user_walkin_locations ul
-    LEFT JOIN users u ON u.id = ul.user_id
-    ORDER BY ul.updated_at DESC, ul.user_id ASC
-");
-if ($assignmentsRes) {
-    while ($a = $assignmentsRes->fetch_assoc()) {
-        $assignments[] = $a;
+    $assignmentsRes = $adminConn->query("
+        SELECT ul.user_id, ul.walkin_location_id, ul.updated_at, u.{$userLabelColumn} AS user_label
+        FROM user_walkin_locations ul
+        LEFT JOIN users u ON u.id = ul.user_id
+        ORDER BY ul.updated_at DESC, ul.user_id ASC
+    ");
+    if ($assignmentsRes) {
+        while ($a = $assignmentsRes->fetch_assoc()) {
+            $assignments[] = $a;
+        }
+        $assignmentsRes->free();
     }
-    $assignmentsRes->free();
 }
 
 $locationNameMap = [];
@@ -193,62 +206,64 @@ foreach ($locationOptions as $loc) {
         <?php endif; ?>
     </form>
 
-    <h3>Assign User Admin ke Lokasi</h3>
-    <form method="post">
-        <label>User Admin:
-            <select name="target_user_id" required>
-                <option value="">-- Pilih User --</option>
-                <?php foreach ($users as $userRow): ?>
-                    <option value="<?php echo (int) $userRow['id']; ?>">
-                        <?php echo htmlspecialchars((string) ($userRow['label'] ?? ('User #' . $userRow['id']))); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Lokasi:
-            <select name="target_location_id" required>
-                <option value="">-- Pilih Lokasi --</option>
-                <?php foreach ($locationOptions as $loc): ?>
-                    <option value="<?php echo (int) $loc['id']; ?>">
-                        <?php echo htmlspecialchars((string) $loc['location_name']); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <button class="btn" type="submit" name="save_user_location">Simpan Mapping</button>
-    </form>
+    <?php if ($canManageUserLocation): ?>
+        <h3>Assign User Admin ke Lokasi</h3>
+        <form method="post">
+            <label>User Admin:
+                <select name="target_user_id" required>
+                    <option value="">-- Pilih User --</option>
+                    <?php foreach ($users as $userRow): ?>
+                        <option value="<?php echo (int) $userRow['id']; ?>">
+                            <?php echo htmlspecialchars((string) ($userRow['label'] ?? ('User #' . $userRow['id']))); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>Lokasi:
+                <select name="target_location_id" required>
+                    <option value="">-- Pilih Lokasi --</option>
+                    <?php foreach ($locationOptions as $loc): ?>
+                        <option value="<?php echo (int) $loc['id']; ?>">
+                            <?php echo htmlspecialchars((string) $loc['location_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <button class="btn" type="submit" name="save_user_location">Simpan Mapping</button>
+        </form>
 
-    <h3>User Admin Mapping</h3>
-    <table>
-        <tr>
-            <th>User ID</th>
-            <th>Account Name</th>
-            <th>Lokasi</th>
-            <th>Updated At</th>
-            <th>Action</th>
-        </tr>
-        <?php if (!empty($assignments)): ?>
-            <?php foreach ($assignments as $assignment): ?>
-                <?php $locationId = (int) ($assignment['walkin_location_id'] ?? 0); ?>
-                <tr>
-                    <td><?php echo (int) ($assignment['user_id'] ?? 0); ?></td>
-                    <td><?php echo htmlspecialchars((string) ($assignment['user_label'] ?? '-')); ?></td>
-                    <td><?php echo htmlspecialchars($locationNameMap[$locationId] ?? ('ID ' . $locationId)); ?></td>
-                    <td><?php echo htmlspecialchars((string) ($assignment['updated_at'] ?? '')); ?></td>
-                    <td>
-                        <form method="post" style="display:inline;">
-                            <input type="hidden" name="target_user_id" value="<?php echo (int) ($assignment['user_id'] ?? 0); ?>">
-                            <button class="btn delete" type="submit" name="clear_user_location" onclick="return confirm('Hapus mapping user ini?');">Hapus Mapping</button>
-                        </form>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-        <?php else: ?>
+        <h3>User Admin Mapping</h3>
+        <table>
             <tr>
-                <td colspan="5">Belum ada mapping user ke lokasi.</td>
+                <th>User ID</th>
+                <th>Account Name</th>
+                <th>Lokasi</th>
+                <th>Updated At</th>
+                <th>Action</th>
             </tr>
-        <?php endif; ?>
-    </table>
+            <?php if (!empty($assignments)): ?>
+                <?php foreach ($assignments as $assignment): ?>
+                    <?php $locationId = (int) ($assignment['walkin_location_id'] ?? 0); ?>
+                    <tr>
+                        <td><?php echo (int) ($assignment['user_id'] ?? 0); ?></td>
+                        <td><?php echo htmlspecialchars((string) ($assignment['user_label'] ?? '-')); ?></td>
+                        <td><?php echo htmlspecialchars($locationNameMap[$locationId] ?? ('ID ' . $locationId)); ?></td>
+                        <td><?php echo htmlspecialchars((string) ($assignment['updated_at'] ?? '')); ?></td>
+                        <td>
+                            <form method="post" style="display:inline;">
+                                <input type="hidden" name="target_user_id" value="<?php echo (int) ($assignment['user_id'] ?? 0); ?>">
+                                <button class="btn delete" type="submit" name="clear_user_location" onclick="return confirm('Hapus mapping user ini?');">Hapus Mapping</button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <tr>
+                    <td colspan="5">Belum ada mapping user ke lokasi.</td>
+                </tr>
+            <?php endif; ?>
+        </table>
+    <?php endif; ?>
 
     <h3>All Locations</h3>
     <table>
