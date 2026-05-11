@@ -39,6 +39,20 @@ register_menu_permission(
 	'Layanan'
 );
 
+register_menu_permission(
+	$conn,
+	'settings_walkin_location_manage',
+	'Manage Walk-in Location Settings Menu',
+	'Layanan'
+);
+
+register_menu_permission(
+	$conn,
+	'settings_pasker_facility_manage',
+	'Manage Pasker Facility Settings Menu',
+	'Layanan'
+);
+
 // Super admin guard for destructive actions
 if (isset($_POST['action']) && $_POST['action'] === 'delete_user' && !current_user_is_super_admin()) {
 	http_response_code(403);
