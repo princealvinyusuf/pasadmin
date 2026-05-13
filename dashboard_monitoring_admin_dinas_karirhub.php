@@ -163,6 +163,7 @@ function has_admin_account(string $note): bool {
 
 $selectedProvince = normalize_space((string) ($_GET['provinsi'] ?? 'all'));
 $selectedStatus = strtolower(normalize_space((string) ($_GET['status_akses'] ?? 'all')));
+$adminAccountFilter = strtolower(normalize_space((string) ($_GET['akun_admin'] ?? 'all')));
 
 $statusOptions = [
     'all' => 'Semua Status',
@@ -172,6 +173,9 @@ $statusOptions = [
 
 if (!array_key_exists($selectedStatus, $statusOptions)) {
     $selectedStatus = 'all';
+}
+if (!in_array($adminAccountFilter, ['all', 'missing'], true)) {
+    $adminAccountFilter = 'all';
 }
 
 $sheetResult = fetch_sheet_csv(KARIRHUB_SHEET_ID, KARIRHUB_SHEET_NAME);
@@ -220,11 +224,32 @@ foreach ($rows as $row) {
     }
 }
 $totalKabKotaBelumPunyaAkun = 0;
+$kabKotaBelumPunyaAkunSet = [];
 foreach ($kabKotaAdminMap as $hasAdmin) {
     if ($hasAdmin === false) {
         $totalKabKotaBelumPunyaAkun++;
     }
 }
+$kabKotaBelumPunyaAkunSet = array_keys(array_filter($kabKotaAdminMap, static fn(bool $hasAdmin): bool => $hasAdmin === false));
+$rowsForTable = $rows;
+if ($adminAccountFilter === 'missing') {
+    $rowsForTable = array_values(array_filter($rowsForTable, static function (array $row) use ($kabKotaBelumPunyaAkunSet): bool {
+        $kabKota = normalize_space((string) ($row['kabupaten_kota'] ?? ''));
+        return $kabKota !== '' && in_array($kabKota, $kabKotaBelumPunyaAkunSet, true);
+    }));
+}
+$missingFilterUrl = 'dashboard_monitoring_admin_dinas_karirhub?'
+    . http_build_query([
+        'provinsi' => $selectedProvince,
+        'status_akses' => $selectedStatus,
+        'akun_admin' => 'missing',
+    ]);
+$resetAdminFilterUrl = 'dashboard_monitoring_admin_dinas_karirhub?'
+    . http_build_query([
+        'provinsi' => $selectedProvince,
+        'status_akses' => $selectedStatus,
+        'akun_admin' => 'all',
+    ]);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -299,17 +324,21 @@ if ($userIsLoggedIn) {
             </div>
         </div>
         <div class="col-12 col-md-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="text-muted small">Jumlah Kabupaten/Kota yang Belum Punya Akun Admin</div>
-                    <div class="fs-4 fw-semibold text-warning"><?php echo number_format($totalKabKotaBelumPunyaAkun); ?></div>
+            <a href="<?php echo h($missingFilterUrl); ?>" class="text-decoration-none text-reset d-block h-100">
+                <div class="card border-0 shadow-sm h-100 <?php echo $adminAccountFilter === 'missing' ? 'border border-warning-subtle' : ''; ?>">
+                    <div class="card-body">
+                        <div class="text-muted small">Jumlah Kabupaten/Kota yang Belum Punya Akun Admin</div>
+                        <div class="fs-4 fw-semibold text-warning"><?php echo number_format($totalKabKotaBelumPunyaAkun); ?></div>
+                        <div class="small text-primary">Klik untuk filter tabel</div>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 
     <form method="GET" class="card border-0 shadow-sm mb-3">
         <div class="card-body py-3">
+            <input type="hidden" name="akun_admin" value="<?php echo h($adminAccountFilter); ?>">
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-md-5">
                     <label for="provinsi" class="form-label mb-1">Provinsi</label>
@@ -341,6 +370,13 @@ if ($userIsLoggedIn) {
         </div>
     </form>
 
+    <?php if ($adminAccountFilter === 'missing'): ?>
+        <div class="alert alert-warning py-2 d-flex justify-content-between align-items-center">
+            <span class="small mb-0">Filter aktif: hanya menampilkan Kabupaten/Kota yang belum punya akun admin.</span>
+            <a class="btn btn-sm btn-outline-secondary" href="<?php echo h($resetAdminFilterUrl); ?>">Reset Filter Akun Admin</a>
+        </div>
+    <?php endif; ?>
+
     <div class="card border-0 shadow-sm">
         <div class="card-body">
             <div class="table-responsive">
@@ -361,12 +397,12 @@ if ($userIsLoggedIn) {
                         </tr>
                     </thead>
                     <tbody>
-                    <?php if (empty($rows)): ?>
+                    <?php if (empty($rowsForTable)): ?>
                         <tr>
                             <td colspan="11" class="text-center text-muted">Tidak ada data yang sesuai filter.</td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($rows as $row): ?>
+                        <?php foreach ($rowsForTable as $row): ?>
                             <?php
                                 $statusAkses = strtolower($row['akses_dwh']);
                                 $statusClass = $statusAkses === 'bisa' ? 'success' : ($statusAkses === 'tidak bisa' ? 'danger' : 'secondary');
