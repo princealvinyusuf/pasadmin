@@ -153,6 +153,14 @@ function count_if(array $rows, callable $predicate): int {
     return $count;
 }
 
+function has_admin_account(string $note): bool {
+    $normalized = strtolower(normalize_space($note));
+    if ($normalized === '') {
+        return false;
+    }
+    return strpos($normalized, 'aktif') !== false || strpos($normalized, 'active') !== false;
+}
+
 $selectedProvince = normalize_space((string) ($_GET['provinsi'] ?? 'all'));
 $selectedStatus = strtolower(normalize_space((string) ($_GET['status_akses'] ?? 'all')));
 
@@ -198,6 +206,25 @@ $totalResponses = count($rows);
 $totalBisa = count_if($rows, static fn(array $row): bool => strtolower($row['akses_dwh']) === 'bisa');
 $totalTidakBisa = count_if($rows, static fn(array $row): bool => strtolower($row['akses_dwh']) === 'tidak bisa');
 $totalMintaAkses = count_if($rows, static fn(array $row): bool => strtolower($row['permintaan_akses']) === 'ya, mau');
+$kabKotaAdminMap = [];
+foreach ($rows as $row) {
+    $kabKota = normalize_space((string) ($row['kabupaten_kota'] ?? ''));
+    if ($kabKota === '') {
+        continue;
+    }
+    if (!isset($kabKotaAdminMap[$kabKota])) {
+        $kabKotaAdminMap[$kabKota] = false;
+    }
+    if (has_admin_account((string) ($row['catatan'] ?? ''))) {
+        $kabKotaAdminMap[$kabKota] = true;
+    }
+}
+$totalKabKotaBelumPunyaAkun = 0;
+foreach ($kabKotaAdminMap as $hasAdmin) {
+    if ($hasAdmin === false) {
+        $totalKabKotaBelumPunyaAkun++;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -268,6 +295,14 @@ if ($userIsLoggedIn) {
                 <div class="card-body">
                     <div class="text-muted small">Permintaan Akses ("ya, mau")</div>
                     <div class="fs-4 fw-semibold text-primary"><?php echo number_format($totalMintaAkses); ?></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Jumlah Kabupaten/Kota yang Belum Punya Akun Admin</div>
+                    <div class="fs-4 fw-semibold text-warning"><?php echo number_format($totalKabKotaBelumPunyaAkun); ?></div>
                 </div>
             </div>
         </div>
