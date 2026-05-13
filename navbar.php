@@ -180,6 +180,7 @@
                             <?php if ($canDashPersediaan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_persediaan_tenaga_kerja">Dashboard Persediaan Tenaga Kerja</a></li><?php endif; ?>
                             <?php if ($canDashBlk || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_blk">Dashboard BLK</a></li><?php endif; ?>
                             <?php if ($canDashIntegrasiKarirhubMitra || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_monitoring_integrasi_karirhub_mitra">Dashboard Monitoring Integrasi Karirhub x Mitra</a></li><?php endif; ?>
+                            <?php if ($canDashIntegrasiKarirhubMitra || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_monitoring_admin_dinas_karirhub">Dashboard Monitoring Admin Dinas Karirhub</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
