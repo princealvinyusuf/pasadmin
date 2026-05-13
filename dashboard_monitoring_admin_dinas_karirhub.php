@@ -153,14 +153,6 @@ function count_if(array $rows, callable $predicate): int {
     return $count;
 }
 
-function has_admin_account(string $note): bool {
-    $normalized = strtolower(normalize_space($note));
-    if ($normalized === '') {
-        return false;
-    }
-    return strpos($normalized, 'aktif') !== false || strpos($normalized, 'active') !== false;
-}
-
 $selectedProvince = normalize_space((string) ($_GET['provinsi'] ?? 'all'));
 $selectedStatus = strtolower(normalize_space((string) ($_GET['status_akses'] ?? 'all')));
 $adminAccountFilter = strtolower(normalize_space((string) ($_GET['akun_admin'] ?? 'all')));
@@ -210,27 +202,27 @@ $totalResponses = count($rows);
 $totalBisa = count_if($rows, static fn(array $row): bool => strtolower($row['akses_dwh']) === 'bisa');
 $totalTidakBisa = count_if($rows, static fn(array $row): bool => strtolower($row['akses_dwh']) === 'tidak bisa');
 $totalMintaAkses = count_if($rows, static fn(array $row): bool => strtolower($row['permintaan_akses']) === 'ya, mau');
-$kabKotaAdminMap = [];
+$kabKotaNamaMap = [];
 foreach ($rows as $row) {
     $kabKota = normalize_space((string) ($row['kabupaten_kota'] ?? ''));
     if ($kabKota === '') {
         continue;
     }
-    if (!isset($kabKotaAdminMap[$kabKota])) {
-        $kabKotaAdminMap[$kabKota] = false;
+    if (!isset($kabKotaNamaMap[$kabKota])) {
+        $kabKotaNamaMap[$kabKota] = false;
     }
-    if (has_admin_account((string) ($row['catatan'] ?? ''))) {
-        $kabKotaAdminMap[$kabKota] = true;
+    if (normalize_space((string) ($row['nama'] ?? '')) !== '') {
+        $kabKotaNamaMap[$kabKota] = true;
     }
 }
 $totalKabKotaBelumPunyaAkun = 0;
 $kabKotaBelumPunyaAkunSet = [];
-foreach ($kabKotaAdminMap as $hasAdmin) {
-    if ($hasAdmin === false) {
+foreach ($kabKotaNamaMap as $hasNama) {
+    if ($hasNama === false) {
         $totalKabKotaBelumPunyaAkun++;
     }
 }
-$kabKotaBelumPunyaAkunSet = array_keys(array_filter($kabKotaAdminMap, static fn(bool $hasAdmin): bool => $hasAdmin === false));
+$kabKotaBelumPunyaAkunSet = array_keys(array_filter($kabKotaNamaMap, static fn(bool $hasNama): bool => $hasNama === false));
 $rowsForTable = $rows;
 if ($adminAccountFilter === 'missing') {
     $rowsForTable = array_values(array_filter($rowsForTable, static function (array $row) use ($kabKotaBelumPunyaAkunSet): bool {
