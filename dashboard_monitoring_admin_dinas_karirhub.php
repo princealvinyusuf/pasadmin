@@ -238,6 +238,7 @@ if ($adminAccountFilter === 'missing') {
         return $kabKota !== '' && in_array($kabKota, $kabKotaBelumPunyaAkunSet, true);
     }));
 }
+$isMissingFilterActive = $adminAccountFilter === 'missing';
 $missingFilterUrl = 'dashboard_monitoring_admin_dinas_karirhub?'
     . http_build_query([
         'provinsi' => $selectedProvince,
@@ -250,6 +251,7 @@ $resetAdminFilterUrl = 'dashboard_monitoring_admin_dinas_karirhub?'
         'status_akses' => $selectedStatus,
         'akun_admin' => 'all',
     ]);
+$missingToggleUrl = $isMissingFilterActive ? $resetAdminFilterUrl : $missingFilterUrl;
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -324,12 +326,12 @@ if ($userIsLoggedIn) {
             </div>
         </div>
         <div class="col-12 col-md-3">
-            <a href="<?php echo h($missingFilterUrl); ?>" class="text-decoration-none text-reset d-block h-100">
-                <div class="card border-0 shadow-sm h-100 <?php echo $adminAccountFilter === 'missing' ? 'border border-warning-subtle' : ''; ?>">
+            <a href="<?php echo h($missingToggleUrl); ?>" class="text-decoration-none text-reset d-block h-100">
+                <div class="card border-0 shadow-sm h-100 <?php echo $isMissingFilterActive ? 'border border-warning-subtle' : ''; ?>">
                     <div class="card-body">
                         <div class="text-muted small">Jumlah Kabupaten/Kota yang Belum Punya Akun Admin</div>
                         <div class="fs-4 fw-semibold text-warning"><?php echo number_format($totalKabKotaBelumPunyaAkun); ?></div>
-                        <div class="small text-primary">Klik untuk filter tabel</div>
+                        <div class="small text-primary"><?php echo $isMissingFilterActive ? 'Klik untuk reset filter tabel' : 'Klik untuk filter tabel'; ?></div>
                     </div>
                 </div>
             </a>
