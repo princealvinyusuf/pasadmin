@@ -46,6 +46,9 @@ $summaryCards = [
 
 <div class="kh-content-wrap">
 <div class="container py-4">
+    <div class="kh-proto-shell">
+    <?php kh_proto_render_sidebar('dashboard_wllp'); ?>
+    <main class="kh-proto-main">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
             <h3 class="mb-0">Dashboard WLLP</h3>
@@ -176,9 +179,12 @@ $summaryCards = [
             </div>
         </div>
     </div>
+    </main>
+    </div>
 </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<?php kh_proto_render_sidebar_script(); ?>
 </body>
 </html>

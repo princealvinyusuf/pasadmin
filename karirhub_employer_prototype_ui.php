@@ -48,12 +48,41 @@ if (!function_exists('kh_proto_render_styles')) {
             .kh-status-strip { margin-top: 10px; color: #d4e4f2; font-size: 13px; }
             .kh-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); border-radius: 14px; padding: 2px 10px; margin-right: 8px; }
             .kh-content-wrap { margin-top: -10px; }
+            .kh-proto-shell { display: flex; align-items: stretch; min-height: calc(100vh - 220px); }
+            .kh-side { width: 290px; flex: 0 0 290px; transition: all .2s ease; padding: 0 0 24px; }
+            .kh-side-inner { min-height: 100%; border: 1px solid #d7e2ee; border-radius: 8px; overflow: hidden; background: linear-gradient(90deg, #048b87 0, #048b87 80px, #ffffff 80px, #ffffff 100%); position: relative; }
+            .kh-side-logo { padding: 24px 16px 6px 100px; font-size: 42px; font-weight: 800; color: #12263a; line-height: 1; }
+            .kh-side-logo-sub { padding: 0 16px 16px 102px; color: #7b8ea6; font-size: 12px; }
+            .kh-side-menu { list-style: none; margin: 0; padding: 4px 8px 16px 92px; }
+            .kh-side-menu-title { font-size: 12px; font-weight: 700; color: #a1afc3; letter-spacing: .04em; text-transform: uppercase; padding: 8px 6px; }
+            .kh-side-item { margin: 2px 0; }
+            .kh-side-link { display: flex; align-items: center; gap: 10px; color: #7789a1; text-decoration: none; font-weight: 600; padding: 9px 10px; border-radius: 8px; font-size: 16px; }
+            .kh-side-link:hover { color: #0f6f87; background: #f2fbfa; }
+            .kh-side-link.active { background: #effcfb; color: #03a39a; }
+            .kh-side-link i { color: #9aa8ba; font-size: 17px; width: 18px; text-align: center; }
+            .kh-side-link.active i { color: #03a39a; }
+            .kh-side-submenu { list-style: none; margin: 0 0 6px 30px; padding: 0; border-left: 1px dashed #d8e2ee; }
+            .kh-side-submenu li { margin: 0; }
+            .kh-side-submenu a { display: flex; align-items: center; gap: 8px; text-decoration: none; color: #58708d; padding: 7px 10px; font-size: 14px; font-weight: 600; }
+            .kh-side-submenu a:hover { color: #0f6f87; background: #f4f9ff; }
+            .kh-side-submenu a i { font-size: 14px; width: 16px; text-align: center; }
+            .kh-side-divider { border-top: 1px solid #e4ebf3; margin: 8px 0; }
+            .kh-side-bottom { position: absolute; left: 20px; bottom: 14px; width: 46px; height: 46px; border-radius: 999px; background: #d9edf0; color: #0b3b66; display: flex; align-items: center; justify-content: center; font-weight: 700; border: 2px solid #fff; }
+            .kh-proto-main { flex: 1 1 auto; min-width: 0; padding-left: 16px; transition: all .2s ease; }
+            .kh-side-toggle { position: fixed; left: 10px; top: 120px; z-index: 1040; border: 1px solid #0e6f87; background: #0a8f8a; color: #fff; border-radius: 6px; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+            .kh-sidebar-collapsed .kh-side { width: 0; flex-basis: 0; padding: 0; overflow: hidden; }
+            .kh-sidebar-collapsed .kh-proto-main { padding-left: 0; }
             .kh-content-wrap .card { border: 1px solid #d7e2ee; border-radius: 8px; box-shadow: none; }
             .kh-content-wrap .table thead th { background: #f5f9fd; color: #30465f; font-weight: 600; }
             @media (max-width: 991px) {
                 .kh-topnav { flex-direction: column; align-items: flex-start; padding: 10px 0; }
                 .kh-topnav-right { width: 100%; flex-wrap: wrap; }
                 .kh-topnav-logo { width: 190px; max-width: 60vw; }
+                .kh-side-toggle { top: 96px; }
+                .kh-side { width: 100%; flex-basis: 100%; padding: 0 0 14px; }
+                .kh-proto-shell { flex-direction: column; }
+                .kh-proto-main { padding-left: 0; }
+                .kh-sidebar-collapsed .kh-side { display: none; }
             }
         </style>';
     }
@@ -134,6 +163,88 @@ if (!function_exists('kh_proto_render_hero')) {
                 </div>
             </div>
         </section>
+        <?php
+    }
+}
+
+if (!function_exists('kh_proto_render_sidebar')) {
+    function kh_proto_render_sidebar(string $activeKey = 'dashboard_wllp'): void
+    {
+        $isWllpExpanded = str_starts_with($activeKey, 'wllp_');
+        $collapseClass = $isWllpExpanded ? 'show' : '';
+        $menu = [
+            'dashboard_wllp' => ['icon' => 'bi-speedometer2', 'label' => 'Dashboard WLLP', 'href' => 'karirhub_employer_prototype_dashboard_wllp'],
+            'wllp_bukti_lapor' => ['icon' => 'bi-file-earmark-check', 'label' => 'Bukti Lapor', 'href' => 'karirhub_employer_prototype_bukti_lapor'],
+            'wllp_no_reg_bukti' => ['icon' => 'bi-upc-scan', 'label' => 'No. Reg Bukti', 'href' => 'karirhub_employer_prototype_no_reg_bukti'],
+            'wllp_pelaporan' => ['icon' => 'bi-journal-plus', 'label' => 'Pelaporan Lowongan', 'href' => 'karirhub_employer_prototype_pelaporan_lowongan'],
+            'wllp_status_keterisian' => ['icon' => 'bi-list-task', 'label' => 'Status Keterisian', 'href' => 'karirhub_employer_prototype_status_keterisian'],
+            'wllp_monitoring' => ['icon' => 'bi-clipboard-data', 'label' => 'Monitoring Kepatuhan', 'href' => 'karirhub_employer_prototype_monitoring_kepatuhan'],
+        ];
+        ?>
+        <button type="button" class="kh-side-toggle" id="khSideToggleBtn" title="Hide/Show Sidebar">
+            <i class="bi bi-layout-sidebar-inset"></i>
+        </button>
+        <aside class="kh-side" id="khSidePanel">
+            <div class="kh-side-inner">
+                <div class="kh-side-logo">Karirhub</div>
+                <div class="kh-side-logo-sub">Employer Prototype</div>
+                <ul class="kh-side-menu">
+                    <li class="kh-side-menu-title">Dashboard</li>
+                    <li class="kh-side-item">
+                        <a class="kh-side-link <?php echo $activeKey === 'dashboard_wllp' ? 'active' : ''; ?>" href="<?php echo kh_proto_h($menu['dashboard_wllp']['href']); ?>">
+                            <i class="bi <?php echo kh_proto_h($menu['dashboard_wllp']['icon']); ?>"></i>
+                            <?php echo kh_proto_h($menu['dashboard_wllp']['label']); ?>
+                        </a>
+                    </li>
+                    <li class="kh-side-item">
+                        <a class="kh-side-link <?php echo $isWllpExpanded ? 'active' : ''; ?>" data-bs-toggle="collapse" href="#khSideWllpMenu" role="button" aria-expanded="<?php echo $isWllpExpanded ? 'true' : 'false'; ?>" aria-controls="khSideWllpMenu">
+                            <i class="bi bi-diagram-3"></i>
+                            WLLP
+                        </a>
+                    </li>
+                    <li>
+                        <div class="collapse <?php echo $collapseClass; ?>" id="khSideWllpMenu">
+                            <ul class="kh-side-submenu">
+                                <li><a href="<?php echo kh_proto_h($menu['dashboard_wllp']['href']); ?>"><i class="bi bi-speedometer2"></i>Dashboard WLLP</a></li>
+                                <li><a href="<?php echo kh_proto_h($menu['wllp_bukti_lapor']['href']); ?>"><i class="bi bi-file-earmark-check"></i>Bukti Lapor</a></li>
+                                <li><a href="<?php echo kh_proto_h($menu['wllp_no_reg_bukti']['href']); ?>"><i class="bi bi-upc-scan"></i>No. Reg Bukti</a></li>
+                                <li class="kh-side-divider"></li>
+                                <li><a href="<?php echo kh_proto_h($menu['wllp_pelaporan']['href']); ?>"><i class="bi bi-journal-plus"></i>Pelaporan Lowongan</a></li>
+                                <li><a href="<?php echo kh_proto_h($menu['wllp_status_keterisian']['href']); ?>"><i class="bi bi-list-task"></i>Status Keterisian</a></li>
+                                <li><a href="<?php echo kh_proto_h($menu['wllp_monitoring']['href']); ?>"><i class="bi bi-clipboard-data"></i>Monitoring Kepatuhan</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+                <div class="kh-side-bottom">PK</div>
+            </div>
+        </aside>
+        <?php
+    }
+}
+
+if (!function_exists('kh_proto_render_sidebar_script')) {
+    function kh_proto_render_sidebar_script(): void
+    {
+        ?>
+        <script>
+            (function () {
+                const body = document.body;
+                const key = 'khProtoSidebarCollapsed';
+                const btn = document.getElementById('khSideToggleBtn');
+                if (!btn) return;
+
+                const saved = localStorage.getItem(key);
+                if (saved === '1') {
+                    body.classList.add('kh-sidebar-collapsed');
+                }
+
+                btn.addEventListener('click', function () {
+                    body.classList.toggle('kh-sidebar-collapsed');
+                    localStorage.setItem(key, body.classList.contains('kh-sidebar-collapsed') ? '1' : '0');
+                });
+            })();
+        </script>
         <?php
     }
 }
