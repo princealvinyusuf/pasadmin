@@ -26,14 +26,13 @@ $form = [
     'usia_min' => trim((string)($_POST['usia_min'] ?? '')),
     'usia_max' => trim((string)($_POST['usia_max'] ?? '')),
     'pendidikan_minimal' => trim((string)($_POST['pendidikan_minimal'] ?? '')),
+    'deskripsi_pekerjaan' => trim((string)($_POST['deskripsi_pekerjaan'] ?? '')),
     'keterampilan_utama' => trim((string)($_POST['keterampilan_utama'] ?? '')),
     'pengalaman_min_tahun' => trim((string)($_POST['pengalaman_min_tahun'] ?? '')),
     'rentang_gaji' => trim((string)($_POST['rentang_gaji'] ?? '')),
     'domisili_kerja' => trim((string)($_POST['domisili_kerja'] ?? '')),
-    'mode_publikasi' => trim((string)($_POST['mode_publikasi'] ?? 'Publik')),
     'masa_berlaku_mulai' => trim((string)($_POST['masa_berlaku_mulai'] ?? date('Y-m-d'))),
     'masa_berlaku_sampai' => trim((string)($_POST['masa_berlaku_sampai'] ?? date('Y-m-d', strtotime('+30 days')))),
-    'petugas_input' => trim((string)($_POST['petugas_input'] ?? '')),
     'catatan' => trim((string)($_POST['catatan'] ?? '')),
 ];
 
@@ -47,13 +46,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'usia_min' => 'Usia Minimal',
         'usia_max' => 'Usia Maksimal',
         'pendidikan_minimal' => 'Pendidikan Minimal',
+        'deskripsi_pekerjaan' => 'Deskripsi Pekerjaan',
         'keterampilan_utama' => 'Keterampilan Utama',
         'pengalaman_min_tahun' => 'Pengalaman Minimal (tahun)',
         'rentang_gaji' => 'Rentang Gaji',
         'domisili_kerja' => 'Domisili Kerja',
         'masa_berlaku_mulai' => 'Masa Berlaku Mulai',
         'masa_berlaku_sampai' => 'Masa Berlaku Sampai',
-        'petugas_input' => 'Petugas Input',
     ];
     foreach ($requiredFields as $fieldKey => $label) {
         if ($form[$fieldKey] === '') {
@@ -181,6 +180,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="col-12">
+                    <label class="form-label mb-1">Deskripsi Pekerjaan</label>
+                    <textarea name="deskripsi_pekerjaan" class="form-control form-control-sm" rows="3"><?php echo h($form['deskripsi_pekerjaan']); ?></textarea>
+                </div>
+
+                <div class="col-12">
                     <label class="form-label mb-1">Keterampilan Utama</label>
                     <textarea name="keterampilan_utama" class="form-control form-control-sm" rows="2"><?php echo h($form['keterampilan_utama']); ?></textarea>
                 </div>
@@ -194,26 +198,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="text" name="domisili_kerja" class="form-control form-control-sm" value="<?php echo h($form['domisili_kerja']); ?>">
                 </div>
 
-                <div class="col-12 col-md-4">
-                    <label class="form-label mb-1">Mode Publikasi</label>
-                    <select name="mode_publikasi" class="form-select form-select-sm">
-                        <?php foreach (['Publik', 'Administratif'] as $mode): ?>
-                            <option value="<?php echo h($mode); ?>"<?php echo $form['mode_publikasi'] === $mode ? ' selected' : ''; ?>><?php echo h($mode); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-6">
                     <label class="form-label mb-1">Masa Berlaku Mulai</label>
                     <input type="date" name="masa_berlaku_mulai" class="form-control form-control-sm" value="<?php echo h($form['masa_berlaku_mulai']); ?>">
                 </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-6">
                     <label class="form-label mb-1">Masa Berlaku Sampai</label>
                     <input type="date" name="masa_berlaku_sampai" class="form-control form-control-sm" value="<?php echo h($form['masa_berlaku_sampai']); ?>">
-                </div>
-
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Petugas Input</label>
-                    <input type="email" name="petugas_input" class="form-control form-control-sm" value="<?php echo h($form['petugas_input']); ?>">
                 </div>
                 <div class="col-12 col-md-6">
                     <label class="form-label mb-1">Catatan</label>
