@@ -132,16 +132,6 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $streamParts[] = 'BT /F1 10 Tf 52 802 Td (' . pdf_escape('SIAPKERJA - KARIRHUB') . ') Tj ET';
     $streamParts[] = 'BT /F2 11 Tf 52 788 Td (' . pdf_escape('BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)') . ') Tj ET';
 
-    // Prototype status chip.
-    $chipX = 405;
-    $chipY = 803;
-    $chipW = 145;
-    $chipH = 20;
-    $streamParts[] = '0.12 0.65 0.39 rg';
-    $streamParts[] = $chipX . ' ' . $chipY . ' ' . $chipW . ' ' . $chipH . ' re f';
-    $streamParts[] = '1 1 1 rg';
-    $streamParts[] = 'BT /F2 9 Tf 418 810 Td (' . pdf_escape('VALID PROTOTYPE') . ') Tj ET';
-
     // Section title.
     $sectionTop = 746;
     $streamParts[] = '0.95 0.97 1 rg';
