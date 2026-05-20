@@ -19,12 +19,12 @@ $dataset = karirhub_proto_dataset();
 $units = $dataset['units'];
 $rows = $dataset['vacancies'];
 
-$statusFilter = trim((string)($_GET['status'] ?? 'all'));
+$statusFilter = trim((string)($_REQUEST['status'] ?? 'all'));
 $allowedStatus = ['all', 'belum terisi', 'proses seleksi', 'terisi', 'belum update'];
 if (!in_array($statusFilter, $allowedStatus, true)) {
     $statusFilter = 'all';
 }
-$unitFilter = trim((string)($_GET['unit'] ?? 'all'));
+$unitFilter = trim((string)($_REQUEST['unit'] ?? 'all'));
 if ($unitFilter !== 'all' && !isset($units[$unitFilter])) {
     $unitFilter = 'all';
 }
@@ -35,6 +35,67 @@ $successMessage = null;
 if ($simulatedNoReg !== '' && in_array($simulatedStatus, ['Belum Terisi', 'Proses Seleksi', 'Terisi', 'Belum Update'], true)) {
     $successMessage = 'Simulasi update status untuk ' . $simulatedNoReg . ' -> ' . $simulatedStatus . ' berhasil (dummy, tidak disimpan permanen).';
 }
+
+$rowMap = [];
+foreach ($rows as $row) {
+    $rowMap[$row['no_reg_bukti']] = $row;
+}
+
+$pegawaiForm = [
+    'nik' => trim((string)($_POST['nik'] ?? '')),
+    'nama_lengkap' => trim((string)($_POST['nama_lengkap'] ?? '')),
+    'pendidikan' => trim((string)($_POST['pendidikan'] ?? '')),
+    'jenis_kelamin' => trim((string)($_POST['jenis_kelamin'] ?? '')),
+    'tempat_lahir' => trim((string)($_POST['tempat_lahir'] ?? '')),
+    'tanggal_lahir' => trim((string)($_POST['tanggal_lahir'] ?? '')),
+    'alamat' => trim((string)($_POST['alamat'] ?? '')),
+    'status_disabilitas' => trim((string)($_POST['status_disabilitas'] ?? '')),
+    'tmt' => trim((string)($_POST['tmt'] ?? '')),
+    'email' => trim((string)($_POST['email'] ?? '')),
+    'nomor_hp' => trim((string)($_POST['nomor_hp'] ?? '')),
+];
+
+$pegawaiErrors = [];
+$openTerisiNoReg = trim((string)($_GET['open_terisi_for'] ?? ''));
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['form_action'] ?? '') === 'submit_terisi_data') {
+    $openTerisiNoReg = trim((string)($_POST['no_reg_bukti'] ?? ''));
+    $requiredPegawaiFields = [
+        'nik' => 'NIK',
+        'nama_lengkap' => 'Nama Lengkap',
+        'pendidikan' => 'Pendidikan',
+        'jenis_kelamin' => 'Jenis Kelamin',
+        'tempat_lahir' => 'Tempat Lahir',
+        'tanggal_lahir' => 'Tanggal Lahir',
+        'alamat' => 'Alamat',
+        'status_disabilitas' => 'Status Disabilitas',
+        'tmt' => 'TMT',
+        'email' => 'Email',
+        'nomor_hp' => 'Nomor Hp',
+    ];
+    foreach ($requiredPegawaiFields as $field => $label) {
+        if ($pegawaiForm[$field] === '') {
+            $pegawaiErrors[] = $label . ' wajib diisi.';
+        }
+    }
+    if ($pegawaiForm['status_disabilitas'] !== '' && !in_array($pegawaiForm['status_disabilitas'], ['Iya', 'Tidak'], true)) {
+        $pegawaiErrors[] = 'Status Disabilitas hanya boleh Iya atau Tidak.';
+    }
+    if ($openTerisiNoReg === '' || !isset($rowMap[$openTerisiNoReg])) {
+        $pegawaiErrors[] = 'Data lowongan untuk status Terisi tidak ditemukan.';
+    }
+
+    if (empty($pegawaiErrors)) {
+        $successMessage = 'Simulasi update status untuk ' . $openTerisiNoReg . ' -> Terisi berhasil. Data pegawai ditempatkan atas nama '
+            . $pegawaiForm['nama_lengkap'] . ' telah dilengkapi (dummy, tidak disimpan permanen).';
+        $openTerisiNoReg = '';
+        foreach ($pegawaiForm as $key => $_) {
+            $pegawaiForm[$key] = '';
+        }
+    }
+}
+
+$openTerisiRow = ($openTerisiNoReg !== '' && isset($rowMap[$openTerisiNoReg])) ? $rowMap[$openTerisiNoReg] : null;
 
 $filteredRows = array_values(array_filter($rows, static function (array $row) use ($statusFilter, $unitFilter): bool {
     if ($statusFilter !== 'all' && strtolower($row['status_keterisian']) !== $statusFilter) {
@@ -84,6 +145,16 @@ foreach ($rows as $row) {
 
     <?php if ($successMessage !== null): ?>
         <div class="alert alert-success py-2"><?php echo h($successMessage); ?></div>
+    <?php endif; ?>
+    <?php if (!empty($pegawaiErrors)): ?>
+        <div class="alert alert-danger py-2">
+            <div class="fw-semibold mb-1">Lengkapi Data Pegawai yang ditempatkan:</div>
+            <ul class="mb-0">
+                <?php foreach ($pegawaiErrors as $err): ?>
+                    <li><?php echo h($err); ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
     <?php endif; ?>
 
     <div class="row g-3 mb-3">
@@ -161,7 +232,7 @@ foreach ($rows as $row) {
                                     <div class="btn-group btn-group-sm">
                                         <a class="btn btn-outline-secondary" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_status=Belum%20Terisi">Belum</a>
                                         <a class="btn btn-outline-info" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_status=Proses%20Seleksi">Seleksi</a>
-                                        <a class="btn btn-outline-success" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_status=Terisi">Terisi</a>
+                                        <a class="btn btn-outline-success" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&open_terisi_for=<?php echo h(urlencode($row['no_reg_bukti'])); ?>">Terisi</a>
                                     </div>
                                 </td>
                             </tr>
@@ -176,6 +247,89 @@ foreach ($rows as $row) {
     </div>
 </div>
 </div>
+
+<?php if ($openTerisiRow !== null): ?>
+<div class="modal fade show" id="terisiPegawaiModal" tabindex="-1" aria-modal="true" role="dialog" style="display:block; background: rgba(0,0,0,0.35);">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Lengkapi Data Pegawai yang ditempatkan</h5>
+                <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>" class="btn-close"></a>
+            </div>
+            <form method="POST">
+                <div class="modal-body">
+                    <div class="small text-muted mb-2">
+                        No. Reg Bukti: <strong><?php echo h($openTerisiRow['no_reg_bukti']); ?></strong> &middot;
+                        Jabatan: <strong><?php echo h($openTerisiRow['jabatan']); ?></strong>
+                    </div>
+                    <input type="hidden" name="form_action" value="submit_terisi_data">
+                    <input type="hidden" name="no_reg_bukti" value="<?php echo h($openTerisiRow['no_reg_bukti']); ?>">
+                    <input type="hidden" name="status" value="<?php echo h($statusFilter); ?>">
+                    <input type="hidden" name="unit" value="<?php echo h($unitFilter); ?>">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label mb-1">NIK</label>
+                            <input type="text" name="nik" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['nik']); ?>">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label mb-1">Nama Lengkap</label>
+                            <input type="text" name="nama_lengkap" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['nama_lengkap']); ?>">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label mb-1">Pendidikan</label>
+                            <input type="text" name="pendidikan" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['pendidikan']); ?>">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label mb-1">Jenis Kelamin</label>
+                            <select name="jenis_kelamin" class="form-select form-select-sm">
+                                <option value="">Pilih</option>
+                                <option value="Laki-laki"<?php echo $pegawaiForm['jenis_kelamin'] === 'Laki-laki' ? ' selected' : ''; ?>>Laki-laki</option>
+                                <option value="Perempuan"<?php echo $pegawaiForm['jenis_kelamin'] === 'Perempuan' ? ' selected' : ''; ?>>Perempuan</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label mb-1">Tempat Lahir</label>
+                            <input type="text" name="tempat_lahir" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['tempat_lahir']); ?>">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label mb-1">Tanggal Lahir</label>
+                            <input type="date" name="tanggal_lahir" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['tanggal_lahir']); ?>">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label mb-1">Alamat</label>
+                            <textarea name="alamat" class="form-control form-control-sm" rows="2"><?php echo h($pegawaiForm['alamat']); ?></textarea>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label mb-1">Status Disabilitas</label>
+                            <select name="status_disabilitas" class="form-select form-select-sm">
+                                <option value="">Pilih</option>
+                                <option value="Iya"<?php echo $pegawaiForm['status_disabilitas'] === 'Iya' ? ' selected' : ''; ?>>Iya</option>
+                                <option value="Tidak"<?php echo $pegawaiForm['status_disabilitas'] === 'Tidak' ? ' selected' : ''; ?>>Tidak</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label mb-1">TMT</label>
+                            <input type="date" name="tmt" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['tmt']); ?>">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label mb-1">Email</label>
+                            <input type="email" name="email" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['email']); ?>">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label mb-1">Nomor Hp</label>
+                            <input type="text" name="nomor_hp" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['nomor_hp']); ?>">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>" class="btn btn-outline-secondary btn-sm">Batal</a>
+                    <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check2-circle me-1"></i>Simpan Data & Set Terisi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <?php kh_proto_render_sidebar_script(); ?>
