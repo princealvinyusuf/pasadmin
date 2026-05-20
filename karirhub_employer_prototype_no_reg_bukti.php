@@ -35,8 +35,10 @@ $filteredRows = array_values(array_filter($registryRows, static function (array 
 
     $haystack = strtolower(implode(' ', [
         $row['no_reg_bukti'],
+        $row['job_order_no'] ?? '',
         $row['id_lowongan'],
         $row['jabatan'],
+        $row['hiring_manager'] ?? '',
         $row['unit_kode'],
         $row['petugas_input'],
     ]));
@@ -70,13 +72,13 @@ $filteredRows = array_values(array_filter($registryRows, static function (array 
         <div class="card-body py-3">
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-md-6">
-                    <label for="q" class="form-label mb-1">Cari No. Reg / Jabatan / ID Lowongan</label>
+                    <label for="q" class="form-label mb-1">Cari No. Reg / Job Order / Jabatan / ID Lowongan</label>
                     <input
                         id="q"
                         name="q"
                         class="form-control form-control-sm"
                         value="<?php echo h($query); ?>"
-                        placeholder="Contoh: WLLP-2026-0519 atau Staff Operasional"
+                        placeholder="Contoh: WLLP-2026-0519, JO-2026-OPS-001, atau Staff Operasional"
                     >
                 </div>
                 <div class="col-12 col-md-3">
@@ -108,8 +110,10 @@ $filteredRows = array_values(array_filter($registryRows, static function (array 
                     <thead class="table-light">
                         <tr>
                             <th>No. Reg Bukti</th>
+                            <th>Job Order</th>
                             <th>ID Lowongan</th>
                             <th>Jabatan</th>
+                            <th>Hiring Manager</th>
                             <th>Jumlah</th>
                             <th>Unit</th>
                             <th>Mode Publikasi</th>
@@ -121,15 +125,20 @@ $filteredRows = array_values(array_filter($registryRows, static function (array 
                     <tbody>
                     <?php if (empty($filteredRows)): ?>
                         <tr>
-                            <td colspan="9" class="text-center text-muted">Data tidak ditemukan.</td>
+                            <td colspan="11" class="text-center text-muted">Data tidak ditemukan.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($filteredRows as $row): ?>
                             <?php $badgeClass = karirhub_proto_status_badge_class($row['status_verifikasi']); ?>
                             <tr>
                                 <td class="fw-semibold"><?php echo h($row['no_reg_bukti']); ?></td>
+                                <td>
+                                    <div class="fw-semibold"><?php echo h((string)($row['job_order_no'] ?? '-')); ?></div>
+                                    <div class="small text-muted"><?php echo h((string)($row['job_order_status'] ?? '-')); ?></div>
+                                </td>
                                 <td><?php echo h($row['id_lowongan']); ?></td>
                                 <td><?php echo h($row['jabatan']); ?></td>
+                                <td><?php echo h((string)($row['hiring_manager'] ?? '-')); ?></td>
                                 <td><?php echo h((string)$row['jumlah_kebutuhan']); ?></td>
                                 <td><?php echo h(($units[$row['unit_kode']]['nama'] ?? $row['unit_kode'])); ?></td>
                                 <td><?php echo h($row['mode_publikasi']); ?></td>
