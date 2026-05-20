@@ -33,6 +33,54 @@ function pdf_fit(string $text, int $maxLen = 82): string
     return substr($text, 0, $maxLen - 3) . '...';
 }
 
+function pdf_logo_jpeg_data(string $logoPath): ?array
+{
+    if (!is_file($logoPath)) {
+        return null;
+    }
+    if (!function_exists('imagecreatefrompng') || !function_exists('imagejpeg')) {
+        return null;
+    }
+
+    $png = @imagecreatefrompng($logoPath);
+    if ($png === false) {
+        return null;
+    }
+
+    $width = imagesx($png);
+    $height = imagesy($png);
+    if ($width <= 0 || $height <= 0) {
+        imagedestroy($png);
+        return null;
+    }
+
+    // Render PNG on white background so transparent parts stay readable in PDF.
+    $canvas = imagecreatetruecolor($width, $height);
+    if ($canvas === false) {
+        imagedestroy($png);
+        return null;
+    }
+    $white = imagecolorallocate($canvas, 255, 255, 255);
+    imagefilledrectangle($canvas, 0, 0, $width, $height, $white);
+    imagecopy($canvas, $png, 0, 0, 0, 0, $width, $height);
+    imagedestroy($png);
+
+    ob_start();
+    imagejpeg($canvas, null, 90);
+    $jpegData = (string)ob_get_clean();
+    imagedestroy($canvas);
+
+    if ($jpegData === '') {
+        return null;
+    }
+
+    return [
+        'data' => $jpegData,
+        'width' => $width,
+        'height' => $height,
+    ];
+}
+
 function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
 {
     $issuedAt = date('d-m-Y H:i:s');
@@ -62,43 +110,50 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $left = 40;
     $right = 555;
     $width = $right - $left;
-    $headerY = 785;
-    $headerH = 45;
+    $headerY = 775;
+    $headerH = 58;
+    $logoPath = __DIR__ . '/images/karirhub.png';
+    $logoInfo = pdf_logo_jpeg_data($logoPath);
 
     // Page frame.
     $streamParts[] = '0.87 0.9 0.95 RG';
     $streamParts[] = '1 w';
     $streamParts[] = '30 30 535 782 re S';
 
+    // Watermark text.
+    $streamParts[] = '0.93 0.95 0.98 rg';
+    $streamParts[] = 'BT /F2 34 Tf 0.707 0.707 -0.707 0.707 180 360 Tm (' . pdf_escape('DIPEROLEH DARI KARIRHUB') . ') Tj ET';
+
     // Header band.
     $streamParts[] = '0.08 0.29 0.55 rg';
     $streamParts[] = $left . ' ' . $headerY . ' ' . $width . ' ' . $headerH . ' re f';
     $streamParts[] = '1 1 1 rg';
-    $streamParts[] = 'BT /F2 13 Tf 52 812 Td (' . pdf_escape('KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA') . ') Tj ET';
-    $streamParts[] = 'BT /F1 10 Tf 52 798 Td (' . pdf_escape('SIAPKERJA - KARIRHUB') . ') Tj ET';
-    $streamParts[] = 'BT /F2 11 Tf 52 784 Td (' . pdf_escape('BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)') . ') Tj ET';
+    $streamParts[] = 'BT /F2 13 Tf 52 817 Td (' . pdf_escape('KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA') . ') Tj ET';
+    $streamParts[] = 'BT /F1 10 Tf 52 802 Td (' . pdf_escape('SIAPKERJA - KARIRHUB') . ') Tj ET';
+    $streamParts[] = 'BT /F2 11 Tf 52 788 Td (' . pdf_escape('BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)') . ') Tj ET';
 
     // Prototype status chip.
     $chipX = 405;
-    $chipY = 792;
+    $chipY = 803;
     $chipW = 145;
     $chipH = 20;
     $streamParts[] = '0.12 0.65 0.39 rg';
     $streamParts[] = $chipX . ' ' . $chipY . ' ' . $chipW . ' ' . $chipH . ' re f';
     $streamParts[] = '1 1 1 rg';
-    $streamParts[] = 'BT /F2 9 Tf 418 799 Td (' . pdf_escape('VALID PROTOTYPE') . ') Tj ET';
+    $streamParts[] = 'BT /F2 9 Tf 418 810 Td (' . pdf_escape('VALID PROTOTYPE') . ') Tj ET';
 
     // Section title.
+    $sectionTop = 746;
     $streamParts[] = '0.95 0.97 1 rg';
-    $streamParts[] = $left . ' 748 ' . $width . ' 24 re f';
+    $streamParts[] = $left . ' ' . $sectionTop . ' ' . $width . ' 24 re f';
     $streamParts[] = '0.77 0.82 0.9 RG';
     $streamParts[] = '0.8 w';
-    $streamParts[] = $left . ' 748 ' . $width . ' 24 re S';
+    $streamParts[] = $left . ' ' . $sectionTop . ' ' . $width . ' 24 re S';
     $streamParts[] = '0.11 0.2 0.36 rg';
-    $streamParts[] = 'BT /F2 10 Tf 48 756 Td (' . pdf_escape('RINGKASAN DOKUMEN') . ') Tj ET';
+    $streamParts[] = 'BT /F2 10 Tf 48 ' . ($sectionTop + 8) . ' Td (' . pdf_escape('RINGKASAN DOKUMEN') . ') Tj ET';
 
     // Key/value table.
-    $tableTopY = 748;
+    $tableTopY = $sectionTop;
     $rowH = 18;
     $splitX = 190;
     $currentTop = $tableTopY;
@@ -143,18 +198,39 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $streamParts[] = '0.7 w';
     $streamParts[] = $left . ' ' . ($footerY + 18) . ' m ' . $right . ' ' . ($footerY + 18) . ' l S';
     $streamParts[] = '0.35 0.38 0.45 rg';
+    $streamParts[] = 'BT /F2 8 Tf 48 ' . ($footerY + 20) . ' Td (' . pdf_escape('Diperoleh dari:') . ') Tj ET';
     $streamParts[] = 'BT /F1 8 Tf 48 ' . ($footerY + 6) . ' Td (' . pdf_escape('Diterbitkan oleh sistem prototype pada: ' . $issuedAt) . ') Tj ET';
     $streamParts[] = 'BT /F1 8 Tf 48 ' . ($footerY - 6) . ' Td (' . pdf_escape('Dokumen ini hanya untuk referensi UI/UX dan bukan dokumen legal resmi.') . ') Tj ET';
+
+    // Footer logo.
+    if ($logoInfo !== null) {
+        $targetW = 138.0;
+        $targetH = ($logoInfo['height'] / max(1, $logoInfo['width'])) * $targetW;
+        $logoX = 410.0;
+        $logoY = $footerY + 2.0;
+        $streamParts[] = 'q';
+        $streamParts[] = sprintf('%.2F 0 0 %.2F %.2F %.2F cm', $targetW, $targetH, $logoX, $logoY);
+        $streamParts[] = '/Im1 Do';
+        $streamParts[] = 'Q';
+    }
 
     $contentStream = implode("\n", $streamParts) . "\n";
 
     $objects = [];
     $objects[] = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
     $objects[] = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
-    $objects[] = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>\nendobj\n";
+    $resources = '/Font << /F1 5 0 R /F2 6 0 R >>';
+    if ($logoInfo !== null) {
+        $resources .= ' /XObject << /Im1 7 0 R >>';
+    }
+    $objects[] = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << " . $resources . " >> /Contents 4 0 R >>\nendobj\n";
     $objects[] = "4 0 obj\n<< /Length " . strlen($contentStream) . " >>\nstream\n" . $contentStream . "endstream\nendobj\n";
     $objects[] = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
     $objects[] = "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
+    if ($logoInfo !== null) {
+        $jpegData = $logoInfo['data'];
+        $objects[] = "7 0 obj\n<< /Type /XObject /Subtype /Image /Width " . (int)$logoInfo['width'] . " /Height " . (int)$logoInfo['height'] . " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " . strlen($jpegData) . " >>\nstream\n" . $jpegData . "\nendstream\nendobj\n";
+    }
 
     $pdf = "%PDF-1.4\n";
     $offsets = [0];
