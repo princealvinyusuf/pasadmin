@@ -121,6 +121,7 @@
     $canLaporLoker = current_user_can('lapor_loker_manage') || $canManageSettings;
     $canGrabEmail = current_user_can('grab_email_manage') || $canManageSettings;
     $canPaskerDrive = current_user_can('pasker_drive_manage') || $canManageSettings;
+    $canKarirhubEmployerPrototype = current_user_can('karirhub_employer_prototype_view') || $canManageSettings;
 
     $hasLayanan = (
         $canManageSettings ||
@@ -291,6 +292,18 @@
                         <?php if ($canWalkinGallery || $canPartnerCompany): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_gallery"><i class="bi bi-images me-1"></i>Walk-in Gallery</a></li><?php endif; ?>
                         <?php if ($canPartnerCompany): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>partner_company_settings"><i class="bi bi-buildings me-1"></i>Perusahaan Mitra</a></li><?php endif; ?>
+                    </ul>
+                </li>
+                <?php endif; ?>
+                <?php if ($canKarirhubEmployerPrototype): ?>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="karirhubEmployerPrototypeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Karirhub Employer Prototype
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="karirhubEmployerPrototypeDropdown">
+                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_dashboard_wllp"><i class="bi bi-speedometer2 me-1"></i>Dashboard WLLP</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_bukti_lapor"><i class="bi bi-file-earmark-check me-1"></i>Bukti Lapor</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_no_reg_bukti"><i class="bi bi-upc-scan me-1"></i>No. Reg Bukti</a></li>
                     </ul>
                 </li>
                 <?php endif; ?>
