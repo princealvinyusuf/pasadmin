@@ -2,6 +2,7 @@
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
 require_once __DIR__ . '/karirhub_employer_prototype_data.php';
+require_once __DIR__ . '/karirhub_employer_prototype_ui.php';
 
 if (!(current_user_can('karirhub_employer_prototype_view') || current_user_can('manage_settings'))) {
     http_response_code(403);
@@ -332,10 +333,13 @@ if ($action === 'unduh' && $actionRow !== null) {
     <title>Karirhub Employer Prototype - Bukti Lapor</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <?php kh_proto_render_styles(); ?>
 </head>
-<body class="bg-light">
+<body class="kh-proto-page">
 <?php include 'navbar.php'; ?>
+<?php kh_proto_render_hero('Daftar Lowongan Kerja', 'Kelola bukti lapor dan dokumen WLLP dengan tampilan employer prototype.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_dashboard_wllp'); ?>
 
+<div class="kh-content-wrap">
 <div class="container py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
@@ -458,6 +462,7 @@ if ($action === 'unduh' && $actionRow !== null) {
             </div>
         </div>
     </div>
+</div>
 </div>
 
 <?php if ($action === 'lihat' && $actionRow !== null): ?>
