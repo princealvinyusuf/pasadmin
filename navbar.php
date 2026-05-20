@@ -146,7 +146,7 @@
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
     $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan);
     $hasAsmen = ($canAsmenDashboard || $canAsmenAssets || $canAsmenServices || $canAsmenCalendar || $canAsmenQR);
-    $hasExtensionsMenu = ($canExtensions || $canManageSettings || $canRegistrasiKehadiran || $canSplitScreen);
+    $hasExtensionsMenu = ($canExtensions || $canManageSettings || $canRegistrasiKehadiran || $canSplitScreen || $canPaskerDrive || $canOUI);
     // Naker Award flags
     $canNakerAssessment = current_user_can('naker_award_manage_assessment');
     $canNakerStage1 = current_user_can('naker_award_view_stage1') || $canNakerAssessment || $canManageSettings;
@@ -354,17 +354,10 @@
                         <?php if ($canExtensions || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>extensions">Extensions</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canRegistrasiKehadiran): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>registrasi_kehadiran">Registrasi Kehadiran</a></li><?php endif; ?>
                         <?php if ($canSplitScreen): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>split_screen"><i class="bi bi-layout-split me-1"></i>Split Screen</a></li><?php endif; ?>
+                        <?php if (($canExtensions || $canManageSettings || $canRegistrasiKehadiran || $canSplitScreen) && ($canPaskerDrive || $canOUI)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
+                        <?php if ($canPaskerDrive): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>pasker_drive"><i class="bi bi-cloud me-1"></i>Pasker Drive</a></li><?php endif; ?>
+                        <?php if ($canOUI): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>oui">OUI</a></li><?php endif; ?>
                     </ul>
-                </li>
-                <?php endif; ?>
-                <?php if ($canPaskerDrive): ?>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootUrl; ?>pasker_drive"><i class="bi bi-cloud me-1"></i>Pasker Drive</a>
-                </li>
-                <?php endif; ?>
-                <?php if ($canOUI): ?>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootUrl; ?>oui">OUI</a>
                 </li>
                 <?php endif; ?>
                 <!-- <li class="nav-item">
