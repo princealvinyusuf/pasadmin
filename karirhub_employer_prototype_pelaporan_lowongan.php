@@ -33,6 +33,7 @@ $form = [
     'domisili_kerja' => trim((string)($_POST['domisili_kerja'] ?? '')),
     'masa_berlaku_mulai' => trim((string)($_POST['masa_berlaku_mulai'] ?? date('Y-m-d'))),
     'masa_berlaku_sampai' => trim((string)($_POST['masa_berlaku_sampai'] ?? date('Y-m-d', strtotime('+30 days')))),
+    'alamat_url_postingan_loker' => trim((string)($_POST['alamat_url_postingan_loker'] ?? '')),
     'catatan' => trim((string)($_POST['catatan'] ?? '')),
 ];
 
@@ -53,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'domisili_kerja' => 'Domisili Kerja',
         'masa_berlaku_mulai' => 'Masa Berlaku Mulai',
         'masa_berlaku_sampai' => 'Masa Berlaku Sampai',
+        'alamat_url_postingan_loker' => 'Alamat URL Postingan Loker',
     ];
     foreach ($requiredFields as $fieldKey => $label) {
         if ($form[$fieldKey] === '') {
@@ -205,6 +207,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="col-12 col-md-6">
                     <label class="form-label mb-1">Masa Berlaku Sampai</label>
                     <input type="date" name="masa_berlaku_sampai" class="form-control form-control-sm" value="<?php echo h($form['masa_berlaku_sampai']); ?>">
+                </div>
+                <div class="col-12">
+                    <label class="form-label mb-1">Alamat URL Postingan Loker</label>
+                    <input type="url" name="alamat_url_postingan_loker" class="form-control form-control-sm" placeholder="https://karirhub.kemnaker.go.id/..." value="<?php echo h($form['alamat_url_postingan_loker']); ?>">
                 </div>
                 <div class="col-12 col-md-6">
                     <label class="form-label mb-1">Catatan</label>
