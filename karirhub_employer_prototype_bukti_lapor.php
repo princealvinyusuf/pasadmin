@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
+require_once __DIR__ . '/karirhub_employer_prototype_data.php';
 
 if (!(current_user_can('karirhub_employer_prototype_view') || current_user_can('manage_settings'))) {
     http_response_code(403);
@@ -14,23 +15,50 @@ function h(string $value): string
 }
 
 $statusFilter = trim((string)($_GET['status'] ?? 'all'));
-$allowedStatuses = ['all', 'valid', 'need-update'];
+$allowedStatuses = ['all', 'terverifikasi', 'perlu update'];
 if (!in_array($statusFilter, $allowedStatuses, true)) {
     $statusFilter = 'all';
 }
 
-$rows = [
-    ['no_reg' => 'WLLP-2026-0519-001278', 'tanggal' => '20 Mei 2026', 'jabatan' => 'Staff Operasional', 'jumlah' => '4', 'unit' => 'PT Contoh Nusantara', 'masa_berlaku' => '20 Jun 2026', 'status' => 'valid'],
-    ['no_reg' => 'WLLP-2026-0518-001249', 'tanggal' => '18 Mei 2026', 'jabatan' => 'Admin HR', 'jumlah' => '2', 'unit' => 'PT Contoh Nusantara', 'masa_berlaku' => '18 Jun 2026', 'status' => 'valid'],
-    ['no_reg' => 'WLLP-2026-0514-001180', 'tanggal' => '14 Mei 2026', 'jabatan' => 'Digital Marketing', 'jumlah' => '1', 'unit' => 'PT Contoh Nusantara', 'masa_berlaku' => '14 Jun 2026', 'status' => 'need-update'],
-    ['no_reg' => 'WLLP-2026-0510-001032', 'tanggal' => '10 Mei 2026', 'jabatan' => 'Finance Officer', 'jumlah' => '2', 'unit' => 'PT Contoh Nusantara', 'masa_berlaku' => '10 Jun 2026', 'status' => 'valid'],
-];
+$unitFilter = trim((string)($_GET['unit'] ?? 'all'));
+$query = strtolower(trim((string)($_GET['q'] ?? '')));
 
-$filteredRows = array_values(array_filter($rows, static function (array $row) use ($statusFilter): bool {
+$dataset = karirhub_proto_dataset();
+$units = $dataset['units'];
+$rows = $dataset['vacancies'];
+$unitOptions = [];
+foreach ($units as $unitCode => $unitInfo) {
+    $unitOptions[$unitCode] = $unitInfo['nama'];
+}
+if ($unitFilter !== 'all' && !isset($unitOptions[$unitFilter])) {
+    $unitFilter = 'all';
+}
+
+$filteredRows = array_values(array_filter($rows, static function (array $row) use ($statusFilter, $unitFilter, $query): bool {
     if ($statusFilter === 'all') {
-        return true;
+        $statusMatch = true;
+    } else {
+        $statusMatch = strtolower($row['status_verifikasi']) === $statusFilter;
     }
-    return $row['status'] === $statusFilter;
+    if (!$statusMatch) {
+        return false;
+    }
+    if ($unitFilter !== 'all' && $row['unit_kode'] !== $unitFilter) {
+        return false;
+    }
+    if ($query !== '') {
+        $haystack = strtolower(implode(' ', [
+            $row['no_reg_bukti'],
+            $row['id_lowongan'],
+            $row['jabatan'],
+            $row['petugas_input'],
+            $row['catatan'],
+        ]));
+        if (strpos($haystack, $query) === false) {
+            return false;
+        }
+    }
+    return true;
 }));
 ?>
 <!DOCTYPE html>
@@ -63,9 +91,22 @@ $filteredRows = array_values(array_filter($rows, static function (array $row) us
                     <label for="status" class="form-label mb-1">Status Bukti</label>
                     <select id="status" name="status" class="form-select form-select-sm">
                         <option value="all"<?php echo $statusFilter === 'all' ? ' selected' : ''; ?>>Semua Status</option>
-                        <option value="valid"<?php echo $statusFilter === 'valid' ? ' selected' : ''; ?>>Valid</option>
-                        <option value="need-update"<?php echo $statusFilter === 'need-update' ? ' selected' : ''; ?>>Perlu Update</option>
+                        <option value="terverifikasi"<?php echo $statusFilter === 'terverifikasi' ? ' selected' : ''; ?>>Terverifikasi</option>
+                        <option value="perlu update"<?php echo $statusFilter === 'perlu update' ? ' selected' : ''; ?>>Perlu Update</option>
                     </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label for="unit" class="form-label mb-1">Unit Perusahaan</label>
+                    <select id="unit" name="unit" class="form-select form-select-sm">
+                        <option value="all"<?php echo $unitFilter === 'all' ? ' selected' : ''; ?>>Semua Unit</option>
+                        <?php foreach ($unitOptions as $unitCode => $unitName): ?>
+                            <option value="<?php echo h($unitCode); ?>"<?php echo $unitFilter === $unitCode ? ' selected' : ''; ?>><?php echo h($unitName); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label for="q" class="form-label mb-1">Cari</label>
+                    <input id="q" name="q" class="form-control form-control-sm" value="<?php echo h($query); ?>" placeholder="No Reg, ID Lowongan, Jabatan">
                 </div>
                 <div class="col-12 col-md-2 d-grid">
                     <button type="submit" class="btn btn-primary btn-sm">
@@ -83,11 +124,14 @@ $filteredRows = array_values(array_filter($rows, static function (array $row) us
                     <thead class="table-light">
                         <tr>
                             <th>No. Reg Bukti</th>
+                            <th>ID Lowongan</th>
                             <th>Tanggal Lapor</th>
                             <th>Jabatan</th>
                             <th>Jumlah</th>
                             <th>Unit/Perusahaan</th>
                             <th>Masa Berlaku</th>
+                            <th>Mode</th>
+                            <th>Petugas</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
@@ -95,19 +139,22 @@ $filteredRows = array_values(array_filter($rows, static function (array $row) us
                     <tbody>
                     <?php if (empty($filteredRows)): ?>
                         <tr>
-                            <td colspan="8" class="text-center text-muted">Tidak ada data sesuai filter.</td>
+                            <td colspan="11" class="text-center text-muted">Tidak ada data sesuai filter.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($filteredRows as $row): ?>
-                            <?php $badgeClass = $row['status'] === 'valid' ? 'success' : 'warning'; ?>
+                            <?php $badgeClass = karirhub_proto_status_badge_class($row['status_verifikasi']); ?>
                             <tr>
-                                <td class="fw-semibold"><?php echo h($row['no_reg']); ?></td>
-                                <td><?php echo h($row['tanggal']); ?></td>
+                                <td class="fw-semibold"><?php echo h($row['no_reg_bukti']); ?></td>
+                                <td><?php echo h($row['id_lowongan']); ?></td>
+                                <td><?php echo h($row['tanggal_lapor']); ?></td>
                                 <td><?php echo h($row['jabatan']); ?></td>
-                                <td><?php echo h($row['jumlah']); ?></td>
-                                <td><?php echo h($row['unit']); ?></td>
-                                <td><?php echo h($row['masa_berlaku']); ?></td>
-                                <td><span class="badge text-bg-<?php echo h($badgeClass); ?>"><?php echo h($row['status'] === 'valid' ? 'Valid' : 'Perlu Update'); ?></span></td>
+                                <td><?php echo h((string)$row['jumlah_kebutuhan']); ?></td>
+                                <td><?php echo h($unitOptions[$row['unit_kode']] ?? $row['unit_kode']); ?></td>
+                                <td><?php echo h($row['masa_berlaku_sampai']); ?></td>
+                                <td><?php echo h($row['mode_publikasi']); ?></td>
+                                <td><?php echo h($row['petugas_input']); ?></td>
+                                <td><span class="badge text-bg-<?php echo h($badgeClass); ?>"><?php echo h($row['status_verifikasi']); ?></span></td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
                                         <button class="btn btn-outline-primary" type="button">Lihat</button>

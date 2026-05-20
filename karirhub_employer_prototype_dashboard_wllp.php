@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
+require_once __DIR__ . '/karirhub_employer_prototype_data.php';
 
 if (!(current_user_can('karirhub_employer_prototype_view') || current_user_can('manage_settings'))) {
     http_response_code(403);
@@ -13,18 +14,19 @@ function h(string $value): string
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
-$summaryCards = [
-    ['label' => 'Lowongan Dilaporkan', 'value' => '124', 'tone' => 'primary'],
-    ['label' => 'Lowongan Aktif', 'value' => '38', 'tone' => 'info'],
-    ['label' => 'Sudah Terisi', 'value' => '71', 'tone' => 'success'],
-    ['label' => 'Perlu Update Status', 'value' => '15', 'tone' => 'warning'],
-];
+$dataset = karirhub_proto_dataset();
+$units = $dataset['units'];
+$vacancies = $dataset['vacancies'];
+$recentActivities = $dataset['activities'];
+$metrics = karirhub_proto_dashboard_metrics($vacancies);
+$complianceByUnit = karirhub_proto_compliance_by_unit($units, $vacancies);
+$latestProof = $metrics['bukti_terbaru'];
 
-$recentActivities = [
-    ['tanggal' => '20 Mei 2026 08:10', 'aksi' => 'Buat Laporan Lowongan', 'no_reg' => 'WLLP-2026-0519-001278', 'status' => 'Terverifikasi'],
-    ['tanggal' => '19 Mei 2026 16:34', 'aksi' => 'Cetak Bukti Lapor', 'no_reg' => 'WLLP-2026-0518-001249', 'status' => 'Dicetak'],
-    ['tanggal' => '19 Mei 2026 11:52', 'aksi' => 'Update Status Keterisian', 'no_reg' => 'WLLP-2026-0517-001230', 'status' => 'Posisi Terisi'],
-    ['tanggal' => '18 Mei 2026 09:14', 'aksi' => 'Buat Laporan Lowongan', 'no_reg' => 'WLLP-2026-0518-001249', 'status' => 'Terverifikasi'],
+$summaryCards = [
+    ['label' => 'Lowongan Dilaporkan', 'value' => (string)$metrics['total_dilaporkan'], 'tone' => 'primary'],
+    ['label' => 'Lowongan Aktif', 'value' => (string)$metrics['lowongan_aktif'], 'tone' => 'info'],
+    ['label' => 'Sudah Terisi', 'value' => (string)$metrics['sudah_terisi'], 'tone' => 'success'],
+    ['label' => 'Perlu Update Status', 'value' => (string)$metrics['perlu_update'], 'tone' => 'warning'],
 ];
 ?>
 <!DOCTYPE html>
@@ -48,6 +50,9 @@ $recentActivities = [
         <div class="d-flex gap-2">
             <a class="btn btn-outline-primary btn-sm" href="karirhub_employer_prototype_bukti_lapor">
                 <i class="bi bi-file-earmark-check me-1"></i>Bukti Lapor
+            </a>
+            <a class="btn btn-outline-secondary btn-sm" href="karirhub_employer_prototype_pelaporan_lowongan">
+                <i class="bi bi-journal-plus me-1"></i>Pelaporan Lowongan
             </a>
             <a class="btn btn-primary btn-sm" href="karirhub_employer_prototype_no_reg_bukti">
                 <i class="bi bi-upc-scan me-1"></i>No. Reg Bukti
@@ -82,24 +87,60 @@ $recentActivities = [
                 <div class="col-md-4">
                     <div class="p-3 rounded border bg-white h-100">
                         <div class="text-muted small">Status Bulan Berjalan</div>
-                        <div class="fw-semibold text-success">Patuh</div>
-                        <div class="small text-muted">22 dari 24 lowongan telah dilaporkan tepat waktu.</div>
+                        <?php $statusBulanan = $metrics['perlu_update'] > 1 ? 'Perlu Perhatian' : 'Patuh'; ?>
+                        <div class="fw-semibold text-<?php echo h($statusBulanan === 'Patuh' ? 'success' : 'warning'); ?>"><?php echo h($statusBulanan); ?></div>
+                        <div class="small text-muted">
+                            <?php echo h((string)($metrics['total_dilaporkan'] - $metrics['perlu_update'])); ?> dari
+                            <?php echo h((string)$metrics['total_dilaporkan']); ?> lowongan sudah update status.
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="p-3 rounded border bg-white h-100">
                         <div class="text-muted small">Bukti Lapor Terbaru</div>
-                        <div class="fw-semibold">WLLP-2026-0519-001278</div>
-                        <div class="small text-muted">Diterbitkan 20 Mei 2026</div>
+                        <div class="fw-semibold"><?php echo h((string)($latestProof['no_reg_bukti'] ?? '-')); ?></div>
+                        <div class="small text-muted">Diterbitkan <?php echo h((string)($latestProof['tanggal_lapor'] ?? '-')); ?></div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="p-3 rounded border bg-white h-100">
                         <div class="text-muted small">Masa Berlaku Monitoring</div>
-                        <div class="fw-semibold">31 Mei 2026</div>
-                        <div class="small text-muted">2 lowongan mendekati batas update status keterisian.</div>
+                        <div class="fw-semibold"><?php echo h((string)($latestProof['masa_berlaku_sampai'] ?? '-')); ?></div>
+                        <div class="small text-muted"><?php echo h((string)$metrics['perlu_update']); ?> lowongan memerlukan update keterisian.</div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Monitoring Kepatuhan per Unit</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Unit</th>
+                            <th>Total Laporan</th>
+                            <th>Terisi</th>
+                            <th>Belum Update</th>
+                            <th>Kepatuhan</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($complianceByUnit as $row): ?>
+                        <tr>
+                            <td><?php echo h($row['unit']); ?></td>
+                            <td><?php echo h((string)$row['total']); ?></td>
+                            <td><?php echo h((string)$row['terisi']); ?></td>
+                            <td><?php echo h((string)$row['belum_update']); ?></td>
+                            <td><?php echo h((string)$row['patuh_pct']); ?>%</td>
+                            <td><span class="badge text-bg-<?php echo h(karirhub_proto_status_badge_class($row['status'])); ?>"><?php echo h($row['status']); ?></span></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -120,10 +161,10 @@ $recentActivities = [
                     <tbody>
                         <?php foreach ($recentActivities as $row): ?>
                             <tr>
-                                <td><?php echo h($row['tanggal']); ?></td>
+                                <td><?php echo h($row['waktu']); ?></td>
                                 <td><?php echo h($row['aksi']); ?></td>
-                                <td><?php echo h($row['no_reg']); ?></td>
-                                <td><?php echo h($row['status']); ?></td>
+                                <td><?php echo h($row['no_reg_bukti']); ?></td>
+                                <td><span class="badge text-bg-<?php echo h(karirhub_proto_status_badge_class($row['status'])); ?>"><?php echo h($row['status']); ?></span></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

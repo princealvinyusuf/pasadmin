@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
+require_once __DIR__ . '/karirhub_employer_prototype_data.php';
 
 if (!(current_user_can('karirhub_employer_prototype_view') || current_user_can('manage_settings'))) {
     http_response_code(403);
@@ -14,20 +15,31 @@ function h(string $value): string
 }
 
 $query = strtolower(trim((string)($_GET['q'] ?? '')));
+$verifikasiFilter = trim((string)($_GET['verifikasi'] ?? 'all'));
+$allowedFilters = ['all', 'terverifikasi', 'perlu update'];
+if (!in_array($verifikasiFilter, $allowedFilters, true)) {
+    $verifikasiFilter = 'all';
+}
 
-$registryRows = [
-    ['no_reg' => 'WLLP-2026-0519-001278', 'lowongan_id' => 'LK-000987', 'jabatan' => 'Staff Operasional', 'jumlah' => '4', 'created_by' => 'admin@contoh.co.id', 'created_at' => '20 Mei 2026 08:10', 'verifikasi' => 'Terverifikasi'],
-    ['no_reg' => 'WLLP-2026-0518-001249', 'lowongan_id' => 'LK-000984', 'jabatan' => 'Admin HR', 'jumlah' => '2', 'created_by' => 'hr@contoh.co.id', 'created_at' => '18 Mei 2026 09:14', 'verifikasi' => 'Terverifikasi'],
-    ['no_reg' => 'WLLP-2026-0514-001180', 'lowongan_id' => 'LK-000971', 'jabatan' => 'Digital Marketing', 'jumlah' => '1', 'created_by' => 'hrd@contoh.co.id', 'created_at' => '14 Mei 2026 10:26', 'verifikasi' => 'Menunggu Update'],
-    ['no_reg' => 'WLLP-2026-0510-001032', 'lowongan_id' => 'LK-000954', 'jabatan' => 'Finance Officer', 'jumlah' => '2', 'created_by' => 'finance.hr@contoh.co.id', 'created_at' => '10 Mei 2026 15:40', 'verifikasi' => 'Terverifikasi'],
-];
+$dataset = karirhub_proto_dataset();
+$units = $dataset['units'];
+$registryRows = $dataset['vacancies'];
 
-$filteredRows = array_values(array_filter($registryRows, static function (array $row) use ($query): bool {
+$filteredRows = array_values(array_filter($registryRows, static function (array $row) use ($query, $verifikasiFilter): bool {
+    if ($verifikasiFilter !== 'all' && strtolower($row['status_verifikasi']) !== $verifikasiFilter) {
+        return false;
+    }
     if ($query === '') {
         return true;
     }
 
-    $haystack = strtolower(implode(' ', $row));
+    $haystack = strtolower(implode(' ', [
+        $row['no_reg_bukti'],
+        $row['id_lowongan'],
+        $row['jabatan'],
+        $row['unit_kode'],
+        $row['petugas_input'],
+    ]));
     return strpos($haystack, $query) !== false;
 }));
 ?>
@@ -67,6 +79,14 @@ $filteredRows = array_values(array_filter($registryRows, static function (array 
                         placeholder="Contoh: WLLP-2026-0519 atau Staff Operasional"
                     >
                 </div>
+                <div class="col-12 col-md-3">
+                    <label for="verifikasi" class="form-label mb-1">Status Verifikasi</label>
+                    <select id="verifikasi" name="verifikasi" class="form-select form-select-sm">
+                        <option value="all"<?php echo $verifikasiFilter === 'all' ? ' selected' : ''; ?>>Semua</option>
+                        <option value="terverifikasi"<?php echo $verifikasiFilter === 'terverifikasi' ? ' selected' : ''; ?>>Terverifikasi</option>
+                        <option value="perlu update"<?php echo $verifikasiFilter === 'perlu update' ? ' selected' : ''; ?>>Perlu Update</option>
+                    </select>
+                </div>
                 <div class="col-12 col-md-2 d-grid">
                     <button type="submit" class="btn btn-primary btn-sm">
                         <i class="bi bi-search me-1"></i>Cari
@@ -91,29 +111,33 @@ $filteredRows = array_values(array_filter($registryRows, static function (array 
                             <th>ID Lowongan</th>
                             <th>Jabatan</th>
                             <th>Jumlah</th>
+                            <th>Unit</th>
+                            <th>Mode Publikasi</th>
                             <th>Dibuat Oleh</th>
-                            <th>Waktu Buat</th>
+                            <th>Tanggal Lapor</th>
                             <th>Status Verifikasi</th>
                         </tr>
                     </thead>
                     <tbody>
                     <?php if (empty($filteredRows)): ?>
                         <tr>
-                            <td colspan="7" class="text-center text-muted">Data tidak ditemukan.</td>
+                            <td colspan="9" class="text-center text-muted">Data tidak ditemukan.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($filteredRows as $row): ?>
-                            <?php $isVerified = $row['verifikasi'] === 'Terverifikasi'; ?>
+                            <?php $badgeClass = karirhub_proto_status_badge_class($row['status_verifikasi']); ?>
                             <tr>
-                                <td class="fw-semibold"><?php echo h($row['no_reg']); ?></td>
-                                <td><?php echo h($row['lowongan_id']); ?></td>
+                                <td class="fw-semibold"><?php echo h($row['no_reg_bukti']); ?></td>
+                                <td><?php echo h($row['id_lowongan']); ?></td>
                                 <td><?php echo h($row['jabatan']); ?></td>
-                                <td><?php echo h($row['jumlah']); ?></td>
-                                <td><?php echo h($row['created_by']); ?></td>
-                                <td><?php echo h($row['created_at']); ?></td>
+                                <td><?php echo h((string)$row['jumlah_kebutuhan']); ?></td>
+                                <td><?php echo h(($units[$row['unit_kode']]['nama'] ?? $row['unit_kode'])); ?></td>
+                                <td><?php echo h($row['mode_publikasi']); ?></td>
+                                <td><?php echo h($row['petugas_input']); ?></td>
+                                <td><?php echo h($row['tanggal_lapor']); ?></td>
                                 <td>
-                                    <span class="badge text-bg-<?php echo h($isVerified ? 'success' : 'warning'); ?>">
-                                        <?php echo h($row['verifikasi']); ?>
+                                    <span class="badge text-bg-<?php echo h($badgeClass); ?>">
+                                        <?php echo h($row['status_verifikasi']); ?>
                                     </span>
                                 </td>
                             </tr>
