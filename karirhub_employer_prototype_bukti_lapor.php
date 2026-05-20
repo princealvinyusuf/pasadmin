@@ -19,6 +19,108 @@ function build_query_url(array $params): string
     return http_build_query($params);
 }
 
+function pdf_escape(string $text): string
+{
+    return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text);
+}
+
+function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
+{
+    $issuedAt = date('d-m-Y H:i:s');
+    $lines = [
+        'KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA',
+        'SIAPKERJA - KARIRHUB',
+        'BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)',
+        'Dokumen Referensi Prototype',
+        '',
+        'No. Reg Bukti          : ' . ($row['no_reg_bukti'] ?? '-'),
+        'Job Order              : ' . ($row['job_order_no'] ?? '-') . ' (' . ($row['job_order_revision'] ?? '-') . ')',
+        'Tanggal Lapor          : ' . ($row['tanggal_lapor'] ?? '-'),
+        'ID Lowongan            : ' . ($row['id_lowongan'] ?? '-'),
+        'Jabatan                : ' . ($row['jabatan'] ?? '-'),
+        'Jumlah Kebutuhan       : ' . (string)($row['jumlah_kebutuhan'] ?? 0),
+        'Unit/Perusahaan        : ' . $unitName,
+        'Lokasi Penempatan      : ' . ($row['lokasi_penempatan_detail'] ?? '-'),
+        'Masa Berlaku           : ' . ($row['masa_berlaku_mulai'] ?? '-') . ' s.d. ' . ($row['masa_berlaku_sampai'] ?? '-'),
+        'Tipe Kerja             : ' . ($row['employment_type'] ?? '-') . ' / ' . ($row['work_setup'] ?? '-') . ' / ' . ($row['shift_type'] ?? '-'),
+        'Hiring Manager         : ' . ($row['hiring_manager'] ?? '-'),
+        'Requested By           : ' . ($row['requested_by'] ?? '-') . ' - ' . ($row['requester_divisi'] ?? '-'),
+        'Cost Center            : ' . ($row['cost_center'] ?? '-'),
+        'Target Join            : ' . ($row['target_tgl_join'] ?? '-') . ' (SLA ' . (string)($row['sla_hiring_hari'] ?? 0) . ' hari)',
+        'Pipeline               : ' . (string)($row['jumlah_lamaran_masuk'] ?? 0) . '/' . (string)($row['jumlah_shortlist'] ?? 0) . '/' . (string)($row['jumlah_interview'] ?? 0) . '/' . (string)($row['jumlah_offer'] ?? 0),
+        'Status Verifikasi      : ' . ($row['status_verifikasi'] ?? '-'),
+        'Status Keterisian      : ' . ($row['status_keterisian'] ?? '-'),
+        'Approval               : ' . ($row['approval_state'] ?? '-') . ' by ' . ($row['approval_by'] ?? '-') . ' (' . ($row['approval_date'] ?? '-') . ')',
+        'Budget Status          : ' . ($row['budget_status'] ?? '-'),
+        '',
+        'Catatan: ' . ($row['catatan'] ?? '-'),
+        '',
+        'Diterbitkan oleh sistem prototype pada: ' . $issuedAt,
+        'Dokumen ini hanya untuk referensi UI/UX dan bukan dokumen legal resmi.',
+    ];
+
+    $streamParts = [];
+    $streamParts[] = 'BT';
+    $streamParts[] = '/F2 13 Tf';
+    $streamParts[] = '50 800 Td';
+    $streamParts[] = '(' . pdf_escape((string)$lines[0]) . ') Tj';
+    $streamParts[] = '/F1 11 Tf';
+    $streamParts[] = '0 -18 Td';
+    $streamParts[] = '(' . pdf_escape((string)$lines[1]) . ') Tj';
+    $streamParts[] = '/F2 12 Tf';
+    $streamParts[] = '0 -22 Td';
+    $streamParts[] = '(' . pdf_escape((string)$lines[2]) . ') Tj';
+    $streamParts[] = '/F1 10 Tf';
+    $streamParts[] = '0 -16 Td';
+    $streamParts[] = '(' . pdf_escape((string)$lines[3]) . ') Tj';
+    $streamParts[] = 'ET';
+
+    $streamParts[] = 'BT';
+    $streamParts[] = '/F1 10 Tf';
+    $streamParts[] = '50 710 Td';
+    $streamParts[] = '14 TL';
+    for ($i = 5; $i < count($lines); $i++) {
+        $streamParts[] = '(' . pdf_escape((string)$lines[$i]) . ') Tj';
+        if ($i < count($lines) - 1) {
+            $streamParts[] = 'T*';
+        }
+    }
+    $streamParts[] = 'ET';
+
+    // Decorative horizontal separator.
+    $streamParts[] = '0.7 w';
+    $streamParts[] = '50 785 m 545 785 l S';
+
+    $contentStream = implode("\n", $streamParts) . "\n";
+
+    $objects = [];
+    $objects[] = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
+    $objects[] = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
+    $objects[] = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>\nendobj\n";
+    $objects[] = "4 0 obj\n<< /Length " . strlen($contentStream) . " >>\nstream\n" . $contentStream . "endstream\nendobj\n";
+    $objects[] = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
+    $objects[] = "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
+
+    $pdf = "%PDF-1.4\n";
+    $offsets = [0];
+    foreach ($objects as $obj) {
+        $offsets[] = strlen($pdf);
+        $pdf .= $obj;
+    }
+
+    $xrefPos = strlen($pdf);
+    $pdf .= "xref\n0 " . (count($objects) + 1) . "\n";
+    $pdf .= "0000000000 65535 f \n";
+    for ($i = 1; $i <= count($objects); $i++) {
+        $pdf .= sprintf('%010d 00000 n ', $offsets[$i]) . "\n";
+    }
+
+    $pdf .= "trailer\n<< /Size " . (count($objects) + 1) . " /Root 1 0 R >>\n";
+    $pdf .= "startxref\n" . $xrefPos . "\n%%EOF";
+
+    return $pdf;
+}
+
 $statusFilter = trim((string)($_GET['status'] ?? 'all'));
 $allowedStatuses = ['all', 'terverifikasi', 'perlu update'];
 if (!in_array($statusFilter, $allowedStatuses, true)) {
@@ -92,44 +194,12 @@ if ($action !== '' && $actionRow === null && $actionError === null) {
 
 if ($action === 'unduh' && $actionRow !== null) {
     $unitName = $unitOptions[$actionRow['unit_kode']] ?? $actionRow['unit_kode'];
-    $downloadText = "Bukti Lapor WLLP (Dummy)\n";
-    $downloadText .= "No. Reg Bukti: " . $actionRow['no_reg_bukti'] . "\n";
-    $downloadText .= "Job Order No: " . ($actionRow['job_order_no'] ?? '-') . "\n";
-    $downloadText .= "Job Order Rev: " . ($actionRow['job_order_revision'] ?? '-') . "\n";
-    $downloadText .= "Job Order Date: " . ($actionRow['job_order_tanggal'] ?? '-') . "\n";
-    $downloadText .= "Job Order Status: " . ($actionRow['job_order_status'] ?? '-') . "\n";
-    $downloadText .= "Priority: " . ($actionRow['job_order_priority'] ?? '-') . "\n";
-    $downloadText .= "ID Lowongan: " . $actionRow['id_lowongan'] . "\n";
-    $downloadText .= "Tanggal Lapor: " . $actionRow['tanggal_lapor'] . "\n";
-    $downloadText .= "Jabatan: " . $actionRow['jabatan'] . "\n";
-    $downloadText .= "Jumlah Kebutuhan: " . (string)$actionRow['jumlah_kebutuhan'] . "\n";
-    $downloadText .= "Unit/Perusahaan: " . $unitName . "\n";
-    $downloadText .= "Masa Berlaku: " . $actionRow['masa_berlaku_mulai'] . " s.d. " . $actionRow['masa_berlaku_sampai'] . "\n";
-    $downloadText .= "Employment Type: " . ($actionRow['employment_type'] ?? '-') . "\n";
-    $downloadText .= "Work Setup: " . ($actionRow['work_setup'] ?? '-') . "\n";
-    $downloadText .= "Shift Type: " . ($actionRow['shift_type'] ?? '-') . "\n";
-    $downloadText .= "Lokasi Penempatan: " . ($actionRow['lokasi_penempatan_detail'] ?? '-') . "\n";
-    $downloadText .= "Hiring Manager: " . ($actionRow['hiring_manager'] ?? '-') . "\n";
-    $downloadText .= "Requested By: " . ($actionRow['requested_by'] ?? '-') . "\n";
-    $downloadText .= "Requester Divisi: " . ($actionRow['requester_divisi'] ?? '-') . "\n";
-    $downloadText .= "Cost Center: " . ($actionRow['cost_center'] ?? '-') . "\n";
-    $downloadText .= "Target Join Date: " . ($actionRow['target_tgl_join'] ?? '-') . "\n";
-    $downloadText .= "SLA Hiring (hari): " . (string)($actionRow['sla_hiring_hari'] ?? 0) . "\n";
-    $downloadText .= "Pipeline Lamaran/Shortlist/Interview/Offer: "
-        . (string)($actionRow['jumlah_lamaran_masuk'] ?? 0) . '/'
-        . (string)($actionRow['jumlah_shortlist'] ?? 0) . '/'
-        . (string)($actionRow['jumlah_interview'] ?? 0) . '/'
-        . (string)($actionRow['jumlah_offer'] ?? 0) . "\n";
-    $downloadText .= "Mode Publikasi: " . $actionRow['mode_publikasi'] . "\n";
-    $downloadText .= "Petugas Input: " . $actionRow['petugas_input'] . "\n";
-    $downloadText .= "Status Verifikasi: " . $actionRow['status_verifikasi'] . "\n";
-    $downloadText .= "Status Keterisian: " . $actionRow['status_keterisian'] . "\n";
-    $downloadText .= "Catatan: " . $actionRow['catatan'] . "\n";
-
-    $filename = 'bukti-lapor-' . preg_replace('/[^A-Za-z0-9\-]/', '_', $actionRow['no_reg_bukti']) . '.txt';
-    header('Content-Type: text/plain; charset=UTF-8');
+    $pdfBinary = generate_official_bukti_lapor_pdf($actionRow, $unitName);
+    $filename = 'bukti-lapor-' . preg_replace('/[^A-Za-z0-9\-]/', '_', $actionRow['no_reg_bukti']) . '.pdf';
+    header('Content-Type: application/pdf');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
-    echo $downloadText;
+    header('Content-Length: ' . strlen($pdfBinary));
+    echo $pdfBinary;
     exit;
 }
 ?>
@@ -256,7 +326,7 @@ if ($action === 'unduh' && $actionRow !== null) {
                                     <div class="btn-group btn-group-sm" role="group">
                                         <a class="btn btn-outline-primary" href="<?php echo h($urlLihat); ?>">Lihat</a>
                                         <a class="btn btn-outline-secondary" href="<?php echo h($urlCetak); ?>">Cetak</a>
-                                        <a class="btn btn-outline-dark" href="<?php echo h($urlUnduh); ?>">Unduh</a>
+                                        <a class="btn btn-outline-dark" href="<?php echo h($urlUnduh); ?>">Unduh PDF</a>
                                     </div>
                                 </td>
                             </tr>
