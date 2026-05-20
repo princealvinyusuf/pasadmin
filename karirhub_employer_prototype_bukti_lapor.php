@@ -24,72 +24,127 @@ function pdf_escape(string $text): string
     return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text);
 }
 
+function pdf_fit(string $text, int $maxLen = 82): string
+{
+    $text = trim($text);
+    if (strlen($text) <= $maxLen) {
+        return $text;
+    }
+    return substr($text, 0, $maxLen - 3) . '...';
+}
+
 function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
 {
     $issuedAt = date('d-m-Y H:i:s');
-    $lines = [
-        'KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA',
-        'SIAPKERJA - KARIRHUB',
-        'BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)',
-        'Dokumen Referensi Prototype',
-        '',
-        'No. Reg Bukti          : ' . ($row['no_reg_bukti'] ?? '-'),
-        'Job Order              : ' . ($row['job_order_no'] ?? '-') . ' (' . ($row['job_order_revision'] ?? '-') . ')',
-        'Tanggal Lapor          : ' . ($row['tanggal_lapor'] ?? '-'),
-        'ID Lowongan            : ' . ($row['id_lowongan'] ?? '-'),
-        'Jabatan                : ' . ($row['jabatan'] ?? '-'),
-        'Jumlah Kebutuhan       : ' . (string)($row['jumlah_kebutuhan'] ?? 0),
-        'Unit/Perusahaan        : ' . $unitName,
-        'Lokasi Penempatan      : ' . ($row['lokasi_penempatan_detail'] ?? '-'),
-        'Masa Berlaku           : ' . ($row['masa_berlaku_mulai'] ?? '-') . ' s.d. ' . ($row['masa_berlaku_sampai'] ?? '-'),
-        'Tipe Kerja             : ' . ($row['employment_type'] ?? '-') . ' / ' . ($row['work_setup'] ?? '-') . ' / ' . ($row['shift_type'] ?? '-'),
-        'Hiring Manager         : ' . ($row['hiring_manager'] ?? '-'),
-        'Requested By           : ' . ($row['requested_by'] ?? '-') . ' - ' . ($row['requester_divisi'] ?? '-'),
-        'Cost Center            : ' . ($row['cost_center'] ?? '-'),
-        'Target Join            : ' . ($row['target_tgl_join'] ?? '-') . ' (SLA ' . (string)($row['sla_hiring_hari'] ?? 0) . ' hari)',
-        'Pipeline               : ' . (string)($row['jumlah_lamaran_masuk'] ?? 0) . '/' . (string)($row['jumlah_shortlist'] ?? 0) . '/' . (string)($row['jumlah_interview'] ?? 0) . '/' . (string)($row['jumlah_offer'] ?? 0),
-        'Status Verifikasi      : ' . ($row['status_verifikasi'] ?? '-'),
-        'Status Keterisian      : ' . ($row['status_keterisian'] ?? '-'),
-        'Approval               : ' . ($row['approval_state'] ?? '-') . ' by ' . ($row['approval_by'] ?? '-') . ' (' . ($row['approval_date'] ?? '-') . ')',
-        'Budget Status          : ' . ($row['budget_status'] ?? '-'),
-        '',
-        'Catatan: ' . ($row['catatan'] ?? '-'),
-        '',
-        'Diterbitkan oleh sistem prototype pada: ' . $issuedAt,
-        'Dokumen ini hanya untuk referensi UI/UX dan bukan dokumen legal resmi.',
+    $rows = [
+        ['No. Reg Bukti', (string)($row['no_reg_bukti'] ?? '-')],
+        ['Job Order', (string)($row['job_order_no'] ?? '-') . ' / ' . (string)($row['job_order_revision'] ?? '-')],
+        ['Tanggal Lapor', (string)($row['tanggal_lapor'] ?? '-')],
+        ['ID Lowongan', (string)($row['id_lowongan'] ?? '-')],
+        ['Jabatan', (string)($row['jabatan'] ?? '-')],
+        ['Jumlah Kebutuhan', (string)($row['jumlah_kebutuhan'] ?? 0)],
+        ['Unit/Perusahaan', $unitName],
+        ['Lokasi Penempatan', (string)($row['lokasi_penempatan_detail'] ?? '-')],
+        ['Masa Berlaku', (string)($row['masa_berlaku_mulai'] ?? '-') . ' s.d. ' . (string)($row['masa_berlaku_sampai'] ?? '-')],
+        ['Tipe Kerja', (string)($row['employment_type'] ?? '-') . ' / ' . (string)($row['work_setup'] ?? '-') . ' / ' . (string)($row['shift_type'] ?? '-')],
+        ['Hiring Manager', (string)($row['hiring_manager'] ?? '-')],
+        ['Requested By', (string)($row['requested_by'] ?? '-') . ' - ' . (string)($row['requester_divisi'] ?? '-')],
+        ['Cost Center', (string)($row['cost_center'] ?? '-')],
+        ['Target Join', (string)($row['target_tgl_join'] ?? '-') . ' (SLA ' . (string)($row['sla_hiring_hari'] ?? 0) . ' hari)'],
+        ['Pipeline', (string)($row['jumlah_lamaran_masuk'] ?? 0) . '/' . (string)($row['jumlah_shortlist'] ?? 0) . '/' . (string)($row['jumlah_interview'] ?? 0) . '/' . (string)($row['jumlah_offer'] ?? 0)],
+        ['Status Verifikasi', (string)($row['status_verifikasi'] ?? '-')],
+        ['Status Keterisian', (string)($row['status_keterisian'] ?? '-')],
+        ['Approval', (string)($row['approval_state'] ?? '-') . ' by ' . (string)($row['approval_by'] ?? '-') . ' (' . (string)($row['approval_date'] ?? '-') . ')'],
+        ['Budget Status', (string)($row['budget_status'] ?? '-')],
     ];
 
     $streamParts = [];
-    $streamParts[] = 'BT';
-    $streamParts[] = '/F2 13 Tf';
-    $streamParts[] = '50 800 Td';
-    $streamParts[] = '(' . pdf_escape((string)$lines[0]) . ') Tj';
-    $streamParts[] = '/F1 11 Tf';
-    $streamParts[] = '0 -18 Td';
-    $streamParts[] = '(' . pdf_escape((string)$lines[1]) . ') Tj';
-    $streamParts[] = '/F2 12 Tf';
-    $streamParts[] = '0 -22 Td';
-    $streamParts[] = '(' . pdf_escape((string)$lines[2]) . ') Tj';
-    $streamParts[] = '/F1 10 Tf';
-    $streamParts[] = '0 -16 Td';
-    $streamParts[] = '(' . pdf_escape((string)$lines[3]) . ') Tj';
-    $streamParts[] = 'ET';
+    $left = 40;
+    $right = 555;
+    $width = $right - $left;
+    $headerY = 785;
+    $headerH = 45;
 
-    $streamParts[] = 'BT';
-    $streamParts[] = '/F1 10 Tf';
-    $streamParts[] = '50 710 Td';
-    $streamParts[] = '14 TL';
-    for ($i = 5; $i < count($lines); $i++) {
-        $streamParts[] = '(' . pdf_escape((string)$lines[$i]) . ') Tj';
-        if ($i < count($lines) - 1) {
-            $streamParts[] = 'T*';
+    // Page frame.
+    $streamParts[] = '0.87 0.9 0.95 RG';
+    $streamParts[] = '1 w';
+    $streamParts[] = '30 30 535 782 re S';
+
+    // Header band.
+    $streamParts[] = '0.08 0.29 0.55 rg';
+    $streamParts[] = $left . ' ' . $headerY . ' ' . $width . ' ' . $headerH . ' re f';
+    $streamParts[] = '1 1 1 rg';
+    $streamParts[] = 'BT /F2 13 Tf 52 812 Td (' . pdf_escape('KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA') . ') Tj ET';
+    $streamParts[] = 'BT /F1 10 Tf 52 798 Td (' . pdf_escape('SIAPKERJA - KARIRHUB') . ') Tj ET';
+    $streamParts[] = 'BT /F2 11 Tf 52 784 Td (' . pdf_escape('BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)') . ') Tj ET';
+
+    // Prototype status chip.
+    $chipX = 405;
+    $chipY = 792;
+    $chipW = 145;
+    $chipH = 20;
+    $streamParts[] = '0.12 0.65 0.39 rg';
+    $streamParts[] = $chipX . ' ' . $chipY . ' ' . $chipW . ' ' . $chipH . ' re f';
+    $streamParts[] = '1 1 1 rg';
+    $streamParts[] = 'BT /F2 9 Tf 418 799 Td (' . pdf_escape('VALID PROTOTYPE') . ') Tj ET';
+
+    // Section title.
+    $streamParts[] = '0.95 0.97 1 rg';
+    $streamParts[] = $left . ' 748 ' . $width . ' 24 re f';
+    $streamParts[] = '0.77 0.82 0.9 RG';
+    $streamParts[] = '0.8 w';
+    $streamParts[] = $left . ' 748 ' . $width . ' 24 re S';
+    $streamParts[] = '0.11 0.2 0.36 rg';
+    $streamParts[] = 'BT /F2 10 Tf 48 756 Td (' . pdf_escape('RINGKASAN DOKUMEN') . ') Tj ET';
+
+    // Key/value table.
+    $tableTopY = 748;
+    $rowH = 18;
+    $splitX = 190;
+    $currentTop = $tableTopY;
+    $rowIndex = 0;
+    foreach ($rows as $item) {
+        $yBottom = $currentTop - $rowH;
+        if ($rowIndex % 2 === 0) {
+            $streamParts[] = '0.985 0.99 1 rg';
+        } else {
+            $streamParts[] = '1 1 1 rg';
         }
-    }
-    $streamParts[] = 'ET';
+        $streamParts[] = $left . ' ' . $yBottom . ' ' . $width . ' ' . $rowH . ' re f';
+        $streamParts[] = '0.82 0.85 0.9 RG';
+        $streamParts[] = '0.7 w';
+        $streamParts[] = $left . ' ' . $yBottom . ' ' . $width . ' ' . $rowH . ' re S';
+        $streamParts[] = $splitX . ' ' . $yBottom . ' m ' . $splitX . ' ' . $currentTop . ' l S';
 
-    // Decorative horizontal separator.
+        $streamParts[] = '0.22 0.24 0.28 rg';
+        $streamParts[] = 'BT /F2 9 Tf 48 ' . ($yBottom + 6) . ' Td (' . pdf_escape(pdf_fit((string)$item[0], 34)) . ') Tj ET';
+        $streamParts[] = 'BT /F1 9 Tf 198 ' . ($yBottom + 6) . ' Td (' . pdf_escape(pdf_fit((string)$item[1], 78)) . ') Tj ET';
+
+        $currentTop -= $rowH;
+        $rowIndex++;
+    }
+
+    // Catatan panel.
+    $catatanTop = $currentTop - 8;
+    $catatanH = 48;
+    $streamParts[] = '0.94 0.97 1 rg';
+    $streamParts[] = $left . ' ' . ($catatanTop - $catatanH) . ' ' . $width . ' ' . $catatanH . ' re f';
+    $streamParts[] = '0.82 0.85 0.9 RG';
+    $streamParts[] = '0.8 w';
+    $streamParts[] = $left . ' ' . ($catatanTop - $catatanH) . ' ' . $width . ' ' . $catatanH . ' re S';
+    $streamParts[] = '0.11 0.2 0.36 rg';
+    $streamParts[] = 'BT /F2 9 Tf 48 ' . ($catatanTop - 13) . ' Td (' . pdf_escape('CATATAN') . ') Tj ET';
+    $streamParts[] = '0.25 0.26 0.31 rg';
+    $streamParts[] = 'BT /F1 9 Tf 48 ' . ($catatanTop - 27) . ' Td (' . pdf_escape(pdf_fit((string)($row['catatan'] ?? '-'), 100)) . ') Tj ET';
+
+    // Footer.
+    $footerY = 62;
+    $streamParts[] = '0.74 0.78 0.86 RG';
     $streamParts[] = '0.7 w';
-    $streamParts[] = '50 785 m 545 785 l S';
+    $streamParts[] = $left . ' ' . ($footerY + 18) . ' m ' . $right . ' ' . ($footerY + 18) . ' l S';
+    $streamParts[] = '0.35 0.38 0.45 rg';
+    $streamParts[] = 'BT /F1 8 Tf 48 ' . ($footerY + 6) . ' Td (' . pdf_escape('Diterbitkan oleh sistem prototype pada: ' . $issuedAt) . ') Tj ET';
+    $streamParts[] = 'BT /F1 8 Tf 48 ' . ($footerY - 6) . ' Td (' . pdf_escape('Dokumen ini hanya untuk referensi UI/UX dan bukan dokumen legal resmi.') . ') Tj ET';
 
     $contentStream = implode("\n", $streamParts) . "\n";
 
