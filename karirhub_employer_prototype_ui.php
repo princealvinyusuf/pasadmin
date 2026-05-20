@@ -20,6 +20,14 @@ if (!function_exists('kh_proto_render_styles')) {
             .kh-topnav-links a { color: #dbe8f3; text-decoration: none; font-size: 13px; font-weight: 500; }
             .kh-topnav-links a:hover { color: #ffffff; }
             .kh-topnav-links a.active { color: #ffffff; font-weight: 700; }
+            .kh-topnav-links .dropdown-toggle { color: #dbe8f3; text-decoration: none; font-size: 13px; font-weight: 500; background: transparent; border: none; padding: 0; }
+            .kh-topnav-links .dropdown-toggle:hover,
+            .kh-topnav-links .dropdown-toggle:focus { color: #ffffff; }
+            .kh-topnav-links .dropdown-toggle::after { margin-left: 6px; vertical-align: 0.15em; }
+            .kh-wllp-menu { min-width: 220px; border-radius: 8px; border: 1px solid #dbe5f1; padding: 6px 0; }
+            .kh-wllp-menu .dropdown-item { font-size: 13px; padding: 8px 14px; display: flex; align-items: center; gap: 8px; color: #1f2f42; }
+            .kh-wllp-menu .dropdown-item i { color: #0d3f6d; }
+            .kh-wllp-menu .dropdown-divider { margin: 6px 0; }
             .kh-topnav-right { display: flex; align-items: center; gap: 8px; }
             .kh-avatar { width: 24px; height: 24px; border-radius: 999px; background: #d8e5f3; color: #0b3b66; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
             .kh-nav-btn { border-radius: 4px; font-size: 12px; line-height: 1.2; padding: 6px 10px; }
@@ -71,6 +79,20 @@ if (!function_exists('kh_proto_render_hero')) {
                             <a href="karirhub_employer_prototype_no_reg_bukti">Talent Search</a>
                             <a href="karirhub_employer_prototype_bukti_lapor">Profil + Ulasan Perusahaan</a>
                             <a href="karirhub_employer_prototype_monitoring_kepatuhan">Lainnya <i class="bi bi-chevron-down"></i></a>
+                            <div class="dropdown">
+                                <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    WLLP
+                                </button>
+                                <ul class="dropdown-menu kh-wllp-menu">
+                                    <li><a class="dropdown-item" href="karirhub_employer_prototype_dashboard_wllp"><i class="bi bi-speedometer2"></i>Dashboard WLLP</a></li>
+                                    <li><a class="dropdown-item" href="karirhub_employer_prototype_bukti_lapor"><i class="bi bi-file-earmark-check"></i>Bukti Lapor</a></li>
+                                    <li><a class="dropdown-item" href="karirhub_employer_prototype_no_reg_bukti"><i class="bi bi-upc-scan"></i>No. Reg Bukti</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="karirhub_employer_prototype_pelaporan_lowongan"><i class="bi bi-journal-plus"></i>Pelaporan Lowongan</a></li>
+                                    <li><a class="dropdown-item" href="karirhub_employer_prototype_status_keterisian"><i class="bi bi-list-task"></i>Status Keterisian</a></li>
+                                    <li><a class="dropdown-item" href="karirhub_employer_prototype_monitoring_kepatuhan"><i class="bi bi-clipboard-data"></i>Monitoring Kepatuhan</a></li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                     <div class="kh-topnav-right">
