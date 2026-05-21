@@ -138,9 +138,17 @@ foreach ($rows as $row) {
             <h3 class="mb-0">Status Keterisian</h3>
             <div class="text-muted small">Simulasi update status lowongan WLLP</div>
         </div>
-        <a class="btn btn-outline-primary btn-sm" href="karirhub_employer_prototype_dashboard_wllp">
-            <i class="bi bi-arrow-left me-1"></i>Kembali ke Dashboard WLLP
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-outline-success btn-sm" id="btnDownloadTemplate">
+                <i class="bi bi-download me-1"></i>Download Template
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkImportModal">
+                <i class="bi bi-file-earmark-arrow-up me-1"></i>Bulk Import
+            </button>
+            <a class="btn btn-outline-primary btn-sm" href="karirhub_employer_prototype_dashboard_wllp">
+                <i class="bi bi-arrow-left me-1"></i>Kembali ke Dashboard WLLP
+            </a>
+        </div>
     </div>
 
     <?php if ($successMessage !== null): ?>
@@ -248,6 +256,41 @@ foreach ($rows as $row) {
 </div>
 </div>
 
+<div class="modal fade" id="bulkImportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Import Data Pegawai Ditempatkan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info py-2">
+                    Gunakan template Excel dari tombol <strong>Download Template</strong>. Header wajib: No Reg Bukti, NIK, Nama Lengkap, Pendidikan, Jenis Kelamin, Tempat Lahir, Tanggal Lahir, Alamat, Status Disabilitas, TMT, Email, Nomor Hp.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label mb-1">Pilih file Excel (.xlsx)</label>
+                    <input type="file" id="bulkImportFile" class="form-control form-control-sm" accept=".xlsx,.xls">
+                </div>
+                <div class="d-flex gap-2 mb-3">
+                    <button type="button" class="btn btn-primary btn-sm" id="btnProcessBulkImport">
+                        <i class="bi bi-upload me-1"></i>Proses Import
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnResetBulkImport">
+                        Reset
+                    </button>
+                </div>
+                <div id="bulkImportResult" class="small text-muted">Belum ada proses import.</div>
+                <div class="table-responsive mt-2" id="bulkImportPreviewWrap" style="display:none;">
+                    <table class="table table-sm table-bordered align-middle mb-0" id="bulkImportPreviewTable">
+                        <thead class="table-light"></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php if ($openTerisiRow !== null): ?>
 <div class="modal fade show" id="terisiPegawaiModal" tabindex="-1" aria-modal="true" role="dialog" style="display:block; background: rgba(0,0,0,0.35);">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -332,6 +375,161 @@ foreach ($rows as $row) {
 <?php endif; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <?php kh_proto_render_sidebar_script(); ?>
+<script>
+    (function () {
+        const headers = [
+            'No Reg Bukti',
+            'NIK',
+            'Nama Lengkap',
+            'Pendidikan',
+            'Jenis Kelamin',
+            'Tempat Lahir',
+            'Tanggal Lahir',
+            'Alamat',
+            'Status Disabilitas',
+            'TMT',
+            'Email',
+            'Nomor Hp',
+        ];
+
+        const btnDownload = document.getElementById('btnDownloadTemplate');
+        const btnProcess = document.getElementById('btnProcessBulkImport');
+        const btnReset = document.getElementById('btnResetBulkImport');
+        const fileInput = document.getElementById('bulkImportFile');
+        const resultEl = document.getElementById('bulkImportResult');
+        const previewWrap = document.getElementById('bulkImportPreviewWrap');
+        const previewTable = document.getElementById('bulkImportPreviewTable');
+
+        if (btnDownload) {
+            btnDownload.addEventListener('click', function () {
+                const sample = [
+                    'WLLP-2026-0519-001278',
+                    '3276011234567890',
+                    'Budi Santoso',
+                    'S1',
+                    'Laki-laki',
+                    'Bandung',
+                    '1998-02-15',
+                    'Jl. Melati No.10, Bandung',
+                    'Tidak',
+                    '2026-06-01',
+                    'budi.santoso@mail.com',
+                    '081234567890',
+                ];
+                const ws = XLSX.utils.aoa_to_sheet([headers, sample]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Template Import');
+                XLSX.writeFile(wb, 'template_bulk_import_pegawai_wllp.xlsx');
+            });
+        }
+
+        function resetImportState() {
+            if (fileInput) fileInput.value = '';
+            if (resultEl) {
+                resultEl.className = 'small text-muted';
+                resultEl.textContent = 'Belum ada proses import.';
+            }
+            if (previewWrap) previewWrap.style.display = 'none';
+            if (previewTable) {
+                previewTable.querySelector('thead').innerHTML = '';
+                previewTable.querySelector('tbody').innerHTML = '';
+            }
+        }
+
+        if (btnReset) {
+            btnReset.addEventListener('click', resetImportState);
+        }
+
+        function validateHeaders(actualHeaders) {
+            if (actualHeaders.length < headers.length) return false;
+            for (let i = 0; i < headers.length; i += 1) {
+                if ((actualHeaders[i] || '').trim() !== headers[i]) return false;
+            }
+            return true;
+        }
+
+        if (btnProcess) {
+            btnProcess.addEventListener('click', function () {
+                if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                    resultEl.className = 'alert alert-warning py-2 mb-0';
+                    resultEl.textContent = 'Silakan pilih file Excel terlebih dahulu.';
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function (evt) {
+                    try {
+                        const data = new Uint8Array(evt.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const sheet = workbook.Sheets[firstSheetName];
+                        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+                        if (!rows.length) {
+                            resultEl.className = 'alert alert-danger py-2 mb-0';
+                            resultEl.textContent = 'File kosong. Gunakan template yang sudah disediakan.';
+                            return;
+                        }
+
+                        const headerRow = rows[0].map((cell) => String(cell).trim());
+                        if (!validateHeaders(headerRow)) {
+                            resultEl.className = 'alert alert-danger py-2 mb-0';
+                            resultEl.textContent = 'Header tidak sesuai template. Silakan download ulang template.';
+                            return;
+                        }
+
+                        const dataRows = rows.slice(1).filter((r) => r.some((cell) => String(cell).trim() !== ''));
+                        let validCount = 0;
+                        const errors = [];
+
+                        dataRows.forEach((r, idx) => {
+                            const rowNumber = idx + 2;
+                            const map = {};
+                            headers.forEach((h, i) => { map[h] = String(r[i] || '').trim(); });
+
+                            const missing = headers.filter((h) => map[h] === '');
+                            if (missing.length) {
+                                errors.push('Baris ' + rowNumber + ': kolom kosong -> ' + missing.join(', '));
+                                return;
+                            }
+                            if (!['Iya', 'Tidak'].includes(map['Status Disabilitas'])) {
+                                errors.push('Baris ' + rowNumber + ': Status Disabilitas harus Iya/Tidak.');
+                                return;
+                            }
+                            validCount += 1;
+                        });
+
+                        const previewRows = dataRows.slice(0, 5);
+                        if (previewRows.length) {
+                            previewWrap.style.display = '';
+                            previewTable.querySelector('thead').innerHTML = '<tr>' + headers.map((h) => '<th>' + h + '</th>').join('') + '</tr>';
+                            previewTable.querySelector('tbody').innerHTML = previewRows.map((r) => '<tr>' + headers.map((_, i) => '<td>' + String(r[i] || '') + '</td>').join('') + '</tr>').join('');
+                        } else {
+                            previewWrap.style.display = 'none';
+                        }
+
+                        if (errors.length) {
+                            resultEl.className = 'alert alert-warning py-2 mb-0';
+                            resultEl.innerHTML =
+                                '<strong>Import selesai dengan catatan.</strong><br>' +
+                                'Total baris: ' + dataRows.length + ', valid: ' + validCount + ', invalid: ' + errors.length +
+                                '<br><small>' + errors.slice(0, 5).join('<br>') + (errors.length > 5 ? '<br>...dan lainnya.' : '') + '</small>';
+                        } else {
+                            resultEl.className = 'alert alert-success py-2 mb-0';
+                            resultEl.textContent = 'Import berhasil. Total baris valid: ' + validCount + ' (simulasi prototype, belum disimpan permanen).';
+                        }
+                    } catch (err) {
+                        resultEl.className = 'alert alert-danger py-2 mb-0';
+                        resultEl.textContent = 'Gagal membaca file Excel: ' + (err && err.message ? err.message : String(err));
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+    })();
+</script>
 </body>
 </html>
