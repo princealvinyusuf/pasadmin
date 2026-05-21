@@ -68,6 +68,7 @@ $form = [
     'pengalaman_min_tahun' => trim((string)($_POST['pengalaman_min_tahun'] ?? '')),
     'rentang_gaji' => trim((string)($_POST['rentang_gaji'] ?? '')),
     'domisili_kerja' => trim((string)($_POST['domisili_kerja'] ?? '')),
+    'tipe_kerja' => trim((string)($_POST['tipe_kerja'] ?? '')),
     'masa_berlaku_mulai' => trim((string)($_POST['masa_berlaku_mulai'] ?? date('Y-m-d'))),
     'masa_berlaku_sampai' => trim((string)($_POST['masa_berlaku_sampai'] ?? date('Y-m-d', strtotime('+30 days')))),
     'alamat_url_postingan_loker' => trim((string)($_POST['alamat_url_postingan_loker'] ?? '')),
@@ -89,6 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'pengalaman_min_tahun' => 'Pengalaman Minimal (tahun)',
         'rentang_gaji' => 'Rentang Gaji',
         'domisili_kerja' => 'Domisili Kerja',
+        'tipe_kerja' => 'Tipe Kerja',
         'masa_berlaku_mulai' => 'Masa Berlaku Mulai',
         'masa_berlaku_sampai' => 'Masa Berlaku Sampai',
         'alamat_url_postingan_loker' => 'Alamat URL Postingan Loker',
@@ -297,6 +299,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="col-12 col-md-6">
                     <label class="form-label mb-1">Domisili Kerja</label>
                     <input type="text" name="domisili_kerja" class="form-control form-control-sm" value="<?php echo h($form['domisili_kerja']); ?>">
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label mb-1">Tipe Kerja</label>
+                    <select name="tipe_kerja" class="form-select form-select-sm">
+                        <option value="">Pilih</option>
+                        <?php foreach (['Full Time', 'Part Time', 'Contract', 'Internship'] as $tipe): ?>
+                            <option value="<?php echo h($tipe); ?>"<?php echo $form['tipe_kerja'] === $tipe ? ' selected' : ''; ?>><?php echo h($tipe); ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
                 <div class="col-12 col-md-6">
