@@ -97,15 +97,9 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
         ['Lokasi Penempatan', (string)($row['lokasi_penempatan_detail'] ?? '-')],
         ['Masa Berlaku', (string)($row['masa_berlaku_mulai'] ?? '-') . ' s.d. ' . (string)($row['masa_berlaku_sampai'] ?? '-')],
         ['Tipe Kerja', (string)($row['employment_type'] ?? '-') . ' / ' . (string)($row['work_setup'] ?? '-') . ' / ' . (string)($row['shift_type'] ?? '-')],
-        ['Hiring Manager', (string)($row['hiring_manager'] ?? '-')],
-        ['Requested By', (string)($row['requested_by'] ?? '-') . ' - ' . (string)($row['requester_divisi'] ?? '-')],
-        ['Cost Center', (string)($row['cost_center'] ?? '-')],
-        ['Target Join', (string)($row['target_tgl_join'] ?? '-') . ' (SLA ' . (string)($row['sla_hiring_hari'] ?? 0) . ' hari)'],
-        ['Pipeline', (string)($row['jumlah_lamaran_masuk'] ?? 0) . '/' . (string)($row['jumlah_shortlist'] ?? 0) . '/' . (string)($row['jumlah_interview'] ?? 0) . '/' . (string)($row['jumlah_offer'] ?? 0)],
         ['Status Verifikasi', (string)($row['status_verifikasi'] ?? '-')],
         ['Status Keterisian', (string)($row['status_keterisian'] ?? '-')],
         ['Approval', (string)($row['approval_state'] ?? '-') . ' by ' . (string)($row['approval_by'] ?? '-') . ' (' . (string)($row['approval_date'] ?? '-') . ')'],
-        ['Budget Status', (string)($row['budget_status'] ?? '-')],
     ];
 
     $streamParts = [];
@@ -553,13 +547,10 @@ if ($action === 'unduh' && $actionRow !== null) {
                             <th>ID Lowongan</th>
                             <th>Tanggal Lapor</th>
                             <th>Jabatan</th>
-                            <th>Priority</th>
-                            <th>Hiring Manager</th>
                             <th>Jumlah</th>
                             <th>Unit/Perusahaan</th>
                             <th>Masa Berlaku</th>
                             <th>Tipe Kerja</th>
-                            <th>Petugas</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
@@ -567,7 +558,7 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <tbody>
                     <?php if (empty($filteredRows)): ?>
                         <tr>
-                            <td colspan="14" class="text-center text-muted">Tidak ada data sesuai filter.</td>
+                            <td colspan="11" class="text-center text-muted">Tidak ada data sesuai filter.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($filteredRows as $row): ?>
@@ -586,13 +577,10 @@ if ($action === 'unduh' && $actionRow !== null) {
                                 <td><?php echo h($row['id_lowongan']); ?></td>
                                 <td><?php echo h($row['tanggal_lapor']); ?></td>
                                 <td><?php echo h($row['jabatan']); ?></td>
-                                <td><?php echo h((string)($row['job_order_priority'] ?? '-')); ?></td>
-                                <td><?php echo h((string)($row['hiring_manager'] ?? '-')); ?></td>
                                 <td><?php echo h((string)$row['jumlah_kebutuhan']); ?></td>
                                 <td><?php echo h($unitOptions[$row['unit_kode']] ?? $row['unit_kode']); ?></td>
                                 <td><?php echo h($row['masa_berlaku_sampai']); ?></td>
                                 <td><?php echo h((string)($row['employment_type'] ?? '-')); ?></td>
-                                <td><?php echo h($row['petugas_input']); ?></td>
                                 <td><span class="badge text-bg-<?php echo h($badgeClass); ?>"><?php echo h($row['status_verifikasi']); ?></span></td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
@@ -629,7 +617,6 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <div class="col-md-6"><strong>Job Order Revision:</strong><br><?php echo h((string)($actionRow['job_order_revision'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Job Order Date:</strong><br><?php echo h((string)($actionRow['job_order_tanggal'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Job Order Status:</strong><br><?php echo h((string)($actionRow['job_order_status'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Priority:</strong><br><?php echo h((string)($actionRow['job_order_priority'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Approval State:</strong><br><?php echo h((string)($actionRow['approval_state'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Approval By:</strong><br><?php echo h((string)($actionRow['approval_by'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Approval Date:</strong><br><?php echo h((string)($actionRow['approval_date'] ?? '-')); ?></div>
@@ -640,27 +627,15 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <div class="col-md-6"><strong>Unit/Perusahaan:</strong><br><?php echo h($unitOptions[$actionRow['unit_kode']] ?? $actionRow['unit_kode']); ?></div>
                     <div class="col-md-6"><strong>Mode Publikasi:</strong><br><?php echo h($actionRow['mode_publikasi']); ?></div>
                     <div class="col-md-6"><strong>Masa Berlaku:</strong><br><?php echo h($actionRow['masa_berlaku_mulai']); ?> s.d. <?php echo h($actionRow['masa_berlaku_sampai']); ?></div>
-                    <div class="col-md-6"><strong>Target Join Date:</strong><br><?php echo h((string)($actionRow['target_tgl_join'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>SLA Hiring:</strong><br><?php echo h((string)($actionRow['sla_hiring_hari'] ?? 0)); ?> hari</div>
                     <div class="col-md-6"><strong>Employment Type:</strong><br><?php echo h((string)($actionRow['employment_type'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Work Setup:</strong><br><?php echo h((string)($actionRow['work_setup'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Shift Type:</strong><br><?php echo h((string)($actionRow['shift_type'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Lokasi Penempatan:</strong><br><?php echo h((string)($actionRow['lokasi_penempatan_detail'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Hiring Manager:</strong><br><?php echo h((string)($actionRow['hiring_manager'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Requested By:</strong><br><?php echo h((string)($actionRow['requested_by'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Requester Divisi:</strong><br><?php echo h((string)($actionRow['requester_divisi'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Cost Center:</strong><br><?php echo h((string)($actionRow['cost_center'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Sumber Rekrutmen:</strong><br><?php echo h((string)($actionRow['sumber_rekrutmen'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Budget Status:</strong><br><?php echo h((string)($actionRow['budget_status'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Status Verifikasi:</strong><br><?php echo h($actionRow['status_verifikasi']); ?></div>
                     <div class="col-md-6"><strong>Status Keterisian:</strong><br><?php echo h($actionRow['status_keterisian']); ?></div>
-                    <div class="col-md-6"><strong>Petugas Input:</strong><br><?php echo h($actionRow['petugas_input']); ?></div>
-                    <div class="col-md-6"><strong>Pipeline Lamaran:</strong><br>
-                        <?php echo h((string)($actionRow['jumlah_lamaran_masuk'] ?? 0)); ?> / shortlist
-                        <?php echo h((string)($actionRow['jumlah_shortlist'] ?? 0)); ?> / interview
-                        <?php echo h((string)($actionRow['jumlah_interview'] ?? 0)); ?> / offer
-                        <?php echo h((string)($actionRow['jumlah_offer'] ?? 0)); ?>
-                    </div>
                     <div class="col-12"><strong>Keterampilan Utama:</strong><br><?php echo h($actionRow['keterampilan_utama']); ?></div>
                     <div class="col-12"><strong>Catatan:</strong><br><?php echo h($actionRow['catatan']); ?></div>
                 </div>
@@ -703,7 +678,6 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <tr><th>Job Order Revision</th><td>${<?php echo json_encode((string)($actionRow['job_order_revision'] ?? '-')); ?>}</td></tr>
                     <tr><th>Job Order Date</th><td>${<?php echo json_encode((string)($actionRow['job_order_tanggal'] ?? '-')); ?>}</td></tr>
                     <tr><th>Job Order Status</th><td>${<?php echo json_encode((string)($actionRow['job_order_status'] ?? '-')); ?>}</td></tr>
-                    <tr><th>Priority</th><td>${<?php echo json_encode((string)($actionRow['job_order_priority'] ?? '-')); ?>}</td></tr>
                     <tr><th>ID Lowongan</th><td>${<?php echo json_encode($actionRow['id_lowongan']); ?>}</td></tr>
                     <tr><th>Jabatan</th><td>${<?php echo json_encode($actionRow['jabatan']); ?>}</td></tr>
                     <tr><th>Tanggal Lapor</th><td>${<?php echo json_encode($actionRow['tanggal_lapor']); ?>}</td></tr>
@@ -713,24 +687,10 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <tr><th>Employment Type</th><td>${<?php echo json_encode((string)($actionRow['employment_type'] ?? '-')); ?>}</td></tr>
                     <tr><th>Work Setup</th><td>${<?php echo json_encode((string)($actionRow['work_setup'] ?? '-')); ?>}</td></tr>
                     <tr><th>Shift Type</th><td>${<?php echo json_encode((string)($actionRow['shift_type'] ?? '-')); ?>}</td></tr>
-                    <tr><th>Hiring Manager</th><td>${<?php echo json_encode((string)($actionRow['hiring_manager'] ?? '-')); ?>}</td></tr>
-                    <tr><th>Requested By</th><td>${<?php echo json_encode((string)($actionRow['requested_by'] ?? '-')); ?>}</td></tr>
                     <tr><th>Requester Divisi</th><td>${<?php echo json_encode((string)($actionRow['requester_divisi'] ?? '-')); ?>}</td></tr>
-                    <tr><th>Cost Center</th><td>${<?php echo json_encode((string)($actionRow['cost_center'] ?? '-')); ?>}</td></tr>
-                    <tr><th>Target Join Date</th><td>${<?php echo json_encode((string)($actionRow['target_tgl_join'] ?? '-')); ?>}</td></tr>
                     <tr><th>SLA Hiring (hari)</th><td>${<?php echo json_encode((string)($actionRow['sla_hiring_hari'] ?? 0)); ?>}</td></tr>
-                    <tr><th>Pipeline</th><td>${<?php echo json_encode(
-                        (string)($actionRow['jumlah_lamaran_masuk'] ?? 0)
-                        . '/'
-                        . (string)($actionRow['jumlah_shortlist'] ?? 0)
-                        . '/'
-                        . (string)($actionRow['jumlah_interview'] ?? 0)
-                        . '/'
-                        . (string)($actionRow['jumlah_offer'] ?? 0)
-                    ); ?>}</td></tr>
                     <tr><th>Status Verifikasi</th><td>${<?php echo json_encode($actionRow['status_verifikasi']); ?>}</td></tr>
                     <tr><th>Status Keterisian</th><td>${<?php echo json_encode($actionRow['status_keterisian']); ?>}</td></tr>
-                    <tr><th>Petugas Input</th><td>${<?php echo json_encode($actionRow['petugas_input']); ?>}</td></tr>
                     <tr><th>Catatan</th><td>${<?php echo json_encode($actionRow['catatan']); ?>}</td></tr>
                 </table>
             </body>
