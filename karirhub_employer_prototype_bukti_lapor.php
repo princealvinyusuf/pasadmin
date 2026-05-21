@@ -3,6 +3,7 @@ require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
 require_once __DIR__ . '/karirhub_employer_prototype_data.php';
 require_once __DIR__ . '/karirhub_employer_prototype_ui.php';
+require_once __DIR__ . '/db.php';
 
 if (!(current_user_can('karirhub_employer_prototype_view') || current_user_can('manage_settings'))) {
     http_response_code(403);
@@ -255,10 +256,153 @@ $query = strtolower(trim((string)($_GET['q'] ?? '')));
 $dataset = karirhub_proto_dataset();
 $units = $dataset['units'];
 $rows = $dataset['vacancies'];
+$rowsByNoReg = [];
+foreach ($rows as $r) {
+    $rowsByNoReg[(string)$r['no_reg_bukti']] = $r;
+}
 $unitOptions = [];
 foreach ($units as $unitCode => $unitInfo) {
     $unitOptions[$unitCode] = $unitInfo['nama'];
 }
+
+$conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_pelaporan (
+    no_reg_bukti VARCHAR(60) PRIMARY KEY,
+    id_lowongan VARCHAR(30) NOT NULL,
+    unit_kode VARCHAR(40) NOT NULL,
+    unit_nama VARCHAR(255) NOT NULL,
+    jabatan VARCHAR(200) NOT NULL,
+    jumlah_kebutuhan INT NOT NULL,
+    jenis_kelamin VARCHAR(30) NOT NULL,
+    usia_min INT NOT NULL,
+    usia_max INT NOT NULL,
+    pendidikan_minimal VARCHAR(120) NOT NULL,
+    deskripsi_pekerjaan TEXT NOT NULL,
+    keterampilan_utama TEXT NOT NULL,
+    pengalaman_min_tahun INT NOT NULL,
+    rentang_gaji VARCHAR(120) NOT NULL,
+    domisili_kerja VARCHAR(150) NOT NULL,
+    masa_berlaku_mulai DATE NOT NULL,
+    masa_berlaku_sampai DATE NOT NULL,
+    alamat_url_postingan_loker VARCHAR(500) NOT NULL,
+    catatan TEXT DEFAULT NULL,
+    status_verifikasi VARCHAR(60) NOT NULL DEFAULT 'Terverifikasi',
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_status (
+    no_reg_bukti VARCHAR(60) PRIMARY KEY,
+    id_lowongan VARCHAR(30) NOT NULL,
+    jabatan VARCHAR(200) NOT NULL,
+    unit_nama VARCHAR(255) NOT NULL,
+    status_saat_ini VARCHAR(50) NOT NULL,
+    tanggal_lapor DATE NOT NULL,
+    tanggal_terisi DATE DEFAULT NULL,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$unitCodeByName = [];
+foreach ($units as $code => $unitInfo) {
+    $unitCodeByName[(string)$unitInfo['nama']] = (string)$code;
+}
+
+$defaultMeta = [
+    'job_order_no' => 'JO-UNMAPPED',
+    'job_order_revision' => 'REV-00',
+    'job_order_tanggal' => date('Y-m-d'),
+    'job_order_status' => 'Draft',
+    'job_order_priority' => 'Medium',
+    'requested_by' => 'N/A',
+    'requester_divisi' => 'N/A',
+    'hiring_manager' => 'N/A',
+    'cost_center' => 'CC-NA',
+    'employment_type' => 'PKWT',
+    'work_setup' => 'Onsite',
+    'shift_type' => 'Non-Shift',
+    'lokasi_penempatan_detail' => '-',
+    'sumber_rekrutmen' => 'Karirhub',
+    'target_tgl_join' => date('Y-m-d', strtotime('+30 days')),
+    'sla_hiring_hari' => 30,
+    'jumlah_lamaran_masuk' => 0,
+    'jumlah_shortlist' => 0,
+    'jumlah_interview' => 0,
+    'jumlah_offer' => 0,
+    'approval_state' => 'Pending',
+    'approval_by' => '-',
+    'approval_date' => '-',
+    'budget_status' => 'Pending',
+];
+
+$resPelaporan = $conn->query("SELECT * FROM karirhub_proto_wllp_pelaporan ORDER BY created_at DESC");
+if ($resPelaporan) {
+    while ($p = $resPelaporan->fetch_assoc()) {
+        $nr = (string)$p['no_reg_bukti'];
+        if (isset($rowsByNoReg[$nr])) {
+            $rowsByNoReg[$nr] = array_merge($rowsByNoReg[$nr], [
+                'id_lowongan' => (string)$p['id_lowongan'],
+                'unit_kode' => (string)$p['unit_kode'],
+                'jabatan' => (string)$p['jabatan'],
+                'jumlah_kebutuhan' => (int)$p['jumlah_kebutuhan'],
+                'jenis_kelamin' => (string)$p['jenis_kelamin'],
+                'usia_min' => (int)$p['usia_min'],
+                'usia_max' => (int)$p['usia_max'],
+                'pendidikan_minimal' => (string)$p['pendidikan_minimal'],
+                'keterampilan_utama' => (string)$p['keterampilan_utama'],
+                'pengalaman_min_tahun' => (int)$p['pengalaman_min_tahun'],
+                'rentang_gaji' => (string)$p['rentang_gaji'],
+                'domisili_kerja' => (string)$p['domisili_kerja'],
+                'status_verifikasi' => (string)$p['status_verifikasi'],
+                'tanggal_lapor' => (string)$p['masa_berlaku_mulai'],
+                'masa_berlaku_mulai' => (string)$p['masa_berlaku_mulai'],
+                'masa_berlaku_sampai' => (string)$p['masa_berlaku_sampai'],
+                'catatan' => (string)$p['catatan'],
+                'mode_publikasi' => 'Publik',
+                'petugas_input' => '-',
+            ]);
+        } else {
+            $rowsByNoReg[$nr] = array_merge($defaultMeta, [
+                'no_reg_bukti' => $nr,
+                'id_lowongan' => (string)$p['id_lowongan'],
+                'unit_kode' => (string)$p['unit_kode'],
+                'jabatan' => (string)$p['jabatan'],
+                'jumlah_kebutuhan' => (int)$p['jumlah_kebutuhan'],
+                'jenis_kelamin' => (string)$p['jenis_kelamin'],
+                'usia_min' => (int)$p['usia_min'],
+                'usia_max' => (int)$p['usia_max'],
+                'pendidikan_minimal' => (string)$p['pendidikan_minimal'],
+                'keterampilan_utama' => (string)$p['keterampilan_utama'],
+                'pengalaman_min_tahun' => (int)$p['pengalaman_min_tahun'],
+                'rentang_gaji' => (string)$p['rentang_gaji'],
+                'domisili_kerja' => (string)$p['domisili_kerja'],
+                'status_verifikasi' => (string)$p['status_verifikasi'],
+                'status_keterisian' => 'Belum Terisi',
+                'tanggal_lapor' => (string)$p['masa_berlaku_mulai'],
+                'masa_berlaku_mulai' => (string)$p['masa_berlaku_mulai'],
+                'masa_berlaku_sampai' => (string)$p['masa_berlaku_sampai'],
+                'tanggal_terisi' => null,
+                'catatan' => (string)$p['catatan'],
+                'mode_publikasi' => 'Publik',
+                'petugas_input' => '-',
+            ]);
+        }
+    }
+}
+
+$resStatus = $conn->query("SELECT no_reg_bukti, status_saat_ini, tanggal_terisi, unit_nama FROM karirhub_proto_wllp_status");
+if ($resStatus) {
+    while ($s = $resStatus->fetch_assoc()) {
+        $nr = (string)$s['no_reg_bukti'];
+        if (isset($rowsByNoReg[$nr])) {
+            $rowsByNoReg[$nr]['status_keterisian'] = (string)$s['status_saat_ini'];
+            $rowsByNoReg[$nr]['tanggal_terisi'] = (string)$s['tanggal_terisi'];
+            if (!empty($s['unit_nama']) && empty($rowsByNoReg[$nr]['unit_kode'])) {
+                $rowsByNoReg[$nr]['unit_kode'] = $unitCodeByName[(string)$s['unit_nama']] ?? (string)$s['unit_nama'];
+            }
+        }
+    }
+}
+
+$rows = array_values($rowsByNoReg);
 if ($unitFilter !== 'all' && !isset($unitOptions[$unitFilter])) {
     $unitFilter = 'all';
 }

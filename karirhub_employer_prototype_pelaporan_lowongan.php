@@ -3,6 +3,7 @@ require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
 require_once __DIR__ . '/karirhub_employer_prototype_data.php';
 require_once __DIR__ . '/karirhub_employer_prototype_ui.php';
+require_once __DIR__ . '/db.php';
 
 if (!(current_user_can('karirhub_employer_prototype_view') || current_user_can('manage_settings'))) {
     http_response_code(403);
@@ -17,6 +18,42 @@ function h(string $value): string
 
 $dataset = karirhub_proto_dataset();
 $units = $dataset['units'];
+
+$conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_pelaporan (
+    no_reg_bukti VARCHAR(60) PRIMARY KEY,
+    id_lowongan VARCHAR(30) NOT NULL,
+    unit_kode VARCHAR(40) NOT NULL,
+    unit_nama VARCHAR(255) NOT NULL,
+    jabatan VARCHAR(200) NOT NULL,
+    jumlah_kebutuhan INT NOT NULL,
+    jenis_kelamin VARCHAR(30) NOT NULL,
+    usia_min INT NOT NULL,
+    usia_max INT NOT NULL,
+    pendidikan_minimal VARCHAR(120) NOT NULL,
+    deskripsi_pekerjaan TEXT NOT NULL,
+    keterampilan_utama TEXT NOT NULL,
+    pengalaman_min_tahun INT NOT NULL,
+    rentang_gaji VARCHAR(120) NOT NULL,
+    domisili_kerja VARCHAR(150) NOT NULL,
+    masa_berlaku_mulai DATE NOT NULL,
+    masa_berlaku_sampai DATE NOT NULL,
+    alamat_url_postingan_loker VARCHAR(500) NOT NULL,
+    catatan TEXT DEFAULT NULL,
+    status_verifikasi VARCHAR(60) NOT NULL DEFAULT 'Terverifikasi',
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_status (
+    no_reg_bukti VARCHAR(60) PRIMARY KEY,
+    id_lowongan VARCHAR(30) NOT NULL,
+    jabatan VARCHAR(200) NOT NULL,
+    unit_nama VARCHAR(255) NOT NULL,
+    status_saat_ini VARCHAR(50) NOT NULL,
+    tanggal_lapor DATE NOT NULL,
+    tanggal_terisi DATE DEFAULT NULL,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
 $form = [
     'unit_kode' => (string)($_POST['unit_kode'] ?? 'UNIT-001'),
@@ -75,9 +112,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
+        $generatedIdLowongan = 'LK-SIM-' . strtoupper(substr(md5($form['jabatan'] . microtime(true)), 0, 6));
+        $generatedNoReg = 'WLLP-' . date('Ymd') . '-SIM-' . substr((string)time(), -4);
+        $unitNama = (string)($units[$form['unit_kode']]['nama'] ?? $form['unit_kode']);
+
+        $stmtSavePelaporan = $conn->prepare("
+            INSERT INTO karirhub_proto_wllp_pelaporan (
+                no_reg_bukti, id_lowongan, unit_kode, unit_nama, jabatan, jumlah_kebutuhan, jenis_kelamin, usia_min, usia_max,
+                pendidikan_minimal, deskripsi_pekerjaan, keterampilan_utama, pengalaman_min_tahun, rentang_gaji, domisili_kerja,
+                masa_berlaku_mulai, masa_berlaku_sampai, alamat_url_postingan_loker, catatan, status_verifikasi
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Terverifikasi')
+        ");
+        $jumlahKebutuhanInt = (int)$form['jumlah_kebutuhan'];
+        $usiaMinInt = (int)$form['usia_min'];
+        $usiaMaxInt = (int)$form['usia_max'];
+        $pengalamanMinInt = (int)$form['pengalaman_min_tahun'];
+        $stmtSavePelaporan->bind_param(
+            'sssssisiisssissssss',
+            $generatedNoReg,
+            $generatedIdLowongan,
+            $form['unit_kode'],
+            $unitNama,
+            $form['jabatan'],
+            $jumlahKebutuhanInt,
+            $form['jenis_kelamin'],
+            $usiaMinInt,
+            $usiaMaxInt,
+            $form['pendidikan_minimal'],
+            $form['deskripsi_pekerjaan'],
+            $form['keterampilan_utama'],
+            $pengalamanMinInt,
+            $form['rentang_gaji'],
+            $form['domisili_kerja'],
+            $form['masa_berlaku_mulai'],
+            $form['masa_berlaku_sampai'],
+            $form['alamat_url_postingan_loker'],
+            $form['catatan']
+        );
+        $stmtSavePelaporan->execute();
+        $stmtSavePelaporan->close();
+
+        $statusBelumTerisi = 'Belum Terisi';
+        $stmtSaveStatus = $conn->prepare("
+            INSERT INTO karirhub_proto_wllp_status (no_reg_bukti, id_lowongan, jabatan, unit_nama, status_saat_ini, tanggal_lapor, tanggal_terisi)
+            VALUES (?, ?, ?, ?, ?, ?, NULL)
+            ON DUPLICATE KEY UPDATE
+                id_lowongan = VALUES(id_lowongan),
+                jabatan = VALUES(jabatan),
+                unit_nama = VALUES(unit_nama),
+                tanggal_lapor = VALUES(tanggal_lapor)
+        ");
+        $stmtSaveStatus->bind_param(
+            'ssssss',
+            $generatedNoReg,
+            $generatedIdLowongan,
+            $form['jabatan'],
+            $unitNama,
+            $statusBelumTerisi,
+            $form['masa_berlaku_mulai']
+        );
+        $stmtSaveStatus->execute();
+        $stmtSaveStatus->close();
+
         $generated = [
-            'id_lowongan' => 'LK-SIM-' . strtoupper(substr(md5($form['jabatan'] . microtime(true)), 0, 6)),
-            'no_reg_bukti' => 'WLLP-' . date('Ymd') . '-SIM-' . substr((string)time(), -4),
+            'id_lowongan' => $generatedIdLowongan,
+            'no_reg_bukti' => $generatedNoReg,
             'status_verifikasi' => 'Terverifikasi (Dummy)',
             'status_keterisian' => 'Belum Terisi',
             'created_at' => date('Y-m-d H:i:s'),

@@ -56,9 +56,7 @@ $stmtSeedStatus = $conn->prepare("
         id_lowongan = VALUES(id_lowongan),
         jabatan = VALUES(jabatan),
         unit_nama = VALUES(unit_nama),
-        status_saat_ini = VALUES(status_saat_ini),
-        tanggal_lapor = VALUES(tanggal_lapor),
-        tanggal_terisi = VALUES(tanggal_terisi)
+        tanggal_lapor = VALUES(tanggal_lapor)
 ");
 foreach ($rows as $seedRow) {
     $noReg = (string)$seedRow['no_reg_bukti'];
@@ -94,7 +92,6 @@ $rowMap = [];
 foreach ($rows as $row) {
     $rowMap[$row['no_reg_bukti']] = $row;
 }
-$openTerisiRow = ($openTerisiNoReg !== '' && isset($rowMap[$openTerisiNoReg])) ? $rowMap[$openTerisiNoReg] : null;
 
 $pegawaiForm = [
     'nik' => trim((string)($_POST['nik'] ?? '')),
@@ -238,6 +235,31 @@ foreach ($rows as $idx => $baseRow) {
         $rows[$idx]['status_keterisian'] = $statusMap[$nr]['status_saat_ini'] !== '' ? $statusMap[$nr]['status_saat_ini'] : $baseRow['status_keterisian'];
         $rows[$idx]['tanggal_terisi'] = $statusMap[$nr]['tanggal_terisi'] !== '' ? $statusMap[$nr]['tanggal_terisi'] : $baseRow['tanggal_terisi'];
     }
+}
+$unitCodeByName = [];
+foreach ($units as $code => $unitInfo) {
+    $unitCodeByName[(string)$unitInfo['nama']] = (string)$code;
+}
+foreach ($templateRows as $dbRow) {
+    $nr = (string)$dbRow['no_reg_bukti'];
+    if (isset($rowMap[$nr])) {
+        continue;
+    }
+    $unitCode = $unitCodeByName[(string)$dbRow['unit_nama']] ?? (string)$dbRow['unit_nama'];
+    $rows[] = [
+        'no_reg_bukti' => $nr,
+        'id_lowongan' => (string)$dbRow['id_lowongan'],
+        'jabatan' => (string)$dbRow['jabatan'],
+        'unit_kode' => $unitCode,
+        'status_keterisian' => (string)$dbRow['status_saat_ini'],
+        'tanggal_lapor' => (string)$dbRow['tanggal_lapor'],
+        'tanggal_terisi' => (string)$dbRow['tanggal_terisi'],
+    ];
+}
+// Remap row index after DB merge so modals can resolve newly inserted records.
+$rowMap = [];
+foreach ($rows as $row) {
+    $rowMap[$row['no_reg_bukti']] = $row;
 }
 foreach ($rows as $row) {
     $rowMap[$row['no_reg_bukti']] = $row;
