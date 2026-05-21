@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     if (!isset($units[$form['unit_kode']])) {
-        $errors[] = 'Unit perusahaan tidak valid.';
+        $errors[] = 'Unit perusahaan/usaha tidak valid.';
     }
     if ($form['jumlah_kebutuhan'] !== '' && (!ctype_digit($form['jumlah_kebutuhan']) || (int)$form['jumlah_kebutuhan'] <= 0)) {
         $errors[] = 'Jumlah kebutuhan harus angka lebih dari 0.';
@@ -284,7 +284,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Unit Perusahaan</label>
+                    <label class="form-label mb-1">Unit Perusahaan/ Usaha</label>
                     <select name="unit_kode" class="form-select form-select-sm">
                         <?php foreach ($units as $unitCode => $unit): ?>
                             <option value="<?php echo h($unitCode); ?>"<?php echo $form['unit_kode'] === $unitCode ? ' selected' : ''; ?>><?php echo h($unit['nama']); ?></option>
