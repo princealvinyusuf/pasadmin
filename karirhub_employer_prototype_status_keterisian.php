@@ -411,7 +411,7 @@ foreach ($rows as $row) {
             </div>
             <div class="modal-body">
                 <div class="alert alert-info py-2">
-                    Gunakan template Excel dari tombol <strong>Download Template</strong>. Header wajib: No Reg Bukti, NIK, Nama Lengkap, Pendidikan, Jenis Kelamin, Tempat Lahir, Tanggal Lahir, Alamat, Status Disabilitas, TMT, Email, Nomor Hp.
+                    Gunakan file dari tombol <strong>Download Template</strong> (data lowongan sudah otomatis terisi dari sistem). Saat import, pastikan kolom wajib terisi: NIK, Nama Lengkap, Pendidikan, Jenis Kelamin, Tempat Lahir, Tanggal Lahir, Alamat, Status Disabilitas (Iya/Tidak), TMT, Email, dan Nomor Hp.
                 </div>
                 <div class="mb-3">
                     <label class="form-label mb-1">Pilih file Excel (.xlsx)</label>
