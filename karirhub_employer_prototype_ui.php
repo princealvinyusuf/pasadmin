@@ -105,7 +105,6 @@ if (!function_exists('kh_proto_render_hero')) {
                         <img class="kh-topnav-logo" src="images/logo-white.png" alt="Logo Kemnaker">
                         <div class="kh-topnav-links">
                             <a class="active" href="<?php echo kh_proto_h($secondaryHref); ?>">Daftar Pekerjaan</a>
-                            <a href="karirhub_employer_prototype_no_reg_bukti">Talent Search</a>
                             <a href="karirhub_employer_prototype_bukti_lapor">Profil + Ulasan Perusahaan</a>
                             <a href="karirhub_employer_prototype_monitoring_kepatuhan">Lainnya <i class="bi bi-chevron-down"></i></a>
                             <div class="dropdown">
@@ -115,7 +114,6 @@ if (!function_exists('kh_proto_render_hero')) {
                                 <ul class="dropdown-menu kh-wllp-menu">
                                     <li><a class="dropdown-item" href="karirhub_employer_prototype_dashboard_wllp"><i class="bi bi-speedometer2"></i>Dashboard WLLP</a></li>
                                     <li><a class="dropdown-item" href="karirhub_employer_prototype_bukti_lapor"><i class="bi bi-file-earmark-check"></i>Bukti Lapor</a></li>
-                                    <li><a class="dropdown-item" href="karirhub_employer_prototype_no_reg_bukti"><i class="bi bi-upc-scan"></i>No. Reg Bukti</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="karirhub_employer_prototype_pelaporan_lowongan"><i class="bi bi-journal-plus"></i>Pelaporan Lowongan</a></li>
                                     <li><a class="dropdown-item" href="karirhub_employer_prototype_status_keterisian"><i class="bi bi-list-task"></i>Status Keterisian</a></li>
@@ -175,7 +173,6 @@ if (!function_exists('kh_proto_render_sidebar')) {
         $menu = [
             'dashboard_wllp' => ['icon' => 'bi-speedometer2', 'label' => 'Dashboard WLLP', 'href' => 'karirhub_employer_prototype_dashboard_wllp'],
             'wllp_bukti_lapor' => ['icon' => 'bi-file-earmark-check', 'label' => 'Bukti Lapor', 'href' => 'karirhub_employer_prototype_bukti_lapor'],
-            'wllp_no_reg_bukti' => ['icon' => 'bi-upc-scan', 'label' => 'No. Reg Bukti', 'href' => 'karirhub_employer_prototype_no_reg_bukti'],
             'wllp_pelaporan' => ['icon' => 'bi-journal-plus', 'label' => 'Pelaporan Lowongan', 'href' => 'karirhub_employer_prototype_pelaporan_lowongan'],
             'wllp_status_keterisian' => ['icon' => 'bi-list-task', 'label' => 'Status Keterisian', 'href' => 'karirhub_employer_prototype_status_keterisian'],
             'wllp_monitoring' => ['icon' => 'bi-clipboard-data', 'label' => 'Monitoring Kepatuhan', 'href' => 'karirhub_employer_prototype_monitoring_kepatuhan'],
@@ -207,7 +204,6 @@ if (!function_exists('kh_proto_render_sidebar')) {
                             <ul class="kh-side-submenu">
                                 <li><a href="<?php echo kh_proto_h($menu['dashboard_wllp']['href']); ?>"><i class="bi bi-speedometer2"></i>Dashboard WLLP</a></li>
                                 <li><a href="<?php echo kh_proto_h($menu['wllp_bukti_lapor']['href']); ?>"><i class="bi bi-file-earmark-check"></i>Bukti Lapor</a></li>
-                                <li><a href="<?php echo kh_proto_h($menu['wllp_no_reg_bukti']['href']); ?>"><i class="bi bi-upc-scan"></i>No. Reg Bukti</a></li>
                                 <li class="kh-side-divider"></li>
                                 <li><a href="<?php echo kh_proto_h($menu['wllp_pelaporan']['href']); ?>"><i class="bi bi-journal-plus"></i>Pelaporan Lowongan</a></li>
                                 <li><a href="<?php echo kh_proto_h($menu['wllp_status_keterisian']['href']); ?>"><i class="bi bi-list-task"></i>Status Keterisian</a></li>

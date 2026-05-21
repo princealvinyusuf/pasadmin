@@ -97,6 +97,14 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
         ['Lokasi Penempatan', (string)($row['lokasi_penempatan_detail'] ?? '-')],
         ['Masa Berlaku', (string)($row['masa_berlaku_mulai'] ?? '-') . ' s.d. ' . (string)($row['masa_berlaku_sampai'] ?? '-')],
         ['Tipe Kerja', (string)($row['employment_type'] ?? '-') . ' / ' . (string)($row['work_setup'] ?? '-') . ' / ' . (string)($row['shift_type'] ?? '-')],
+        ['Kode KBJI', (string)($row['kode_kbji'] ?? '-')],
+        ['Provinsi', (string)($row['provinsi'] ?? '-')],
+        ['Kota', (string)($row['kota'] ?? '-')],
+        ['Kecamatan', (string)($row['kecamatan'] ?? '-')],
+        ['Kelurahan', (string)($row['kelurahan'] ?? '-')],
+        ['Bidang Pekerjaan', (string)($row['bidang_pekerjaan'] ?? '-')],
+        ['Industri / Sektor', (string)($row['industri_sektor'] ?? '-')],
+        ['Status Pernikahan', (string)($row['status_pernikahan'] ?? '-')],
         ['Status Verifikasi', (string)($row['status_verifikasi'] ?? '-')],
         ['Status Keterisian', (string)($row['status_keterisian'] ?? '-')],
         ['Approval', (string)($row['approval_state'] ?? '-') . ' by ' . (string)($row['approval_by'] ?? '-') . ' (' . (string)($row['approval_date'] ?? '-') . ')'],
@@ -320,7 +328,14 @@ $conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_pelaporan (
     keterampilan_utama TEXT NOT NULL,
     pengalaman_min_tahun INT NOT NULL,
     rentang_gaji VARCHAR(120) NOT NULL,
-    domisili_kerja VARCHAR(150) NOT NULL,
+    kode_kbji VARCHAR(50) NOT NULL,
+    provinsi VARCHAR(120) NOT NULL,
+    kota VARCHAR(120) NOT NULL,
+    kecamatan VARCHAR(120) NOT NULL,
+    kelurahan VARCHAR(120) NOT NULL,
+    bidang_pekerjaan VARCHAR(180) NOT NULL,
+    industri_sektor VARCHAR(180) NOT NULL,
+    status_pernikahan VARCHAR(40) NOT NULL,
     masa_berlaku_mulai DATE NOT NULL,
     masa_berlaku_sampai DATE NOT NULL,
     alamat_url_postingan_loker VARCHAR(500) NOT NULL,
@@ -329,6 +344,14 @@ $conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_pelaporan (
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kode_kbji VARCHAR(50) NOT NULL DEFAULT '' AFTER rentang_gaji");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS provinsi VARCHAR(120) NOT NULL DEFAULT '' AFTER kode_kbji");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kota VARCHAR(120) NOT NULL DEFAULT '' AFTER provinsi");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kecamatan VARCHAR(120) NOT NULL DEFAULT '' AFTER kota");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kelurahan VARCHAR(120) NOT NULL DEFAULT '' AFTER kecamatan");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS bidang_pekerjaan VARCHAR(180) NOT NULL DEFAULT '' AFTER kelurahan");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS industri_sektor VARCHAR(180) NOT NULL DEFAULT '' AFTER bidang_pekerjaan");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS status_pernikahan VARCHAR(40) NOT NULL DEFAULT '' AFTER industri_sektor");
 
 $conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_status (
     no_reg_bukti VARCHAR(60) PRIMARY KEY,
@@ -406,7 +429,14 @@ if ($resPelaporan) {
                 'keterampilan_utama' => (string)$p['keterampilan_utama'],
                 'pengalaman_min_tahun' => (int)$p['pengalaman_min_tahun'],
                 'rentang_gaji' => (string)$p['rentang_gaji'],
-                'domisili_kerja' => (string)$p['domisili_kerja'],
+                'kode_kbji' => (string)($p['kode_kbji'] ?? ''),
+                'provinsi' => (string)($p['provinsi'] ?? ''),
+                'kota' => (string)($p['kota'] ?? ''),
+                'kecamatan' => (string)($p['kecamatan'] ?? ''),
+                'kelurahan' => (string)($p['kelurahan'] ?? ''),
+                'bidang_pekerjaan' => (string)($p['bidang_pekerjaan'] ?? ''),
+                'industri_sektor' => (string)($p['industri_sektor'] ?? ''),
+                'status_pernikahan' => (string)($p['status_pernikahan'] ?? ''),
                 'status_verifikasi' => (string)$p['status_verifikasi'],
                 'tanggal_lapor' => (string)$p['masa_berlaku_mulai'],
                 'masa_berlaku_mulai' => (string)$p['masa_berlaku_mulai'],
@@ -429,7 +459,14 @@ if ($resPelaporan) {
                 'keterampilan_utama' => (string)$p['keterampilan_utama'],
                 'pengalaman_min_tahun' => (int)$p['pengalaman_min_tahun'],
                 'rentang_gaji' => (string)$p['rentang_gaji'],
-                'domisili_kerja' => (string)$p['domisili_kerja'],
+                'kode_kbji' => (string)($p['kode_kbji'] ?? ''),
+                'provinsi' => (string)($p['provinsi'] ?? ''),
+                'kota' => (string)($p['kota'] ?? ''),
+                'kecamatan' => (string)($p['kecamatan'] ?? ''),
+                'kelurahan' => (string)($p['kelurahan'] ?? ''),
+                'bidang_pekerjaan' => (string)($p['bidang_pekerjaan'] ?? ''),
+                'industri_sektor' => (string)($p['industri_sektor'] ?? ''),
+                'status_pernikahan' => (string)($p['status_pernikahan'] ?? ''),
                 'status_verifikasi' => (string)$p['status_verifikasi'],
                 'status_keterisian' => 'Belum Terisi',
                 'tanggal_lapor' => (string)$p['masa_berlaku_mulai'],
@@ -718,6 +755,14 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <div class="col-md-6"><strong>Lokasi Penempatan:</strong><br><?php echo h((string)($actionRow['lokasi_penempatan_detail'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Requester Divisi:</strong><br><?php echo h((string)($actionRow['requester_divisi'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Sumber Rekrutmen:</strong><br><?php echo h((string)($actionRow['sumber_rekrutmen'] ?? '-')); ?></div>
+                    <div class="col-md-6"><strong>Kode KBJI:</strong><br><?php echo h((string)($actionRow['kode_kbji'] ?? '-')); ?></div>
+                    <div class="col-md-6"><strong>Provinsi:</strong><br><?php echo h((string)($actionRow['provinsi'] ?? '-')); ?></div>
+                    <div class="col-md-6"><strong>Kota:</strong><br><?php echo h((string)($actionRow['kota'] ?? '-')); ?></div>
+                    <div class="col-md-6"><strong>Kecamatan:</strong><br><?php echo h((string)($actionRow['kecamatan'] ?? '-')); ?></div>
+                    <div class="col-md-6"><strong>Kelurahan:</strong><br><?php echo h((string)($actionRow['kelurahan'] ?? '-')); ?></div>
+                    <div class="col-md-6"><strong>Bidang Pekerjaan:</strong><br><?php echo h((string)($actionRow['bidang_pekerjaan'] ?? '-')); ?></div>
+                    <div class="col-md-6"><strong>Industri / Sektor:</strong><br><?php echo h((string)($actionRow['industri_sektor'] ?? '-')); ?></div>
+                    <div class="col-md-6"><strong>Status Pernikahan:</strong><br><?php echo h((string)($actionRow['status_pernikahan'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Status Verifikasi:</strong><br><?php echo h($actionRow['status_verifikasi']); ?></div>
                     <div class="col-md-6"><strong>Status Keterisian:</strong><br><?php echo h($actionRow['status_keterisian']); ?></div>
                     <div class="col-12"><strong>Keterampilan Utama:</strong><br><?php echo h($actionRow['keterampilan_utama']); ?></div>
@@ -771,6 +816,14 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <tr><th>Employment Type</th><td>${<?php echo json_encode((string)($actionRow['employment_type'] ?? '-')); ?>}</td></tr>
                     <tr><th>Work Setup</th><td>${<?php echo json_encode((string)($actionRow['work_setup'] ?? '-')); ?>}</td></tr>
                     <tr><th>Shift Type</th><td>${<?php echo json_encode((string)($actionRow['shift_type'] ?? '-')); ?>}</td></tr>
+                    <tr><th>Kode KBJI</th><td>${<?php echo json_encode((string)($actionRow['kode_kbji'] ?? '-')); ?>}</td></tr>
+                    <tr><th>Provinsi</th><td>${<?php echo json_encode((string)($actionRow['provinsi'] ?? '-')); ?>}</td></tr>
+                    <tr><th>Kota</th><td>${<?php echo json_encode((string)($actionRow['kota'] ?? '-')); ?>}</td></tr>
+                    <tr><th>Kecamatan</th><td>${<?php echo json_encode((string)($actionRow['kecamatan'] ?? '-')); ?>}</td></tr>
+                    <tr><th>Kelurahan</th><td>${<?php echo json_encode((string)($actionRow['kelurahan'] ?? '-')); ?>}</td></tr>
+                    <tr><th>Bidang Pekerjaan</th><td>${<?php echo json_encode((string)($actionRow['bidang_pekerjaan'] ?? '-')); ?>}</td></tr>
+                    <tr><th>Industri / Sektor</th><td>${<?php echo json_encode((string)($actionRow['industri_sektor'] ?? '-')); ?>}</td></tr>
+                    <tr><th>Status Pernikahan</th><td>${<?php echo json_encode((string)($actionRow['status_pernikahan'] ?? '-')); ?>}</td></tr>
                     <tr><th>Requester Divisi</th><td>${<?php echo json_encode((string)($actionRow['requester_divisi'] ?? '-')); ?>}</td></tr>
                     <tr><th>SLA Hiring (hari)</th><td>${<?php echo json_encode((string)($actionRow['sla_hiring_hari'] ?? 0)); ?>}</td></tr>
                     <tr><th>Status Verifikasi</th><td>${<?php echo json_encode($actionRow['status_verifikasi']); ?>}</td></tr>

@@ -303,7 +303,6 @@
                     <ul class="dropdown-menu" aria-labelledby="karirhubEmployerPrototypeDropdown">
                         <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_dashboard_wllp"><i class="bi bi-speedometer2 me-1"></i>Dashboard WLLP</a></li>
                         <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_bukti_lapor"><i class="bi bi-file-earmark-check me-1"></i>Bukti Lapor</a></li>
-                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_no_reg_bukti"><i class="bi bi-upc-scan me-1"></i>No. Reg Bukti</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_pelaporan_lowongan"><i class="bi bi-journal-plus me-1"></i>Pelaporan Lowongan</a></li>
                         <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_status_keterisian"><i class="bi bi-list-check me-1"></i>Status Keterisian</a></li>
