@@ -34,7 +34,14 @@ $conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_pelaporan (
     keterampilan_utama TEXT NOT NULL,
     pengalaman_min_tahun INT NOT NULL,
     rentang_gaji VARCHAR(120) NOT NULL,
-    domisili_kerja VARCHAR(150) NOT NULL,
+    kode_kbji VARCHAR(50) NOT NULL,
+    provinsi VARCHAR(120) NOT NULL,
+    kota VARCHAR(120) NOT NULL,
+    kecamatan VARCHAR(120) NOT NULL,
+    kelurahan VARCHAR(120) NOT NULL,
+    bidang_pekerjaan VARCHAR(180) NOT NULL,
+    industri_sektor VARCHAR(180) NOT NULL,
+    status_pernikahan VARCHAR(40) NOT NULL,
     masa_berlaku_mulai DATE NOT NULL,
     masa_berlaku_sampai DATE NOT NULL,
     alamat_url_postingan_loker VARCHAR(500) NOT NULL,
@@ -43,6 +50,14 @@ $conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_pelaporan (
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kode_kbji VARCHAR(50) NOT NULL DEFAULT '' AFTER rentang_gaji");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS provinsi VARCHAR(120) NOT NULL DEFAULT '' AFTER kode_kbji");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kota VARCHAR(120) NOT NULL DEFAULT '' AFTER provinsi");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kecamatan VARCHAR(120) NOT NULL DEFAULT '' AFTER kota");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kelurahan VARCHAR(120) NOT NULL DEFAULT '' AFTER kecamatan");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS bidang_pekerjaan VARCHAR(180) NOT NULL DEFAULT '' AFTER kelurahan");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS industri_sektor VARCHAR(180) NOT NULL DEFAULT '' AFTER bidang_pekerjaan");
+$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS status_pernikahan VARCHAR(40) NOT NULL DEFAULT '' AFTER industri_sektor");
 
 $conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_status (
     no_reg_bukti VARCHAR(60) PRIMARY KEY,
@@ -67,7 +82,14 @@ $form = [
     'keterampilan_utama' => trim((string)($_POST['keterampilan_utama'] ?? '')),
     'pengalaman_min_tahun' => trim((string)($_POST['pengalaman_min_tahun'] ?? '')),
     'rentang_gaji' => trim((string)($_POST['rentang_gaji'] ?? '')),
-    'domisili_kerja' => trim((string)($_POST['domisili_kerja'] ?? '')),
+    'kode_kbji' => trim((string)($_POST['kode_kbji'] ?? '')),
+    'provinsi' => trim((string)($_POST['provinsi'] ?? '')),
+    'kota' => trim((string)($_POST['kota'] ?? '')),
+    'kecamatan' => trim((string)($_POST['kecamatan'] ?? '')),
+    'kelurahan' => trim((string)($_POST['kelurahan'] ?? '')),
+    'bidang_pekerjaan' => trim((string)($_POST['bidang_pekerjaan'] ?? '')),
+    'industri_sektor' => trim((string)($_POST['industri_sektor'] ?? '')),
+    'status_pernikahan' => trim((string)($_POST['status_pernikahan'] ?? '')),
     'tipe_kerja' => trim((string)($_POST['tipe_kerja'] ?? '')),
     'masa_berlaku_mulai' => trim((string)($_POST['masa_berlaku_mulai'] ?? date('Y-m-d'))),
     'masa_berlaku_sampai' => trim((string)($_POST['masa_berlaku_sampai'] ?? date('Y-m-d', strtotime('+30 days')))),
@@ -89,7 +111,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'keterampilan_utama' => 'Keterampilan Utama',
         'pengalaman_min_tahun' => 'Pengalaman Minimal (tahun)',
         'rentang_gaji' => 'Rentang Gaji',
-        'domisili_kerja' => 'Domisili Kerja',
+        'kode_kbji' => 'Kode KBJI',
+        'provinsi' => 'Provinsi',
+        'kota' => 'Kota',
+        'kecamatan' => 'Kecamatan',
+        'kelurahan' => 'Kelurahan',
+        'bidang_pekerjaan' => 'Bidang Pekerjaan',
+        'industri_sektor' => 'Industri / Sektor',
+        'status_pernikahan' => 'Status Pernikahan',
         'tipe_kerja' => 'Tipe Kerja',
         'masa_berlaku_mulai' => 'Masa Berlaku Mulai',
         'masa_berlaku_sampai' => 'Masa Berlaku Sampai',
@@ -121,16 +150,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmtSavePelaporan = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_pelaporan (
                 no_reg_bukti, id_lowongan, unit_kode, unit_nama, jabatan, jumlah_kebutuhan, jenis_kelamin, usia_min, usia_max,
-                pendidikan_minimal, deskripsi_pekerjaan, keterampilan_utama, pengalaman_min_tahun, rentang_gaji, domisili_kerja,
-                masa_berlaku_mulai, masa_berlaku_sampai, alamat_url_postingan_loker, catatan, status_verifikasi
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Terverifikasi')
+                pendidikan_minimal, deskripsi_pekerjaan, keterampilan_utama, pengalaman_min_tahun, rentang_gaji, kode_kbji, provinsi, kota, kecamatan, kelurahan,
+                bidang_pekerjaan, industri_sektor, status_pernikahan, masa_berlaku_mulai, masa_berlaku_sampai, alamat_url_postingan_loker, catatan, status_verifikasi
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Terverifikasi')
         ");
         $jumlahKebutuhanInt = (int)$form['jumlah_kebutuhan'];
         $usiaMinInt = (int)$form['usia_min'];
         $usiaMaxInt = (int)$form['usia_max'];
         $pengalamanMinInt = (int)$form['pengalaman_min_tahun'];
         $stmtSavePelaporan->bind_param(
-            'sssssisiisssissssss',
+            str_repeat('s', 26),
             $generatedNoReg,
             $generatedIdLowongan,
             $form['unit_kode'],
@@ -145,7 +174,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $form['keterampilan_utama'],
             $pengalamanMinInt,
             $form['rentang_gaji'],
-            $form['domisili_kerja'],
+            $form['kode_kbji'],
+            $form['provinsi'],
+            $form['kota'],
+            $form['kecamatan'],
+            $form['kelurahan'],
+            $form['bidang_pekerjaan'],
+            $form['industri_sektor'],
+            $form['status_pernikahan'],
             $form['masa_berlaku_mulai'],
             $form['masa_berlaku_sampai'],
             $form['alamat_url_postingan_loker'],
@@ -305,8 +341,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="text" name="rentang_gaji" class="form-control form-control-sm" value="<?php echo h($form['rentang_gaji']); ?>" placeholder="Rp5.000.000 - Rp7.000.000">
                 </div>
                 <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Domisili Kerja</label>
-                    <input type="text" name="domisili_kerja" class="form-control form-control-sm" value="<?php echo h($form['domisili_kerja']); ?>">
+                    <label class="form-label mb-1">Kode KBJI</label>
+                    <input type="text" name="kode_kbji" class="form-control form-control-sm" value="<?php echo h($form['kode_kbji']); ?>" placeholder="Contoh: 24231">
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label mb-1">Provinsi</label>
+                    <input type="text" name="provinsi" class="form-control form-control-sm" value="<?php echo h($form['provinsi']); ?>">
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label mb-1">Kota</label>
+                    <input type="text" name="kota" class="form-control form-control-sm" value="<?php echo h($form['kota']); ?>">
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label mb-1">Kecamatan</label>
+                    <input type="text" name="kecamatan" class="form-control form-control-sm" value="<?php echo h($form['kecamatan']); ?>">
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label mb-1">Kelurahan</label>
+                    <input type="text" name="kelurahan" class="form-control form-control-sm" value="<?php echo h($form['kelurahan']); ?>">
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label mb-1">Bidang Pekerjaan</label>
+                    <input type="text" name="bidang_pekerjaan" class="form-control form-control-sm" value="<?php echo h($form['bidang_pekerjaan']); ?>">
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label mb-1">Industri / Sektor</label>
+                    <input type="text" name="industri_sektor" class="form-control form-control-sm" value="<?php echo h($form['industri_sektor']); ?>">
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label mb-1">Status Pernikahan</label>
+                    <select name="status_pernikahan" class="form-select form-select-sm">
+                        <option value="">Pilih</option>
+                        <?php foreach (['Belum Menikah', 'Menikah', 'Cerai Hidup', 'Cerai Mati'] as $statusNikah): ?>
+                            <option value="<?php echo h($statusNikah); ?>"<?php echo $form['status_pernikahan'] === $statusNikah ? ' selected' : ''; ?>><?php echo h($statusNikah); ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
                 <div class="col-12 col-md-6">
@@ -402,7 +472,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'Keterampilan Utama',
             'Pengalaman Min (Tahun)',
             'Rentang Gaji',
-            'Domisili Kerja',
+            'Kode KBJI',
+            'Provinsi',
+            'Kota',
+            'Kecamatan',
+            'Kelurahan',
+            'Bidang Pekerjaan',
+            'Industri / Sektor',
+            'Status Pernikahan',
             'Tipe Kerja',
             'Masa Berlaku Mulai',
             'Masa Berlaku Sampai',
@@ -448,7 +525,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'Administrasi, komunikasi, Microsoft Office',
                     '1',
                     'Rp4.500.000 - Rp6.000.000',
+                    '24231',
+                    'DKI Jakarta',
                     'Jakarta Selatan',
+                    'Pasar Minggu',
+                    'Pejaten Timur',
+                    'Operasional',
+                    'Logistik',
+                    'Belum Menikah',
                     'Full Time',
                     '2026-05-21',
                     '2026-06-21',
