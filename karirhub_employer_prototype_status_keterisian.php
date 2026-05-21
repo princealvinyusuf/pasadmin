@@ -3,6 +3,7 @@ require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
 require_once __DIR__ . '/karirhub_employer_prototype_data.php';
 require_once __DIR__ . '/karirhub_employer_prototype_ui.php';
+require_once __DIR__ . '/db.php';
 
 if (!(current_user_can('karirhub_employer_prototype_view') || current_user_can('manage_settings'))) {
     http_response_code(403);
@@ -18,6 +19,59 @@ function h(string $value): string
 $dataset = karirhub_proto_dataset();
 $units = $dataset['units'];
 $rows = $dataset['vacancies'];
+
+$conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_status (
+    no_reg_bukti VARCHAR(60) PRIMARY KEY,
+    id_lowongan VARCHAR(30) NOT NULL,
+    jabatan VARCHAR(200) NOT NULL,
+    unit_nama VARCHAR(255) NOT NULL,
+    status_saat_ini VARCHAR(50) NOT NULL,
+    tanggal_lapor DATE NOT NULL,
+    tanggal_terisi DATE DEFAULT NULL,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_penempatan (
+    no_reg_bukti VARCHAR(60) PRIMARY KEY,
+    nik VARCHAR(30) NOT NULL,
+    nama_lengkap VARCHAR(180) NOT NULL,
+    pendidikan VARCHAR(120) NOT NULL,
+    jenis_kelamin VARCHAR(30) NOT NULL,
+    tempat_lahir VARCHAR(120) NOT NULL,
+    tanggal_lahir DATE NOT NULL,
+    alamat TEXT NOT NULL,
+    status_disabilitas VARCHAR(10) NOT NULL,
+    tmt DATE NOT NULL,
+    email VARCHAR(180) NOT NULL,
+    nomor_hp VARCHAR(40) NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$stmtSeedStatus = $conn->prepare("
+    INSERT INTO karirhub_proto_wllp_status
+        (no_reg_bukti, id_lowongan, jabatan, unit_nama, status_saat_ini, tanggal_lapor, tanggal_terisi)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+        id_lowongan = VALUES(id_lowongan),
+        jabatan = VALUES(jabatan),
+        unit_nama = VALUES(unit_nama),
+        status_saat_ini = VALUES(status_saat_ini),
+        tanggal_lapor = VALUES(tanggal_lapor),
+        tanggal_terisi = VALUES(tanggal_terisi)
+");
+foreach ($rows as $seedRow) {
+    $noReg = (string)$seedRow['no_reg_bukti'];
+    $idLowongan = (string)$seedRow['id_lowongan'];
+    $jabatan = (string)$seedRow['jabatan'];
+    $unitNama = (string)($units[$seedRow['unit_kode']]['nama'] ?? $seedRow['unit_kode']);
+    $statusSaatIni = (string)$seedRow['status_keterisian'];
+    $tanggalLapor = (string)$seedRow['tanggal_lapor'];
+    $tanggalTerisi = $seedRow['tanggal_terisi'] !== null && $seedRow['tanggal_terisi'] !== '' ? (string)$seedRow['tanggal_terisi'] : null;
+    $stmtSeedStatus->bind_param('sssssss', $noReg, $idLowongan, $jabatan, $unitNama, $statusSaatIni, $tanggalLapor, $tanggalTerisi);
+    $stmtSeedStatus->execute();
+}
+$stmtSeedStatus->close();
 
 $statusFilter = trim((string)($_REQUEST['status'] ?? 'all'));
 $allowedStatus = ['all', 'belum terisi', 'proses seleksi', 'terisi', 'belum update'];
@@ -40,6 +94,7 @@ $rowMap = [];
 foreach ($rows as $row) {
     $rowMap[$row['no_reg_bukti']] = $row;
 }
+$openTerisiRow = ($openTerisiNoReg !== '' && isset($rowMap[$openTerisiNoReg])) ? $rowMap[$openTerisiNoReg] : null;
 
 $pegawaiForm = [
     'nik' => trim((string)($_POST['nik'] ?? '')),
@@ -86,8 +141,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['form_action'] ?? '
     }
 
     if (empty($pegawaiErrors)) {
+        $stmtSavePegawai = $conn->prepare("
+            INSERT INTO karirhub_proto_wllp_penempatan
+                (no_reg_bukti, nik, nama_lengkap, pendidikan, jenis_kelamin, tempat_lahir, tanggal_lahir, alamat, status_disabilitas, tmt, email, nomor_hp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                nik = VALUES(nik),
+                nama_lengkap = VALUES(nama_lengkap),
+                pendidikan = VALUES(pendidikan),
+                jenis_kelamin = VALUES(jenis_kelamin),
+                tempat_lahir = VALUES(tempat_lahir),
+                tanggal_lahir = VALUES(tanggal_lahir),
+                alamat = VALUES(alamat),
+                status_disabilitas = VALUES(status_disabilitas),
+                tmt = VALUES(tmt),
+                email = VALUES(email),
+                nomor_hp = VALUES(nomor_hp)
+        ");
+        $stmtSavePegawai->bind_param(
+            'ssssssssssss',
+            $openTerisiNoReg,
+            $pegawaiForm['nik'],
+            $pegawaiForm['nama_lengkap'],
+            $pegawaiForm['pendidikan'],
+            $pegawaiForm['jenis_kelamin'],
+            $pegawaiForm['tempat_lahir'],
+            $pegawaiForm['tanggal_lahir'],
+            $pegawaiForm['alamat'],
+            $pegawaiForm['status_disabilitas'],
+            $pegawaiForm['tmt'],
+            $pegawaiForm['email'],
+            $pegawaiForm['nomor_hp']
+        );
+        $stmtSavePegawai->execute();
+        $stmtSavePegawai->close();
+
+        $statusTerisi = 'Terisi';
+        $tanggalTerisiNow = $pegawaiForm['tmt'] !== '' ? $pegawaiForm['tmt'] : date('Y-m-d');
+        $stmtUpdateStatus = $conn->prepare("UPDATE karirhub_proto_wllp_status SET status_saat_ini = ?, tanggal_terisi = ? WHERE no_reg_bukti = ?");
+        $stmtUpdateStatus->bind_param('sss', $statusTerisi, $tanggalTerisiNow, $openTerisiNoReg);
+        $stmtUpdateStatus->execute();
+        $stmtUpdateStatus->close();
+
         $successMessage = 'Simulasi update status untuk ' . $openTerisiNoReg . ' -> Terisi berhasil. Data pegawai ditempatkan atas nama '
-            . $pegawaiForm['nama_lengkap'] . ' telah dilengkapi (dummy, tidak disimpan permanen).';
+            . $pegawaiForm['nama_lengkap'] . ' telah dilengkapi.';
         $openTerisiNoReg = '';
         foreach ($pegawaiForm as $key => $_) {
             $pegawaiForm[$key] = '';
@@ -96,6 +193,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['form_action'] ?? '
 }
 
 $openTerisiRow = ($openTerisiNoReg !== '' && isset($rowMap[$openTerisiNoReg])) ? $rowMap[$openTerisiNoReg] : null;
+
+$templateRows = [];
+$resTemplate = $conn->query("
+    SELECT
+        s.no_reg_bukti,
+        s.id_lowongan,
+        s.jabatan,
+        s.unit_nama,
+        s.status_saat_ini,
+        s.tanggal_lapor,
+        s.tanggal_terisi,
+        COALESCE(p.nik, '') AS nik,
+        COALESCE(p.nama_lengkap, '') AS nama_lengkap,
+        COALESCE(p.pendidikan, '') AS pendidikan,
+        COALESCE(p.jenis_kelamin, '') AS jenis_kelamin,
+        COALESCE(p.tempat_lahir, '') AS tempat_lahir,
+        COALESCE(CAST(p.tanggal_lahir AS CHAR), '') AS tanggal_lahir,
+        COALESCE(p.alamat, '') AS alamat,
+        COALESCE(p.status_disabilitas, '') AS status_disabilitas,
+        COALESCE(CAST(p.tmt AS CHAR), '') AS tmt,
+        COALESCE(p.email, '') AS email,
+        COALESCE(p.nomor_hp, '') AS nomor_hp
+    FROM karirhub_proto_wllp_status s
+    LEFT JOIN karirhub_proto_wllp_penempatan p ON p.no_reg_bukti = s.no_reg_bukti
+    ORDER BY s.tanggal_lapor DESC, s.no_reg_bukti DESC
+");
+if ($resTemplate) {
+    while ($r = $resTemplate->fetch_assoc()) {
+        $templateRows[] = $r;
+    }
+}
+
+$statusMap = [];
+foreach ($templateRows as $tRow) {
+    $statusMap[(string)$tRow['no_reg_bukti']] = [
+        'status_saat_ini' => (string)$tRow['status_saat_ini'],
+        'tanggal_terisi' => (string)$tRow['tanggal_terisi'],
+    ];
+}
+foreach ($rows as $idx => $baseRow) {
+    $nr = (string)$baseRow['no_reg_bukti'];
+    if (isset($statusMap[$nr])) {
+        $rows[$idx]['status_keterisian'] = $statusMap[$nr]['status_saat_ini'] !== '' ? $statusMap[$nr]['status_saat_ini'] : $baseRow['status_keterisian'];
+        $rows[$idx]['tanggal_terisi'] = $statusMap[$nr]['tanggal_terisi'] !== '' ? $statusMap[$nr]['tanggal_terisi'] : $baseRow['tanggal_terisi'];
+    }
+}
+foreach ($rows as $row) {
+    $rowMap[$row['no_reg_bukti']] = $row;
+}
 
 $filteredRows = array_values(array_filter($rows, static function (array $row) use ($statusFilter, $unitFilter): bool {
     if ($statusFilter !== 'all' && strtolower($row['status_keterisian']) !== $statusFilter) {
@@ -381,6 +527,12 @@ foreach ($rows as $row) {
     (function () {
         const headers = [
             'No Reg Bukti',
+            'ID Lowongan',
+            'Jabatan',
+            'Unit',
+            'Status Saat Ini',
+            'Tanggal Lapor',
+            'Tanggal Terisi',
             'NIK',
             'Nama Lengkap',
             'Pendidikan',
@@ -393,6 +545,7 @@ foreach ($rows as $row) {
             'Email',
             'Nomor Hp',
         ];
+        const templateRowsFromDb = <?php echo json_encode($templateRows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
         const btnDownload = document.getElementById('btnDownloadTemplate');
         const btnProcess = document.getElementById('btnProcessBulkImport');
@@ -404,21 +557,32 @@ foreach ($rows as $row) {
 
         if (btnDownload) {
             btnDownload.addEventListener('click', function () {
-                const sample = [
-                    'WLLP-2026-0519-001278',
-                    '3276011234567890',
-                    'Budi Santoso',
-                    'S1',
-                    'Laki-laki',
-                    'Bandung',
-                    '1998-02-15',
-                    'Jl. Melati No.10, Bandung',
-                    'Tidak',
-                    '2026-06-01',
-                    'budi.santoso@mail.com',
-                    '081234567890',
-                ];
-                const ws = XLSX.utils.aoa_to_sheet([headers, sample]);
+                const rows = templateRowsFromDb.map(function (row) {
+                    return [
+                        row.no_reg_bukti || '',
+                        row.id_lowongan || '',
+                        row.jabatan || '',
+                        row.unit_nama || '',
+                        row.status_saat_ini || '',
+                        row.tanggal_lapor || '',
+                        row.tanggal_terisi || '',
+                        row.nik || '',
+                        row.nama_lengkap || '',
+                        row.pendidikan || '',
+                        row.jenis_kelamin || '',
+                        row.tempat_lahir || '',
+                        row.tanggal_lahir || '',
+                        row.alamat || '',
+                        row.status_disabilitas || '',
+                        row.tmt || '',
+                        row.email || '',
+                        row.nomor_hp || '',
+                    ];
+                });
+                if (!rows.length) {
+                    rows.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
+                }
+                const ws = XLSX.utils.aoa_to_sheet([headers].concat(rows));
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, 'Template Import');
                 XLSX.writeFile(wb, 'template_bulk_import_pegawai_wllp.xlsx');
