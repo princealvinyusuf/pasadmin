@@ -35,7 +35,7 @@ function pdf_fit(string $text, int $maxLen = 82): string
     return substr($text, 0, $maxLen - 3) . '...';
 }
 
-function pdf_logo_jpeg_data(string $logoPath): ?array
+function pdf_logo_jpeg_data(string $logoPath, array $backgroundRgb = [255, 255, 255]): ?array
 {
     if (!is_file($logoPath)) {
         return null;
@@ -56,14 +56,17 @@ function pdf_logo_jpeg_data(string $logoPath): ?array
         return null;
     }
 
-    // Render PNG on white background so transparent parts stay readable in PDF.
+    // Render PNG on a solid background so transparent parts stay readable in PDF.
     $canvas = imagecreatetruecolor($width, $height);
     if ($canvas === false) {
         imagedestroy($png);
         return null;
     }
-    $white = imagecolorallocate($canvas, 255, 255, 255);
-    imagefilledrectangle($canvas, 0, 0, $width, $height, $white);
+    $bgR = max(0, min(255, (int)($backgroundRgb[0] ?? 255)));
+    $bgG = max(0, min(255, (int)($backgroundRgb[1] ?? 255)));
+    $bgB = max(0, min(255, (int)($backgroundRgb[2] ?? 255)));
+    $bgColor = imagecolorallocate($canvas, $bgR, $bgG, $bgB);
+    imagefilledrectangle($canvas, 0, 0, $width, $height, $bgColor);
     imagecopy($canvas, $png, 0, 0, 0, 0, $width, $height);
     imagedestroy($png);
 
@@ -115,8 +118,10 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $width = $right - $left;
     $headerY = 775;
     $headerH = 58;
-    $logoPath = __DIR__ . '/images/karirhub.png';
-    $logoInfo = pdf_logo_jpeg_data($logoPath);
+    $footerLogoPath = __DIR__ . '/images/karirhub.png';
+    $footerLogoInfo = pdf_logo_jpeg_data($footerLogoPath);
+    $headerLogoPath = __DIR__ . '/images/logo-white.png';
+    $headerLogoInfo = pdf_logo_jpeg_data($headerLogoPath, [20, 74, 140]);
 
     // Page frame.
     $streamParts[] = '0.87 0.9 0.95 RG';
@@ -130,10 +135,26 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     // Header band.
     $streamParts[] = '0.08 0.29 0.55 rg';
     $streamParts[] = $left . ' ' . $headerY . ' ' . $width . ' ' . $headerH . ' re f';
+    $headerTextX = 52.0;
+    if ($headerLogoInfo !== null) {
+        $headerLogoTargetH = 38.0;
+        $headerLogoTargetW = ($headerLogoInfo['width'] / max(1, $headerLogoInfo['height'])) * $headerLogoTargetH;
+        if ($headerLogoTargetW > 170.0) {
+            $headerLogoTargetW = 170.0;
+            $headerLogoTargetH = ($headerLogoInfo['height'] / max(1, $headerLogoInfo['width'])) * $headerLogoTargetW;
+        }
+        $headerLogoX = 48.0;
+        $headerLogoY = $headerY + (($headerH - $headerLogoTargetH) / 2.0);
+        $streamParts[] = 'q';
+        $streamParts[] = sprintf('%.2F 0 0 %.2F %.2F %.2F cm', $headerLogoTargetW, $headerLogoTargetH, $headerLogoX, $headerLogoY);
+        $streamParts[] = '/Im2 Do';
+        $streamParts[] = 'Q';
+        $headerTextX = $headerLogoX + $headerLogoTargetW + 10.0;
+    }
     $streamParts[] = '1 1 1 rg';
-    $streamParts[] = 'BT /F2 13 Tf 52 817 Td (' . pdf_escape('KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA') . ') Tj ET';
-    $streamParts[] = 'BT /F1 10 Tf 52 802 Td (' . pdf_escape('SIAPKERJA - KARIRHUB') . ') Tj ET';
-    $streamParts[] = 'BT /F2 11 Tf 52 788 Td (' . pdf_escape('BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)') . ') Tj ET';
+    $streamParts[] = 'BT /F2 13 Tf ' . sprintf('%.2F', $headerTextX) . ' 817 Td (' . pdf_escape('KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA') . ') Tj ET';
+    $streamParts[] = 'BT /F1 10 Tf ' . sprintf('%.2F', $headerTextX) . ' 802 Td (' . pdf_escape('SIAPKERJA - KARIRHUB') . ') Tj ET';
+    $streamParts[] = 'BT /F2 11 Tf ' . sprintf('%.2F', $headerTextX) . ' 788 Td (' . pdf_escape('BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)') . ') Tj ET';
 
     // Section title.
     $sectionTop = 746;
@@ -196,9 +217,9 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $streamParts[] = 'BT /F1 8 Tf 48 ' . ($footerY - 6) . ' Td (' . pdf_escape('Dokumen ini hanya untuk referensi UI/UX dan bukan dokumen legal resmi.') . ') Tj ET';
 
     // Footer logo.
-    if ($logoInfo !== null) {
+    if ($footerLogoInfo !== null) {
         $targetW = 138.0;
-        $targetH = ($logoInfo['height'] / max(1, $logoInfo['width'])) * $targetW;
+        $targetH = ($footerLogoInfo['height'] / max(1, $footerLogoInfo['width'])) * $targetW;
         $logoX = 410.0;
         $logoY = $footerY + 2.0;
         $streamParts[] = 'q';
@@ -212,17 +233,39 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $objects = [];
     $objects[] = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
     $objects[] = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
+    $footerLogoObjectNumber = null;
+    $headerLogoObjectNumber = null;
+    $nextObjectNumber = 7;
+    if ($footerLogoInfo !== null) {
+        $footerLogoObjectNumber = $nextObjectNumber;
+        $nextObjectNumber++;
+    }
+    if ($headerLogoInfo !== null) {
+        $headerLogoObjectNumber = $nextObjectNumber;
+        $nextObjectNumber++;
+    }
     $resources = '/Font << /F1 5 0 R /F2 6 0 R >>';
-    if ($logoInfo !== null) {
-        $resources .= ' /XObject << /Im1 7 0 R >>';
+    if ($footerLogoObjectNumber !== null || $headerLogoObjectNumber !== null) {
+        $resources .= ' /XObject <<';
+        if ($footerLogoObjectNumber !== null) {
+            $resources .= ' /Im1 ' . $footerLogoObjectNumber . ' 0 R';
+        }
+        if ($headerLogoObjectNumber !== null) {
+            $resources .= ' /Im2 ' . $headerLogoObjectNumber . ' 0 R';
+        }
+        $resources .= ' >>';
     }
     $objects[] = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << " . $resources . " >> /Contents 4 0 R >>\nendobj\n";
     $objects[] = "4 0 obj\n<< /Length " . strlen($contentStream) . " >>\nstream\n" . $contentStream . "endstream\nendobj\n";
     $objects[] = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
     $objects[] = "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
-    if ($logoInfo !== null) {
-        $jpegData = $logoInfo['data'];
-        $objects[] = "7 0 obj\n<< /Type /XObject /Subtype /Image /Width " . (int)$logoInfo['width'] . " /Height " . (int)$logoInfo['height'] . " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " . strlen($jpegData) . " >>\nstream\n" . $jpegData . "\nendstream\nendobj\n";
+    if ($footerLogoInfo !== null && $footerLogoObjectNumber !== null) {
+        $jpegData = $footerLogoInfo['data'];
+        $objects[] = $footerLogoObjectNumber . " 0 obj\n<< /Type /XObject /Subtype /Image /Width " . (int)$footerLogoInfo['width'] . " /Height " . (int)$footerLogoInfo['height'] . " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " . strlen($jpegData) . " >>\nstream\n" . $jpegData . "\nendstream\nendobj\n";
+    }
+    if ($headerLogoInfo !== null && $headerLogoObjectNumber !== null) {
+        $jpegData = $headerLogoInfo['data'];
+        $objects[] = $headerLogoObjectNumber . " 0 obj\n<< /Type /XObject /Subtype /Image /Width " . (int)$headerLogoInfo['width'] . " /Height " . (int)$headerLogoInfo['height'] . " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " . strlen($jpegData) . " >>\nstream\n" . $jpegData . "\nendstream\nendobj\n";
     }
 
     $pdf = "%PDF-1.4\n";
