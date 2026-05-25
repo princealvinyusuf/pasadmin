@@ -95,6 +95,7 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
         ['ID Lowongan', (string)($row['id_lowongan'] ?? '-')],
         ['Jabatan', (string)($row['jabatan'] ?? '-')],
         ['Jumlah Kebutuhan', (string)($row['jumlah_kebutuhan'] ?? 0)],
+        ['Jumlah Penempatan', (string)($row['jumlah_penempatan'] ?? 0)],
         ['Unit/Perusahaan', $unitName],
         ['Lokasi Penempatan', (string)($row['lokasi_penempatan_detail'] ?? '-')],
         ['Masa Berlaku', (string)($row['masa_berlaku_mulai'] ?? '-') . ' s.d. ' . (string)($row['masa_berlaku_sampai'] ?? '-')],
@@ -534,6 +535,9 @@ if ($resStatus) {
         if (isset($rowsByNoReg[$nr])) {
             $rowsByNoReg[$nr]['status_keterisian'] = (string)$s['status_saat_ini'];
             $rowsByNoReg[$nr]['tanggal_terisi'] = (string)$s['tanggal_terisi'];
+            $rowsByNoReg[$nr]['jumlah_penempatan'] = strtolower(trim((string)$s['status_saat_ini'])) === 'terisi'
+                ? (int)($rowsByNoReg[$nr]['jumlah_kebutuhan'] ?? 0)
+                : 0;
             if (!empty($s['unit_nama']) && empty($rowsByNoReg[$nr]['unit_kode'])) {
                 $rowsByNoReg[$nr]['unit_kode'] = $unitCodeByName[(string)$s['unit_nama']] ?? (string)$s['unit_nama'];
             }
@@ -560,6 +564,17 @@ if ($resPenempatan) {
             'email' => (string)$p['email'],
             'nomor_hp' => (string)$p['nomor_hp'],
         ]);
+        if ((int)($rowsByNoReg[$nr]['jumlah_penempatan'] ?? 0) <= 0) {
+            $rowsByNoReg[$nr]['jumlah_penempatan'] = 1;
+        }
+    }
+}
+
+foreach ($rowsByNoReg as $noReg => $row) {
+    if (!isset($rowsByNoReg[$noReg]['jumlah_penempatan'])) {
+        $rowsByNoReg[$noReg]['jumlah_penempatan'] = strtolower(trim((string)($row['status_keterisian'] ?? ''))) === 'terisi'
+            ? (int)($row['jumlah_kebutuhan'] ?? 0)
+            : 0;
     }
 }
 
@@ -781,6 +796,7 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <div class="col-md-6"><strong>Jabatan:</strong><br><?php echo h($actionRow['jabatan']); ?></div>
                     <div class="col-md-6"><strong>Tanggal Lapor:</strong><br><?php echo h($actionRow['tanggal_lapor']); ?></div>
                     <div class="col-md-6"><strong>Jumlah Kebutuhan:</strong><br><?php echo h((string)$actionRow['jumlah_kebutuhan']); ?></div>
+                    <div class="col-md-6"><strong>Jumlah Penempatan:</strong><br><?php echo h((string)($actionRow['jumlah_penempatan'] ?? 0)); ?></div>
                     <div class="col-md-6"><strong>Unit/Perusahaan:</strong><br><?php echo h($unitOptions[$actionRow['unit_kode']] ?? $actionRow['unit_kode']); ?></div>
                     <div class="col-md-6"><strong>Mode Publikasi:</strong><br><?php echo h($actionRow['mode_publikasi']); ?></div>
                     <div class="col-md-6"><strong>Masa Berlaku:</strong><br><?php echo h($actionRow['masa_berlaku_mulai']); ?> s.d. <?php echo h($actionRow['masa_berlaku_sampai']); ?></div>
@@ -843,6 +859,7 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <tr><th>Jabatan</th><td>${<?php echo json_encode($actionRow['jabatan']); ?>}</td></tr>
                     <tr><th>Tanggal Lapor</th><td>${<?php echo json_encode($actionRow['tanggal_lapor']); ?>}</td></tr>
                     <tr><th>Jumlah Kebutuhan</th><td>${<?php echo json_encode((string)$actionRow['jumlah_kebutuhan']); ?>}</td></tr>
+                    <tr><th>Jumlah Penempatan</th><td>${<?php echo json_encode((string)($actionRow['jumlah_penempatan'] ?? 0)); ?>}</td></tr>
                     <tr><th>Unit/Perusahaan</th><td>${<?php echo json_encode($unitOptions[$actionRow['unit_kode']] ?? $actionRow['unit_kode']); ?>}</td></tr>
                     <tr><th>Masa Berlaku</th><td>${<?php echo json_encode($actionRow['masa_berlaku_mulai'] . ' s.d. ' . $actionRow['masa_berlaku_sampai']); ?>}</td></tr>
                     <tr><th>Employment Type</th><td>${<?php echo json_encode((string)($actionRow['employment_type'] ?? '-')); ?>}</td></tr>
