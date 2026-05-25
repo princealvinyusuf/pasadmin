@@ -108,19 +108,6 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
         ['Status Keterisian', (string)($row['status_keterisian'] ?? '-')],
         ['Approval', (string)($row['approval_state'] ?? '-') . ' by ' . (string)($row['approval_by'] ?? '-') . ' (' . (string)($row['approval_date'] ?? '-') . ')'],
     ];
-    $pegawaiRows = [
-        ['NIK', (string)($row['nik'] ?? '-')],
-        ['Nama Lengkap', (string)($row['nama_lengkap'] ?? '-')],
-        ['Pendidikan', (string)($row['pendidikan'] ?? '-')],
-        ['Jenis Kelamin', (string)($row['jenis_kelamin'] ?? '-')],
-        ['Tempat Lahir', (string)($row['tempat_lahir'] ?? '-')],
-        ['Tanggal Lahir', (string)($row['tanggal_lahir'] ?? '-')],
-        ['Alamat', (string)($row['alamat'] ?? '-')],
-        ['Status Disabilitas', (string)($row['status_disabilitas'] ?? '-')],
-        ['TMT', (string)($row['tmt'] ?? '-')],
-        ['Email', (string)($row['email'] ?? '-')],
-        ['Nomor Hp', (string)($row['nomor_hp'] ?? '-')],
-    ];
 
     $streamParts = [];
     $left = 40;
@@ -197,39 +184,6 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $streamParts[] = 'BT /F2 9 Tf 48 ' . ($catatanTop - 13) . ' Td (' . pdf_escape('CATATAN') . ') Tj ET';
     $streamParts[] = '0.25 0.26 0.31 rg';
     $streamParts[] = 'BT /F1 9 Tf 48 ' . ($catatanTop - 27) . ' Td (' . pdf_escape(pdf_fit((string)($row['catatan'] ?? '-'), 100)) . ') Tj ET';
-
-    // Data pegawai yang ditempatkan table.
-    $pegawaiSectionTop = $catatanTop - $catatanH - 10;
-    $streamParts[] = '0.95 0.98 1 rg';
-    $streamParts[] = $left . ' ' . ($pegawaiSectionTop - 24) . ' ' . $width . ' 24 re f';
-    $streamParts[] = '0.82 0.85 0.9 RG';
-    $streamParts[] = '0.8 w';
-    $streamParts[] = $left . ' ' . ($pegawaiSectionTop - 24) . ' ' . $width . ' 24 re S';
-    $streamParts[] = '0.11 0.2 0.36 rg';
-    $streamParts[] = 'BT /F2 9 Tf 48 ' . ($pegawaiSectionTop - 16) . ' Td (' . pdf_escape('DATA PEGAWAI YANG DITEMPATKAN') . ') Tj ET';
-
-    $pegawaiRowH = 16;
-    $pegawaiTop = $pegawaiSectionTop - 24;
-    $pegawaiSplitX = 190;
-    $pegawaiIndex = 0;
-    foreach ($pegawaiRows as $item) {
-        $pegawaiBottom = $pegawaiTop - $pegawaiRowH;
-        if ($pegawaiIndex % 2 === 0) {
-            $streamParts[] = '0.985 0.99 1 rg';
-        } else {
-            $streamParts[] = '1 1 1 rg';
-        }
-        $streamParts[] = $left . ' ' . $pegawaiBottom . ' ' . $width . ' ' . $pegawaiRowH . ' re f';
-        $streamParts[] = '0.82 0.85 0.9 RG';
-        $streamParts[] = '0.7 w';
-        $streamParts[] = $left . ' ' . $pegawaiBottom . ' ' . $width . ' ' . $pegawaiRowH . ' re S';
-        $streamParts[] = $pegawaiSplitX . ' ' . $pegawaiBottom . ' m ' . $pegawaiSplitX . ' ' . $pegawaiTop . ' l S';
-        $streamParts[] = '0.22 0.24 0.28 rg';
-        $streamParts[] = 'BT /F2 8 Tf 48 ' . ($pegawaiBottom + 5) . ' Td (' . pdf_escape(pdf_fit((string)$item[0], 34)) . ') Tj ET';
-        $streamParts[] = 'BT /F1 8 Tf 198 ' . ($pegawaiBottom + 5) . ' Td (' . pdf_escape(pdf_fit((string)$item[1], 78)) . ') Tj ET';
-        $pegawaiTop -= $pegawaiRowH;
-        $pegawaiIndex++;
-    }
 
     // Footer.
     $footerY = 62;
