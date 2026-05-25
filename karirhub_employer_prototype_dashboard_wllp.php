@@ -2,7 +2,9 @@
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
 require_once __DIR__ . '/karirhub_employer_prototype_data.php';
+require_once __DIR__ . '/karirhub_employer_prototype_storage.php';
 require_once __DIR__ . '/karirhub_employer_prototype_ui.php';
+require_once __DIR__ . '/db.php';
 
 if (!(current_user_can('karirhub_employer_prototype_view') || current_user_can('manage_settings'))) {
     http_response_code(403);
@@ -17,8 +19,47 @@ function h(string $value): string
 
 $dataset = karirhub_proto_dataset();
 $units = $dataset['units'];
-$vacancies = $dataset['vacancies'];
-$recentActivities = $dataset['activities'];
+kh_proto_ensure_multi_tables($conn);
+kh_proto_seed_multi_from_dataset($conn, $dataset, $units);
+
+$vacancies = [];
+$recentActivities = [];
+$resItems = $conn->query("
+    SELECT
+        d.no_reg_bukti,
+        d.id_lowongan,
+        d.unit_kode,
+        d.jabatan,
+        d.masa_berlaku_mulai AS tanggal_lapor,
+        d.masa_berlaku_sampai,
+        d.status_verifikasi,
+        COALESCE(s.status_saat_ini, 'Belum Terisi') AS status_keterisian
+    FROM karirhub_proto_wllp_pelaporan d
+    LEFT JOIN karirhub_proto_wllp_status s ON s.no_reg_bukti = d.no_reg_bukti AND s.id_lowongan = d.id_lowongan
+    ORDER BY d.created_at DESC, d.no_reg_bukti DESC
+");
+if ($resItems) {
+    while ($row = $resItems->fetch_assoc()) {
+        $vacancies[] = $row;
+    }
+}
+
+$resActivities = $conn->query("
+    SELECT
+        CONCAT(DATE_FORMAT(h.created_at, '%d %M %Y'), ' ', DATE_FORMAT(h.created_at, '%H:%i')) AS waktu,
+        'Buat Laporan Lowongan' AS aksi,
+        h.no_reg_bukti,
+        h.status_verifikasi AS status
+    FROM karirhub_proto_wllp_laporan h
+    ORDER BY h.created_at DESC
+    LIMIT 10
+");
+if ($resActivities) {
+    while ($row = $resActivities->fetch_assoc()) {
+        $recentActivities[] = $row;
+    }
+}
+
 $metrics = karirhub_proto_dashboard_metrics($vacancies);
 $complianceByUnit = karirhub_proto_compliance_by_unit($units, $vacancies);
 $latestProof = $metrics['bukti_terbaru'];

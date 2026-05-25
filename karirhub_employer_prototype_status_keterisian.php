@@ -2,6 +2,7 @@
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
 require_once __DIR__ . '/karirhub_employer_prototype_data.php';
+require_once __DIR__ . '/karirhub_employer_prototype_storage.php';
 require_once __DIR__ . '/karirhub_employer_prototype_ui.php';
 require_once __DIR__ . '/db.php';
 
@@ -18,58 +19,8 @@ function h(string $value): string
 
 $dataset = karirhub_proto_dataset();
 $units = $dataset['units'];
-$rows = $dataset['vacancies'];
-
-$conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_status (
-    no_reg_bukti VARCHAR(60) PRIMARY KEY,
-    id_lowongan VARCHAR(30) NOT NULL,
-    jabatan VARCHAR(200) NOT NULL,
-    unit_nama VARCHAR(255) NOT NULL,
-    status_saat_ini VARCHAR(50) NOT NULL,
-    tanggal_lapor DATE NOT NULL,
-    tanggal_terisi DATE DEFAULT NULL,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-$conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_penempatan (
-    no_reg_bukti VARCHAR(60) PRIMARY KEY,
-    nik VARCHAR(30) NOT NULL,
-    nama_lengkap VARCHAR(180) NOT NULL,
-    pendidikan VARCHAR(120) NOT NULL,
-    jenis_kelamin VARCHAR(30) NOT NULL,
-    tempat_lahir VARCHAR(120) NOT NULL,
-    tanggal_lahir DATE NOT NULL,
-    alamat TEXT NOT NULL,
-    status_disabilitas VARCHAR(10) NOT NULL,
-    tmt DATE NOT NULL,
-    email VARCHAR(180) NOT NULL,
-    nomor_hp VARCHAR(40) NOT NULL,
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-$stmtSeedStatus = $conn->prepare("
-    INSERT INTO karirhub_proto_wllp_status
-        (no_reg_bukti, id_lowongan, jabatan, unit_nama, status_saat_ini, tanggal_lapor, tanggal_terisi)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-        id_lowongan = VALUES(id_lowongan),
-        jabatan = VALUES(jabatan),
-        unit_nama = VALUES(unit_nama),
-        tanggal_lapor = VALUES(tanggal_lapor)
-");
-foreach ($rows as $seedRow) {
-    $noReg = (string)$seedRow['no_reg_bukti'];
-    $idLowongan = (string)$seedRow['id_lowongan'];
-    $jabatan = (string)$seedRow['jabatan'];
-    $unitNama = (string)($units[$seedRow['unit_kode']]['nama'] ?? $seedRow['unit_kode']);
-    $statusSaatIni = (string)$seedRow['status_keterisian'];
-    $tanggalLapor = (string)$seedRow['tanggal_lapor'];
-    $tanggalTerisi = $seedRow['tanggal_terisi'] !== null && $seedRow['tanggal_terisi'] !== '' ? (string)$seedRow['tanggal_terisi'] : null;
-    $stmtSeedStatus->bind_param('sssssss', $noReg, $idLowongan, $jabatan, $unitNama, $statusSaatIni, $tanggalLapor, $tanggalTerisi);
-    $stmtSeedStatus->execute();
-}
-$stmtSeedStatus->close();
+kh_proto_ensure_multi_tables($conn);
+kh_proto_seed_multi_from_dataset($conn, $dataset, $units);
 
 $statusFilter = trim((string)($_REQUEST['status'] ?? 'all'));
 $allowedStatus = ['all', 'belum terisi', 'proses seleksi', 'terisi', 'belum update'];
@@ -82,15 +33,58 @@ if ($unitFilter !== 'all' && !isset($units[$unitFilter])) {
 }
 
 $simulatedNoReg = trim((string)($_GET['simulate_no_reg'] ?? ''));
+$simulatedIdLowongan = trim((string)($_GET['simulate_id_lowongan'] ?? ''));
 $simulatedStatus = trim((string)($_GET['simulate_status'] ?? ''));
 $successMessage = null;
-if ($simulatedNoReg !== '' && in_array($simulatedStatus, ['Belum Terisi', 'Proses Seleksi', 'Terisi', 'Belum Update'], true)) {
-    $successMessage = 'Simulasi update status untuk ' . $simulatedNoReg . ' -> ' . $simulatedStatus . ' berhasil (dummy, tidak disimpan permanen).';
+if ($simulatedNoReg !== '' && $simulatedIdLowongan !== '' && in_array($simulatedStatus, ['Belum Terisi', 'Proses Seleksi', 'Terisi', 'Belum Update'], true)) {
+    $successMessage = 'Simulasi update status untuk ' . $simulatedNoReg . ' / ' . $simulatedIdLowongan . ' -> ' . $simulatedStatus . ' berhasil (dummy, tidak disimpan permanen).';
+}
+
+$rows = [];
+$resRows = $conn->query("
+    SELECT
+        d.no_reg_bukti,
+        d.id_lowongan,
+        d.jabatan,
+        d.unit_kode,
+        d.unit_nama,
+        COALESCE(s.status_saat_ini, 'Belum Terisi') AS status_keterisian,
+        COALESCE(CAST(s.tanggal_lapor AS CHAR), CAST(d.masa_berlaku_mulai AS CHAR), '') AS tanggal_lapor,
+        COALESCE(CAST(s.tanggal_terisi AS CHAR), '') AS tanggal_terisi,
+        h.periode_tipe,
+        CAST(h.periode_mulai AS CHAR) AS periode_mulai,
+        CAST(h.periode_selesai AS CHAR) AS periode_selesai,
+        COALESCE(p.nik, '') AS nik,
+        COALESCE(p.nama_lengkap, '') AS nama_lengkap,
+        COALESCE(p.pendidikan, '') AS pendidikan,
+        COALESCE(p.jenis_kelamin, '') AS jenis_kelamin,
+        COALESCE(p.tempat_lahir, '') AS tempat_lahir,
+        COALESCE(CAST(p.tanggal_lahir AS CHAR), '') AS tanggal_lahir,
+        COALESCE(p.alamat, '') AS alamat,
+        COALESCE(p.status_disabilitas, '') AS status_disabilitas,
+        COALESCE(CAST(p.tmt AS CHAR), '') AS tmt,
+        COALESCE(p.email, '') AS email,
+        COALESCE(p.nomor_hp, '') AS nomor_hp
+    FROM karirhub_proto_wllp_pelaporan d
+    LEFT JOIN karirhub_proto_wllp_status s
+        ON s.no_reg_bukti = d.no_reg_bukti AND s.id_lowongan = d.id_lowongan
+    LEFT JOIN karirhub_proto_wllp_penempatan p
+        ON p.no_reg_bukti = d.no_reg_bukti AND p.id_lowongan = d.id_lowongan
+    LEFT JOIN karirhub_proto_wllp_laporan h
+        ON h.no_reg_bukti = d.no_reg_bukti
+    ORDER BY d.created_at DESC, d.no_reg_bukti DESC, d.id_lowongan DESC
+");
+if ($resRows) {
+    while ($row = $resRows->fetch_assoc()) {
+        $row['status_saat_ini'] = (string)$row['status_keterisian'];
+        $rows[] = $row;
+    }
 }
 
 $rowMap = [];
 foreach ($rows as $row) {
-    $rowMap[$row['no_reg_bukti']] = $row;
+    $key = (string)$row['no_reg_bukti'] . '||' . (string)$row['id_lowongan'];
+    $rowMap[$key] = $row;
 }
 
 $pegawaiForm = [
@@ -109,9 +103,11 @@ $pegawaiForm = [
 
 $pegawaiErrors = [];
 $openTerisiNoReg = trim((string)($_GET['open_terisi_for'] ?? ''));
+$openTerisiIdLowongan = trim((string)($_GET['open_terisi_id'] ?? ''));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['form_action'] ?? '') === 'submit_terisi_data') {
     $openTerisiNoReg = trim((string)($_POST['no_reg_bukti'] ?? ''));
+    $openTerisiIdLowongan = trim((string)($_POST['id_lowongan'] ?? ''));
     $requiredPegawaiFields = [
         'nik' => 'NIK',
         'nama_lengkap' => 'Nama Lengkap',
@@ -133,15 +129,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['form_action'] ?? '
     if ($pegawaiForm['status_disabilitas'] !== '' && !in_array($pegawaiForm['status_disabilitas'], ['Iya', 'Tidak'], true)) {
         $pegawaiErrors[] = 'Status Disabilitas hanya boleh Iya atau Tidak.';
     }
-    if ($openTerisiNoReg === '' || !isset($rowMap[$openTerisiNoReg])) {
+    $openKey = $openTerisiNoReg . '||' . $openTerisiIdLowongan;
+    if ($openTerisiNoReg === '' || $openTerisiIdLowongan === '' || !isset($rowMap[$openKey])) {
         $pegawaiErrors[] = 'Data lowongan untuk status Terisi tidak ditemukan.';
     }
 
     if (empty($pegawaiErrors)) {
         $stmtSavePegawai = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_penempatan
-                (no_reg_bukti, nik, nama_lengkap, pendidikan, jenis_kelamin, tempat_lahir, tanggal_lahir, alamat, status_disabilitas, tmt, email, nomor_hp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (no_reg_bukti, id_lowongan, nik, nama_lengkap, pendidikan, jenis_kelamin, tempat_lahir, tanggal_lahir, alamat, status_disabilitas, tmt, email, nomor_hp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 nik = VALUES(nik),
                 nama_lengkap = VALUES(nama_lengkap),
@@ -156,8 +153,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['form_action'] ?? '
                 nomor_hp = VALUES(nomor_hp)
         ");
         $stmtSavePegawai->bind_param(
-            'ssssssssssss',
+            'sssssssssssss',
             $openTerisiNoReg,
+            $openTerisiIdLowongan,
             $pegawaiForm['nik'],
             $pegawaiForm['nama_lengkap'],
             $pegawaiForm['pendidikan'],
@@ -175,95 +173,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['form_action'] ?? '
 
         $statusTerisi = 'Terisi';
         $tanggalTerisiNow = $pegawaiForm['tmt'] !== '' ? $pegawaiForm['tmt'] : date('Y-m-d');
-        $stmtUpdateStatus = $conn->prepare("UPDATE karirhub_proto_wllp_status SET status_saat_ini = ?, tanggal_terisi = ? WHERE no_reg_bukti = ?");
-        $stmtUpdateStatus->bind_param('sss', $statusTerisi, $tanggalTerisiNow, $openTerisiNoReg);
+        $stmtUpdateStatus = $conn->prepare("UPDATE karirhub_proto_wllp_status SET status_saat_ini = ?, tanggal_terisi = ? WHERE no_reg_bukti = ? AND id_lowongan = ?");
+        $stmtUpdateStatus->bind_param('ssss', $statusTerisi, $tanggalTerisiNow, $openTerisiNoReg, $openTerisiIdLowongan);
         $stmtUpdateStatus->execute();
         $stmtUpdateStatus->close();
 
-        $successMessage = 'Simulasi update status untuk ' . $openTerisiNoReg . ' -> Terisi berhasil. Data pegawai ditempatkan atas nama '
+        $successMessage = 'Simulasi update status untuk ' . $openTerisiNoReg . ' / ' . $openTerisiIdLowongan . ' -> Terisi berhasil. Data pegawai ditempatkan atas nama '
             . $pegawaiForm['nama_lengkap'] . ' telah dilengkapi.';
         $openTerisiNoReg = '';
+        $openTerisiIdLowongan = '';
         foreach ($pegawaiForm as $key => $_) {
             $pegawaiForm[$key] = '';
         }
     }
 }
 
-$openTerisiRow = ($openTerisiNoReg !== '' && isset($rowMap[$openTerisiNoReg])) ? $rowMap[$openTerisiNoReg] : null;
-
-$templateRows = [];
-$resTemplate = $conn->query("
-    SELECT
-        s.no_reg_bukti,
-        s.id_lowongan,
-        s.jabatan,
-        s.unit_nama,
-        s.status_saat_ini,
-        s.tanggal_lapor,
-        s.tanggal_terisi,
-        COALESCE(p.nik, '') AS nik,
-        COALESCE(p.nama_lengkap, '') AS nama_lengkap,
-        COALESCE(p.pendidikan, '') AS pendidikan,
-        COALESCE(p.jenis_kelamin, '') AS jenis_kelamin,
-        COALESCE(p.tempat_lahir, '') AS tempat_lahir,
-        COALESCE(CAST(p.tanggal_lahir AS CHAR), '') AS tanggal_lahir,
-        COALESCE(p.alamat, '') AS alamat,
-        COALESCE(p.status_disabilitas, '') AS status_disabilitas,
-        COALESCE(CAST(p.tmt AS CHAR), '') AS tmt,
-        COALESCE(p.email, '') AS email,
-        COALESCE(p.nomor_hp, '') AS nomor_hp
-    FROM karirhub_proto_wllp_status s
-    LEFT JOIN karirhub_proto_wllp_penempatan p ON p.no_reg_bukti = s.no_reg_bukti
-    ORDER BY s.tanggal_lapor DESC, s.no_reg_bukti DESC
-");
-if ($resTemplate) {
-    while ($r = $resTemplate->fetch_assoc()) {
-        $templateRows[] = $r;
-    }
-}
-
-$statusMap = [];
-foreach ($templateRows as $tRow) {
-    $statusMap[(string)$tRow['no_reg_bukti']] = [
-        'status_saat_ini' => (string)$tRow['status_saat_ini'],
-        'tanggal_terisi' => (string)$tRow['tanggal_terisi'],
-    ];
-}
-foreach ($rows as $idx => $baseRow) {
-    $nr = (string)$baseRow['no_reg_bukti'];
-    if (isset($statusMap[$nr])) {
-        $rows[$idx]['status_keterisian'] = $statusMap[$nr]['status_saat_ini'] !== '' ? $statusMap[$nr]['status_saat_ini'] : $baseRow['status_keterisian'];
-        $rows[$idx]['tanggal_terisi'] = $statusMap[$nr]['tanggal_terisi'] !== '' ? $statusMap[$nr]['tanggal_terisi'] : $baseRow['tanggal_terisi'];
-    }
-}
-$unitCodeByName = [];
-foreach ($units as $code => $unitInfo) {
-    $unitCodeByName[(string)$unitInfo['nama']] = (string)$code;
-}
-foreach ($templateRows as $dbRow) {
-    $nr = (string)$dbRow['no_reg_bukti'];
-    if (isset($rowMap[$nr])) {
-        continue;
-    }
-    $unitCode = $unitCodeByName[(string)$dbRow['unit_nama']] ?? (string)$dbRow['unit_nama'];
-    $rows[] = [
-        'no_reg_bukti' => $nr,
-        'id_lowongan' => (string)$dbRow['id_lowongan'],
-        'jabatan' => (string)$dbRow['jabatan'],
-        'unit_kode' => $unitCode,
-        'status_keterisian' => (string)$dbRow['status_saat_ini'],
-        'tanggal_lapor' => (string)$dbRow['tanggal_lapor'],
-        'tanggal_terisi' => (string)$dbRow['tanggal_terisi'],
-    ];
-}
-// Remap row index after DB merge so modals can resolve newly inserted records.
-$rowMap = [];
-foreach ($rows as $row) {
-    $rowMap[$row['no_reg_bukti']] = $row;
-}
-foreach ($rows as $row) {
-    $rowMap[$row['no_reg_bukti']] = $row;
-}
+$openKey = $openTerisiNoReg . '||' . $openTerisiIdLowongan;
+$openTerisiRow = ($openTerisiNoReg !== '' && $openTerisiIdLowongan !== '' && isset($rowMap[$openKey])) ? $rowMap[$openKey] : null;
+$templateRows = $rows;
 
 $filteredRows = array_values(array_filter($rows, static function (array $row) use ($statusFilter, $unitFilter): bool {
     if ($statusFilter !== 'all' && strtolower($row['status_keterisian']) !== $statusFilter) {
@@ -383,6 +310,7 @@ foreach ($rows as $row) {
                         <tr>
                             <th>No. Reg Bukti</th>
                             <th>ID Lowongan</th>
+                            <th>Periode</th>
                             <th>Jabatan</th>
                             <th>Unit</th>
                             <th>Status Saat Ini</th>
@@ -393,12 +321,13 @@ foreach ($rows as $row) {
                     </thead>
                     <tbody>
                     <?php if (empty($filteredRows)): ?>
-                        <tr><td colspan="8" class="text-center text-muted">Tidak ada data.</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted">Tidak ada data.</td></tr>
                     <?php else: ?>
                         <?php foreach ($filteredRows as $row): ?>
                             <tr>
                                 <td class="fw-semibold"><?php echo h($row['no_reg_bukti']); ?></td>
                                 <td><?php echo h($row['id_lowongan']); ?></td>
+                                <td class="small"><?php echo h(strtoupper((string)$row['periode_tipe']) . ' (' . (string)$row['periode_mulai'] . ' s.d. ' . (string)$row['periode_selesai'] . ')'); ?></td>
                                 <td><?php echo h($row['jabatan']); ?></td>
                                 <td><?php echo h($units[$row['unit_kode']]['nama'] ?? $row['unit_kode']); ?></td>
                                 <td><span class="badge text-bg-<?php echo h(karirhub_proto_status_badge_class($row['status_keterisian'])); ?>"><?php echo h($row['status_keterisian']); ?></span></td>
@@ -406,9 +335,9 @@ foreach ($rows as $row) {
                                 <td><?php echo h((string)($row['tanggal_terisi'] ?? '-')); ?></td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <a class="btn btn-outline-secondary" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_status=Belum%20Terisi">Belum</a>
-                                        <a class="btn btn-outline-info" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_status=Proses%20Seleksi">Seleksi</a>
-                                        <a class="btn btn-outline-success" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&open_terisi_for=<?php echo h(urlencode($row['no_reg_bukti'])); ?>">Terisi</a>
+                                        <a class="btn btn-outline-secondary" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>&simulate_status=Belum%20Terisi">Belum</a>
+                                        <a class="btn btn-outline-info" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>&simulate_status=Proses%20Seleksi">Seleksi</a>
+                                        <a class="btn btn-outline-success" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&open_terisi_for=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&open_terisi_id=<?php echo h(urlencode($row['id_lowongan'])); ?>">Terisi</a>
                                     </div>
                                 </td>
                             </tr>
@@ -471,10 +400,12 @@ foreach ($rows as $row) {
                 <div class="modal-body">
                     <div class="small text-muted mb-2">
                         No. Reg Bukti: <strong><?php echo h($openTerisiRow['no_reg_bukti']); ?></strong> &middot;
+                        ID Lowongan: <strong><?php echo h($openTerisiRow['id_lowongan']); ?></strong> &middot;
                         Jabatan: <strong><?php echo h($openTerisiRow['jabatan']); ?></strong>
                     </div>
                     <input type="hidden" name="form_action" value="submit_terisi_data">
                     <input type="hidden" name="no_reg_bukti" value="<?php echo h($openTerisiRow['no_reg_bukti']); ?>">
+                    <input type="hidden" name="id_lowongan" value="<?php echo h($openTerisiRow['id_lowongan']); ?>">
                     <input type="hidden" name="status" value="<?php echo h($statusFilter); ?>">
                     <input type="hidden" name="unit" value="<?php echo h($unitFilter); ?>">
                     <div class="row g-3">

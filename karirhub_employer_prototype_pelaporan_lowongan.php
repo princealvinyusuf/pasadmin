@@ -2,6 +2,7 @@
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
 require_once __DIR__ . '/karirhub_employer_prototype_data.php';
+require_once __DIR__ . '/karirhub_employer_prototype_storage.php';
 require_once __DIR__ . '/karirhub_employer_prototype_ui.php';
 require_once __DIR__ . '/db.php';
 
@@ -16,82 +17,22 @@ function h(string $value): string
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
-function kh_proto_generate_no_reg_bukti(mysqli $conn): string
+function kh_proto_generate_no_reg_bukti(mysqli $conn, string $anchorDate): string
 {
-    $prefix = 'WLLP-57' . date('ym') . '-';
-    $regex = '^' . preg_quote($prefix, '/') . '[0-9]{8}$';
-    $stmt = $conn->prepare("
-        SELECT COALESCE(MAX(CAST(RIGHT(no_reg_bukti, 8) AS UNSIGNED)), 0) AS max_seq
-        FROM karirhub_proto_wllp_pelaporan
-        WHERE no_reg_bukti LIKE CONCAT(?, '%')
-          AND no_reg_bukti REGEXP ?
-    ");
-    $stmt->bind_param('ss', $prefix, $regex);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $row = $res ? $res->fetch_assoc() : null;
-    $stmt->close();
-
-    $nextSeq = ((int)($row['max_seq'] ?? 0)) + 1;
-    return $prefix . str_pad((string)$nextSeq, 8, '0', STR_PAD_LEFT);
+    return kh_proto_generate_no_reg_from_anchor($conn, $anchorDate);
 }
 
 $dataset = karirhub_proto_dataset();
 $units = $dataset['units'];
-
-$conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_pelaporan (
-    no_reg_bukti VARCHAR(60) PRIMARY KEY,
-    id_lowongan VARCHAR(30) NOT NULL,
-    unit_kode VARCHAR(40) NOT NULL,
-    unit_nama VARCHAR(255) NOT NULL,
-    jabatan VARCHAR(200) NOT NULL,
-    jumlah_kebutuhan INT NOT NULL,
-    jenis_kelamin VARCHAR(30) NOT NULL,
-    usia_min INT NOT NULL,
-    usia_max INT NOT NULL,
-    pendidikan_minimal VARCHAR(120) NOT NULL,
-    deskripsi_pekerjaan TEXT NOT NULL,
-    keterampilan_utama TEXT NOT NULL,
-    pengalaman_min_tahun INT NOT NULL,
-    rentang_gaji VARCHAR(120) NOT NULL,
-    kode_kbji VARCHAR(50) NOT NULL,
-    provinsi VARCHAR(120) NOT NULL,
-    kota VARCHAR(120) NOT NULL,
-    kecamatan VARCHAR(120) NOT NULL,
-    kelurahan VARCHAR(120) NOT NULL,
-    bidang_pekerjaan VARCHAR(180) NOT NULL,
-    industri_sektor VARCHAR(180) NOT NULL,
-    status_pernikahan VARCHAR(40) NOT NULL,
-    masa_berlaku_mulai DATE NOT NULL,
-    masa_berlaku_sampai DATE NOT NULL,
-    alamat_url_postingan_loker VARCHAR(500) NOT NULL,
-    catatan TEXT DEFAULT NULL,
-    status_verifikasi VARCHAR(60) NOT NULL DEFAULT 'Terverifikasi',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kode_kbji VARCHAR(50) NOT NULL DEFAULT '' AFTER rentang_gaji");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS provinsi VARCHAR(120) NOT NULL DEFAULT '' AFTER kode_kbji");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kota VARCHAR(120) NOT NULL DEFAULT '' AFTER provinsi");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kecamatan VARCHAR(120) NOT NULL DEFAULT '' AFTER kota");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kelurahan VARCHAR(120) NOT NULL DEFAULT '' AFTER kecamatan");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS bidang_pekerjaan VARCHAR(180) NOT NULL DEFAULT '' AFTER kelurahan");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS industri_sektor VARCHAR(180) NOT NULL DEFAULT '' AFTER bidang_pekerjaan");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS status_pernikahan VARCHAR(40) NOT NULL DEFAULT '' AFTER industri_sektor");
-
-$conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_status (
-    no_reg_bukti VARCHAR(60) PRIMARY KEY,
-    id_lowongan VARCHAR(30) NOT NULL,
-    jabatan VARCHAR(200) NOT NULL,
-    unit_nama VARCHAR(255) NOT NULL,
-    status_saat_ini VARCHAR(50) NOT NULL,
-    tanggal_lapor DATE NOT NULL,
-    tanggal_terisi DATE DEFAULT NULL,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+kh_proto_ensure_multi_tables($conn);
+kh_proto_seed_multi_from_dataset($conn, $dataset, $units);
 
 $form = [
     'unit_kode' => (string)($_POST['unit_kode'] ?? 'UNIT-001'),
+    'periode_tipe' => trim((string)($_POST['periode_tipe'] ?? 'monthly')),
+    'periode_anchor' => trim((string)($_POST['periode_anchor'] ?? date('Y-m-d'))),
+    'jumlah_id_lowongan' => trim((string)($_POST['jumlah_id_lowongan'] ?? '1')),
+    'daftar_jabatan' => trim((string)($_POST['daftar_jabatan'] ?? '')),
     'jabatan' => trim((string)($_POST['jabatan'] ?? '')),
     'jumlah_kebutuhan' => trim((string)($_POST['jumlah_kebutuhan'] ?? '')),
     'jenis_kelamin' => trim((string)($_POST['jenis_kelamin'] ?? 'Semua')),
@@ -122,6 +63,9 @@ $generated = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $requiredFields = [
+        'periode_tipe' => 'Periode Pelaporan',
+        'periode_anchor' => 'Tanggal Anchor Periode',
+        'jumlah_id_lowongan' => 'Jumlah ID Lowongan',
         'jabatan' => 'Jabatan',
         'jumlah_kebutuhan' => 'Jumlah Kebutuhan',
         'usia_min' => 'Usia Minimal',
@@ -152,6 +96,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($units[$form['unit_kode']])) {
         $errors[] = 'Unit perusahaan/usaha tidak valid.';
     }
+    if (!in_array($form['periode_tipe'], ['weekly', 'monthly'], true)) {
+        $errors[] = 'Periode Pelaporan harus Weekly atau Monthly.';
+    }
+    if (strtotime($form['periode_anchor']) === false) {
+        $errors[] = 'Tanggal Anchor Periode tidak valid.';
+    }
+    if ($form['jumlah_id_lowongan'] !== '' && (!ctype_digit($form['jumlah_id_lowongan']) || (int)$form['jumlah_id_lowongan'] <= 0 || (int)$form['jumlah_id_lowongan'] > 50)) {
+        $errors[] = 'Jumlah ID Lowongan harus angka 1 sampai 50.';
+    }
     if ($form['jumlah_kebutuhan'] !== '' && (!ctype_digit($form['jumlah_kebutuhan']) || (int)$form['jumlah_kebutuhan'] <= 0)) {
         $errors[] = 'Jumlah kebutuhan harus angka lebih dari 0.';
     }
@@ -163,82 +116,138 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        $generatedIdLowongan = 'LK-SIM-' . strtoupper(substr(md5($form['jabatan'] . microtime(true)), 0, 6));
-        $generatedNoReg = kh_proto_generate_no_reg_bukti($conn);
         $unitNama = (string)($units[$form['unit_kode']]['nama'] ?? $form['unit_kode']);
+        $period = kh_proto_derive_period($form['periode_tipe'], $form['periode_anchor']);
+        $generatedNoReg = kh_proto_generate_no_reg_bukti($conn, $period['anchor']);
 
-        $stmtSavePelaporan = $conn->prepare("
-            INSERT INTO karirhub_proto_wllp_pelaporan (
-                no_reg_bukti, id_lowongan, unit_kode, unit_nama, jabatan, jumlah_kebutuhan, jenis_kelamin, usia_min, usia_max,
-                pendidikan_minimal, deskripsi_pekerjaan, keterampilan_utama, pengalaman_min_tahun, rentang_gaji, kode_kbji, provinsi, kota, kecamatan, kelurahan,
-                bidang_pekerjaan, industri_sektor, status_pernikahan, masa_berlaku_mulai, masa_berlaku_sampai, alamat_url_postingan_loker, catatan, status_verifikasi
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Terverifikasi')
-        ");
+        $jabatanList = [];
+        if ($form['daftar_jabatan'] !== '') {
+            $parts = preg_split('/\r\n|\r|\n/', $form['daftar_jabatan']) ?: [];
+            foreach ($parts as $p) {
+                $item = trim((string)$p);
+                if ($item !== '') {
+                    $jabatanList[] = $item;
+                }
+            }
+        }
+        $jumlahItem = max(1, (int)$form['jumlah_id_lowongan']);
+        if (!empty($jabatanList)) {
+            $jumlahItem = count($jabatanList);
+        }
+
         $jumlahKebutuhanInt = (int)$form['jumlah_kebutuhan'];
         $usiaMinInt = (int)$form['usia_min'];
         $usiaMaxInt = (int)$form['usia_max'];
         $pengalamanMinInt = (int)$form['pengalaman_min_tahun'];
-        $stmtSavePelaporan->bind_param(
-            str_repeat('s', 26),
-            $generatedNoReg,
-            $generatedIdLowongan,
-            $form['unit_kode'],
-            $unitNama,
-            $form['jabatan'],
-            $jumlahKebutuhanInt,
-            $form['jenis_kelamin'],
-            $usiaMinInt,
-            $usiaMaxInt,
-            $form['pendidikan_minimal'],
-            $form['deskripsi_pekerjaan'],
-            $form['keterampilan_utama'],
-            $pengalamanMinInt,
-            $form['rentang_gaji'],
-            $form['kode_kbji'],
-            $form['provinsi'],
-            $form['kota'],
-            $form['kecamatan'],
-            $form['kelurahan'],
-            $form['bidang_pekerjaan'],
-            $form['industri_sektor'],
-            $form['status_pernikahan'],
-            $form['masa_berlaku_mulai'],
-            $form['masa_berlaku_sampai'],
-            $form['alamat_url_postingan_loker'],
-            $form['catatan']
-        );
-        $stmtSavePelaporan->execute();
-        $stmtSavePelaporan->close();
-
         $statusBelumTerisi = 'Belum Terisi';
+        $generatedLowongan = [];
+
+        $stmtSaveHeader = $conn->prepare("
+            INSERT INTO karirhub_proto_wllp_laporan
+                (no_reg_bukti, unit_kode, unit_nama, periode_tipe, periode_anchor, periode_mulai, periode_selesai, status_verifikasi, catatan)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'Terverifikasi', ?)
+            ON DUPLICATE KEY UPDATE
+                unit_kode = VALUES(unit_kode),
+                unit_nama = VALUES(unit_nama),
+                periode_tipe = VALUES(periode_tipe),
+                periode_anchor = VALUES(periode_anchor),
+                periode_mulai = VALUES(periode_mulai),
+                periode_selesai = VALUES(periode_selesai),
+                catatan = VALUES(catatan)
+        ");
+        $stmtSaveDetail = $conn->prepare("
+            INSERT INTO karirhub_proto_wllp_pelaporan (
+                no_reg_bukti, id_lowongan, unit_kode, unit_nama, jabatan, jumlah_kebutuhan, jenis_kelamin, usia_min, usia_max,
+                pendidikan_minimal, deskripsi_pekerjaan, keterampilan_utama, pengalaman_min_tahun, rentang_gaji, kode_kbji, provinsi, kota, kecamatan, kelurahan,
+                bidang_pekerjaan, industri_sektor, status_pernikahan, tipe_kerja, masa_berlaku_mulai, masa_berlaku_sampai, alamat_url_postingan_loker, catatan, status_verifikasi
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Terverifikasi')
+        ");
         $stmtSaveStatus = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_status (no_reg_bukti, id_lowongan, jabatan, unit_nama, status_saat_ini, tanggal_lapor, tanggal_terisi)
             VALUES (?, ?, ?, ?, ?, ?, NULL)
-            ON DUPLICATE KEY UPDATE
-                id_lowongan = VALUES(id_lowongan),
-                jabatan = VALUES(jabatan),
-                unit_nama = VALUES(unit_nama),
-                tanggal_lapor = VALUES(tanggal_lapor)
         ");
-        $stmtSaveStatus->bind_param(
-            'ssssss',
-            $generatedNoReg,
-            $generatedIdLowongan,
-            $form['jabatan'],
-            $unitNama,
-            $statusBelumTerisi,
-            $form['masa_berlaku_mulai']
-        );
-        $stmtSaveStatus->execute();
-        $stmtSaveStatus->close();
 
-        $generated = [
-            'id_lowongan' => $generatedIdLowongan,
-            'no_reg_bukti' => $generatedNoReg,
-            'status_verifikasi' => 'Terverifikasi (Dummy)',
-            'status_keterisian' => 'Belum Terisi',
-            'created_at' => date('Y-m-d H:i:s'),
-        ];
+        $conn->begin_transaction();
+        try {
+            $stmtSaveHeader->bind_param(
+                'ssssssss',
+                $generatedNoReg,
+                $form['unit_kode'],
+                $unitNama,
+                $period['tipe'],
+                $period['anchor'],
+                $period['mulai'],
+                $period['selesai'],
+                $form['catatan']
+            );
+            $stmtSaveHeader->execute();
+
+            for ($i = 0; $i < $jumlahItem; $i++) {
+                $generatedIdLowongan = kh_proto_generate_id_lowongan($conn);
+                $jabatanItem = $jabatanList[$i] ?? $form['jabatan'];
+                $generatedLowongan[] = $generatedIdLowongan;
+
+                $stmtSaveDetail->bind_param(
+                    str_repeat('s', 27),
+                    $generatedNoReg,
+                    $generatedIdLowongan,
+                    $form['unit_kode'],
+                    $unitNama,
+                    $jabatanItem,
+                    $jumlahKebutuhanInt,
+                    $form['jenis_kelamin'],
+                    $usiaMinInt,
+                    $usiaMaxInt,
+                    $form['pendidikan_minimal'],
+                    $form['deskripsi_pekerjaan'],
+                    $form['keterampilan_utama'],
+                    $pengalamanMinInt,
+                    $form['rentang_gaji'],
+                    $form['kode_kbji'],
+                    $form['provinsi'],
+                    $form['kota'],
+                    $form['kecamatan'],
+                    $form['kelurahan'],
+                    $form['bidang_pekerjaan'],
+                    $form['industri_sektor'],
+                    $form['status_pernikahan'],
+                    $form['tipe_kerja'],
+                    $form['masa_berlaku_mulai'],
+                    $form['masa_berlaku_sampai'],
+                    $form['alamat_url_postingan_loker'],
+                    $form['catatan']
+                );
+                $stmtSaveDetail->execute();
+
+                $stmtSaveStatus->bind_param(
+                    'ssssss',
+                    $generatedNoReg,
+                    $generatedIdLowongan,
+                    $jabatanItem,
+                    $unitNama,
+                    $statusBelumTerisi,
+                    $form['masa_berlaku_mulai']
+                );
+                $stmtSaveStatus->execute();
+            }
+
+            $conn->commit();
+            $generated = [
+                'id_lowongan_list' => $generatedLowongan,
+                'no_reg_bukti' => $generatedNoReg,
+                'status_verifikasi' => 'Terverifikasi (Dummy)',
+                'status_keterisian' => 'Belum Terisi',
+                'created_at' => date('Y-m-d H:i:s'),
+                'periode_label' => strtoupper($period['tipe']) . ' (' . $period['mulai'] . ' s.d. ' . $period['selesai'] . ')',
+            ];
+        } catch (Throwable $e) {
+            $conn->rollback();
+            $errors[] = 'Gagal menyimpan laporan: ' . $e->getMessage();
+        }
+
+        $stmtSaveHeader->close();
+        $stmtSaveDetail->close();
+        $stmtSaveStatus->close();
     }
 }
 ?>
@@ -294,7 +303,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="alert alert-success">
             <div class="fw-semibold mb-1">Pelaporan dummy berhasil dibuat</div>
             <div><strong>No. Reg Bukti:</strong> <?php echo h($generated['no_reg_bukti']); ?></div>
-            <div><strong>ID Lowongan:</strong> <?php echo h($generated['id_lowongan']); ?></div>
+            <div><strong>Periode Pelaporan:</strong> <?php echo h($generated['periode_label']); ?></div>
+            <div><strong>Total ID Lowongan:</strong> <?php echo h((string)count($generated['id_lowongan_list'])); ?></div>
+            <div><strong>ID Lowongan:</strong> <?php echo h(implode(', ', $generated['id_lowongan_list'])); ?></div>
             <div><strong>Status Verifikasi:</strong> <?php echo h($generated['status_verifikasi']); ?></div>
             <div><strong>Waktu Simulasi:</strong> <?php echo h($generated['created_at']); ?></div>
         </div>
@@ -314,6 +325,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="col-12 col-md-6">
                     <label class="form-label mb-1">Jabatan</label>
                     <input type="text" name="jabatan" class="form-control form-control-sm" value="<?php echo h($form['jabatan']); ?>">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label mb-1">Periode Pelaporan</label>
+                    <select name="periode_tipe" class="form-select form-select-sm">
+                        <option value="weekly"<?php echo $form['periode_tipe'] === 'weekly' ? ' selected' : ''; ?>>Weekly</option>
+                        <option value="monthly"<?php echo $form['periode_tipe'] === 'monthly' ? ' selected' : ''; ?>>Monthly</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label mb-1">Tanggal Anchor Periode</label>
+                    <input type="date" name="periode_anchor" class="form-control form-control-sm" value="<?php echo h($form['periode_anchor']); ?>">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label mb-1">Jumlah ID Lowongan</label>
+                    <input type="number" min="1" max="50" name="jumlah_id_lowongan" class="form-control form-control-sm" value="<?php echo h($form['jumlah_id_lowongan']); ?>">
+                </div>
+                <div class="col-12">
+                    <label class="form-label mb-1">Daftar Jabatan per ID (opsional)</label>
+                    <textarea name="daftar_jabatan" class="form-control form-control-sm" rows="2" placeholder="Satu jabatan per baris. Jika diisi, jumlah baris akan menjadi jumlah ID Lowongan."><?php echo h($form['daftar_jabatan']); ?></textarea>
                 </div>
 
                 <div class="col-6 col-md-3">
@@ -482,6 +512,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     (function () {
         const headers = [
             'Unit Kode',
+            'Periode Tipe',
+            'Periode Anchor',
+            'Jumlah ID Lowongan',
+            'Daftar Jabatan (Pisahkan |)',
             'Jabatan',
             'Jumlah Kebutuhan',
             'Jenis Kelamin',
@@ -535,6 +569,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             btnDownload.addEventListener('click', function () {
                 const sample = [
                     'UNIT-001',
+                    'Monthly',
+                    '2026-05-21',
+                    '2',
+                    'Staff Operasional|Admin Operasional',
                     'Staff Operasional',
                     '3',
                     'Semua',
@@ -594,6 +632,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         const dataRows = rows.slice(1).filter((r) => r.some((c) => String(c).trim() !== ''));
                         const allowedTipe = ['Full Time', 'Part Time', 'Contract', 'Internship'];
+                        const allowedPeriode = ['Weekly', 'Monthly'];
                         let valid = 0;
                         const issues = [];
 
@@ -608,6 +647,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                             if (!allowedTipe.includes(map['Tipe Kerja'])) {
                                 issues.push('Baris ' + line + ': Tipe Kerja harus Full Time / Part Time / Contract / Internship.');
+                                return;
+                            }
+                            if (!allowedPeriode.includes(map['Periode Tipe'])) {
+                                issues.push('Baris ' + line + ': Periode Tipe harus Weekly/Monthly.');
                                 return;
                             }
                             valid += 1;

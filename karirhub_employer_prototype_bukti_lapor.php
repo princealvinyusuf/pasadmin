@@ -2,6 +2,7 @@
 require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
 require_once __DIR__ . '/karirhub_employer_prototype_data.php';
+require_once __DIR__ . '/karirhub_employer_prototype_storage.php';
 require_once __DIR__ . '/karirhub_employer_prototype_ui.php';
 require_once __DIR__ . '/db.php';
 
@@ -92,14 +93,15 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $rows = [
         ['No. Reg Bukti', (string)($row['no_reg_bukti'] ?? '-')],
         ['Tanggal Lapor', (string)($row['tanggal_lapor'] ?? '-')],
-        ['ID Lowongan', (string)($row['id_lowongan'] ?? '-')],
-        ['Jabatan', (string)($row['jabatan'] ?? '-')],
+        ['Periode Pelaporan', strtoupper((string)($row['periode_tipe'] ?? '-')) . ' (' . (string)($row['periode_mulai'] ?? '-') . ' s.d. ' . (string)($row['periode_selesai'] ?? '-') . ')'],
+        ['Total ID Lowongan', (string)($row['total_lowongan'] ?? 1)],
+        ['Daftar ID Lowongan', (string)($row['daftar_id_lowongan'] ?? (string)($row['id_lowongan'] ?? '-'))],
+        ['Jabatan', (string)($row['daftar_jabatan'] ?? (string)($row['jabatan'] ?? '-'))],
         ['Jumlah Kebutuhan', (string)($row['jumlah_kebutuhan'] ?? 0)],
         ['Jumlah Penempatan', (string)($row['jumlah_penempatan'] ?? 0)],
         ['Unit/Perusahaan', $unitName],
-        ['Lokasi Penempatan', (string)($row['lokasi_penempatan_detail'] ?? '-')],
         ['Masa Berlaku', (string)($row['masa_berlaku_mulai'] ?? '-') . ' s.d. ' . (string)($row['masa_berlaku_sampai'] ?? '-')],
-        ['Tipe Kerja', (string)($row['employment_type'] ?? '-') . ' / ' . (string)($row['work_setup'] ?? '-') . ' / ' . (string)($row['shift_type'] ?? '-')],
+        ['Tipe Kerja', (string)($row['tipe_kerja'] ?? '-')],
         ['Kode KBJI', (string)($row['kode_kbji'] ?? '-')],
         ['Provinsi', (string)($row['provinsi'] ?? '-')],
         ['Kota', (string)($row['kota'] ?? '-')],
@@ -354,252 +356,90 @@ $query = strtolower(trim((string)($_GET['q'] ?? '')));
 
 $dataset = karirhub_proto_dataset();
 $units = $dataset['units'];
-$rows = $dataset['vacancies'];
-$rowsByNoReg = [];
-foreach ($rows as $r) {
-    $rowsByNoReg[(string)$r['no_reg_bukti']] = $r;
-}
+kh_proto_ensure_multi_tables($conn);
+kh_proto_seed_multi_from_dataset($conn, $dataset, $units);
+
 $unitOptions = [];
 foreach ($units as $unitCode => $unitInfo) {
     $unitOptions[$unitCode] = $unitInfo['nama'];
 }
 
-$conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_pelaporan (
-    no_reg_bukti VARCHAR(60) PRIMARY KEY,
-    id_lowongan VARCHAR(30) NOT NULL,
-    unit_kode VARCHAR(40) NOT NULL,
-    unit_nama VARCHAR(255) NOT NULL,
-    jabatan VARCHAR(200) NOT NULL,
-    jumlah_kebutuhan INT NOT NULL,
-    jenis_kelamin VARCHAR(30) NOT NULL,
-    usia_min INT NOT NULL,
-    usia_max INT NOT NULL,
-    pendidikan_minimal VARCHAR(120) NOT NULL,
-    deskripsi_pekerjaan TEXT NOT NULL,
-    keterampilan_utama TEXT NOT NULL,
-    pengalaman_min_tahun INT NOT NULL,
-    rentang_gaji VARCHAR(120) NOT NULL,
-    kode_kbji VARCHAR(50) NOT NULL,
-    provinsi VARCHAR(120) NOT NULL,
-    kota VARCHAR(120) NOT NULL,
-    kecamatan VARCHAR(120) NOT NULL,
-    kelurahan VARCHAR(120) NOT NULL,
-    bidang_pekerjaan VARCHAR(180) NOT NULL,
-    industri_sektor VARCHAR(180) NOT NULL,
-    status_pernikahan VARCHAR(40) NOT NULL,
-    masa_berlaku_mulai DATE NOT NULL,
-    masa_berlaku_sampai DATE NOT NULL,
-    alamat_url_postingan_loker VARCHAR(500) NOT NULL,
-    catatan TEXT DEFAULT NULL,
-    status_verifikasi VARCHAR(60) NOT NULL DEFAULT 'Terverifikasi',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kode_kbji VARCHAR(50) NOT NULL DEFAULT '' AFTER rentang_gaji");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS provinsi VARCHAR(120) NOT NULL DEFAULT '' AFTER kode_kbji");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kota VARCHAR(120) NOT NULL DEFAULT '' AFTER provinsi");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kecamatan VARCHAR(120) NOT NULL DEFAULT '' AFTER kota");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS kelurahan VARCHAR(120) NOT NULL DEFAULT '' AFTER kecamatan");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS bidang_pekerjaan VARCHAR(180) NOT NULL DEFAULT '' AFTER kelurahan");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS industri_sektor VARCHAR(180) NOT NULL DEFAULT '' AFTER bidang_pekerjaan");
-$conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS status_pernikahan VARCHAR(40) NOT NULL DEFAULT '' AFTER industri_sektor");
-
-$conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_status (
-    no_reg_bukti VARCHAR(60) PRIMARY KEY,
-    id_lowongan VARCHAR(30) NOT NULL,
-    jabatan VARCHAR(200) NOT NULL,
-    unit_nama VARCHAR(255) NOT NULL,
-    status_saat_ini VARCHAR(50) NOT NULL,
-    tanggal_lapor DATE NOT NULL,
-    tanggal_terisi DATE DEFAULT NULL,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-$conn->query("CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_penempatan (
-    no_reg_bukti VARCHAR(60) PRIMARY KEY,
-    nik VARCHAR(30) NOT NULL,
-    nama_lengkap VARCHAR(180) NOT NULL,
-    pendidikan VARCHAR(120) NOT NULL,
-    jenis_kelamin VARCHAR(30) NOT NULL,
-    tempat_lahir VARCHAR(120) NOT NULL,
-    tanggal_lahir DATE NOT NULL,
-    alamat TEXT NOT NULL,
-    status_disabilitas VARCHAR(10) NOT NULL,
-    tmt DATE NOT NULL,
-    email VARCHAR(180) NOT NULL,
-    nomor_hp VARCHAR(40) NOT NULL,
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-$unitCodeByName = [];
-foreach ($units as $code => $unitInfo) {
-    $unitCodeByName[(string)$unitInfo['nama']] = (string)$code;
-}
-
-$defaultMeta = [
-    'requested_by' => 'N/A',
-    'requester_divisi' => 'N/A',
-    'hiring_manager' => 'N/A',
-    'cost_center' => 'CC-NA',
-    'employment_type' => 'PKWT',
-    'work_setup' => 'Onsite',
-    'shift_type' => 'Non-Shift',
-    'lokasi_penempatan_detail' => '-',
-    'sumber_rekrutmen' => 'Karirhub',
-    'target_tgl_join' => date('Y-m-d', strtotime('+30 days')),
-    'sla_hiring_hari' => 30,
-    'jumlah_lamaran_masuk' => 0,
-    'jumlah_shortlist' => 0,
-    'jumlah_interview' => 0,
-    'jumlah_offer' => 0,
-    'budget_status' => 'Pending',
-];
-
-$resPelaporan = $conn->query("SELECT * FROM karirhub_proto_wllp_pelaporan ORDER BY created_at DESC");
-if ($resPelaporan) {
-    while ($p = $resPelaporan->fetch_assoc()) {
-        $nr = (string)$p['no_reg_bukti'];
-        if (isset($rowsByNoReg[$nr])) {
-            $rowsByNoReg[$nr] = array_merge($rowsByNoReg[$nr], [
-                'id_lowongan' => (string)$p['id_lowongan'],
-                'unit_kode' => (string)$p['unit_kode'],
-                'jabatan' => (string)$p['jabatan'],
-                'jumlah_kebutuhan' => (int)$p['jumlah_kebutuhan'],
-                'jenis_kelamin' => (string)$p['jenis_kelamin'],
-                'usia_min' => (int)$p['usia_min'],
-                'usia_max' => (int)$p['usia_max'],
-                'pendidikan_minimal' => (string)$p['pendidikan_minimal'],
-                'keterampilan_utama' => (string)$p['keterampilan_utama'],
-                'pengalaman_min_tahun' => (int)$p['pengalaman_min_tahun'],
-                'rentang_gaji' => (string)$p['rentang_gaji'],
-                'kode_kbji' => (string)($p['kode_kbji'] ?? ''),
-                'provinsi' => (string)($p['provinsi'] ?? ''),
-                'kota' => (string)($p['kota'] ?? ''),
-                'kecamatan' => (string)($p['kecamatan'] ?? ''),
-                'kelurahan' => (string)($p['kelurahan'] ?? ''),
-                'bidang_pekerjaan' => (string)($p['bidang_pekerjaan'] ?? ''),
-                'industri_sektor' => (string)($p['industri_sektor'] ?? ''),
-                'status_pernikahan' => (string)($p['status_pernikahan'] ?? ''),
-                'status_verifikasi' => (string)$p['status_verifikasi'],
-                'tanggal_lapor' => (string)$p['masa_berlaku_mulai'],
-                'masa_berlaku_mulai' => (string)$p['masa_berlaku_mulai'],
-                'masa_berlaku_sampai' => (string)$p['masa_berlaku_sampai'],
-                'catatan' => (string)$p['catatan'],
-                'mode_publikasi' => 'Publik',
-                'petugas_input' => '-',
-            ]);
-        } else {
-            $rowsByNoReg[$nr] = array_merge($defaultMeta, [
-                'no_reg_bukti' => $nr,
-                'id_lowongan' => (string)$p['id_lowongan'],
-                'unit_kode' => (string)$p['unit_kode'],
-                'jabatan' => (string)$p['jabatan'],
-                'jumlah_kebutuhan' => (int)$p['jumlah_kebutuhan'],
-                'jenis_kelamin' => (string)$p['jenis_kelamin'],
-                'usia_min' => (int)$p['usia_min'],
-                'usia_max' => (int)$p['usia_max'],
-                'pendidikan_minimal' => (string)$p['pendidikan_minimal'],
-                'keterampilan_utama' => (string)$p['keterampilan_utama'],
-                'pengalaman_min_tahun' => (int)$p['pengalaman_min_tahun'],
-                'rentang_gaji' => (string)$p['rentang_gaji'],
-                'kode_kbji' => (string)($p['kode_kbji'] ?? ''),
-                'provinsi' => (string)($p['provinsi'] ?? ''),
-                'kota' => (string)($p['kota'] ?? ''),
-                'kecamatan' => (string)($p['kecamatan'] ?? ''),
-                'kelurahan' => (string)($p['kelurahan'] ?? ''),
-                'bidang_pekerjaan' => (string)($p['bidang_pekerjaan'] ?? ''),
-                'industri_sektor' => (string)($p['industri_sektor'] ?? ''),
-                'status_pernikahan' => (string)($p['status_pernikahan'] ?? ''),
-                'status_verifikasi' => (string)$p['status_verifikasi'],
-                'status_keterisian' => 'Belum Terisi',
-                'tanggal_lapor' => (string)$p['masa_berlaku_mulai'],
-                'masa_berlaku_mulai' => (string)$p['masa_berlaku_mulai'],
-                'masa_berlaku_sampai' => (string)$p['masa_berlaku_sampai'],
-                'tanggal_terisi' => null,
-                'catatan' => (string)$p['catatan'],
-                'mode_publikasi' => 'Publik',
-                'petugas_input' => '-',
-            ]);
-        }
+$headerRows = [];
+$detailByNoReg = [];
+$resHeaders = $conn->query("
+    SELECT
+        h.no_reg_bukti,
+        h.unit_kode,
+        h.unit_nama,
+        h.periode_tipe,
+        CAST(h.periode_mulai AS CHAR) AS periode_mulai,
+        CAST(h.periode_selesai AS CHAR) AS periode_selesai,
+        h.status_verifikasi,
+        h.catatan,
+        SUM(d.jumlah_kebutuhan) AS jumlah_kebutuhan_total,
+        COUNT(d.id_lowongan) AS total_lowongan,
+        GROUP_CONCAT(d.id_lowongan ORDER BY d.id_lowongan SEPARATOR ', ') AS daftar_id_lowongan,
+        GROUP_CONCAT(DISTINCT d.jabatan ORDER BY d.jabatan SEPARATOR ', ') AS daftar_jabatan
+    FROM karirhub_proto_wllp_laporan h
+    JOIN karirhub_proto_wllp_pelaporan d ON d.no_reg_bukti = h.no_reg_bukti
+    GROUP BY h.no_reg_bukti, h.unit_kode, h.unit_nama, h.periode_tipe, h.periode_mulai, h.periode_selesai, h.status_verifikasi, h.catatan
+    ORDER BY h.created_at DESC, h.no_reg_bukti DESC
+");
+if ($resHeaders) {
+    while ($r = $resHeaders->fetch_assoc()) {
+        $headerRows[] = $r;
     }
 }
 
-$resStatus = $conn->query("SELECT no_reg_bukti, status_saat_ini, tanggal_terisi, unit_nama FROM karirhub_proto_wllp_status");
-if ($resStatus) {
-    while ($s = $resStatus->fetch_assoc()) {
-        $nr = (string)$s['no_reg_bukti'];
-        if (isset($rowsByNoReg[$nr])) {
-            $rowsByNoReg[$nr]['status_keterisian'] = (string)$s['status_saat_ini'];
-            $rowsByNoReg[$nr]['tanggal_terisi'] = (string)$s['tanggal_terisi'];
-            $rowsByNoReg[$nr]['jumlah_penempatan'] = strtolower(trim((string)$s['status_saat_ini'])) === 'terisi'
-                ? (int)($rowsByNoReg[$nr]['jumlah_kebutuhan'] ?? 0)
-                : 0;
-            if (!empty($s['unit_nama']) && empty($rowsByNoReg[$nr]['unit_kode'])) {
-                $rowsByNoReg[$nr]['unit_kode'] = $unitCodeByName[(string)$s['unit_nama']] ?? (string)$s['unit_nama'];
-            }
+$resDetails = $conn->query("
+    SELECT
+        d.*,
+        COALESCE(s.status_saat_ini, 'Belum Terisi') AS status_keterisian,
+        COALESCE(CAST(s.tanggal_terisi AS CHAR), '') AS tanggal_terisi,
+        COALESCE(p.nik, '') AS nik,
+        COALESCE(p.nama_lengkap, '') AS nama_lengkap,
+        COALESCE(p.pendidikan, '') AS pendidikan,
+        COALESCE(p.jenis_kelamin, '') AS jenis_kelamin_penempatan,
+        COALESCE(p.tempat_lahir, '') AS tempat_lahir,
+        COALESCE(CAST(p.tanggal_lahir AS CHAR), '') AS tanggal_lahir,
+        COALESCE(p.alamat, '') AS alamat,
+        COALESCE(p.status_disabilitas, '') AS status_disabilitas,
+        COALESCE(CAST(p.tmt AS CHAR), '') AS tmt,
+        COALESCE(p.email, '') AS email,
+        COALESCE(p.nomor_hp, '') AS nomor_hp
+    FROM karirhub_proto_wllp_pelaporan d
+    LEFT JOIN karirhub_proto_wllp_status s ON s.no_reg_bukti = d.no_reg_bukti AND s.id_lowongan = d.id_lowongan
+    LEFT JOIN karirhub_proto_wllp_penempatan p ON p.no_reg_bukti = d.no_reg_bukti AND p.id_lowongan = d.id_lowongan
+    ORDER BY d.no_reg_bukti DESC, d.id_lowongan ASC
+");
+if ($resDetails) {
+    while ($r = $resDetails->fetch_assoc()) {
+        $nr = (string)$r['no_reg_bukti'];
+        if (!isset($detailByNoReg[$nr])) {
+            $detailByNoReg[$nr] = [];
         }
-    }
-}
-$resPenempatan = $conn->query("SELECT * FROM karirhub_proto_wllp_penempatan");
-if ($resPenempatan) {
-    while ($p = $resPenempatan->fetch_assoc()) {
-        $nr = (string)$p['no_reg_bukti'];
-        if (!isset($rowsByNoReg[$nr])) {
-            continue;
-        }
-        $rowsByNoReg[$nr] = array_merge($rowsByNoReg[$nr], [
-            'nik' => (string)$p['nik'],
-            'nama_lengkap' => (string)$p['nama_lengkap'],
-            'pendidikan' => (string)$p['pendidikan'],
-            'jenis_kelamin' => (string)$p['jenis_kelamin'],
-            'tempat_lahir' => (string)$p['tempat_lahir'],
-            'tanggal_lahir' => (string)$p['tanggal_lahir'],
-            'alamat' => (string)$p['alamat'],
-            'status_disabilitas' => (string)$p['status_disabilitas'],
-            'tmt' => (string)$p['tmt'],
-            'email' => (string)$p['email'],
-            'nomor_hp' => (string)$p['nomor_hp'],
-        ]);
-        if ((int)($rowsByNoReg[$nr]['jumlah_penempatan'] ?? 0) <= 0) {
-            $rowsByNoReg[$nr]['jumlah_penempatan'] = 1;
-        }
+        $detailByNoReg[$nr][] = $r;
     }
 }
 
-foreach ($rowsByNoReg as $noReg => $row) {
-    if (!isset($rowsByNoReg[$noReg]['jumlah_penempatan'])) {
-        $rowsByNoReg[$noReg]['jumlah_penempatan'] = strtolower(trim((string)($row['status_keterisian'] ?? ''))) === 'terisi'
-            ? (int)($row['jumlah_kebutuhan'] ?? 0)
-            : 0;
-    }
-}
-
-$rows = array_values($rowsByNoReg);
 if ($unitFilter !== 'all' && !isset($unitOptions[$unitFilter])) {
     $unitFilter = 'all';
 }
 
-$filteredRows = array_values(array_filter($rows, static function (array $row) use ($statusFilter, $unitFilter, $query): bool {
-    if ($statusFilter === 'all') {
-        $statusMatch = true;
-    } else {
-        $statusMatch = strtolower($row['status_verifikasi']) === $statusFilter;
-    }
-    if (!$statusMatch) {
+$rows = array_values(array_filter($headerRows, static function (array $row) use ($statusFilter, $unitFilter, $query): bool {
+    if ($statusFilter !== 'all' && strtolower((string)$row['status_verifikasi']) !== $statusFilter) {
         return false;
     }
-    if ($unitFilter !== 'all' && $row['unit_kode'] !== $unitFilter) {
+    if ($unitFilter !== 'all' && (string)$row['unit_kode'] !== $unitFilter) {
         return false;
     }
     if ($query !== '') {
         $haystack = strtolower(implode(' ', [
-            $row['no_reg_bukti'],
-            $row['id_lowongan'],
-            $row['jabatan'],
-            $row['hiring_manager'] ?? '',
-            $row['requester_divisi'] ?? '',
-            $row['petugas_input'],
-            $row['catatan'],
+            (string)$row['no_reg_bukti'],
+            (string)$row['daftar_id_lowongan'],
+            (string)$row['daftar_jabatan'],
+            (string)$row['catatan'],
+            (string)$row['periode_tipe'],
         ]));
         if (strpos($haystack, $query) === false) {
             return false;
@@ -607,6 +447,7 @@ $filteredRows = array_values(array_filter($rows, static function (array $row) us
     }
     return true;
 }));
+$filteredRows = $rows;
 
 $baseParams = [
     'status' => $statusFilter,
@@ -621,6 +462,27 @@ foreach ($rows as $row) {
 $action = trim((string)($_GET['action'] ?? ''));
 $actionNoReg = trim((string)($_GET['no_reg'] ?? ''));
 $actionRow = ($actionNoReg !== '' && isset($rowMap[$actionNoReg])) ? $rowMap[$actionNoReg] : null;
+$actionDetailRows = [];
+if ($actionRow !== null) {
+    $actionDetailRows = $detailByNoReg[$actionRow['no_reg_bukti']] ?? [];
+    $firstDetail = $actionDetailRows[0] ?? [];
+    $jumlahPenempatan = 0;
+    foreach ($actionDetailRows as $item) {
+        if (strtolower(trim((string)($item['status_keterisian'] ?? ''))) === 'terisi') {
+            $jumlahPenempatan++;
+        }
+    }
+    $actionRow = array_merge($firstDetail, $actionRow, [
+        'jumlah_kebutuhan' => (int)($actionRow['jumlah_kebutuhan_total'] ?? 0),
+        'jumlah_penempatan' => $jumlahPenempatan,
+        'status_keterisian' => $jumlahPenempatan > 0 ? 'Terisi Sebagian' : 'Belum Terisi',
+        'tanggal_lapor' => (string)($firstDetail['masa_berlaku_mulai'] ?? ($actionRow['periode_mulai'] ?? '')),
+        'masa_berlaku_mulai' => (string)($actionRow['periode_mulai'] ?? ''),
+        'masa_berlaku_sampai' => (string)($actionRow['periode_selesai'] ?? ''),
+        'id_lowongan' => (string)($actionRow['daftar_id_lowongan'] ?? ''),
+        'jabatan' => (string)($actionRow['daftar_jabatan'] ?? ''),
+    ]);
+}
 $actionError = null;
 if ($action !== '' && !in_array($action, ['lihat', 'cetak', 'unduh'], true)) {
     $actionError = 'Aksi tidak dikenali.';
@@ -630,7 +492,7 @@ if ($action !== '' && $actionRow === null && $actionError === null) {
 }
 
 if ($action === 'unduh' && $actionRow !== null) {
-    $unitName = $unitOptions[$actionRow['unit_kode']] ?? $actionRow['unit_kode'];
+    $unitName = $unitOptions[$actionRow['unit_kode']] ?? ($actionRow['unit_nama'] ?? $actionRow['unit_kode']);
     $pdfBinary = generate_official_bukti_lapor_pdf($actionRow, $unitName);
     $filename = 'bukti-lapor-' . preg_replace('/[^A-Za-z0-9\-]/', '_', $actionRow['no_reg_bukti']) . '.pdf';
     header('Content-Type: application/pdf');
@@ -702,7 +564,7 @@ if ($action === 'unduh' && $actionRow !== null) {
                 </div>
                 <div class="col-12 col-md-4">
                     <label for="q" class="form-label mb-1">Cari</label>
-                    <input id="q" name="q" class="form-control form-control-sm" value="<?php echo h($query); ?>" placeholder="No Reg, ID Lowongan, Jabatan">
+                    <input id="q" name="q" class="form-control form-control-sm" value="<?php echo h($query); ?>" placeholder="No Reg, daftar ID Lowongan, Jabatan">
                 </div>
                 <div class="col-12 col-md-2 d-grid">
                     <button type="submit" class="btn btn-primary btn-sm">
@@ -720,13 +582,12 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <thead class="table-light">
                         <tr>
                             <th>No. Reg Bukti</th>
-                            <th>ID Lowongan</th>
-                            <th>Tanggal Lapor</th>
+                            <th>Periode</th>
+                            <th>Total ID Lowongan</th>
+                            <th>Daftar ID</th>
                             <th>Jabatan</th>
-                            <th>Jumlah</th>
+                            <th>Total Kebutuhan</th>
                             <th>Unit/Perusahaan</th>
-                            <th>Masa Berlaku</th>
-                            <th>Tipe Kerja</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
@@ -734,7 +595,7 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <tbody>
                     <?php if (empty($filteredRows)): ?>
                         <tr>
-                            <td colspan="10" class="text-center text-muted">Tidak ada data sesuai filter.</td>
+                            <td colspan="9" class="text-center text-muted">Tidak ada data sesuai filter.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($filteredRows as $row): ?>
@@ -746,13 +607,12 @@ if ($action === 'unduh' && $actionRow !== null) {
                             ?>
                             <tr>
                                 <td class="fw-semibold"><?php echo h($row['no_reg_bukti']); ?></td>
-                                <td><?php echo h($row['id_lowongan']); ?></td>
-                                <td><?php echo h($row['tanggal_lapor']); ?></td>
-                                <td><?php echo h($row['jabatan']); ?></td>
-                                <td><?php echo h((string)$row['jumlah_kebutuhan']); ?></td>
-                                <td><?php echo h($unitOptions[$row['unit_kode']] ?? $row['unit_kode']); ?></td>
-                                <td><?php echo h($row['masa_berlaku_sampai']); ?></td>
-                                <td><?php echo h((string)($row['employment_type'] ?? '-')); ?></td>
+                                <td class="small"><?php echo h(strtoupper((string)$row['periode_tipe']) . ' (' . (string)$row['periode_mulai'] . ' s.d. ' . (string)$row['periode_selesai'] . ')'); ?></td>
+                                <td><?php echo h((string)$row['total_lowongan']); ?></td>
+                                <td class="small"><?php echo h((string)$row['daftar_id_lowongan']); ?></td>
+                                <td><?php echo h((string)$row['daftar_jabatan']); ?></td>
+                                <td><?php echo h((string)$row['jumlah_kebutuhan_total']); ?></td>
+                                <td><?php echo h($unitOptions[$row['unit_kode']] ?? $row['unit_nama']); ?></td>
                                 <td><span class="badge text-bg-<?php echo h($badgeClass); ?>"><?php echo h($row['status_verifikasi']); ?></span></td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
@@ -785,21 +645,15 @@ if ($action === 'unduh' && $actionRow !== null) {
             </div>
             <div class="modal-body">
                 <div class="row g-3">
-                    <div class="col-md-6"><strong>ID Lowongan:</strong><br><?php echo h($actionRow['id_lowongan']); ?></div>
-                    <div class="col-md-6"><strong>Jabatan:</strong><br><?php echo h($actionRow['jabatan']); ?></div>
+                    <div class="col-md-6"><strong>Total ID Lowongan:</strong><br><?php echo h((string)($actionRow['total_lowongan'] ?? 0)); ?></div>
+                    <div class="col-md-6"><strong>Daftar ID Lowongan:</strong><br><?php echo h((string)($actionRow['daftar_id_lowongan'] ?? '-')); ?></div>
+                    <div class="col-md-6"><strong>Jabatan:</strong><br><?php echo h((string)($actionRow['daftar_jabatan'] ?? $actionRow['jabatan'])); ?></div>
                     <div class="col-md-6"><strong>Tanggal Lapor:</strong><br><?php echo h($actionRow['tanggal_lapor']); ?></div>
                     <div class="col-md-6"><strong>Jumlah Kebutuhan:</strong><br><?php echo h((string)$actionRow['jumlah_kebutuhan']); ?></div>
                     <div class="col-md-6"><strong>Jumlah Penempatan:</strong><br><?php echo h((string)($actionRow['jumlah_penempatan'] ?? 0)); ?></div>
-                    <div class="col-md-6"><strong>Unit/Perusahaan:</strong><br><?php echo h($unitOptions[$actionRow['unit_kode']] ?? $actionRow['unit_kode']); ?></div>
-                    <div class="col-md-6"><strong>Mode Publikasi:</strong><br><?php echo h($actionRow['mode_publikasi']); ?></div>
+                    <div class="col-md-6"><strong>Unit/Perusahaan:</strong><br><?php echo h($unitOptions[$actionRow['unit_kode']] ?? ($actionRow['unit_nama'] ?? $actionRow['unit_kode'])); ?></div>
+                    <div class="col-md-6"><strong>Periode Pelaporan:</strong><br><?php echo h(strtoupper((string)$actionRow['periode_tipe']) . ' (' . (string)$actionRow['periode_mulai'] . ' s.d. ' . (string)$actionRow['periode_selesai'] . ')'); ?></div>
                     <div class="col-md-6"><strong>Masa Berlaku:</strong><br><?php echo h($actionRow['masa_berlaku_mulai']); ?> s.d. <?php echo h($actionRow['masa_berlaku_sampai']); ?></div>
-                    <div class="col-md-6"><strong>SLA Hiring:</strong><br><?php echo h((string)($actionRow['sla_hiring_hari'] ?? 0)); ?> hari</div>
-                    <div class="col-md-6"><strong>Employment Type:</strong><br><?php echo h((string)($actionRow['employment_type'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Work Setup:</strong><br><?php echo h((string)($actionRow['work_setup'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Shift Type:</strong><br><?php echo h((string)($actionRow['shift_type'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Lokasi Penempatan:</strong><br><?php echo h((string)($actionRow['lokasi_penempatan_detail'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Requester Divisi:</strong><br><?php echo h((string)($actionRow['requester_divisi'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Sumber Rekrutmen:</strong><br><?php echo h((string)($actionRow['sumber_rekrutmen'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Kode KBJI:</strong><br><?php echo h((string)($actionRow['kode_kbji'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Provinsi:</strong><br><?php echo h((string)($actionRow['provinsi'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Kota:</strong><br><?php echo h((string)($actionRow['kota'] ?? '-')); ?></div>
@@ -810,6 +664,33 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <div class="col-md-6"><strong>Status Pernikahan:</strong><br><?php echo h((string)($actionRow['status_pernikahan'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Status Verifikasi:</strong><br><?php echo h($actionRow['status_verifikasi']); ?></div>
                     <div class="col-md-6"><strong>Status Keterisian:</strong><br><?php echo h($actionRow['status_keterisian']); ?></div>
+                    <?php if (!empty($actionDetailRows)): ?>
+                        <div class="col-12">
+                            <strong>Rincian ID Lowongan:</strong>
+                            <div class="table-responsive mt-2">
+                                <table class="table table-sm table-bordered mb-0">
+                                    <thead class="table-light">
+                                    <tr>
+                                        <th>ID Lowongan</th>
+                                        <th>Jabatan</th>
+                                        <th>Jumlah Kebutuhan</th>
+                                        <th>Status Keterisian</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <?php foreach ($actionDetailRows as $item): ?>
+                                        <tr>
+                                            <td><?php echo h((string)$item['id_lowongan']); ?></td>
+                                            <td><?php echo h((string)$item['jabatan']); ?></td>
+                                            <td><?php echo h((string)$item['jumlah_kebutuhan']); ?></td>
+                                            <td><?php echo h((string)$item['status_keterisian']); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                     <div class="col-12"><strong>Keterampilan Utama:</strong><br><?php echo h($actionRow['keterampilan_utama']); ?></div>
                     <div class="col-12"><strong>Catatan:</strong><br><?php echo h($actionRow['catatan']); ?></div>
                 </div>
@@ -848,16 +729,15 @@ if ($action === 'unduh' && $actionRow !== null) {
                 <div>No. Reg Bukti: <strong>${<?php echo json_encode($actionRow['no_reg_bukti']); ?>}</strong></div>
                 <div class="muted">Dokumen simulasi dari prototype Karirhub Employer.</div>
                 <table>
-                    <tr><th>ID Lowongan</th><td>${<?php echo json_encode($actionRow['id_lowongan']); ?>}</td></tr>
-                    <tr><th>Jabatan</th><td>${<?php echo json_encode($actionRow['jabatan']); ?>}</td></tr>
+                    <tr><th>Total ID Lowongan</th><td>${<?php echo json_encode((string)($actionRow['total_lowongan'] ?? 0)); ?>}</td></tr>
+                    <tr><th>Daftar ID Lowongan</th><td>${<?php echo json_encode((string)($actionRow['daftar_id_lowongan'] ?? '-')); ?>}</td></tr>
+                    <tr><th>Jabatan</th><td>${<?php echo json_encode((string)($actionRow['daftar_jabatan'] ?? $actionRow['jabatan'])); ?>}</td></tr>
                     <tr><th>Tanggal Lapor</th><td>${<?php echo json_encode($actionRow['tanggal_lapor']); ?>}</td></tr>
                     <tr><th>Jumlah Kebutuhan</th><td>${<?php echo json_encode((string)$actionRow['jumlah_kebutuhan']); ?>}</td></tr>
                     <tr><th>Jumlah Penempatan</th><td>${<?php echo json_encode((string)($actionRow['jumlah_penempatan'] ?? 0)); ?>}</td></tr>
-                    <tr><th>Unit/Perusahaan</th><td>${<?php echo json_encode($unitOptions[$actionRow['unit_kode']] ?? $actionRow['unit_kode']); ?>}</td></tr>
+                    <tr><th>Unit/Perusahaan</th><td>${<?php echo json_encode($unitOptions[$actionRow['unit_kode']] ?? ($actionRow['unit_nama'] ?? $actionRow['unit_kode'])); ?>}</td></tr>
+                    <tr><th>Periode Pelaporan</th><td>${<?php echo json_encode(strtoupper((string)$actionRow['periode_tipe']) . ' (' . (string)$actionRow['periode_mulai'] . ' s.d. ' . (string)$actionRow['periode_selesai'] . ')'); ?>}</td></tr>
                     <tr><th>Masa Berlaku</th><td>${<?php echo json_encode($actionRow['masa_berlaku_mulai'] . ' s.d. ' . $actionRow['masa_berlaku_sampai']); ?>}</td></tr>
-                    <tr><th>Employment Type</th><td>${<?php echo json_encode((string)($actionRow['employment_type'] ?? '-')); ?>}</td></tr>
-                    <tr><th>Work Setup</th><td>${<?php echo json_encode((string)($actionRow['work_setup'] ?? '-')); ?>}</td></tr>
-                    <tr><th>Shift Type</th><td>${<?php echo json_encode((string)($actionRow['shift_type'] ?? '-')); ?>}</td></tr>
                     <tr><th>Kode KBJI</th><td>${<?php echo json_encode((string)($actionRow['kode_kbji'] ?? '-')); ?>}</td></tr>
                     <tr><th>Provinsi</th><td>${<?php echo json_encode((string)($actionRow['provinsi'] ?? '-')); ?>}</td></tr>
                     <tr><th>Kota</th><td>${<?php echo json_encode((string)($actionRow['kota'] ?? '-')); ?>}</td></tr>
@@ -866,8 +746,6 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <tr><th>Bidang Pekerjaan</th><td>${<?php echo json_encode((string)($actionRow['bidang_pekerjaan'] ?? '-')); ?>}</td></tr>
                     <tr><th>Industri / Sektor</th><td>${<?php echo json_encode((string)($actionRow['industri_sektor'] ?? '-')); ?>}</td></tr>
                     <tr><th>Status Pernikahan</th><td>${<?php echo json_encode((string)($actionRow['status_pernikahan'] ?? '-')); ?>}</td></tr>
-                    <tr><th>Requester Divisi</th><td>${<?php echo json_encode((string)($actionRow['requester_divisi'] ?? '-')); ?>}</td></tr>
-                    <tr><th>SLA Hiring (hari)</th><td>${<?php echo json_encode((string)($actionRow['sla_hiring_hari'] ?? 0)); ?>}</td></tr>
                     <tr><th>Status Verifikasi</th><td>${<?php echo json_encode($actionRow['status_verifikasi']); ?>}</td></tr>
                     <tr><th>Status Keterisian</th><td>${<?php echo json_encode($actionRow['status_keterisian']); ?>}</td></tr>
                     <tr><th>Catatan</th><td>${<?php echo json_encode($actionRow['catatan']); ?>}</td></tr>
