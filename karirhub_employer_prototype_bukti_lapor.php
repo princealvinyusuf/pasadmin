@@ -110,7 +110,6 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
         ['Status Pernikahan', (string)($row['status_pernikahan'] ?? '-')],
         ['Status Verifikasi', (string)($row['status_verifikasi'] ?? '-')],
         ['Status Keterisian', (string)($row['status_keterisian'] ?? '-')],
-        ['Approval', (string)($row['approval_state'] ?? '-') . ' by ' . (string)($row['approval_by'] ?? '-') . ' (' . (string)($row['approval_date'] ?? '-') . ')'],
     ];
 
     $streamParts = [];
@@ -453,9 +452,6 @@ $defaultMeta = [
     'jumlah_shortlist' => 0,
     'jumlah_interview' => 0,
     'jumlah_offer' => 0,
-    'approval_state' => 'Pending',
-    'approval_by' => '-',
-    'approval_date' => '-',
     'budget_status' => 'Pending',
 ];
 
@@ -789,9 +785,6 @@ if ($action === 'unduh' && $actionRow !== null) {
             </div>
             <div class="modal-body">
                 <div class="row g-3">
-                    <div class="col-md-6"><strong>Approval State:</strong><br><?php echo h((string)($actionRow['approval_state'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Approval By:</strong><br><?php echo h((string)($actionRow['approval_by'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Approval Date:</strong><br><?php echo h((string)($actionRow['approval_date'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>ID Lowongan:</strong><br><?php echo h($actionRow['id_lowongan']); ?></div>
                     <div class="col-md-6"><strong>Jabatan:</strong><br><?php echo h($actionRow['jabatan']); ?></div>
                     <div class="col-md-6"><strong>Tanggal Lapor:</strong><br><?php echo h($actionRow['tanggal_lapor']); ?></div>
