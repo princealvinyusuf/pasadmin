@@ -156,10 +156,10 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
 
     // Main title below the blue header band.
     $streamParts[] = '0.08 0.2 0.4 rg';
-    $streamParts[] = 'BT /F2 12 Tf 148 760 Td (' . pdf_escape('BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)') . ') Tj ET';
+    $streamParts[] = 'BT /F2 12 Tf 148 752 Td (' . pdf_escape('BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)') . ') Tj ET';
 
     // Section title.
-    $sectionTop = 736;
+    $sectionTop = 724;
     $streamParts[] = '0.95 0.97 1 rg';
     $streamParts[] = $left . ' ' . $sectionTop . ' ' . $width . ' 24 re f';
     $streamParts[] = '0.77 0.82 0.9 RG';
