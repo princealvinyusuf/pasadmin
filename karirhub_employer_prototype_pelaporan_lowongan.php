@@ -66,6 +66,7 @@ $errors = [];
 $generated = null;
 $wizardLowonganTabs = [];
 $wizardCount = max(1, min(50, (int)$form['jumlah_id_lowongan']));
+$termsAgreed = isset($_POST['setuju_syarat']) && (string)$_POST['setuju_syarat'] === '1';
 
 for ($i = 0; $i < $wizardCount; $i++) {
     $item = $lowonganDefaults;
@@ -102,6 +103,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($form['jumlah_id_lowongan'] !== '' && (!ctype_digit($form['jumlah_id_lowongan']) || (int)$form['jumlah_id_lowongan'] <= 0 || (int)$form['jumlah_id_lowongan'] > 50)) {
         $errors[] = 'Jumlah ID Lowongan harus angka 1 sampai 50.';
+    }
+    if (!$termsAgreed) {
+        $errors[] = 'Anda wajib menyetujui Syarat dan Ketentuan Wajib Lapor Lowongan Pekerjaan.';
     }
 
     $requiredLowonganFields = [
@@ -551,11 +555,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Reset Form
                 </a>
             </div>
+            <div class="mt-3 p-2 border rounded bg-light">
+                <div class="form-check mb-1">
+                    <input class="form-check-input" type="checkbox" value="1" id="setujuSyaratCheck" name="setuju_syarat"<?php echo $termsAgreed ? ' checked' : ''; ?>>
+                    <label class="form-check-label small" for="setujuSyaratCheck">
+                        Saya menyetujui syarat dan ketentuan yang berlaku dan bersedia menerima konsekuensi hukum yang berlaku apabila di kemudian hari ditemukan data yang tidak benar, tidak valid, atau menyesatkan.
+                    </label>
+                </div>
+                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" data-bs-toggle="modal" data-bs-target="#syaratKetentuanModal">
+                    <i class="bi bi-file-text me-1"></i>Baca Syarat dan Ketentuan
+                </button>
+            </div>
         </div>
     </form>
     </main>
     </div>
 </div>
+</div>
+
+<div class="modal fade" id="syaratKetentuanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">SYARAT DAN KETENTUAN WAJIB LAPOR LOWONGAN PEKERJAAN</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body small">
+                <h6>1. Ketentuan Umum</h6>
+                <p>Wajib Lapor Lowongan Pekerjaan adalah kewajiban pemberi kerja untuk menyampaikan informasi lowongan pekerjaan kepada Kementerian Ketenagakerjaan melalui sistem yang ditetapkan.</p>
+                <p>Pemberi kerja adalah perusahaan, instansi, lembaga, badan usaha, atau perseorangan yang membuka kesempatan kerja dan menyampaikan informasi lowongan pekerjaan melalui layanan Wajib Lapor Lowongan Pekerjaan.</p>
+                <p>Pemberi kerja wajib memiliki akun SIAPkerja melalui laman <a href="https://account.kemnaker.go.id" target="_blank" rel="noopener noreferrer">https://account.kemnaker.go.id</a> dan melengkapi seluruh data yang dipersyaratkan secara benar, lengkap, mutakhir, dan dapat dipertanggungjawabkan.</p>
+
+                <h6>2. Kewajiban Pemberi Kerja</h6>
+                <p>Pemberi kerja wajib memastikan bahwa seluruh data yang disampaikan dalam Wajib Lapor Lowongan Pekerjaan merupakan data yang valid, akurat, dan sesuai dengan kondisi sebenarnya.</p>
+                <p>Data yang wajib disampaikan sekurang-kurangnya meliputi identitas pemberi kerja, informasi jabatan, jumlah kebutuhan tenaga kerja, lokasi penempatan, kualifikasi jabatan, jenis hubungan kerja, rentang upah atau informasi pengupahan sesuai ketentuan yang berlaku, serta periode pembukaan lowongan.</p>
+                <p>Pemberi kerja wajib memastikan bahwa lowongan pekerjaan yang dilaporkan bukan lowongan fiktif, palsu, menyesatkan, diskriminatif, atau bertentangan dengan ketentuan peraturan perundang-undangan.</p>
+                <p>Pemberi kerja bertanggung jawab penuh atas kebenaran, keabsahan, dan legalitas seluruh data serta dokumen pendukung yang disampaikan.</p>
+
+                <h6>3. Perlindungan Data</h6>
+                <p>Pemberi kerja wajib melindungi dan menjaga seluruh data pribadi yang dikelola dalam proses pelaporan lowongan pekerjaan, termasuk data perusahaan, pengelola akun, dan pencari kerja, sesuai dengan ketentuan peraturan perundang-undangan.</p>
+                <p>Pemberi kerja dilarang menyalahgunakan data pencari kerja untuk kepentingan di luar proses rekrutmen yang sah.</p>
+
+                <h6>4. Hak Kementerian Ketenagakerjaan</h6>
+                <p>Kementerian Ketenagakerjaan berhak melakukan pengelolaan, pengolahan, verifikasi, validasi, analisis, dan pelaporan atas data lowongan pekerjaan yang disampaikan oleh pemberi kerja.</p>
+                <p>Kementerian Ketenagakerjaan berhak meminta klarifikasi, perbaikan, atau dokumen pendukung apabila terdapat indikasi data tidak lengkap, tidak sesuai, tidak valid, atau diragukan kebenarannya.</p>
+                <p>Kementerian Ketenagakerjaan berhak menolak, menonaktifkan, menghapus, atau memblokir laporan lowongan pekerjaan dan/atau akun pemberi kerja apabila ditemukan indikasi lowongan palsu, penyalahgunaan layanan, pelanggaran hukum, atau ketidaksesuaian data.</p>
+
+                <h6>5. Validasi dan Pernyataan Kebenaran Data</h6>
+                <p>Dengan menyampaikan Wajib Lapor Lowongan Pekerjaan, pemberi kerja menyatakan bahwa seluruh data yang disampaikan adalah benar, valid, mutakhir, dan dapat dipertanggungjawabkan.</p>
+                <p>Pemberi kerja bersedia menerima konsekuensi administratif sesuai ketentuan yang berlaku apabila di kemudian hari ditemukan data yang tidak benar, tidak valid, atau menyesatkan.</p>
+
+                <h6>6. Perubahan Data dan Pengelola Akun</h6>
+                <p>Pemberi kerja wajib memperbarui data lowongan pekerjaan apabila terdapat perubahan informasi, termasuk perubahan jumlah kebutuhan tenaga kerja, lokasi penempatan, masa berlaku lowongan, atau status pemenuhan lowongan.</p>
+                <p>Apabila terdapat pergantian pengelola akun, pemberi kerja wajib melaporkan kepada Kementerian Ketenagakerjaan melalui kanal layanan resmi yang ditetapkan.</p>
+
+                <h6>7. Larangan</h6>
+                <p>Pemberi kerja dilarang menyampaikan lowongan pekerjaan yang:</p>
+                <ol type="a">
+                    <li>tidak benar, fiktif, atau menyesatkan;</li>
+                    <li>memungut biaya kepada pencari kerja;</li>
+                    <li>mengandung unsur diskriminasi yang bertentangan dengan peraturan perundang-undangan;</li>
+                    <li>mengarah pada tindak pidana perdagangan orang, penipuan, eksploitasi, atau praktik ketenagakerjaan yang tidak sah;</li>
+                    <li>tidak memiliki kejelasan pemberi kerja, jabatan, lokasi kerja, atau mekanisme rekrutmen;</li>
+                    <li>menggunakan identitas perusahaan, instansi, atau pihak lain tanpa hak.</li>
+                </ol>
+
+                <h6>8. Penutup</h6>
+                <p>Syarat dan Ketentuan ini berlaku sejak pemberi kerja menggunakan layanan Wajib Lapor Lowongan Pekerjaan.</p>
+                <p>Dengan menggunakan layanan ini, pemberi kerja dianggap telah membaca, memahami, menyetujui, dan bersedia mematuhi seluruh ketentuan yang berlaku.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">Saya Mengerti</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="modal fade" id="pelaporanWizardModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -668,6 +741,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const previewWrap = document.getElementById('pelaporanImportPreviewWrap');
         const previewTable = document.getElementById('pelaporanImportPreviewTable');
         const wizardModalEl = document.getElementById('pelaporanWizardModal');
+        const syaratKetentuanModalEl = document.getElementById('syaratKetentuanModal');
         const wizardStep1 = document.getElementById('wizardStep1');
         const wizardStep2 = document.getElementById('wizardStep2');
         const wizardStepIndicator = document.getElementById('wizardStepIndicator');
@@ -687,6 +761,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const wizardValidationSummary = document.getElementById('wizardValidationSummary');
         const btnEditWizardFlow = document.getElementById('btnEditWizardFlow');
         const submitBtn = document.getElementById('btnSubmitPelaporan');
+        const setujuSyaratCheck = document.getElementById('setujuSyaratCheck');
         const tabsNav = document.getElementById('lowonganTabsNav');
         const tabsContent = document.getElementById('lowonganTabsContent');
         const pelaporanForm = document.querySelector('form[method="POST"]');
@@ -822,7 +897,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     : 'Tab lengkap: ' + complete + '/' + panes.length;
             }
             if (submitBtn) {
-                submitBtn.disabled = complete !== panes.length;
+                const termsOk = !!(setujuSyaratCheck && setujuSyaratCheck.checked);
+                submitBtn.disabled = (complete !== panes.length) || !termsOk;
             }
             if (wizardDaftarJabatan) {
                 const jabatanValues = Array.from(document.querySelectorAll('.wizard-lowongan-field[data-field="jabatan"]'))
@@ -838,6 +914,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     wizardValidationSummary.style.display = 'none';
                     wizardValidationSummary.innerHTML = '';
                 }
+            }
+            if (showDetails && setujuSyaratCheck && !setujuSyaratCheck.checked && wizardValidationSummary) {
+                wizardValidationSummary.style.display = '';
+                const current = wizardValidationSummary.innerHTML;
+                const termMsg = 'Anda wajib menyetujui Syarat dan Ketentuan terlebih dahulu.';
+                wizardValidationSummary.innerHTML = current !== '' ? current + '<br>' + termMsg : '<strong>Perbaiki data tab:</strong><br>' + termMsg;
             }
             if (showDetails && firstInvalidField) {
                 const tabIndex = parseInt(firstInvalidField.getAttribute('data-tab-index') || '0', 10);
@@ -857,6 +939,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
         document.addEventListener('change', function (evt) {
             if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-lowongan-field')) {
+                validateTabs(false);
+            }
+            if (evt.target && evt.target.id === 'setujuSyaratCheck') {
                 validateTabs(false);
             }
         });
@@ -922,6 +1007,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     applyWizardSummary();
                     wizardModal.hide();
                 });
+            }
+        }
+
+        if (syaratKetentuanModalEl && typeof bootstrap !== 'undefined' && setujuSyaratCheck && !setujuSyaratCheck.checked) {
+            const termsShownKey = 'khProtoTermsShown';
+            if (sessionStorage.getItem(termsShownKey) !== '1') {
+                const termsModal = new bootstrap.Modal(syaratKetentuanModalEl);
+                termsModal.show();
+                sessionStorage.setItem(termsShownKey, '1');
             }
         }
 
