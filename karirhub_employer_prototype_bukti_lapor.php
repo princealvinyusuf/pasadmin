@@ -159,7 +159,7 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $streamParts[] = 'BT /F2 12 Tf 148 752 Td (' . pdf_escape('BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)') . ') Tj ET';
 
     // Section title.
-    $sectionTop = 724;
+    $sectionTop = 712;
     $streamParts[] = '0.95 0.97 1 rg';
     $streamParts[] = $left . ' ' . $sectionTop . ' ' . $width . ' 24 re f';
     $streamParts[] = '0.77 0.82 0.9 RG';
