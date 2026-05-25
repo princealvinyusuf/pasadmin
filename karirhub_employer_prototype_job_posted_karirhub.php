@@ -68,6 +68,8 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
         .job-posted-card { border: 1px solid #edf2f8; border-radius: 10px; background: #fff; overflow: hidden; margin-bottom: 12px; }
         .job-posted-card-head { padding: 14px 16px 10px; display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
         .job-posted-title { font-size: 22px; font-weight: 700; color: #23415f; margin-bottom: 2px; }
+        .job-posted-title-link { color: #23415f; text-decoration: none; }
+        .job-posted-title-link:hover { color: #0a8f8a; text-decoration: underline; }
         .job-posted-loc { color: #8596a8; font-size: 13px; }
         .job-posted-status { border-radius: 999px; padding: 6px 14px; font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; }
         .job-posted-status.ditutup { background: #ea3f51; }
@@ -131,7 +133,11 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
             <div class="job-posted-card">
                 <div class="job-posted-card-head">
                     <div>
-                        <div class="job-posted-title"><?php echo h((string)$job['judul']); ?></div>
+                        <div class="job-posted-title">
+                            <a class="job-posted-title-link" href="karirhub_employer_prototype_job_posted_karirhub_detail?job=<?php echo rawurlencode((string)$job['judul']); ?>">
+                                <?php echo h((string)$job['judul']); ?>
+                            </a>
+                        </div>
                         <div class="job-posted-loc"><i class="bi bi-geo-alt-fill me-1"></i><?php echo h((string)$job['lokasi']); ?></div>
                     </div>
                     <span class="job-posted-status <?php echo h((string)$job['status']); ?>">
