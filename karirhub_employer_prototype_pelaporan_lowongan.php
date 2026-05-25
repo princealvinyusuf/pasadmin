@@ -67,6 +67,12 @@ $generated = null;
 $wizardLowonganTabs = [];
 $wizardCount = max(1, min(50, (int)$form['jumlah_id_lowongan']));
 $termsAgreed = isset($_POST['setuju_syarat']) && (string)$_POST['setuju_syarat'] === '1';
+$initialLandingMode = $_SERVER['REQUEST_METHOD'] === 'POST' ? 'form' : '';
+$requestedLandingMode = trim((string)($_GET['mode'] ?? ''));
+if (in_array($requestedLandingMode, ['form', 'bulk'], true)) {
+    $initialLandingMode = $requestedLandingMode;
+}
+$wizardForceOpen = ($_SERVER['REQUEST_METHOD'] !== 'POST' && $initialLandingMode === 'form') ? '1' : '0';
 
 for ($i = 0; $i < $wizardCount; $i++) {
     $item = $lowonganDefaults;
@@ -326,7 +332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
-<body class="kh-proto-page" data-wizard-force-open="<?php echo $_SERVER['REQUEST_METHOD'] === 'POST' ? '0' : '1'; ?>">
+<body class="kh-proto-page" data-wizard-force-open="<?php echo $wizardForceOpen; ?>" data-initial-landing-mode="<?php echo h($initialLandingMode); ?>">
 <?php include 'navbar.php'; ?>
 <?php kh_proto_render_hero('Daftar Lowongan Kerja', 'Buat lowongan kerja melalui alur pelaporan WLLP prototipe.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_dashboard_wllp'); ?>
 
@@ -341,18 +347,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="text-muted small">Simulasi form WLLP lengkap (dummy data only)</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-outline-success btn-sm" id="btnDownloadPelaporanTemplate">
-                <i class="bi bi-download me-1"></i>Download Template
-            </button>
-            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkImportPelaporanModal">
-                <i class="bi bi-file-earmark-arrow-up me-1"></i>Bulk Import
-            </button>
             <a class="btn btn-outline-primary btn-sm" href="karirhub_employer_prototype_dashboard_wllp">
                 <i class="bi bi-arrow-left me-1"></i>Kembali ke Dashboard WLLP
             </a>
         </div>
     </div>
 
+    <div id="landingChoiceSection" class="card border-0 shadow-sm mb-3" style="display:none;">
+        <div class="card-body">
+            <h5 class="mb-2">Pilih Metode Pelaporan</h5>
+            <div class="text-muted small mb-3">Silakan pilih salah satu alur pelaporan lowongan yang ingin digunakan.</div>
+            <div class="row g-2">
+                <div class="col-12 col-md-6">
+                    <button type="button" class="btn btn-outline-success w-100 py-3" id="btnLandingBulk">
+                        <i class="bi bi-file-earmark-spreadsheet me-1"></i>
+                        Laporkan Lowongan Kerja dalam Jumlah Banyak sekaligus
+                    </button>
+                </div>
+                <div class="col-12 col-md-6">
+                    <button type="button" class="btn btn-primary w-100 py-3" id="btnLandingForm">
+                        <i class="bi bi-ui-checks-grid me-1"></i>
+                        Laporkan Lowongan Kerja dengan Isian Form
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="bulkToolsSection" class="card border-0 shadow-sm mb-3" style="display:none;">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                <div>
+                    <h5 class="mb-0">Pelaporan Massal Lowongan</h5>
+                    <div class="text-muted small">Gunakan template Excel untuk lapor banyak lowongan sekaligus.</div>
+                </div>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="btnBulkToChooseMode">
+                    <i class="bi bi-arrow-left-right me-1"></i>Ubah Metode
+                </button>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-outline-success btn-sm" id="btnDownloadPelaporanTemplate">
+                    <i class="bi bi-download me-1"></i>Download Template
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkImportPelaporanModal">
+                    <i class="bi bi-file-earmark-arrow-up me-1"></i>Bulk Import
+                </button>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="btnBulkToFormMode">
+                    <i class="bi bi-ui-checks-grid me-1"></i>Buka Form Isian
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="formPelaporanSection" style="display:none;">
     <?php if (!empty($errors)): ?>
         <div class="alert alert-danger">
             <div class="fw-semibold mb-1">Validasi gagal:</div>
@@ -378,6 +425,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <form method="POST" class="card border-0 shadow-sm">
         <div class="card-body">
+            <div class="d-flex justify-content-end mb-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="btnFormToChooseMode">
+                    <i class="bi bi-arrow-left-right me-1"></i>Ubah Metode
+                </button>
+            </div>
             <input type="hidden" name="periode_tipe" id="wizardPeriodeTipe" value="<?php echo h($form['periode_tipe']); ?>">
             <input type="hidden" name="periode_anchor" id="wizardPeriodeAnchor" value="<?php echo h($form['periode_anchor']); ?>">
             <input type="hidden" name="jumlah_id_lowongan" id="wizardJumlahLowongan" value="<?php echo h((string)$wizardCount); ?>">
@@ -558,6 +610,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </form>
+    </div>
     </main>
     </div>
 </div>
@@ -763,10 +816,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const setujuSyaratValue = document.getElementById('setujuSyaratValue');
         const setujuSyaratCheckModal = document.getElementById('setujuSyaratCheckModal');
         const btnSetujuDanSubmit = document.getElementById('btnSetujuDanSubmit');
+        const landingChoiceSection = document.getElementById('landingChoiceSection');
+        const bulkToolsSection = document.getElementById('bulkToolsSection');
+        const formPelaporanSection = document.getElementById('formPelaporanSection');
+        const btnLandingBulk = document.getElementById('btnLandingBulk');
+        const btnLandingForm = document.getElementById('btnLandingForm');
+        const btnBulkToFormMode = document.getElementById('btnBulkToFormMode');
+        const btnBulkToChooseMode = document.getElementById('btnBulkToChooseMode');
+        const btnFormToChooseMode = document.getElementById('btnFormToChooseMode');
         const tabsNav = document.getElementById('lowonganTabsNav');
         const tabsContent = document.getElementById('lowonganTabsContent');
         const pelaporanForm = document.querySelector('form[method="POST"]');
         let bypassTermsGuard = false;
+        const initialLandingMode = document.body.getAttribute('data-initial-landing-mode') || '';
         let wizardStep = 1;
 
         function defaultValueByField(field) {
@@ -780,6 +842,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             return '';
+        }
+
+        function showLandingMode(mode, options) {
+            const opts = options || {};
+            if (landingChoiceSection) landingChoiceSection.style.display = mode === 'choose' ? '' : 'none';
+            if (bulkToolsSection) bulkToolsSection.style.display = mode === 'bulk' ? '' : 'none';
+            if (formPelaporanSection) formPelaporanSection.style.display = mode === 'form' ? '' : 'none';
+
+            if (mode === 'form' && opts.openWizard && wizardModalEl && typeof bootstrap !== 'undefined') {
+                const wizardModal = bootstrap.Modal.getOrCreateInstance(wizardModalEl);
+                setWizardStep(1);
+                wizardModal.show();
+            }
         }
 
         function collectLowonganValues() {
@@ -1004,6 +1079,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         renderLowonganTabs(parseInt((wizardJumlahLowongan && wizardJumlahLowongan.value) || '1', 10) || 1, collectLowonganValues());
         applyWizardSummary();
+        if (btnLandingBulk) {
+            btnLandingBulk.addEventListener('click', function () {
+                showLandingMode('bulk');
+            });
+        }
+        if (btnLandingForm) {
+            btnLandingForm.addEventListener('click', function () {
+                showLandingMode('form', { openWizard: true });
+            });
+        }
+        if (btnBulkToFormMode) {
+            btnBulkToFormMode.addEventListener('click', function () {
+                showLandingMode('form', { openWizard: true });
+            });
+        }
+        if (btnBulkToChooseMode) {
+            btnBulkToChooseMode.addEventListener('click', function () {
+                showLandingMode('choose');
+            });
+        }
+        if (btnFormToChooseMode) {
+            btnFormToChooseMode.addEventListener('click', function () {
+                showLandingMode('choose');
+            });
+        }
+        if (initialLandingMode === 'form') {
+            showLandingMode('form');
+        } else if (initialLandingMode === 'bulk') {
+            showLandingMode('bulk');
+        } else {
+            showLandingMode('choose');
+        }
+
         if (pelaporanForm) {
             pelaporanForm.addEventListener('submit', function (evt) {
                 if (!validateTabs(true)) {
