@@ -153,7 +153,6 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     }
     $streamParts[] = '1 1 1 rg';
     $streamParts[] = 'BT /F2 13 Tf ' . sprintf('%.2F', $headerTextX) . ' 817 Td (' . pdf_escape('KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA') . ') Tj ET';
-    $streamParts[] = 'BT /F1 10 Tf ' . sprintf('%.2F', $headerTextX) . ' 802 Td (' . pdf_escape('SIAPKERJA - KARIRHUB') . ') Tj ET';
     $streamParts[] = 'BT /F2 11 Tf ' . sprintf('%.2F', $headerTextX) . ' 788 Td (' . pdf_escape('BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)') . ') Tj ET';
 
     // Section title.
