@@ -88,7 +88,6 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $issuedAt = date('d-m-Y H:i:s');
     $rows = [
         ['No. Reg Bukti', (string)($row['no_reg_bukti'] ?? '-')],
-        ['Job Order', (string)($row['job_order_no'] ?? '-') . ' / ' . (string)($row['job_order_revision'] ?? '-')],
         ['Tanggal Lapor', (string)($row['tanggal_lapor'] ?? '-')],
         ['ID Lowongan', (string)($row['id_lowongan'] ?? '-')],
         ['Jabatan', (string)($row['jabatan'] ?? '-')],
@@ -386,11 +385,6 @@ foreach ($units as $code => $unitInfo) {
 }
 
 $defaultMeta = [
-    'job_order_no' => 'JO-UNMAPPED',
-    'job_order_revision' => 'REV-00',
-    'job_order_tanggal' => date('Y-m-d'),
-    'job_order_status' => 'Draft',
-    'job_order_priority' => 'Medium',
     'requested_by' => 'N/A',
     'requester_divisi' => 'N/A',
     'hiring_manager' => 'N/A',
@@ -537,7 +531,6 @@ $filteredRows = array_values(array_filter($rows, static function (array $row) us
     if ($query !== '') {
         $haystack = strtolower(implode(' ', [
             $row['no_reg_bukti'],
-            $row['job_order_no'] ?? '',
             $row['id_lowongan'],
             $row['jabatan'],
             $row['hiring_manager'] ?? '',
@@ -646,7 +639,7 @@ if ($action === 'unduh' && $actionRow !== null) {
                 </div>
                 <div class="col-12 col-md-4">
                     <label for="q" class="form-label mb-1">Cari</label>
-                    <input id="q" name="q" class="form-control form-control-sm" value="<?php echo h($query); ?>" placeholder="No Reg, Job Order, ID Lowongan, Jabatan">
+                    <input id="q" name="q" class="form-control form-control-sm" value="<?php echo h($query); ?>" placeholder="No Reg, ID Lowongan, Jabatan">
                 </div>
                 <div class="col-12 col-md-2 d-grid">
                     <button type="submit" class="btn btn-primary btn-sm">
@@ -664,7 +657,6 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <thead class="table-light">
                         <tr>
                             <th>No. Reg Bukti</th>
-                            <th>Job Order</th>
                             <th>ID Lowongan</th>
                             <th>Tanggal Lapor</th>
                             <th>Jabatan</th>
@@ -679,7 +671,7 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <tbody>
                     <?php if (empty($filteredRows)): ?>
                         <tr>
-                            <td colspan="11" class="text-center text-muted">Tidak ada data sesuai filter.</td>
+                            <td colspan="10" class="text-center text-muted">Tidak ada data sesuai filter.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($filteredRows as $row): ?>
@@ -691,10 +683,6 @@ if ($action === 'unduh' && $actionRow !== null) {
                             ?>
                             <tr>
                                 <td class="fw-semibold"><?php echo h($row['no_reg_bukti']); ?></td>
-                                <td>
-                                    <div class="fw-semibold"><?php echo h((string)($row['job_order_no'] ?? '-')); ?></div>
-                                    <div class="small text-muted"><?php echo h((string)($row['job_order_revision'] ?? '-')); ?></div>
-                                </td>
                                 <td><?php echo h($row['id_lowongan']); ?></td>
                                 <td><?php echo h($row['tanggal_lapor']); ?></td>
                                 <td><?php echo h($row['jabatan']); ?></td>
@@ -734,10 +722,6 @@ if ($action === 'unduh' && $actionRow !== null) {
             </div>
             <div class="modal-body">
                 <div class="row g-3">
-                    <div class="col-md-6"><strong>Job Order No:</strong><br><?php echo h((string)($actionRow['job_order_no'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Job Order Revision:</strong><br><?php echo h((string)($actionRow['job_order_revision'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Job Order Date:</strong><br><?php echo h((string)($actionRow['job_order_tanggal'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Job Order Status:</strong><br><?php echo h((string)($actionRow['job_order_status'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Approval State:</strong><br><?php echo h((string)($actionRow['approval_state'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Approval By:</strong><br><?php echo h((string)($actionRow['approval_by'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Approval Date:</strong><br><?php echo h((string)($actionRow['approval_date'] ?? '-')); ?></div>
@@ -803,10 +787,6 @@ if ($action === 'unduh' && $actionRow !== null) {
                 <div>No. Reg Bukti: <strong>${<?php echo json_encode($actionRow['no_reg_bukti']); ?>}</strong></div>
                 <div class="muted">Dokumen simulasi dari prototype Karirhub Employer.</div>
                 <table>
-                    <tr><th>Job Order No</th><td>${<?php echo json_encode((string)($actionRow['job_order_no'] ?? '-')); ?>}</td></tr>
-                    <tr><th>Job Order Revision</th><td>${<?php echo json_encode((string)($actionRow['job_order_revision'] ?? '-')); ?>}</td></tr>
-                    <tr><th>Job Order Date</th><td>${<?php echo json_encode((string)($actionRow['job_order_tanggal'] ?? '-')); ?>}</td></tr>
-                    <tr><th>Job Order Status</th><td>${<?php echo json_encode((string)($actionRow['job_order_status'] ?? '-')); ?>}</td></tr>
                     <tr><th>ID Lowongan</th><td>${<?php echo json_encode($actionRow['id_lowongan']); ?>}</td></tr>
                     <tr><th>Jabatan</th><td>${<?php echo json_encode($actionRow['jabatan']); ?>}</td></tr>
                     <tr><th>Tanggal Lapor</th><td>${<?php echo json_encode($actionRow['tanggal_lapor']); ?>}</td></tr>

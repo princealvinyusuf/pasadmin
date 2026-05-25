@@ -217,13 +217,8 @@ if (!function_exists('karirhub_proto_dataset')) {
             ],
         ];
 
-        $jobOrderMap = [
+        $vacancyMetaMap = [
             'LK-000987' => [
-                'job_order_no' => 'JO-2026-OPS-001',
-                'job_order_revision' => 'REV-02',
-                'job_order_tanggal' => '2026-05-18',
-                'job_order_status' => 'Approved',
-                'job_order_priority' => 'High',
                 'requested_by' => 'Rudi Hartono',
                 'requester_divisi' => 'Operasional',
                 'hiring_manager' => 'Nina Amelia',
@@ -245,11 +240,6 @@ if (!function_exists('karirhub_proto_dataset')) {
                 'budget_status' => 'On Budget',
             ],
             'LK-000984' => [
-                'job_order_no' => 'JO-2026-HR-004',
-                'job_order_revision' => 'REV-01',
-                'job_order_tanggal' => '2026-05-17',
-                'job_order_status' => 'Approved',
-                'job_order_priority' => 'Medium',
                 'requested_by' => 'Maya Putri',
                 'requester_divisi' => 'Human Capital',
                 'hiring_manager' => 'Agus Wibowo',
@@ -271,11 +261,6 @@ if (!function_exists('karirhub_proto_dataset')) {
                 'budget_status' => 'On Budget',
             ],
             'LK-000971' => [
-                'job_order_no' => 'JO-2026-MKT-003',
-                'job_order_revision' => 'REV-03',
-                'job_order_tanggal' => '2026-05-13',
-                'job_order_status' => 'Need Update',
-                'job_order_priority' => 'Medium',
                 'requested_by' => 'Santi Wulandari',
                 'requester_divisi' => 'Marketing',
                 'hiring_manager' => 'Yogi Pratama',
@@ -297,11 +282,6 @@ if (!function_exists('karirhub_proto_dataset')) {
                 'budget_status' => 'Pending Confirmation',
             ],
             'LK-000954' => [
-                'job_order_no' => 'JO-2026-FIN-006',
-                'job_order_revision' => 'REV-01',
-                'job_order_tanggal' => '2026-05-09',
-                'job_order_status' => 'Closed',
-                'job_order_priority' => 'High',
                 'requested_by' => 'Dewi Sartika',
                 'requester_divisi' => 'Finance',
                 'hiring_manager' => 'Benny Cahyono',
@@ -324,12 +304,7 @@ if (!function_exists('karirhub_proto_dataset')) {
             ],
         ];
 
-        $jobOrderDefaults = [
-            'job_order_no' => 'JO-UNMAPPED',
-            'job_order_revision' => 'REV-00',
-            'job_order_tanggal' => '2026-05-01',
-            'job_order_status' => 'Draft',
-            'job_order_priority' => 'Medium',
+        $vacancyMetaDefaults = [
             'requested_by' => 'N/A',
             'requester_divisi' => 'N/A',
             'hiring_manager' => 'N/A',
@@ -353,8 +328,8 @@ if (!function_exists('karirhub_proto_dataset')) {
 
         foreach ($vacancies as $index => $vacancy) {
             $vacancyId = (string)($vacancy['id_lowongan'] ?? '');
-            $jobOrderMeta = $jobOrderMap[$vacancyId] ?? [];
-            $vacancies[$index] = array_merge($vacancy, $jobOrderDefaults, $jobOrderMeta);
+            $vacancyMeta = $vacancyMetaMap[$vacancyId] ?? [];
+            $vacancies[$index] = array_merge($vacancy, $vacancyMetaDefaults, $vacancyMeta);
         }
 
         $activities = [
