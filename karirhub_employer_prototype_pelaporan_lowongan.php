@@ -32,59 +32,79 @@ $form = [
     'periode_tipe' => trim((string)($_POST['periode_tipe'] ?? 'monthly')),
     'periode_anchor' => trim((string)($_POST['periode_anchor'] ?? date('Y-m-d'))),
     'jumlah_id_lowongan' => trim((string)($_POST['jumlah_id_lowongan'] ?? '1')),
-    'daftar_jabatan' => trim((string)($_POST['daftar_jabatan'] ?? '')),
-    'jabatan' => trim((string)($_POST['jabatan'] ?? '')),
-    'jumlah_kebutuhan' => trim((string)($_POST['jumlah_kebutuhan'] ?? '')),
-    'jenis_kelamin' => trim((string)($_POST['jenis_kelamin'] ?? 'Semua')),
-    'usia_min' => trim((string)($_POST['usia_min'] ?? '')),
-    'usia_max' => trim((string)($_POST['usia_max'] ?? '')),
-    'pendidikan_minimal' => trim((string)($_POST['pendidikan_minimal'] ?? '')),
-    'deskripsi_pekerjaan' => trim((string)($_POST['deskripsi_pekerjaan'] ?? '')),
-    'keterampilan_utama' => trim((string)($_POST['keterampilan_utama'] ?? '')),
-    'pengalaman_min_tahun' => trim((string)($_POST['pengalaman_min_tahun'] ?? '')),
-    'rentang_gaji' => trim((string)($_POST['rentang_gaji'] ?? '')),
-    'kode_kbji' => trim((string)($_POST['kode_kbji'] ?? '')),
-    'provinsi' => trim((string)($_POST['provinsi'] ?? '')),
-    'kota' => trim((string)($_POST['kota'] ?? '')),
-    'kecamatan' => trim((string)($_POST['kecamatan'] ?? '')),
-    'kelurahan' => trim((string)($_POST['kelurahan'] ?? '')),
-    'bidang_pekerjaan' => trim((string)($_POST['bidang_pekerjaan'] ?? '')),
-    'industri_sektor' => trim((string)($_POST['industri_sektor'] ?? '')),
-    'status_pernikahan' => trim((string)($_POST['status_pernikahan'] ?? '')),
-    'tipe_kerja' => trim((string)($_POST['tipe_kerja'] ?? '')),
-    'masa_berlaku_mulai' => trim((string)($_POST['masa_berlaku_mulai'] ?? date('Y-m-d'))),
-    'masa_berlaku_sampai' => trim((string)($_POST['masa_berlaku_sampai'] ?? date('Y-m-d', strtotime('+30 days')))),
-    'alamat_url_postingan_loker' => trim((string)($_POST['alamat_url_postingan_loker'] ?? '')),
+    'daftar_jabatan' => '',
     'catatan' => trim((string)($_POST['catatan'] ?? '')),
 ];
+
+$lowonganDefaults = [
+    'jabatan' => '',
+    'jumlah_kebutuhan' => '',
+    'jenis_kelamin' => 'Semua',
+    'usia_min' => '',
+    'usia_max' => '',
+    'pendidikan_minimal' => '',
+    'deskripsi_pekerjaan' => '',
+    'keterampilan_utama' => '',
+    'pengalaman_min_tahun' => '',
+    'rentang_gaji' => '',
+    'kode_kbji' => '',
+    'provinsi' => '',
+    'kota' => '',
+    'kecamatan' => '',
+    'kelurahan' => '',
+    'bidang_pekerjaan' => '',
+    'industri_sektor' => '',
+    'status_pernikahan' => '',
+    'tipe_kerja' => '',
+    'masa_berlaku_mulai' => date('Y-m-d'),
+    'masa_berlaku_sampai' => date('Y-m-d', strtotime('+30 days')),
+    'alamat_url_postingan_loker' => '',
+];
+$lowonganFieldKeys = array_keys($lowonganDefaults);
 
 $errors = [];
 $generated = null;
 $wizardLowonganTabs = [];
 $wizardCount = max(1, min(50, (int)$form['jumlah_id_lowongan']));
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $jabatanTabsInput = $_POST['jabatan_tabs'] ?? [];
-    if (is_array($jabatanTabsInput)) {
-        $jabatanTabsClean = [];
-        foreach ($jabatanTabsInput as $j) {
-            $jText = trim((string)$j);
-            if ($jText !== '') {
-                $jabatanTabsClean[] = $jText;
-            }
-        }
-        if (!empty($jabatanTabsClean)) {
-            $form['daftar_jabatan'] = implode("\n", $jabatanTabsClean);
-            if ($form['jabatan'] === '') {
-                $form['jabatan'] = $jabatanTabsClean[0];
-            }
+for ($i = 0; $i < $wizardCount; $i++) {
+    $item = $lowonganDefaults;
+    foreach ($lowonganFieldKeys as $fieldKey) {
+        $raw = $_POST[$fieldKey] ?? null;
+        if (is_array($raw) && array_key_exists($i, $raw)) {
+            $item[$fieldKey] = trim((string)$raw[$i]);
+        } elseif ($_SERVER['REQUEST_METHOD'] !== 'POST' && $i > 0 && !in_array($fieldKey, ['jenis_kelamin', 'masa_berlaku_mulai', 'masa_berlaku_sampai'], true)) {
+            $item[$fieldKey] = '';
         }
     }
+    $wizardLowonganTabs[] = $item;
+}
 
-    $requiredFields = [
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $requiredHeaderFields = [
         'periode_tipe' => 'Periode Pelaporan',
         'periode_anchor' => 'Tanggal Anchor Periode',
         'jumlah_id_lowongan' => 'Jumlah ID Lowongan',
+    ];
+    foreach ($requiredHeaderFields as $fieldKey => $label) {
+        if ($form[$fieldKey] === '') {
+            $errors[] = $label . ' wajib diisi.';
+        }
+    }
+    if (!isset($units[$form['unit_kode']])) {
+        $errors[] = 'Unit perusahaan/usaha tidak valid.';
+    }
+    if (!in_array($form['periode_tipe'], ['weekly', 'monthly'], true)) {
+        $errors[] = 'Periode Pelaporan harus Weekly atau Monthly.';
+    }
+    if (strtotime($form['periode_anchor']) === false) {
+        $errors[] = 'Tanggal Anchor Periode tidak valid.';
+    }
+    if ($form['jumlah_id_lowongan'] !== '' && (!ctype_digit($form['jumlah_id_lowongan']) || (int)$form['jumlah_id_lowongan'] <= 0 || (int)$form['jumlah_id_lowongan'] > 50)) {
+        $errors[] = 'Jumlah ID Lowongan harus angka 1 sampai 50.';
+    }
+
+    $requiredLowonganFields = [
         'jabatan' => 'Jabatan',
         'jumlah_kebutuhan' => 'Jumlah Kebutuhan',
         'usia_min' => 'Usia Minimal',
@@ -107,57 +127,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'masa_berlaku_sampai' => 'Masa Berlaku Sampai',
         'alamat_url_postingan_loker' => 'Alamat URL Postingan Loker',
     ];
-    foreach ($requiredFields as $fieldKey => $label) {
-        if ($form[$fieldKey] === '') {
-            $errors[] = $label . ' wajib diisi.';
+
+    foreach ($wizardLowonganTabs as $idx => $item) {
+        foreach ($requiredLowonganFields as $fieldKey => $label) {
+            if (($item[$fieldKey] ?? '') === '') {
+                $errors[] = 'Lowongan ' . ($idx + 1) . ': ' . $label . ' wajib diisi.';
+            }
+        }
+        if (($item['jumlah_kebutuhan'] ?? '') !== '' && (!ctype_digit((string)$item['jumlah_kebutuhan']) || (int)$item['jumlah_kebutuhan'] <= 0)) {
+            $errors[] = 'Lowongan ' . ($idx + 1) . ': Jumlah kebutuhan harus angka lebih dari 0.';
+        }
+        if (($item['usia_min'] ?? '') !== '' && ($item['usia_max'] ?? '') !== '' && (int)$item['usia_min'] > (int)$item['usia_max']) {
+            $errors[] = 'Lowongan ' . ($idx + 1) . ': Usia minimal tidak boleh lebih besar dari usia maksimal.';
+        }
+        if (($item['masa_berlaku_mulai'] ?? '') !== '' && ($item['masa_berlaku_sampai'] ?? '') !== '' && $item['masa_berlaku_mulai'] > $item['masa_berlaku_sampai']) {
+            $errors[] = 'Lowongan ' . ($idx + 1) . ': Masa berlaku mulai tidak boleh lebih akhir dari masa berlaku sampai.';
         }
     }
-    if (!isset($units[$form['unit_kode']])) {
-        $errors[] = 'Unit perusahaan/usaha tidak valid.';
-    }
-    if (!in_array($form['periode_tipe'], ['weekly', 'monthly'], true)) {
-        $errors[] = 'Periode Pelaporan harus Weekly atau Monthly.';
-    }
-    if (strtotime($form['periode_anchor']) === false) {
-        $errors[] = 'Tanggal Anchor Periode tidak valid.';
-    }
-    if ($form['jumlah_id_lowongan'] !== '' && (!ctype_digit($form['jumlah_id_lowongan']) || (int)$form['jumlah_id_lowongan'] <= 0 || (int)$form['jumlah_id_lowongan'] > 50)) {
-        $errors[] = 'Jumlah ID Lowongan harus angka 1 sampai 50.';
-    }
-    if ($form['jumlah_kebutuhan'] !== '' && (!ctype_digit($form['jumlah_kebutuhan']) || (int)$form['jumlah_kebutuhan'] <= 0)) {
-        $errors[] = 'Jumlah kebutuhan harus angka lebih dari 0.';
-    }
-    if ($form['usia_min'] !== '' && $form['usia_max'] !== '' && (int)$form['usia_min'] > (int)$form['usia_max']) {
-        $errors[] = 'Usia minimal tidak boleh lebih besar dari usia maksimal.';
-    }
-    if ($form['masa_berlaku_mulai'] !== '' && $form['masa_berlaku_sampai'] !== '' && $form['masa_berlaku_mulai'] > $form['masa_berlaku_sampai']) {
-        $errors[] = 'Masa berlaku mulai tidak boleh lebih akhir dari masa berlaku sampai.';
-    }
+
+    $form['daftar_jabatan'] = implode("\n", array_values(array_filter(array_map(static fn ($x) => trim((string)($x['jabatan'] ?? '')), $wizardLowonganTabs), static fn ($x) => $x !== '')));
 
     if (empty($errors)) {
         $unitNama = (string)($units[$form['unit_kode']]['nama'] ?? $form['unit_kode']);
         $period = kh_proto_derive_period($form['periode_tipe'], $form['periode_anchor']);
         $generatedNoReg = kh_proto_generate_no_reg_bukti($conn, $period['anchor']);
-
-        $jabatanList = [];
-        if ($form['daftar_jabatan'] !== '') {
-            $parts = preg_split('/\r\n|\r|\n/', $form['daftar_jabatan']) ?: [];
-            foreach ($parts as $p) {
-                $item = trim((string)$p);
-                if ($item !== '') {
-                    $jabatanList[] = $item;
-                }
-            }
-        }
-        $jumlahItem = max(1, (int)$form['jumlah_id_lowongan']);
-        if (!empty($jabatanList)) {
-            $jumlahItem = count($jabatanList);
-        }
-
-        $jumlahKebutuhanInt = (int)$form['jumlah_kebutuhan'];
-        $usiaMinInt = (int)$form['usia_min'];
-        $usiaMaxInt = (int)$form['usia_max'];
-        $pengalamanMinInt = (int)$form['pengalaman_min_tahun'];
         $statusBelumTerisi = 'Belum Terisi';
         $generatedLowongan = [];
 
@@ -201,10 +194,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             $stmtSaveHeader->execute();
 
-            for ($i = 0; $i < $jumlahItem; $i++) {
+            for ($i = 0; $i < $wizardCount; $i++) {
                 $generatedIdLowongan = kh_proto_generate_id_lowongan($conn);
-                $jabatanItem = $jabatanList[$i] ?? $form['jabatan'];
                 $generatedLowongan[] = $generatedIdLowongan;
+                $item = $wizardLowonganTabs[$i];
+
+                $jumlahKebutuhanInt = (int)$item['jumlah_kebutuhan'];
+                $usiaMinInt = (int)$item['usia_min'];
+                $usiaMaxInt = (int)$item['usia_max'];
+                $pengalamanMinInt = (int)$item['pengalaman_min_tahun'];
+                $jabatanItem = (string)$item['jabatan'];
 
                 $stmtSaveDetail->bind_param(
                     str_repeat('s', 27),
@@ -214,26 +213,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $unitNama,
                     $jabatanItem,
                     $jumlahKebutuhanInt,
-                    $form['jenis_kelamin'],
+                    $item['jenis_kelamin'],
                     $usiaMinInt,
                     $usiaMaxInt,
-                    $form['pendidikan_minimal'],
-                    $form['deskripsi_pekerjaan'],
-                    $form['keterampilan_utama'],
+                    $item['pendidikan_minimal'],
+                    $item['deskripsi_pekerjaan'],
+                    $item['keterampilan_utama'],
                     $pengalamanMinInt,
-                    $form['rentang_gaji'],
-                    $form['kode_kbji'],
-                    $form['provinsi'],
-                    $form['kota'],
-                    $form['kecamatan'],
-                    $form['kelurahan'],
-                    $form['bidang_pekerjaan'],
-                    $form['industri_sektor'],
-                    $form['status_pernikahan'],
-                    $form['tipe_kerja'],
-                    $form['masa_berlaku_mulai'],
-                    $form['masa_berlaku_sampai'],
-                    $form['alamat_url_postingan_loker'],
+                    $item['rentang_gaji'],
+                    $item['kode_kbji'],
+                    $item['provinsi'],
+                    $item['kota'],
+                    $item['kecamatan'],
+                    $item['kelurahan'],
+                    $item['bidang_pekerjaan'],
+                    $item['industri_sektor'],
+                    $item['status_pernikahan'],
+                    $item['tipe_kerja'],
+                    $item['masa_berlaku_mulai'],
+                    $item['masa_berlaku_sampai'],
+                    $item['alamat_url_postingan_loker'],
                     $form['catatan']
                 );
                 $stmtSaveDetail->execute();
@@ -245,7 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $jabatanItem,
                     $unitNama,
                     $statusBelumTerisi,
-                    $form['masa_berlaku_mulai']
+                    $item['masa_berlaku_mulai']
                 );
                 $stmtSaveStatus->execute();
             }
@@ -268,16 +267,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmtSaveDetail->close();
         $stmtSaveStatus->close();
     }
-}
-
-$wizardCount = max(1, min(50, (int)$form['jumlah_id_lowongan']));
-$jabatanLines = [];
-if ($form['daftar_jabatan'] !== '') {
-    $jabatanLines = preg_split('/\r\n|\r|\n/', $form['daftar_jabatan']) ?: [];
-    $jabatanLines = array_values(array_filter(array_map(static fn ($x) => trim((string)$x), $jabatanLines), static fn ($x) => $x !== ''));
-}
-for ($i = 0; $i < $wizardCount; $i++) {
-    $wizardLowonganTabs[] = $jabatanLines[$i] ?? ($i === 0 ? $form['jabatan'] : '');
 }
 ?>
 <!DOCTYPE html>
@@ -374,7 +363,7 @@ for ($i = 0; $i < $wizardCount; $i++) {
                             <div class="small text-muted" id="wizardTabProgressText">Lengkapi semua tab lowongan.</div>
                         </div>
                         <ul class="nav nav-tabs" id="lowonganTabsNav" role="tablist">
-                            <?php foreach ($wizardLowonganTabs as $index => $jabatanTab): ?>
+                            <?php foreach ($wizardLowonganTabs as $index => $tab): ?>
                                 <li class="nav-item" role="presentation">
                                     <button
                                         class="nav-link<?php echo $index === 0 ? ' active' : ''; ?>"
@@ -392,131 +381,118 @@ for ($i = 0; $i < $wizardCount; $i++) {
                                 </li>
                             <?php endforeach; ?>
                         </ul>
+                        <div class="alert alert-warning py-2 mt-2 mb-0 small" id="wizardValidationSummary" style="display:none;"></div>
                         <div class="tab-content border border-top-0 bg-white p-3" id="lowonganTabsContent">
-                            <?php foreach ($wizardLowonganTabs as $index => $jabatanTab): ?>
+                            <?php foreach ($wizardLowonganTabs as $index => $tab): ?>
                                 <div class="tab-pane fade<?php echo $index === 0 ? ' show active' : ''; ?>" id="lowongan-pane-<?php echo $index; ?>" role="tabpanel" aria-labelledby="lowongan-tab-<?php echo $index; ?>">
                                     <div class="row g-2">
-                                        <div class="col-12">
+                                        <div class="col-12 col-md-6">
                                             <label class="form-label mb-1">Jabatan (Lowongan <?php echo $index + 1; ?>)</label>
-                                            <input
-                                                type="text"
-                                                class="form-control form-control-sm wizard-jabatan-input"
-                                                name="jabatan_tabs[]"
-                                                value="<?php echo h($jabatanTab); ?>"
-                                                data-tab-index="<?php echo $index; ?>"
-                                            >
+                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="jabatan[]" value="<?php echo h((string)$tab['jabatan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="jabatan" data-required="1">
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label mb-1">Jumlah Kebutuhan</label>
+                                            <input type="number" min="1" class="form-control form-control-sm wizard-lowongan-field" name="jumlah_kebutuhan[]" value="<?php echo h((string)$tab['jumlah_kebutuhan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="jumlah_kebutuhan" data-required="1">
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label mb-1">Jenis Kelamin</label>
+                                            <select class="form-select form-select-sm wizard-lowongan-field" name="jenis_kelamin[]" data-tab-index="<?php echo $index; ?>" data-field="jenis_kelamin">
+                                                <?php foreach (['Semua', 'Laki-laki', 'Perempuan'] as $jk): ?>
+                                                    <option value="<?php echo h($jk); ?>"<?php echo ($tab['jenis_kelamin'] ?? '') === $jk ? ' selected' : ''; ?>><?php echo h($jk); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label mb-1">Usia Min</label>
+                                            <input type="number" min="18" class="form-control form-control-sm wizard-lowongan-field" name="usia_min[]" value="<?php echo h((string)$tab['usia_min']); ?>" data-tab-index="<?php echo $index; ?>" data-field="usia_min" data-required="1">
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label mb-1">Usia Max</label>
+                                            <input type="number" min="18" class="form-control form-control-sm wizard-lowongan-field" name="usia_max[]" value="<?php echo h((string)$tab['usia_max']); ?>" data-tab-index="<?php echo $index; ?>" data-field="usia_max" data-required="1">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Pendidikan Minimal</label>
+                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="pendidikan_minimal[]" value="<?php echo h((string)$tab['pendidikan_minimal']); ?>" data-tab-index="<?php echo $index; ?>" data-field="pendidikan_minimal" data-required="1">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Pengalaman Minimal (tahun)</label>
+                                            <input type="number" min="0" class="form-control form-control-sm wizard-lowongan-field" name="pengalaman_min_tahun[]" value="<?php echo h((string)$tab['pengalaman_min_tahun']); ?>" data-tab-index="<?php echo $index; ?>" data-field="pengalaman_min_tahun" data-required="1">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label mb-1">Deskripsi Pekerjaan</label>
+                                            <textarea class="form-control form-control-sm wizard-lowongan-field" name="deskripsi_pekerjaan[]" rows="3" data-tab-index="<?php echo $index; ?>" data-field="deskripsi_pekerjaan" data-required="1"><?php echo h((string)$tab['deskripsi_pekerjaan']); ?></textarea>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label mb-1">Keterampilan Utama</label>
+                                            <textarea class="form-control form-control-sm wizard-lowongan-field" name="keterampilan_utama[]" rows="2" data-tab-index="<?php echo $index; ?>" data-field="keterampilan_utama" data-required="1"><?php echo h((string)$tab['keterampilan_utama']); ?></textarea>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Rentang Gaji</label>
+                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="rentang_gaji[]" value="<?php echo h((string)$tab['rentang_gaji']); ?>" placeholder="Rp5.000.000 - Rp7.000.000" data-tab-index="<?php echo $index; ?>" data-field="rentang_gaji" data-required="1">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Kode KBJI</label>
+                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="kode_kbji[]" value="<?php echo h((string)$tab['kode_kbji']); ?>" placeholder="Contoh: 24231" data-tab-index="<?php echo $index; ?>" data-field="kode_kbji" data-required="1">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Provinsi</label>
+                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="provinsi[]" value="<?php echo h((string)$tab['provinsi']); ?>" data-tab-index="<?php echo $index; ?>" data-field="provinsi" data-required="1">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Kota</label>
+                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="kota[]" value="<?php echo h((string)$tab['kota']); ?>" data-tab-index="<?php echo $index; ?>" data-field="kota" data-required="1">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Kecamatan</label>
+                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="kecamatan[]" value="<?php echo h((string)$tab['kecamatan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="kecamatan" data-required="1">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Kelurahan</label>
+                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="kelurahan[]" value="<?php echo h((string)$tab['kelurahan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="kelurahan" data-required="1">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Bidang Pekerjaan</label>
+                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="bidang_pekerjaan[]" value="<?php echo h((string)$tab['bidang_pekerjaan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="bidang_pekerjaan" data-required="1">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Industri / Sektor</label>
+                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="industri_sektor[]" value="<?php echo h((string)$tab['industri_sektor']); ?>" data-tab-index="<?php echo $index; ?>" data-field="industri_sektor" data-required="1">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Status Pernikahan</label>
+                                            <select class="form-select form-select-sm wizard-lowongan-field" name="status_pernikahan[]" data-tab-index="<?php echo $index; ?>" data-field="status_pernikahan" data-required="1">
+                                                <option value="">Pilih</option>
+                                                <?php foreach (['Belum Menikah', 'Menikah', 'Cerai Hidup', 'Cerai Mati'] as $statusNikah): ?>
+                                                    <option value="<?php echo h($statusNikah); ?>"<?php echo ($tab['status_pernikahan'] ?? '') === $statusNikah ? ' selected' : ''; ?>><?php echo h($statusNikah); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Tipe Kerja</label>
+                                            <select class="form-select form-select-sm wizard-lowongan-field" name="tipe_kerja[]" data-tab-index="<?php echo $index; ?>" data-field="tipe_kerja" data-required="1">
+                                                <option value="">Pilih</option>
+                                                <?php foreach (['Full Time', 'Part Time', 'Contract', 'Internship'] as $tipe): ?>
+                                                    <option value="<?php echo h($tipe); ?>"<?php echo ($tab['tipe_kerja'] ?? '') === $tipe ? ' selected' : ''; ?>><?php echo h($tipe); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Masa Berlaku Mulai</label>
+                                            <input type="date" class="form-control form-control-sm wizard-lowongan-field" name="masa_berlaku_mulai[]" value="<?php echo h((string)$tab['masa_berlaku_mulai']); ?>" data-tab-index="<?php echo $index; ?>" data-field="masa_berlaku_mulai" data-required="1">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Masa Berlaku Sampai</label>
+                                            <input type="date" class="form-control form-control-sm wizard-lowongan-field" name="masa_berlaku_sampai[]" value="<?php echo h((string)$tab['masa_berlaku_sampai']); ?>" data-tab-index="<?php echo $index; ?>" data-field="masa_berlaku_sampai" data-required="1">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label mb-1">Alamat URL Postingan Loker</label>
+                                            <input type="url" class="form-control form-control-sm wizard-lowongan-field" name="alamat_url_postingan_loker[]" placeholder="https://karirhub.kemnaker.go.id/..." value="<?php echo h((string)$tab['alamat_url_postingan_loker']); ?>" data-tab-index="<?php echo $index; ?>" data-field="alamat_url_postingan_loker" data-required="1">
                                         </div>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
                     </div>
-                </div>
-
-                <div class="col-6 col-md-3">
-                    <label class="form-label mb-1">Jumlah Kebutuhan</label>
-                    <input type="number" min="1" name="jumlah_kebutuhan" class="form-control form-control-sm" value="<?php echo h($form['jumlah_kebutuhan']); ?>">
-                </div>
-                <div class="col-6 col-md-3">
-                    <label class="form-label mb-1">Jenis Kelamin</label>
-                    <select name="jenis_kelamin" class="form-select form-select-sm">
-                        <?php foreach (['Semua', 'Laki-laki', 'Perempuan'] as $jk): ?>
-                            <option value="<?php echo h($jk); ?>"<?php echo $form['jenis_kelamin'] === $jk ? ' selected' : ''; ?>><?php echo h($jk); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-6 col-md-3">
-                    <label class="form-label mb-1">Usia Min</label>
-                    <input type="number" min="18" name="usia_min" class="form-control form-control-sm" value="<?php echo h($form['usia_min']); ?>">
-                </div>
-                <div class="col-6 col-md-3">
-                    <label class="form-label mb-1">Usia Max</label>
-                    <input type="number" min="18" name="usia_max" class="form-control form-control-sm" value="<?php echo h($form['usia_max']); ?>">
-                </div>
-
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Pendidikan Minimal</label>
-                    <input type="text" name="pendidikan_minimal" class="form-control form-control-sm" value="<?php echo h($form['pendidikan_minimal']); ?>">
-                </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Pengalaman Minimal (tahun)</label>
-                    <input type="number" min="0" name="pengalaman_min_tahun" class="form-control form-control-sm" value="<?php echo h($form['pengalaman_min_tahun']); ?>">
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label mb-1">Deskripsi Pekerjaan</label>
-                    <textarea name="deskripsi_pekerjaan" class="form-control form-control-sm" rows="3"><?php echo h($form['deskripsi_pekerjaan']); ?></textarea>
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label mb-1">Keterampilan Utama</label>
-                    <textarea name="keterampilan_utama" class="form-control form-control-sm" rows="2"><?php echo h($form['keterampilan_utama']); ?></textarea>
-                </div>
-
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Rentang Gaji</label>
-                    <input type="text" name="rentang_gaji" class="form-control form-control-sm" value="<?php echo h($form['rentang_gaji']); ?>" placeholder="Rp5.000.000 - Rp7.000.000">
-                </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Kode KBJI</label>
-                    <input type="text" name="kode_kbji" class="form-control form-control-sm" value="<?php echo h($form['kode_kbji']); ?>" placeholder="Contoh: 24231">
-                </div>
-
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Provinsi</label>
-                    <input type="text" name="provinsi" class="form-control form-control-sm" value="<?php echo h($form['provinsi']); ?>">
-                </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Kota</label>
-                    <input type="text" name="kota" class="form-control form-control-sm" value="<?php echo h($form['kota']); ?>">
-                </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Kecamatan</label>
-                    <input type="text" name="kecamatan" class="form-control form-control-sm" value="<?php echo h($form['kecamatan']); ?>">
-                </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Kelurahan</label>
-                    <input type="text" name="kelurahan" class="form-control form-control-sm" value="<?php echo h($form['kelurahan']); ?>">
-                </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Bidang Pekerjaan</label>
-                    <input type="text" name="bidang_pekerjaan" class="form-control form-control-sm" value="<?php echo h($form['bidang_pekerjaan']); ?>">
-                </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Industri / Sektor</label>
-                    <input type="text" name="industri_sektor" class="form-control form-control-sm" value="<?php echo h($form['industri_sektor']); ?>">
-                </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Status Pernikahan</label>
-                    <select name="status_pernikahan" class="form-select form-select-sm">
-                        <option value="">Pilih</option>
-                        <?php foreach (['Belum Menikah', 'Menikah', 'Cerai Hidup', 'Cerai Mati'] as $statusNikah): ?>
-                            <option value="<?php echo h($statusNikah); ?>"<?php echo $form['status_pernikahan'] === $statusNikah ? ' selected' : ''; ?>><?php echo h($statusNikah); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Tipe Kerja</label>
-                    <select name="tipe_kerja" class="form-select form-select-sm">
-                        <option value="">Pilih</option>
-                        <?php foreach (['Full Time', 'Part Time', 'Contract', 'Internship'] as $tipe): ?>
-                            <option value="<?php echo h($tipe); ?>"<?php echo $form['tipe_kerja'] === $tipe ? ' selected' : ''; ?>><?php echo h($tipe); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Masa Berlaku Mulai</label>
-                    <input type="date" name="masa_berlaku_mulai" class="form-control form-control-sm" value="<?php echo h($form['masa_berlaku_mulai']); ?>">
-                </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Masa Berlaku Sampai</label>
-                    <input type="date" name="masa_berlaku_sampai" class="form-control form-control-sm" value="<?php echo h($form['masa_berlaku_sampai']); ?>">
-                </div>
-                <div class="col-12">
-                    <label class="form-label mb-1">Alamat URL Postingan Loker</label>
-                    <input type="url" name="alamat_url_postingan_loker" class="form-control form-control-sm" placeholder="https://karirhub.kemnaker.go.id/..." value="<?php echo h($form['alamat_url_postingan_loker']); ?>">
                 </div>
                 <div class="col-12 col-md-6">
                     <label class="form-label mb-1">Catatan</label>
@@ -663,70 +639,178 @@ for ($i = 0; $i < $wizardCount; $i++) {
         const wizardSummaryPeriode = document.getElementById('wizardSummaryPeriode');
         const wizardSummaryJumlah = document.getElementById('wizardSummaryJumlah');
         const wizardTabProgressText = document.getElementById('wizardTabProgressText');
+        const wizardValidationSummary = document.getElementById('wizardValidationSummary');
         const btnEditWizardFlow = document.getElementById('btnEditWizardFlow');
         const submitBtn = document.getElementById('btnSubmitPelaporan');
         const tabsNav = document.getElementById('lowonganTabsNav');
         const tabsContent = document.getElementById('lowonganTabsContent');
+        const pelaporanForm = document.querySelector('form[method="POST"]');
         let wizardStep = 1;
 
-        function getCurrentJabatanTabs() {
-            return Array.from(document.querySelectorAll('.wizard-jabatan-input')).map((el) => (el.value || '').trim());
+        function defaultValueByField(field) {
+            if (field === 'jenis_kelamin') return 'Semua';
+            if (field === 'masa_berlaku_mulai') return (wizardPeriodeAnchor && wizardPeriodeAnchor.value) ? wizardPeriodeAnchor.value : '';
+            if (field === 'masa_berlaku_sampai') {
+                const anchor = (wizardPeriodeAnchor && wizardPeriodeAnchor.value) ? new Date(wizardPeriodeAnchor.value) : null;
+                if (anchor && !Number.isNaN(anchor.getTime())) {
+                    anchor.setDate(anchor.getDate() + 30);
+                    return anchor.toISOString().slice(0, 10);
+                }
+            }
+            return '';
+        }
+
+        function collectLowonganValues() {
+            if (!tabsContent) return [];
+            const panes = Array.from(tabsContent.querySelectorAll('.tab-pane'));
+            return panes.map((pane) => {
+                const row = {};
+                pane.querySelectorAll('.wizard-lowongan-field').forEach((el) => {
+                    row[el.getAttribute('data-field')] = (el.value || '').trim();
+                });
+                return row;
+            });
         }
 
         function renderLowonganTabs(count, values) {
             if (!tabsNav || !tabsContent) return;
             const safeCount = Math.max(1, Math.min(50, parseInt(String(count), 10) || 1));
-            const data = values && values.length ? values : [];
-            const navParts = [];
-            const contentParts = [];
+            const data = values && values.length ? values : collectLowonganValues();
+            const basePane = tabsContent.querySelector('.tab-pane');
+            if (!basePane) return;
+            tabsNav.innerHTML = '';
+            tabsContent.innerHTML = '';
             for (let i = 0; i < safeCount; i += 1) {
-                const val = data[i] || '';
-                navParts.push(
-                    '<li class="nav-item" role="presentation">' +
-                    '<button class="nav-link' + (i === 0 ? ' active' : '') + '" id="lowongan-tab-' + i + '" data-bs-toggle="tab" data-bs-target="#lowongan-pane-' + i + '" type="button" role="tab">' +
-                    'Lowongan ' + (i + 1) +
-                    '<span class="badge text-bg-secondary ms-1 wizard-tab-badge" id="wizardTabBadge-' + i + '">Belum lengkap</span>' +
-                    '</button></li>'
-                );
-                contentParts.push(
-                    '<div class="tab-pane fade' + (i === 0 ? ' show active' : '') + '" id="lowongan-pane-' + i + '" role="tabpanel">' +
-                    '<div class="row g-2"><div class="col-12">' +
-                    '<label class="form-label mb-1">Jabatan (Lowongan ' + (i + 1) + ')</label>' +
-                    '<input type="text" class="form-control form-control-sm wizard-jabatan-input" name="jabatan_tabs[]" data-tab-index="' + i + '" value="' + val.replace(/"/g, '&quot;') + '">' +
-                    '</div></div></div>'
-                );
+                const navItem = document.createElement('li');
+                navItem.className = 'nav-item';
+                navItem.setAttribute('role', 'presentation');
+                const navBtn = document.createElement('button');
+                navBtn.className = 'nav-link' + (i === 0 ? ' active' : '');
+                navBtn.id = 'lowongan-tab-' + i;
+                navBtn.setAttribute('data-bs-toggle', 'tab');
+                navBtn.setAttribute('data-bs-target', '#lowongan-pane-' + i);
+                navBtn.type = 'button';
+                navBtn.setAttribute('role', 'tab');
+                navBtn.innerHTML = 'Lowongan ' + (i + 1) + '<span class="badge text-bg-secondary ms-1 wizard-tab-badge" id="wizardTabBadge-' + i + '">Belum lengkap</span>';
+                navItem.appendChild(navBtn);
+                tabsNav.appendChild(navItem);
+
+                const pane = basePane.cloneNode(true);
+                pane.id = 'lowongan-pane-' + i;
+                pane.className = 'tab-pane fade' + (i === 0 ? ' show active' : '');
+                pane.setAttribute('aria-labelledby', 'lowongan-tab-' + i);
+                const labelJabatan = pane.querySelector('label');
+                if (labelJabatan) {
+                    labelJabatan.textContent = 'Jabatan (Lowongan ' + (i + 1) + ')';
+                }
+
+                const rowData = data[i] || {};
+                pane.querySelectorAll('.wizard-lowongan-field').forEach((el) => {
+                    const field = el.getAttribute('data-field');
+                    const rawValue = Object.prototype.hasOwnProperty.call(rowData, field) ? rowData[field] : defaultValueByField(field);
+                    el.value = rawValue == null ? '' : String(rawValue);
+                    el.setAttribute('data-tab-index', String(i));
+                    el.classList.remove('is-invalid');
+                });
+                tabsContent.appendChild(pane);
             }
-            tabsNav.innerHTML = navParts.join('');
-            tabsContent.innerHTML = contentParts.join('');
-            refreshTabBadges();
+            validateTabs(false);
         }
 
-        function refreshTabBadges() {
-            const inputs = Array.from(document.querySelectorAll('.wizard-jabatan-input'));
+        function validateTabs(showDetails) {
+            const panes = tabsContent ? Array.from(tabsContent.querySelectorAll('.tab-pane')) : [];
             let complete = 0;
-            inputs.forEach((input, idx) => {
-                const ok = (input.value || '').trim() !== '';
+            let firstInvalidField = null;
+            const issues = [];
+
+            panes.forEach((pane, idx) => {
+                const fields = Array.from(pane.querySelectorAll('.wizard-lowongan-field'));
+                const row = {};
+                fields.forEach((el) => {
+                    row[el.getAttribute('data-field')] = (el.value || '').trim();
+                });
+                const rowIssues = [];
+                fields.forEach((el) => {
+                    const required = el.getAttribute('data-required') === '1';
+                    const value = (el.value || '').trim();
+                    const wrapper = el.closest('[class*="col-"]');
+                    const labelNode = wrapper ? wrapper.querySelector('label') : null;
+                    const label = String((labelNode ? labelNode.textContent : '') || el.getAttribute('data-field') || 'Field').trim();
+                    const empty = required && value === '';
+                    if (empty) {
+                        rowIssues.push(label + ' wajib diisi');
+                    }
+                    if (showDetails) {
+                        el.classList.toggle('is-invalid', empty);
+                        if (empty && !firstInvalidField) {
+                            firstInvalidField = el;
+                        }
+                    } else {
+                        el.classList.remove('is-invalid');
+                    }
+                });
+                if (row.jumlah_kebutuhan && (!/^\d+$/.test(row.jumlah_kebutuhan) || parseInt(row.jumlah_kebutuhan, 10) <= 0)) {
+                    rowIssues.push('Jumlah Kebutuhan harus > 0');
+                }
+                if (row.usia_min && row.usia_max && parseInt(row.usia_min, 10) > parseInt(row.usia_max, 10)) {
+                    rowIssues.push('Usia Min tidak boleh > Usia Max');
+                }
+                if (row.masa_berlaku_mulai && row.masa_berlaku_sampai && row.masa_berlaku_mulai > row.masa_berlaku_sampai) {
+                    rowIssues.push('Masa Berlaku Mulai tidak boleh lebih akhir');
+                }
+
+                const ok = rowIssues.length === 0;
                 const badge = document.getElementById('wizardTabBadge-' + idx);
                 if (badge) {
                     badge.className = 'badge ms-1 wizard-tab-badge ' + (ok ? 'text-bg-success' : 'text-bg-secondary');
                     badge.textContent = ok ? 'Lengkap' : 'Belum lengkap';
                 }
                 if (ok) complete += 1;
+                if (!ok) {
+                    issues.push('Lowongan ' + (idx + 1) + ': ' + rowIssues[0]);
+                }
             });
+
             if (wizardTabProgressText) {
-                wizardTabProgressText.textContent = 'Tab lengkap: ' + complete + '/' + inputs.length;
+                wizardTabProgressText.textContent = 'Tab lengkap: ' + complete + '/' + panes.length;
             }
             if (submitBtn) {
-                submitBtn.disabled = complete !== inputs.length;
+                submitBtn.disabled = complete !== panes.length;
             }
             if (wizardDaftarJabatan) {
-                wizardDaftarJabatan.value = inputs.map((x) => (x.value || '').trim()).filter((x) => x !== '').join('\n');
+                const jabatanValues = Array.from(document.querySelectorAll('.wizard-lowongan-field[data-field="jabatan"]'))
+                    .map((x) => (x.value || '').trim())
+                    .filter((x) => x !== '');
+                wizardDaftarJabatan.value = jabatanValues.join('\n');
             }
+            if (wizardValidationSummary) {
+                if (showDetails && issues.length) {
+                    wizardValidationSummary.style.display = '';
+                    wizardValidationSummary.innerHTML = '<strong>Perbaiki data tab:</strong><br>' + issues.slice(0, 5).join('<br>');
+                } else {
+                    wizardValidationSummary.style.display = 'none';
+                    wizardValidationSummary.innerHTML = '';
+                }
+            }
+            if (showDetails && firstInvalidField) {
+                const tabIndex = parseInt(firstInvalidField.getAttribute('data-tab-index') || '0', 10);
+                const trigger = document.getElementById('lowongan-tab-' + tabIndex);
+                if (trigger) {
+                    bootstrap.Tab.getOrCreateInstance(trigger).show();
+                }
+                firstInvalidField.focus();
+            }
+            return complete === panes.length && panes.length > 0;
         }
 
         document.addEventListener('input', function (evt) {
-            if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-jabatan-input')) {
-                refreshTabBadges();
+            if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-lowongan-field')) {
+                validateTabs(false);
+            }
+        });
+        document.addEventListener('change', function (evt) {
+            if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-lowongan-field')) {
+                validateTabs(false);
             }
         });
 
@@ -787,15 +871,22 @@ for ($i = 0; $i < $wizardCount; $i++) {
                     if (wizardPeriodeTipe && wizardModalPeriodeTipe) wizardPeriodeTipe.value = wizardModalPeriodeTipe.value;
                     if (wizardPeriodeAnchor && wizardModalPeriodeAnchor) wizardPeriodeAnchor.value = wizardModalPeriodeAnchor.value;
                     if (wizardJumlahLowongan) wizardJumlahLowongan.value = String(count);
-                    renderLowonganTabs(count, getCurrentJabatanTabs());
+                    renderLowonganTabs(count, collectLowonganValues());
                     applyWizardSummary();
                     wizardModal.hide();
                 });
             }
         }
 
-        renderLowonganTabs(parseInt((wizardJumlahLowongan && wizardJumlahLowongan.value) || '1', 10) || 1, getCurrentJabatanTabs());
+        renderLowonganTabs(parseInt((wizardJumlahLowongan && wizardJumlahLowongan.value) || '1', 10) || 1, collectLowonganValues());
         applyWizardSummary();
+        if (pelaporanForm) {
+            pelaporanForm.addEventListener('submit', function (evt) {
+                if (!validateTabs(true)) {
+                    evt.preventDefault();
+                }
+            });
+        }
 
         function setResult(cls, html) {
             if (!resultEl) return;
