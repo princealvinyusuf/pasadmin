@@ -60,8 +60,27 @@ $form = [
 
 $errors = [];
 $generated = null;
+$wizardLowonganTabs = [];
+$wizardCount = max(1, min(50, (int)$form['jumlah_id_lowongan']));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $jabatanTabsInput = $_POST['jabatan_tabs'] ?? [];
+    if (is_array($jabatanTabsInput)) {
+        $jabatanTabsClean = [];
+        foreach ($jabatanTabsInput as $j) {
+            $jText = trim((string)$j);
+            if ($jText !== '') {
+                $jabatanTabsClean[] = $jText;
+            }
+        }
+        if (!empty($jabatanTabsClean)) {
+            $form['daftar_jabatan'] = implode("\n", $jabatanTabsClean);
+            if ($form['jabatan'] === '') {
+                $form['jabatan'] = $jabatanTabsClean[0];
+            }
+        }
+    }
+
     $requiredFields = [
         'periode_tipe' => 'Periode Pelaporan',
         'periode_anchor' => 'Tanggal Anchor Periode',
@@ -250,6 +269,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmtSaveStatus->close();
     }
 }
+
+$wizardCount = max(1, min(50, (int)$form['jumlah_id_lowongan']));
+$jabatanLines = [];
+if ($form['daftar_jabatan'] !== '') {
+    $jabatanLines = preg_split('/\r\n|\r|\n/', $form['daftar_jabatan']) ?: [];
+    $jabatanLines = array_values(array_filter(array_map(static fn ($x) => trim((string)$x), $jabatanLines), static fn ($x) => $x !== ''));
+}
+for ($i = 0; $i < $wizardCount; $i++) {
+    $wizardLowonganTabs[] = $jabatanLines[$i] ?? ($i === 0 ? $form['jabatan'] : '');
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -261,7 +290,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <?php kh_proto_render_styles(); ?>
 </head>
-<body class="kh-proto-page">
+<body class="kh-proto-page" data-wizard-force-open="<?php echo $_SERVER['REQUEST_METHOD'] === 'POST' ? '0' : '1'; ?>">
 <?php include 'navbar.php'; ?>
 <?php kh_proto_render_hero('Daftar Lowongan Kerja', 'Buat lowongan kerja melalui alur pelaporan WLLP prototipe.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_dashboard_wllp'); ?>
 
@@ -313,6 +342,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <form method="POST" class="card border-0 shadow-sm">
         <div class="card-body">
+            <input type="hidden" name="periode_tipe" id="wizardPeriodeTipe" value="<?php echo h($form['periode_tipe']); ?>">
+            <input type="hidden" name="periode_anchor" id="wizardPeriodeAnchor" value="<?php echo h($form['periode_anchor']); ?>">
+            <input type="hidden" name="jumlah_id_lowongan" id="wizardJumlahLowongan" value="<?php echo h((string)$wizardCount); ?>">
+            <input type="hidden" name="daftar_jabatan" id="wizardDaftarJabatan" value="<?php echo h($form['daftar_jabatan']); ?>">
+
+            <div class="alert alert-primary py-2 d-flex flex-wrap justify-content-between align-items-center gap-2" id="wizardSummaryBar">
+                <div class="small">
+                    <strong>Periode:</strong> <span id="wizardSummaryPeriode"><?php echo h(strtoupper($form['periode_tipe']) . ' - ' . $form['periode_anchor']); ?></span>
+                    &nbsp;|&nbsp;
+                    <strong>Jumlah Lowongan:</strong> <span id="wizardSummaryJumlah"><?php echo h((string)$wizardCount); ?></span>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="btnEditWizardFlow">
+                    <i class="bi bi-pencil-square me-1"></i>Edit
+                </button>
+            </div>
+
             <div class="row g-3">
                 <div class="col-12 col-md-6">
                     <label class="form-label mb-1">Unit Perusahaan/ Usaha</label>
@@ -322,28 +367,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Jabatan</label>
-                    <input type="text" name="jabatan" class="form-control form-control-sm" value="<?php echo h($form['jabatan']); ?>">
-                </div>
-                <div class="col-12 col-md-4">
-                    <label class="form-label mb-1">Periode Pelaporan</label>
-                    <select name="periode_tipe" class="form-select form-select-sm">
-                        <option value="weekly"<?php echo $form['periode_tipe'] === 'weekly' ? ' selected' : ''; ?>>Weekly</option>
-                        <option value="monthly"<?php echo $form['periode_tipe'] === 'monthly' ? ' selected' : ''; ?>>Monthly</option>
-                    </select>
-                </div>
-                <div class="col-12 col-md-4">
-                    <label class="form-label mb-1">Tanggal Anchor Periode</label>
-                    <input type="date" name="periode_anchor" class="form-control form-control-sm" value="<?php echo h($form['periode_anchor']); ?>">
-                </div>
-                <div class="col-12 col-md-4">
-                    <label class="form-label mb-1">Jumlah ID Lowongan</label>
-                    <input type="number" min="1" max="50" name="jumlah_id_lowongan" class="form-control form-control-sm" value="<?php echo h($form['jumlah_id_lowongan']); ?>">
-                </div>
                 <div class="col-12">
-                    <label class="form-label mb-1">Daftar Jabatan per ID (opsional)</label>
-                    <textarea name="daftar_jabatan" class="form-control form-control-sm" rows="2" placeholder="Satu jabatan per baris. Jika diisi, jumlah baris akan menjadi jumlah ID Lowongan."><?php echo h($form['daftar_jabatan']); ?></textarea>
+                    <div class="border rounded p-2 bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="fw-semibold small">Form Pelaporan Lowongan per ID</div>
+                            <div class="small text-muted" id="wizardTabProgressText">Lengkapi semua tab lowongan.</div>
+                        </div>
+                        <ul class="nav nav-tabs" id="lowonganTabsNav" role="tablist">
+                            <?php foreach ($wizardLowonganTabs as $index => $jabatanTab): ?>
+                                <li class="nav-item" role="presentation">
+                                    <button
+                                        class="nav-link<?php echo $index === 0 ? ' active' : ''; ?>"
+                                        id="lowongan-tab-<?php echo $index; ?>"
+                                        data-bs-toggle="tab"
+                                        data-bs-target="#lowongan-pane-<?php echo $index; ?>"
+                                        type="button"
+                                        role="tab"
+                                        aria-controls="lowongan-pane-<?php echo $index; ?>"
+                                        aria-selected="<?php echo $index === 0 ? 'true' : 'false'; ?>"
+                                    >
+                                        Lowongan <?php echo $index + 1; ?>
+                                        <span class="badge text-bg-secondary ms-1 wizard-tab-badge" id="wizardTabBadge-<?php echo $index; ?>">Belum lengkap</span>
+                                    </button>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <div class="tab-content border border-top-0 bg-white p-3" id="lowonganTabsContent">
+                            <?php foreach ($wizardLowonganTabs as $index => $jabatanTab): ?>
+                                <div class="tab-pane fade<?php echo $index === 0 ? ' show active' : ''; ?>" id="lowongan-pane-<?php echo $index; ?>" role="tabpanel" aria-labelledby="lowongan-tab-<?php echo $index; ?>">
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <label class="form-label mb-1">Jabatan (Lowongan <?php echo $index + 1; ?>)</label>
+                                            <input
+                                                type="text"
+                                                class="form-control form-control-sm wizard-jabatan-input"
+                                                name="jabatan_tabs[]"
+                                                value="<?php echo h($jabatanTab); ?>"
+                                                data-tab-index="<?php echo $index; ?>"
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="col-6 col-md-3">
@@ -458,7 +525,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <div class="mt-3 d-flex gap-2">
-                <button type="submit" class="btn btn-primary btn-sm">
+                <button type="submit" class="btn btn-primary btn-sm" id="btnSubmitPelaporan">
                     <i class="bi bi-send-check me-1"></i>Simulasikan Buat Laporan
                 </button>
                 <a class="btn btn-outline-secondary btn-sm" href="karirhub_employer_prototype_pelaporan_lowongan">
@@ -470,6 +537,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </main>
     </div>
 </div>
+</div>
+
+<div class="modal fade" id="pelaporanWizardModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Panduan Pelaporan Lowongan</h5>
+            </div>
+            <div class="modal-body">
+                <div class="small text-muted mb-2" id="wizardStepIndicator">Step 1/2</div>
+                <div id="wizardStep1">
+                    <label class="form-label mb-1">Pilih periode pelaporan lowongan kerja yang ingin anda laporkan</label>
+                    <select class="form-select form-select-sm mb-2" id="wizardModalPeriodeTipe">
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                    <label class="form-label mb-1">Tanggal Mulai periode</label>
+                    <input type="date" class="form-control form-control-sm" id="wizardModalPeriodeAnchor">
+                </div>
+                <div id="wizardStep2" style="display:none;">
+                    <label class="form-label mb-1">Berapa banyak lowongan kerja yang ingin anda Buka?</label>
+                    <input type="number" min="1" max="50" class="form-control form-control-sm" id="wizardModalJumlahLowongan">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="wizardPrevBtn" style="display:none;">Kembali</button>
+                <button type="button" class="btn btn-primary btn-sm" id="wizardNextBtn">Lanjut</button>
+                <button type="button" class="btn btn-success btn-sm" id="wizardFinishBtn" style="display:none;">Mulai Isi Form</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="modal fade" id="bulkImportPelaporanModal" tabindex="-1" aria-hidden="true">
@@ -548,6 +646,156 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const resultEl = document.getElementById('pelaporanImportResult');
         const previewWrap = document.getElementById('pelaporanImportPreviewWrap');
         const previewTable = document.getElementById('pelaporanImportPreviewTable');
+        const wizardModalEl = document.getElementById('pelaporanWizardModal');
+        const wizardStep1 = document.getElementById('wizardStep1');
+        const wizardStep2 = document.getElementById('wizardStep2');
+        const wizardStepIndicator = document.getElementById('wizardStepIndicator');
+        const wizardPrevBtn = document.getElementById('wizardPrevBtn');
+        const wizardNextBtn = document.getElementById('wizardNextBtn');
+        const wizardFinishBtn = document.getElementById('wizardFinishBtn');
+        const wizardModalPeriodeTipe = document.getElementById('wizardModalPeriodeTipe');
+        const wizardModalPeriodeAnchor = document.getElementById('wizardModalPeriodeAnchor');
+        const wizardModalJumlahLowongan = document.getElementById('wizardModalJumlahLowongan');
+        const wizardPeriodeTipe = document.getElementById('wizardPeriodeTipe');
+        const wizardPeriodeAnchor = document.getElementById('wizardPeriodeAnchor');
+        const wizardJumlahLowongan = document.getElementById('wizardJumlahLowongan');
+        const wizardDaftarJabatan = document.getElementById('wizardDaftarJabatan');
+        const wizardSummaryPeriode = document.getElementById('wizardSummaryPeriode');
+        const wizardSummaryJumlah = document.getElementById('wizardSummaryJumlah');
+        const wizardTabProgressText = document.getElementById('wizardTabProgressText');
+        const btnEditWizardFlow = document.getElementById('btnEditWizardFlow');
+        const submitBtn = document.getElementById('btnSubmitPelaporan');
+        const tabsNav = document.getElementById('lowonganTabsNav');
+        const tabsContent = document.getElementById('lowonganTabsContent');
+        let wizardStep = 1;
+
+        function getCurrentJabatanTabs() {
+            return Array.from(document.querySelectorAll('.wizard-jabatan-input')).map((el) => (el.value || '').trim());
+        }
+
+        function renderLowonganTabs(count, values) {
+            if (!tabsNav || !tabsContent) return;
+            const safeCount = Math.max(1, Math.min(50, parseInt(String(count), 10) || 1));
+            const data = values && values.length ? values : [];
+            const navParts = [];
+            const contentParts = [];
+            for (let i = 0; i < safeCount; i += 1) {
+                const val = data[i] || '';
+                navParts.push(
+                    '<li class="nav-item" role="presentation">' +
+                    '<button class="nav-link' + (i === 0 ? ' active' : '') + '" id="lowongan-tab-' + i + '" data-bs-toggle="tab" data-bs-target="#lowongan-pane-' + i + '" type="button" role="tab">' +
+                    'Lowongan ' + (i + 1) +
+                    '<span class="badge text-bg-secondary ms-1 wizard-tab-badge" id="wizardTabBadge-' + i + '">Belum lengkap</span>' +
+                    '</button></li>'
+                );
+                contentParts.push(
+                    '<div class="tab-pane fade' + (i === 0 ? ' show active' : '') + '" id="lowongan-pane-' + i + '" role="tabpanel">' +
+                    '<div class="row g-2"><div class="col-12">' +
+                    '<label class="form-label mb-1">Jabatan (Lowongan ' + (i + 1) + ')</label>' +
+                    '<input type="text" class="form-control form-control-sm wizard-jabatan-input" name="jabatan_tabs[]" data-tab-index="' + i + '" value="' + val.replace(/"/g, '&quot;') + '">' +
+                    '</div></div></div>'
+                );
+            }
+            tabsNav.innerHTML = navParts.join('');
+            tabsContent.innerHTML = contentParts.join('');
+            refreshTabBadges();
+        }
+
+        function refreshTabBadges() {
+            const inputs = Array.from(document.querySelectorAll('.wizard-jabatan-input'));
+            let complete = 0;
+            inputs.forEach((input, idx) => {
+                const ok = (input.value || '').trim() !== '';
+                const badge = document.getElementById('wizardTabBadge-' + idx);
+                if (badge) {
+                    badge.className = 'badge ms-1 wizard-tab-badge ' + (ok ? 'text-bg-success' : 'text-bg-secondary');
+                    badge.textContent = ok ? 'Lengkap' : 'Belum lengkap';
+                }
+                if (ok) complete += 1;
+            });
+            if (wizardTabProgressText) {
+                wizardTabProgressText.textContent = 'Tab lengkap: ' + complete + '/' + inputs.length;
+            }
+            if (submitBtn) {
+                submitBtn.disabled = complete !== inputs.length;
+            }
+            if (wizardDaftarJabatan) {
+                wizardDaftarJabatan.value = inputs.map((x) => (x.value || '').trim()).filter((x) => x !== '').join('\n');
+            }
+        }
+
+        document.addEventListener('input', function (evt) {
+            if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-jabatan-input')) {
+                refreshTabBadges();
+            }
+        });
+
+        function applyWizardSummary() {
+            if (!wizardSummaryPeriode || !wizardSummaryJumlah) return;
+            const tipe = (wizardPeriodeTipe && wizardPeriodeTipe.value ? wizardPeriodeTipe.value : 'monthly').toUpperCase();
+            const anchor = wizardPeriodeAnchor && wizardPeriodeAnchor.value ? wizardPeriodeAnchor.value : '';
+            wizardSummaryPeriode.textContent = tipe + ' - ' + anchor;
+            wizardSummaryJumlah.textContent = wizardJumlahLowongan && wizardJumlahLowongan.value ? wizardJumlahLowongan.value : '1';
+        }
+
+        function setWizardStep(step) {
+            wizardStep = step;
+            const isStep1 = step === 1;
+            if (wizardStep1) wizardStep1.style.display = isStep1 ? '' : 'none';
+            if (wizardStep2) wizardStep2.style.display = isStep1 ? 'none' : '';
+            if (wizardPrevBtn) wizardPrevBtn.style.display = isStep1 ? 'none' : '';
+            if (wizardNextBtn) wizardNextBtn.style.display = isStep1 ? '' : 'none';
+            if (wizardFinishBtn) wizardFinishBtn.style.display = isStep1 ? 'none' : '';
+            if (wizardStepIndicator) wizardStepIndicator.textContent = isStep1 ? 'Step 1/2' : 'Step 2/2';
+        }
+
+        if (wizardModalEl && typeof bootstrap !== 'undefined') {
+            const wizardModal = new bootstrap.Modal(wizardModalEl);
+            const forceOpen = document.body.getAttribute('data-wizard-force-open') === '1';
+            if (wizardModalPeriodeTipe && wizardPeriodeTipe) wizardModalPeriodeTipe.value = wizardPeriodeTipe.value || 'monthly';
+            if (wizardModalPeriodeAnchor && wizardPeriodeAnchor) wizardModalPeriodeAnchor.value = wizardPeriodeAnchor.value || new Date().toISOString().slice(0, 10);
+            if (wizardModalJumlahLowongan && wizardJumlahLowongan) wizardModalJumlahLowongan.value = wizardJumlahLowongan.value || '1';
+
+            if (forceOpen) {
+                setWizardStep(1);
+                wizardModal.show();
+            }
+            if (btnEditWizardFlow) {
+                btnEditWizardFlow.addEventListener('click', function () {
+                    if (wizardModalJumlahLowongan && wizardJumlahLowongan) wizardModalJumlahLowongan.value = wizardJumlahLowongan.value || '1';
+                    setWizardStep(1);
+                    wizardModal.show();
+                });
+            }
+            if (wizardNextBtn) {
+                wizardNextBtn.addEventListener('click', function () {
+                    if (!wizardModalPeriodeAnchor || !wizardModalPeriodeAnchor.value) {
+                        wizardModalPeriodeAnchor && wizardModalPeriodeAnchor.focus();
+                        return;
+                    }
+                    setWizardStep(2);
+                });
+            }
+            if (wizardPrevBtn) {
+                wizardPrevBtn.addEventListener('click', function () {
+                    setWizardStep(1);
+                });
+            }
+            if (wizardFinishBtn) {
+                wizardFinishBtn.addEventListener('click', function () {
+                    const count = Math.max(1, Math.min(50, parseInt((wizardModalJumlahLowongan && wizardModalJumlahLowongan.value) || '1', 10) || 1));
+                    if (wizardPeriodeTipe && wizardModalPeriodeTipe) wizardPeriodeTipe.value = wizardModalPeriodeTipe.value;
+                    if (wizardPeriodeAnchor && wizardModalPeriodeAnchor) wizardPeriodeAnchor.value = wizardModalPeriodeAnchor.value;
+                    if (wizardJumlahLowongan) wizardJumlahLowongan.value = String(count);
+                    renderLowonganTabs(count, getCurrentJabatanTabs());
+                    applyWizardSummary();
+                    wizardModal.hide();
+                });
+            }
+        }
+
+        renderLowonganTabs(parseInt((wizardJumlahLowongan && wizardJumlahLowongan.value) || '1', 10) || 1, getCurrentJabatanTabs());
+        applyWizardSummary();
 
         function setResult(cls, html) {
             if (!resultEl) return;
