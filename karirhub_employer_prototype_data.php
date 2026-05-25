@@ -17,7 +17,7 @@ if (!function_exists('karirhub_proto_dataset')) {
         $vacancies = [
             [
                 'id_lowongan' => 'LK-000987',
-                'no_reg_bukti' => 'WLLP-2026-0519-001278',
+                'no_reg_bukti' => 'WLLP-572605-00001278',
                 'unit_kode' => 'UNIT-001',
                 'jabatan' => 'Staff Operasional',
                 'jumlah_kebutuhan' => 4,
@@ -42,7 +42,7 @@ if (!function_exists('karirhub_proto_dataset')) {
             ],
             [
                 'id_lowongan' => 'LK-000984',
-                'no_reg_bukti' => 'WLLP-2026-0518-001249',
+                'no_reg_bukti' => 'WLLP-572605-00001249',
                 'unit_kode' => 'UNIT-001',
                 'jabatan' => 'Admin HR',
                 'jumlah_kebutuhan' => 2,
@@ -67,7 +67,7 @@ if (!function_exists('karirhub_proto_dataset')) {
             ],
             [
                 'id_lowongan' => 'LK-000971',
-                'no_reg_bukti' => 'WLLP-2026-0514-001180',
+                'no_reg_bukti' => 'WLLP-572605-00001180',
                 'unit_kode' => 'UNIT-002',
                 'jabatan' => 'Digital Marketing',
                 'jumlah_kebutuhan' => 1,
@@ -92,7 +92,7 @@ if (!function_exists('karirhub_proto_dataset')) {
             ],
             [
                 'id_lowongan' => 'LK-000954',
-                'no_reg_bukti' => 'WLLP-2026-0510-001032',
+                'no_reg_bukti' => 'WLLP-572605-00001032',
                 'unit_kode' => 'UNIT-003',
                 'jabatan' => 'Finance Officer',
                 'jumlah_kebutuhan' => 2,
@@ -117,7 +117,7 @@ if (!function_exists('karirhub_proto_dataset')) {
             ],
             [
                 'id_lowongan' => 'LK-000944',
-                'no_reg_bukti' => 'WLLP-2026-0508-000994',
+                'no_reg_bukti' => 'WLLP-572605-00000994',
                 'unit_kode' => 'UNIT-002',
                 'jabatan' => 'Supervisor Gudang',
                 'jumlah_kebutuhan' => 3,
@@ -142,7 +142,7 @@ if (!function_exists('karirhub_proto_dataset')) {
             ],
             [
                 'id_lowongan' => 'LK-000931',
-                'no_reg_bukti' => 'WLLP-2026-0505-000950',
+                'no_reg_bukti' => 'WLLP-572605-00000950',
                 'unit_kode' => 'UNIT-003',
                 'jabatan' => 'Customer Service',
                 'jumlah_kebutuhan' => 5,
@@ -167,7 +167,7 @@ if (!function_exists('karirhub_proto_dataset')) {
             ],
             [
                 'id_lowongan' => 'LK-000922',
-                'no_reg_bukti' => 'WLLP-2026-0503-000918',
+                'no_reg_bukti' => 'WLLP-572605-00000918',
                 'unit_kode' => 'UNIT-001',
                 'jabatan' => 'Legal Officer',
                 'jumlah_kebutuhan' => 1,
@@ -192,7 +192,7 @@ if (!function_exists('karirhub_proto_dataset')) {
             ],
             [
                 'id_lowongan' => 'LK-000910',
-                'no_reg_bukti' => 'WLLP-2026-0501-000887',
+                'no_reg_bukti' => 'WLLP-572605-00000887',
                 'unit_kode' => 'UNIT-003',
                 'jabatan' => 'IT Support',
                 'jumlah_kebutuhan' => 2,
@@ -333,11 +333,11 @@ if (!function_exists('karirhub_proto_dataset')) {
         }
 
         $activities = [
-            ['waktu' => '20 Mei 2026 08:10', 'aksi' => 'Buat Laporan Lowongan', 'no_reg_bukti' => 'WLLP-2026-0519-001278', 'status' => 'Terverifikasi'],
-            ['waktu' => '19 Mei 2026 16:34', 'aksi' => 'Cetak Bukti Lapor', 'no_reg_bukti' => 'WLLP-2026-0518-001249', 'status' => 'Dicetak'],
-            ['waktu' => '19 Mei 2026 11:52', 'aksi' => 'Update Status Keterisian', 'no_reg_bukti' => 'WLLP-2026-0510-001032', 'status' => 'Posisi Terisi'],
-            ['waktu' => '18 Mei 2026 09:14', 'aksi' => 'Buat Laporan Lowongan', 'no_reg_bukti' => 'WLLP-2026-0518-001249', 'status' => 'Terverifikasi'],
-            ['waktu' => '17 Mei 2026 15:00', 'aksi' => 'Monitoring Kepatuhan', 'no_reg_bukti' => 'WLLP-2026-0514-001180', 'status' => 'Perlu Update'],
+            ['waktu' => '20 Mei 2026 08:10', 'aksi' => 'Buat Laporan Lowongan', 'no_reg_bukti' => 'WLLP-572605-00001278', 'status' => 'Terverifikasi'],
+            ['waktu' => '19 Mei 2026 16:34', 'aksi' => 'Cetak Bukti Lapor', 'no_reg_bukti' => 'WLLP-572605-00001249', 'status' => 'Dicetak'],
+            ['waktu' => '19 Mei 2026 11:52', 'aksi' => 'Update Status Keterisian', 'no_reg_bukti' => 'WLLP-572605-00001032', 'status' => 'Posisi Terisi'],
+            ['waktu' => '18 Mei 2026 09:14', 'aksi' => 'Buat Laporan Lowongan', 'no_reg_bukti' => 'WLLP-572605-00001249', 'status' => 'Terverifikasi'],
+            ['waktu' => '17 Mei 2026 15:00', 'aksi' => 'Monitoring Kepatuhan', 'no_reg_bukti' => 'WLLP-572605-00001180', 'status' => 'Perlu Update'],
         ];
 
         $dataset = ['units' => $units, 'vacancies' => $vacancies, 'activities' => $activities];

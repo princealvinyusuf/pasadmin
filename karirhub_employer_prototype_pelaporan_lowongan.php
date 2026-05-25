@@ -16,6 +16,26 @@ function h(string $value): string
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
+function kh_proto_generate_no_reg_bukti(mysqli $conn): string
+{
+    $prefix = 'WLLP-57' . date('ym') . '-';
+    $regex = '^' . preg_quote($prefix, '/') . '[0-9]{8}$';
+    $stmt = $conn->prepare("
+        SELECT COALESCE(MAX(CAST(RIGHT(no_reg_bukti, 8) AS UNSIGNED)), 0) AS max_seq
+        FROM karirhub_proto_wllp_pelaporan
+        WHERE no_reg_bukti LIKE CONCAT(?, '%')
+          AND no_reg_bukti REGEXP ?
+    ");
+    $stmt->bind_param('ss', $prefix, $regex);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+
+    $nextSeq = ((int)($row['max_seq'] ?? 0)) + 1;
+    return $prefix . str_pad((string)$nextSeq, 8, '0', STR_PAD_LEFT);
+}
+
 $dataset = karirhub_proto_dataset();
 $units = $dataset['units'];
 
@@ -144,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         $generatedIdLowongan = 'LK-SIM-' . strtoupper(substr(md5($form['jabatan'] . microtime(true)), 0, 6));
-        $generatedNoReg = 'WLLP-' . date('Ymd') . '-SIM-' . substr((string)time(), -4);
+        $generatedNoReg = kh_proto_generate_no_reg_bukti($conn);
         $unitNama = (string)($units[$form['unit_kode']]['nama'] ?? $form['unit_kode']);
 
         $stmtSavePelaporan = $conn->prepare("

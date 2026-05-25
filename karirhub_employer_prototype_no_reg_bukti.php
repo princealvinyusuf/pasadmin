@@ -84,7 +84,7 @@ $filteredRows = array_values(array_filter($registryRows, static function (array 
                         name="q"
                         class="form-control form-control-sm"
                         value="<?php echo h($query); ?>"
-                        placeholder="Contoh: WLLP-2026-0519 atau Staff Operasional"
+                        placeholder="Contoh: WLLP-572605-00001278 atau Staff Operasional"
                     >
                 </div>
                 <div class="col-12 col-md-3">
