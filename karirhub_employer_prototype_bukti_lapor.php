@@ -120,6 +120,8 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $headerH = 58;
     $footerLogoPath = __DIR__ . '/images/karirhub.png';
     $footerLogoInfo = pdf_logo_jpeg_data($footerLogoPath);
+    $siapKerjaLogoPath = __DIR__ . '/images/logo-siapkerja.png';
+    $siapKerjaLogoInfo = pdf_logo_jpeg_data($siapKerjaLogoPath);
     $headerLogoPath = __DIR__ . '/images/logo-white.png';
     $headerLogoInfo = pdf_logo_jpeg_data($headerLogoPath, [20, 74, 140]);
 
@@ -220,16 +222,53 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $streamParts[] = 'BT /F1 8 Tf 48 ' . ($footerY + 6) . ' Td (' . pdf_escape('Diterbitkan oleh sistem prototype pada: ' . $issuedAt) . ') Tj ET';
     $streamParts[] = 'BT /F1 8 Tf 48 ' . ($footerY - 6) . ' Td (' . pdf_escape('Dokumen ini hanya untuk referensi UI/UX dan bukan dokumen legal resmi.') . ') Tj ET';
 
-    // Footer logo.
-    if ($footerLogoInfo !== null) {
-        $targetW = 138.0;
-        $targetH = ($footerLogoInfo['height'] / max(1, $footerLogoInfo['width'])) * $targetW;
-        $logoX = 410.0;
-        $logoY = $footerY + 2.0;
-        $streamParts[] = 'q';
-        $streamParts[] = sprintf('%.2F 0 0 %.2F %.2F %.2F cm', $targetW, $targetH, $logoX, $logoY);
-        $streamParts[] = '/Im1 Do';
-        $streamParts[] = 'Q';
+    // Footer logos: SiapKerja then Karirhub.
+    if ($siapKerjaLogoInfo !== null || $footerLogoInfo !== null) {
+        $logoGap = 8.0;
+        $logoBaseY = $footerY + 2.0;
+        $totalWidth = 0.0;
+        $siapKerjaTargetW = 0.0;
+        $siapKerjaTargetH = 0.0;
+        $karirhubTargetW = 0.0;
+        $karirhubTargetH = 0.0;
+
+        if ($siapKerjaLogoInfo !== null) {
+            $siapKerjaTargetH = 28.0;
+            $siapKerjaTargetW = ($siapKerjaLogoInfo['width'] / max(1, $siapKerjaLogoInfo['height'])) * $siapKerjaTargetH;
+            if ($siapKerjaTargetW > 145.0) {
+                $siapKerjaTargetW = 145.0;
+                $siapKerjaTargetH = ($siapKerjaLogoInfo['height'] / max(1, $siapKerjaLogoInfo['width'])) * $siapKerjaTargetW;
+            }
+            $totalWidth += $siapKerjaTargetW;
+        }
+        if ($footerLogoInfo !== null) {
+            $karirhubTargetH = 28.0;
+            $karirhubTargetW = ($footerLogoInfo['width'] / max(1, $footerLogoInfo['height'])) * $karirhubTargetH;
+            if ($karirhubTargetW > 130.0) {
+                $karirhubTargetW = 130.0;
+                $karirhubTargetH = ($footerLogoInfo['height'] / max(1, $footerLogoInfo['width'])) * $karirhubTargetW;
+            }
+            if ($totalWidth > 0.0) {
+                $totalWidth += $logoGap;
+            }
+            $totalWidth += $karirhubTargetW;
+        }
+
+        $startX = $right - $totalWidth - 6.0;
+        $cursorX = $startX;
+        if ($siapKerjaLogoInfo !== null) {
+            $streamParts[] = 'q';
+            $streamParts[] = sprintf('%.2F 0 0 %.2F %.2F %.2F cm', $siapKerjaTargetW, $siapKerjaTargetH, $cursorX, $logoBaseY);
+            $streamParts[] = '/Im3 Do';
+            $streamParts[] = 'Q';
+            $cursorX += $siapKerjaTargetW + $logoGap;
+        }
+        if ($footerLogoInfo !== null) {
+            $streamParts[] = 'q';
+            $streamParts[] = sprintf('%.2F 0 0 %.2F %.2F %.2F cm', $karirhubTargetW, $karirhubTargetH, $cursorX, $logoBaseY);
+            $streamParts[] = '/Im1 Do';
+            $streamParts[] = 'Q';
+        }
     }
 
     $contentStream = implode("\n", $streamParts) . "\n";
@@ -239,6 +278,7 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $objects[] = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
     $footerLogoObjectNumber = null;
     $headerLogoObjectNumber = null;
+    $siapKerjaLogoObjectNumber = null;
     $nextObjectNumber = 7;
     if ($footerLogoInfo !== null) {
         $footerLogoObjectNumber = $nextObjectNumber;
@@ -248,14 +288,21 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
         $headerLogoObjectNumber = $nextObjectNumber;
         $nextObjectNumber++;
     }
+    if ($siapKerjaLogoInfo !== null) {
+        $siapKerjaLogoObjectNumber = $nextObjectNumber;
+        $nextObjectNumber++;
+    }
     $resources = '/Font << /F1 5 0 R /F2 6 0 R >>';
-    if ($footerLogoObjectNumber !== null || $headerLogoObjectNumber !== null) {
+    if ($footerLogoObjectNumber !== null || $headerLogoObjectNumber !== null || $siapKerjaLogoObjectNumber !== null) {
         $resources .= ' /XObject <<';
         if ($footerLogoObjectNumber !== null) {
             $resources .= ' /Im1 ' . $footerLogoObjectNumber . ' 0 R';
         }
         if ($headerLogoObjectNumber !== null) {
             $resources .= ' /Im2 ' . $headerLogoObjectNumber . ' 0 R';
+        }
+        if ($siapKerjaLogoObjectNumber !== null) {
+            $resources .= ' /Im3 ' . $siapKerjaLogoObjectNumber . ' 0 R';
         }
         $resources .= ' >>';
     }
@@ -270,6 +317,10 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     if ($headerLogoInfo !== null && $headerLogoObjectNumber !== null) {
         $jpegData = $headerLogoInfo['data'];
         $objects[] = $headerLogoObjectNumber . " 0 obj\n<< /Type /XObject /Subtype /Image /Width " . (int)$headerLogoInfo['width'] . " /Height " . (int)$headerLogoInfo['height'] . " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " . strlen($jpegData) . " >>\nstream\n" . $jpegData . "\nendstream\nendobj\n";
+    }
+    if ($siapKerjaLogoInfo !== null && $siapKerjaLogoObjectNumber !== null) {
+        $jpegData = $siapKerjaLogoInfo['data'];
+        $objects[] = $siapKerjaLogoObjectNumber . " 0 obj\n<< /Type /XObject /Subtype /Image /Width " . (int)$siapKerjaLogoInfo['width'] . " /Height " . (int)$siapKerjaLogoInfo['height'] . " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " . strlen($jpegData) . " >>\nstream\n" . $jpegData . "\nendstream\nendobj\n";
     }
 
     $pdf = "%PDF-1.4\n";
