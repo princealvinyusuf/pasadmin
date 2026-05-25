@@ -149,6 +149,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         $unitNama = (string)($units[$form['unit_kode']]['nama'] ?? $form['unit_kode']);
+        $employerKode = (string)($units[$form['unit_kode']]['employer_kode'] ?? 'EMP-001');
+        $employerNama = (string)($units[$form['unit_kode']]['employer_nama'] ?? 'PT Contoh Nusantara');
         $period = kh_proto_derive_period($form['periode_tipe'], $form['periode_anchor']);
         $generatedNoReg = kh_proto_generate_no_reg_bukti($conn, $period['anchor']);
         $statusBelumTerisi = 'Belum Terisi';
@@ -156,9 +158,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $stmtSaveHeader = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_laporan
-                (no_reg_bukti, unit_kode, unit_nama, periode_tipe, periode_anchor, periode_mulai, periode_selesai, status_verifikasi, catatan)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'Terverifikasi', ?)
+                (no_reg_bukti, employer_kode, employer_nama, unit_kode, unit_nama, periode_tipe, periode_anchor, periode_mulai, periode_selesai, status_verifikasi, catatan)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Terverifikasi', ?)
             ON DUPLICATE KEY UPDATE
+                employer_kode = VALUES(employer_kode),
+                employer_nama = VALUES(employer_nama),
                 unit_kode = VALUES(unit_kode),
                 unit_nama = VALUES(unit_nama),
                 periode_tipe = VALUES(periode_tipe),
@@ -169,21 +173,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ");
         $stmtSaveDetail = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_pelaporan (
-                no_reg_bukti, id_lowongan, unit_kode, unit_nama, jabatan, jumlah_kebutuhan, jenis_kelamin, usia_min, usia_max,
+                no_reg_bukti, id_lowongan, employer_kode, employer_nama, unit_kode, unit_nama, jabatan, jumlah_kebutuhan, jenis_kelamin, usia_min, usia_max,
                 pendidikan_minimal, deskripsi_pekerjaan, keterampilan_utama, pengalaman_min_tahun, rentang_gaji, kode_kbji, provinsi, kota, kecamatan, kelurahan,
                 bidang_pekerjaan, industri_sektor, status_pernikahan, tipe_kerja, masa_berlaku_mulai, masa_berlaku_sampai, alamat_url_postingan_loker, catatan, status_verifikasi
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Terverifikasi')
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Terverifikasi')
         ");
         $stmtSaveStatus = $conn->prepare("
-            INSERT INTO karirhub_proto_wllp_status (no_reg_bukti, id_lowongan, jabatan, unit_nama, status_saat_ini, tanggal_lapor, tanggal_terisi)
-            VALUES (?, ?, ?, ?, ?, ?, NULL)
+            INSERT INTO karirhub_proto_wllp_status (no_reg_bukti, id_lowongan, employer_kode, employer_nama, jabatan, unit_nama, status_saat_ini, tanggal_lapor, tanggal_terisi)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
         ");
 
         $conn->begin_transaction();
         try {
             $stmtSaveHeader->bind_param(
-                'ssssssss',
+                'ssssssssss',
                 $generatedNoReg,
+                $employerKode,
+                $employerNama,
                 $form['unit_kode'],
                 $unitNama,
                 $period['tipe'],
@@ -206,9 +212,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $jabatanItem = (string)$item['jabatan'];
 
                 $stmtSaveDetail->bind_param(
-                    str_repeat('s', 27),
+                    str_repeat('s', 29),
                     $generatedNoReg,
                     $generatedIdLowongan,
+                    $employerKode,
+                    $employerNama,
                     $form['unit_kode'],
                     $unitNama,
                     $jabatanItem,
@@ -238,9 +246,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmtSaveDetail->execute();
 
                 $stmtSaveStatus->bind_param(
-                    'ssssss',
+                    'ssssssss',
                     $generatedNoReg,
                     $generatedIdLowongan,
+                    $employerKode,
+                    $employerNama,
                     $jabatanItem,
                     $unitNama,
                     $statusBelumTerisi,

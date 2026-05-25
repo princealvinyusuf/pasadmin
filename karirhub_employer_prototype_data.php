@@ -9,9 +9,35 @@ if (!function_exists('karirhub_proto_dataset')) {
         }
 
         $units = [
-            'UNIT-001' => ['kode' => 'UNIT-001', 'nama' => 'PT Contoh Nusantara - Kantor Pusat', 'kota' => 'Jakarta Selatan', 'provinsi' => 'DKI Jakarta'],
-            'UNIT-002' => ['kode' => 'UNIT-002', 'nama' => 'PT Contoh Nusantara - Cabang Bandung', 'kota' => 'Bandung', 'provinsi' => 'Jawa Barat'],
-            'UNIT-003' => ['kode' => 'UNIT-003', 'nama' => 'PT Contoh Nusantara - Cabang Surabaya', 'kota' => 'Surabaya', 'provinsi' => 'Jawa Timur'],
+            'UNIT-001' => [
+                'kode' => 'UNIT-001',
+                'nama' => 'PT Contoh Nusantara - Kantor Pusat',
+                'kota' => 'Jakarta Selatan',
+                'provinsi' => 'DKI Jakarta',
+                'employer_kode' => 'EMP-001',
+                'employer_nama' => 'PT Contoh Nusantara',
+            ],
+            'UNIT-002' => [
+                'kode' => 'UNIT-002',
+                'nama' => 'PT Maju Digital - Cabang Bandung',
+                'kota' => 'Bandung',
+                'provinsi' => 'Jawa Barat',
+                'employer_kode' => 'EMP-002',
+                'employer_nama' => 'PT Maju Digital',
+            ],
+            'UNIT-003' => [
+                'kode' => 'UNIT-003',
+                'nama' => 'PT Sejahtera Logistik - Cabang Surabaya',
+                'kota' => 'Surabaya',
+                'provinsi' => 'Jawa Timur',
+                'employer_kode' => 'EMP-003',
+                'employer_nama' => 'PT Sejahtera Logistik',
+            ],
+        ];
+        $employers = [
+            'EMP-001' => ['kode' => 'EMP-001', 'nama' => 'PT Contoh Nusantara'],
+            'EMP-002' => ['kode' => 'EMP-002', 'nama' => 'PT Maju Digital'],
+            'EMP-003' => ['kode' => 'EMP-003', 'nama' => 'PT Sejahtera Logistik'],
         ];
 
         $vacancies = [
@@ -329,7 +355,11 @@ if (!function_exists('karirhub_proto_dataset')) {
         foreach ($vacancies as $index => $vacancy) {
             $vacancyId = (string)($vacancy['id_lowongan'] ?? '');
             $vacancyMeta = $vacancyMetaMap[$vacancyId] ?? [];
-            $vacancies[$index] = array_merge($vacancy, $vacancyMetaDefaults, $vacancyMeta);
+            $unitCode = (string)($vacancy['unit_kode'] ?? '');
+            $vacancies[$index] = array_merge($vacancy, [
+                'employer_kode' => (string)($units[$unitCode]['employer_kode'] ?? 'EMP-001'),
+                'employer_nama' => (string)($units[$unitCode]['employer_nama'] ?? 'PT Contoh Nusantara'),
+            ], $vacancyMetaDefaults, $vacancyMeta);
         }
 
         $activities = [
@@ -340,7 +370,7 @@ if (!function_exists('karirhub_proto_dataset')) {
             ['waktu' => '17 Mei 2026 15:00', 'aksi' => 'Monitoring Kepatuhan', 'no_reg_bukti' => 'WLLP-572605-00001180', 'status' => 'Perlu Update'],
         ];
 
-        $dataset = ['units' => $units, 'vacancies' => $vacancies, 'activities' => $activities];
+        $dataset = ['units' => $units, 'employers' => $employers, 'vacancies' => $vacancies, 'activities' => $activities];
         return $dataset;
     }
 }

@@ -81,6 +81,8 @@ if (!function_exists('kh_proto_ensure_multi_tables')) {
         $conn->query("
             CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_laporan (
                 no_reg_bukti VARCHAR(60) PRIMARY KEY,
+                employer_kode VARCHAR(40) NOT NULL DEFAULT 'EMP-001',
+                employer_nama VARCHAR(255) NOT NULL DEFAULT 'PT Contoh Nusantara',
                 unit_kode VARCHAR(40) NOT NULL,
                 unit_nama VARCHAR(255) NOT NULL,
                 periode_tipe ENUM('weekly','monthly') NOT NULL DEFAULT 'monthly',
@@ -98,6 +100,8 @@ if (!function_exists('kh_proto_ensure_multi_tables')) {
             CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_pelaporan (
                 no_reg_bukti VARCHAR(60) NOT NULL,
                 id_lowongan VARCHAR(30) NOT NULL,
+                employer_kode VARCHAR(40) NOT NULL DEFAULT 'EMP-001',
+                employer_nama VARCHAR(255) NOT NULL DEFAULT 'PT Contoh Nusantara',
                 unit_kode VARCHAR(40) NOT NULL,
                 unit_nama VARCHAR(255) NOT NULL,
                 jabatan VARCHAR(200) NOT NULL,
@@ -130,12 +134,18 @@ if (!function_exists('kh_proto_ensure_multi_tables')) {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
 
+        $conn->query("ALTER TABLE karirhub_proto_wllp_laporan ADD COLUMN IF NOT EXISTS employer_kode VARCHAR(40) NOT NULL DEFAULT 'EMP-001' AFTER no_reg_bukti");
+        $conn->query("ALTER TABLE karirhub_proto_wllp_laporan ADD COLUMN IF NOT EXISTS employer_nama VARCHAR(255) NOT NULL DEFAULT 'PT Contoh Nusantara' AFTER employer_kode");
+        $conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS employer_kode VARCHAR(40) NOT NULL DEFAULT 'EMP-001' AFTER id_lowongan");
+        $conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS employer_nama VARCHAR(255) NOT NULL DEFAULT 'PT Contoh Nusantara' AFTER employer_kode");
         $conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS tipe_kerja VARCHAR(40) NOT NULL DEFAULT '' AFTER status_pernikahan");
 
         $conn->query("
             CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_status (
                 no_reg_bukti VARCHAR(60) NOT NULL,
                 id_lowongan VARCHAR(30) NOT NULL,
+                employer_kode VARCHAR(40) NOT NULL DEFAULT 'EMP-001',
+                employer_nama VARCHAR(255) NOT NULL DEFAULT 'PT Contoh Nusantara',
                 jabatan VARCHAR(200) NOT NULL,
                 unit_nama VARCHAR(255) NOT NULL,
                 status_saat_ini VARCHAR(50) NOT NULL,
@@ -145,6 +155,36 @@ if (!function_exists('kh_proto_ensure_multi_tables')) {
                 PRIMARY KEY (no_reg_bukti, id_lowongan)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
+
+        $conn->query("ALTER TABLE karirhub_proto_wllp_status ADD COLUMN IF NOT EXISTS employer_kode VARCHAR(40) NOT NULL DEFAULT 'EMP-001' AFTER id_lowongan");
+        $conn->query("ALTER TABLE karirhub_proto_wllp_status ADD COLUMN IF NOT EXISTS employer_nama VARCHAR(255) NOT NULL DEFAULT 'PT Contoh Nusantara' AFTER employer_kode");
+
+        $unitEmployerMap = [];
+        $resUnitMap = $conn->query("SELECT unit_kode, employer_kode, employer_nama FROM karirhub_proto_wllp_pelaporan");
+        if ($resUnitMap) {
+            while ($uRow = $resUnitMap->fetch_assoc()) {
+                $code = (string)($uRow['unit_kode'] ?? '');
+                if ($code === '') {
+                    continue;
+                }
+                $unitEmployerMap[$code] = [
+                    'kode' => (string)($uRow['employer_kode'] ?? 'EMP-001'),
+                    'nama' => (string)($uRow['employer_nama'] ?? 'PT Contoh Nusantara'),
+                ];
+            }
+        }
+        if (!empty($unitEmployerMap)) {
+            foreach ($unitEmployerMap as $unitCode => $emp) {
+                $empKodeEsc = $conn->real_escape_string($emp['kode']);
+                $empNamaEsc = $conn->real_escape_string($emp['nama']);
+                $unitEsc = $conn->real_escape_string($unitCode);
+                $conn->query("UPDATE karirhub_proto_wllp_laporan SET employer_kode='{$empKodeEsc}', employer_nama='{$empNamaEsc}' WHERE unit_kode='{$unitEsc}' AND (employer_kode='' OR employer_nama='')");
+                $conn->query("UPDATE karirhub_proto_wllp_status SET employer_kode='{$empKodeEsc}', employer_nama='{$empNamaEsc}' WHERE no_reg_bukti IN (SELECT no_reg_bukti FROM karirhub_proto_wllp_pelaporan WHERE unit_kode='{$unitEsc}') AND (employer_kode='' OR employer_nama='')");
+            }
+        }
+        $conn->query("UPDATE karirhub_proto_wllp_laporan SET employer_kode='EMP-001', employer_nama='PT Contoh Nusantara' WHERE employer_kode='' OR employer_nama=''");
+        $conn->query("UPDATE karirhub_proto_wllp_pelaporan SET employer_kode='EMP-001', employer_nama='PT Contoh Nusantara' WHERE employer_kode='' OR employer_nama=''");
+        $conn->query("UPDATE karirhub_proto_wllp_status SET employer_kode='EMP-001', employer_nama='PT Contoh Nusantara' WHERE employer_kode='' OR employer_nama=''");
 
         $conn->query("
             CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_penempatan (
@@ -185,9 +225,11 @@ if (!function_exists('kh_proto_seed_multi_from_dataset')) {
 
         $stmtHeader = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_laporan
-            (no_reg_bukti, unit_kode, unit_nama, periode_tipe, periode_anchor, periode_mulai, periode_selesai, status_verifikasi, catatan)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (no_reg_bukti, employer_kode, employer_nama, unit_kode, unit_nama, periode_tipe, periode_anchor, periode_mulai, periode_selesai, status_verifikasi, catatan)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
+                employer_kode = VALUES(employer_kode),
+                employer_nama = VALUES(employer_nama),
                 unit_kode = VALUES(unit_kode),
                 unit_nama = VALUES(unit_nama),
                 periode_tipe = VALUES(periode_tipe),
@@ -199,16 +241,16 @@ if (!function_exists('kh_proto_seed_multi_from_dataset')) {
         ");
         $stmtItem = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_pelaporan
-            (no_reg_bukti, id_lowongan, unit_kode, unit_nama, jabatan, jumlah_kebutuhan, jenis_kelamin, usia_min, usia_max, pendidikan_minimal,
+            (no_reg_bukti, id_lowongan, employer_kode, employer_nama, unit_kode, unit_nama, jabatan, jumlah_kebutuhan, jenis_kelamin, usia_min, usia_max, pendidikan_minimal,
              deskripsi_pekerjaan, keterampilan_utama, pengalaman_min_tahun, rentang_gaji, kode_kbji, provinsi, kota, kecamatan, kelurahan,
              bidang_pekerjaan, industri_sektor, status_pernikahan, tipe_kerja, masa_berlaku_mulai, masa_berlaku_sampai, alamat_url_postingan_loker,
              catatan, status_verifikasi)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmtStatus = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_status
-            (no_reg_bukti, id_lowongan, jabatan, unit_nama, status_saat_ini, tanggal_lapor, tanggal_terisi)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (no_reg_bukti, id_lowongan, employer_kode, employer_nama, jabatan, unit_nama, status_saat_ini, tanggal_lapor, tanggal_terisi)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         foreach ($vacancies as $row) {
@@ -219,14 +261,18 @@ if (!function_exists('kh_proto_seed_multi_from_dataset')) {
             }
             $unitKode = (string)($row['unit_kode'] ?? '');
             $unitNama = (string)($units[$unitKode]['nama'] ?? $unitKode);
+            $employerKode = (string)($row['employer_kode'] ?? ($units[$unitKode]['employer_kode'] ?? 'EMP-001'));
+            $employerNama = (string)($row['employer_nama'] ?? ($units[$unitKode]['employer_nama'] ?? 'PT Contoh Nusantara'));
             $tanggalLapor = (string)($row['tanggal_lapor'] ?? date('Y-m-d'));
             $period = kh_proto_derive_period('monthly', $tanggalLapor);
 
             $statusVerifikasi = (string)($row['status_verifikasi'] ?? 'Terverifikasi');
             $catatan = (string)($row['catatan'] ?? '');
             $stmtHeader->bind_param(
-                'sssssssss',
+                'sssssssssss',
                 $noReg,
+                $employerKode,
+                $employerNama,
                 $unitKode,
                 $unitNama,
                 $period['tipe'],
@@ -263,8 +309,8 @@ if (!function_exists('kh_proto_seed_multi_from_dataset')) {
             $catatanItem = (string)($row['catatan'] ?? '');
 
             $stmtItem->bind_param(
-                str_repeat('s', 28),
-                $noReg, $idLowongan, $unitKode, $unitNama, $jabatan, $jumlahKebutuhan, $jenisKelamin, $usiaMin, $usiaMax, $pendidikanMinimal,
+                str_repeat('s', 30),
+                $noReg, $idLowongan, $employerKode, $employerNama, $unitKode, $unitNama, $jabatan, $jumlahKebutuhan, $jenisKelamin, $usiaMin, $usiaMax, $pendidikanMinimal,
                 $deskripsiPekerjaan, $keterampilanUtama, $pengalamanMin, $rentangGaji, $kodeKbji, $provinsi, $kota, $kecamatan, $kelurahan,
                 $bidangPekerjaan, $industriSektor, $statusPernikahan, $tipeKerja, $masaMulai, $masaSampai, $urlPosting, $catatanItem, $statusVerifikasi
             );
@@ -275,7 +321,7 @@ if (!function_exists('kh_proto_seed_multi_from_dataset')) {
             if ($tanggalTerisi === '') {
                 $tanggalTerisi = null;
             }
-            $stmtStatus->bind_param('sssssss', $noReg, $idLowongan, $jabatan, $unitNama, $statusSaatIni, $tanggalLapor, $tanggalTerisi);
+            $stmtStatus->bind_param('sssssssss', $noReg, $idLowongan, $employerKode, $employerNama, $jabatan, $unitNama, $statusSaatIni, $tanggalLapor, $tanggalTerisi);
             $stmtStatus->execute();
         }
 
