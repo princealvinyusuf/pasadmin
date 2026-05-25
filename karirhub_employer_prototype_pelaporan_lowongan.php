@@ -556,9 +556,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Reset Form
                 </a>
             </div>
-            <div class="mt-3 p-2 border rounded bg-light small text-muted">
-                Syarat dan Ketentuan akan ditampilkan saat Anda menekan tombol submit.
-            </div>
         </div>
     </form>
     </main>
