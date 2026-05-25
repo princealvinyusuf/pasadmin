@@ -114,6 +114,7 @@ if (!function_exists('kh_proto_render_hero')) {
                                 <ul class="dropdown-menu kh-wllp-menu">
                                     <li><a class="dropdown-item" href="karirhub_employer_prototype_dashboard_wllp"><i class="bi bi-speedometer2"></i>Dashboard WLLP</a></li>
                                     <li><a class="dropdown-item" href="karirhub_employer_prototype_dashboard_wllp_admin"><i class="bi bi-bar-chart-line"></i>Dashboard WLLP Admin</a></li>
+                                    <li><a class="dropdown-item" href="karirhub_employer_prototype_job_posted_karirhub"><i class="bi bi-briefcase"></i>Job Posted Karirhub</a></li>
                                     <li><a class="dropdown-item" href="karirhub_employer_prototype_bukti_lapor"><i class="bi bi-file-earmark-check"></i>Bukti Lapor</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="karirhub_employer_prototype_pelaporan_lowongan"><i class="bi bi-journal-plus"></i>Pelaporan Lowongan</a></li>
@@ -174,6 +175,7 @@ if (!function_exists('kh_proto_render_sidebar')) {
         $menu = [
             'dashboard_wllp' => ['icon' => 'bi-speedometer2', 'label' => 'Dashboard WLLP', 'href' => 'karirhub_employer_prototype_dashboard_wllp'],
             'dashboard_wllp_admin' => ['icon' => 'bi-bar-chart-line', 'label' => 'Dashboard WLLP Admin', 'href' => 'karirhub_employer_prototype_dashboard_wllp_admin'],
+            'wllp_job_posted' => ['icon' => 'bi-briefcase', 'label' => 'Job Posted Karirhub', 'href' => 'karirhub_employer_prototype_job_posted_karirhub'],
             'wllp_bukti_lapor' => ['icon' => 'bi-file-earmark-check', 'label' => 'Bukti Lapor', 'href' => 'karirhub_employer_prototype_bukti_lapor'],
             'wllp_pelaporan' => ['icon' => 'bi-journal-plus', 'label' => 'Pelaporan Lowongan', 'href' => 'karirhub_employer_prototype_pelaporan_lowongan'],
             'wllp_status_keterisian' => ['icon' => 'bi-list-task', 'label' => 'Status Keterisian', 'href' => 'karirhub_employer_prototype_status_keterisian'],
@@ -212,6 +214,7 @@ if (!function_exists('kh_proto_render_sidebar')) {
                             <ul class="kh-side-submenu">
                                 <li><a href="<?php echo kh_proto_h($menu['dashboard_wllp']['href']); ?>"><i class="bi bi-speedometer2"></i>Dashboard WLLP</a></li>
                                 <li><a href="<?php echo kh_proto_h($menu['dashboard_wllp_admin']['href']); ?>"><i class="bi bi-bar-chart-line"></i>Dashboard WLLP Admin</a></li>
+                                <li><a href="<?php echo kh_proto_h($menu['wllp_job_posted']['href']); ?>"><i class="bi bi-briefcase"></i>Job Posted Karirhub</a></li>
                                 <li><a href="<?php echo kh_proto_h($menu['wllp_bukti_lapor']['href']); ?>"><i class="bi bi-file-earmark-check"></i>Bukti Lapor</a></li>
                                 <li class="kh-side-divider"></li>
                                 <li><a href="<?php echo kh_proto_h($menu['wllp_pelaporan']['href']); ?>"><i class="bi bi-journal-plus"></i>Pelaporan Lowongan</a></li>
