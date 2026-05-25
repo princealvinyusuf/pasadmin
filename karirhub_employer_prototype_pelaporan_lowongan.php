@@ -382,6 +382,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="hidden" name="periode_anchor" id="wizardPeriodeAnchor" value="<?php echo h($form['periode_anchor']); ?>">
             <input type="hidden" name="jumlah_id_lowongan" id="wizardJumlahLowongan" value="<?php echo h((string)$wizardCount); ?>">
             <input type="hidden" name="daftar_jabatan" id="wizardDaftarJabatan" value="<?php echo h($form['daftar_jabatan']); ?>">
+            <input type="hidden" name="setuju_syarat" id="setujuSyaratValue" value="<?php echo $termsAgreed ? '1' : '0'; ?>">
 
             <div class="alert alert-primary py-2 d-flex flex-wrap justify-content-between align-items-center gap-2" id="wizardSummaryBar">
                 <div class="small">
@@ -555,16 +556,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Reset Form
                 </a>
             </div>
-            <div class="mt-3 p-2 border rounded bg-light">
-                <div class="form-check mb-1">
-                    <input class="form-check-input" type="checkbox" value="1" id="setujuSyaratCheck" name="setuju_syarat"<?php echo $termsAgreed ? ' checked' : ''; ?>>
-                    <label class="form-check-label small" for="setujuSyaratCheck">
-                        Saya menyetujui syarat dan ketentuan yang berlaku dan bersedia menerima konsekuensi hukum yang berlaku apabila di kemudian hari ditemukan data yang tidak benar, tidak valid, atau menyesatkan.
-                    </label>
-                </div>
-                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" data-bs-toggle="modal" data-bs-target="#syaratKetentuanModal">
-                    <i class="bi bi-file-text me-1"></i>Baca Syarat dan Ketentuan
-                </button>
+            <div class="mt-3 p-2 border rounded bg-light small text-muted">
+                Syarat dan Ketentuan akan ditampilkan saat Anda menekan tombol submit.
             </div>
         </div>
     </form>
@@ -624,8 +617,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p>Syarat dan Ketentuan ini berlaku sejak pemberi kerja menggunakan layanan Wajib Lapor Lowongan Pekerjaan.</p>
                 <p>Dengan menggunakan layanan ini, pemberi kerja dianggap telah membaca, memahami, menyetujui, dan bersedia mematuhi seluruh ketentuan yang berlaku.</p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">Saya Mengerti</button>
+            <div class="modal-footer d-block">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" value="1" id="setujuSyaratCheckModal"<?php echo $termsAgreed ? ' checked' : ''; ?>>
+                    <label class="form-check-label small" for="setujuSyaratCheckModal">
+                        Saya menyetujui syarat dan ketentuan yang berlaku dan bersedia menerima konsekuensi hukum yang berlaku apabila di kemudian hari ditemukan data yang tidak benar, tidak valid, atau menyesatkan.
+                    </label>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnSetujuDanSubmit">Setuju &amp; Kirim Laporan</button>
+                </div>
             </div>
         </div>
     </div>
@@ -761,10 +763,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const wizardValidationSummary = document.getElementById('wizardValidationSummary');
         const btnEditWizardFlow = document.getElementById('btnEditWizardFlow');
         const submitBtn = document.getElementById('btnSubmitPelaporan');
-        const setujuSyaratCheck = document.getElementById('setujuSyaratCheck');
+        const setujuSyaratValue = document.getElementById('setujuSyaratValue');
+        const setujuSyaratCheckModal = document.getElementById('setujuSyaratCheckModal');
+        const btnSetujuDanSubmit = document.getElementById('btnSetujuDanSubmit');
         const tabsNav = document.getElementById('lowonganTabsNav');
         const tabsContent = document.getElementById('lowonganTabsContent');
         const pelaporanForm = document.querySelector('form[method="POST"]');
+        let bypassTermsGuard = false;
         let wizardStep = 1;
 
         function defaultValueByField(field) {
@@ -897,8 +902,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     : 'Tab lengkap: ' + complete + '/' + panes.length;
             }
             if (submitBtn) {
-                const termsOk = !!(setujuSyaratCheck && setujuSyaratCheck.checked);
-                submitBtn.disabled = (complete !== panes.length) || !termsOk;
+                submitBtn.disabled = complete !== panes.length;
             }
             if (wizardDaftarJabatan) {
                 const jabatanValues = Array.from(document.querySelectorAll('.wizard-lowongan-field[data-field="jabatan"]'))
@@ -914,12 +918,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     wizardValidationSummary.style.display = 'none';
                     wizardValidationSummary.innerHTML = '';
                 }
-            }
-            if (showDetails && setujuSyaratCheck && !setujuSyaratCheck.checked && wizardValidationSummary) {
-                wizardValidationSummary.style.display = '';
-                const current = wizardValidationSummary.innerHTML;
-                const termMsg = 'Anda wajib menyetujui Syarat dan Ketentuan terlebih dahulu.';
-                wizardValidationSummary.innerHTML = current !== '' ? current + '<br>' + termMsg : '<strong>Perbaiki data tab:</strong><br>' + termMsg;
             }
             if (showDetails && firstInvalidField) {
                 const tabIndex = parseInt(firstInvalidField.getAttribute('data-tab-index') || '0', 10);
@@ -939,9 +937,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
         document.addEventListener('change', function (evt) {
             if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-lowongan-field')) {
-                validateTabs(false);
-            }
-            if (evt.target && evt.target.id === 'setujuSyaratCheck') {
                 validateTabs(false);
             }
         });
@@ -1010,21 +1005,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        if (syaratKetentuanModalEl && typeof bootstrap !== 'undefined' && setujuSyaratCheck && !setujuSyaratCheck.checked) {
-            const termsShownKey = 'khProtoTermsShown';
-            if (sessionStorage.getItem(termsShownKey) !== '1') {
-                const termsModal = new bootstrap.Modal(syaratKetentuanModalEl);
-                termsModal.show();
-                sessionStorage.setItem(termsShownKey, '1');
-            }
-        }
-
         renderLowonganTabs(parseInt((wizardJumlahLowongan && wizardJumlahLowongan.value) || '1', 10) || 1, collectLowonganValues());
         applyWizardSummary();
         if (pelaporanForm) {
             pelaporanForm.addEventListener('submit', function (evt) {
                 if (!validateTabs(true)) {
                     evt.preventDefault();
+                    return;
+                }
+                if (!bypassTermsGuard) {
+                    evt.preventDefault();
+                    if (wizardValidationSummary) {
+                        wizardValidationSummary.style.display = 'none';
+                        wizardValidationSummary.innerHTML = '';
+                    }
+                    if (syaratKetentuanModalEl && typeof bootstrap !== 'undefined') {
+                        const termsModal = bootstrap.Modal.getOrCreateInstance(syaratKetentuanModalEl);
+                        termsModal.show();
+                    }
+                }
+            });
+        }
+        if (btnSetujuDanSubmit) {
+            btnSetujuDanSubmit.addEventListener('click', function () {
+                if (!(setujuSyaratCheckModal && setujuSyaratCheckModal.checked)) {
+                    if (wizardValidationSummary) {
+                        wizardValidationSummary.style.display = '';
+                        wizardValidationSummary.innerHTML = '<strong>Validasi:</strong><br>Anda wajib mencentang persetujuan Syarat dan Ketentuan.';
+                    }
+                    return;
+                }
+                if (setujuSyaratValue) {
+                    setujuSyaratValue.value = '1';
+                }
+                if (syaratKetentuanModalEl && typeof bootstrap !== 'undefined') {
+                    const termsModal = bootstrap.Modal.getOrCreateInstance(syaratKetentuanModalEl);
+                    termsModal.hide();
+                }
+                bypassTermsGuard = true;
+                if (pelaporanForm) {
+                    pelaporanForm.requestSubmit();
                 }
             });
         }
