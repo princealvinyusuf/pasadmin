@@ -153,7 +153,8 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     }
     $streamParts[] = '1 1 1 rg';
     $streamParts[] = 'BT /F2 13 Tf ' . sprintf('%.2F', $headerTextX) . ' 817 Td (' . pdf_escape('KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA') . ') Tj ET';
-    $streamParts[] = 'BT /F1 7 Tf ' . sprintf('%.2F', $headerTextX) . ' 804 Td (' . pdf_escape('Jl. Gatot Subroto No.Kav 51, RT.5/RW.4, Kuningan Tim., Kecamatan Setiabudi, Kota Jakarta Selatan, Daerah Khusus Ibukota Jakarta 12950') . ') Tj ET';
+    $streamParts[] = 'BT /F1 7 Tf ' . sprintf('%.2F', $headerTextX) . ' 805 Td (' . pdf_escape('Jl. Gatot Subroto No.Kav 51, RT.5/RW.4, Kuningan Tim., Kecamatan Setiabudi,') . ') Tj ET';
+    $streamParts[] = 'BT /F1 7 Tf ' . sprintf('%.2F', $headerTextX) . ' 796 Td (' . pdf_escape('Kota Jakarta Selatan, Daerah Khusus Ibukota Jakarta 12950') . ') Tj ET';
 
     // Main title below the blue header band.
     $streamParts[] = '0.08 0.2 0.4 rg';
