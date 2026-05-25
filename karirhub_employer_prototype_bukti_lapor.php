@@ -153,10 +153,13 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     }
     $streamParts[] = '1 1 1 rg';
     $streamParts[] = 'BT /F2 13 Tf ' . sprintf('%.2F', $headerTextX) . ' 817 Td (' . pdf_escape('KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA') . ') Tj ET';
-    $streamParts[] = 'BT /F2 11 Tf ' . sprintf('%.2F', $headerTextX) . ' 788 Td (' . pdf_escape('BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)') . ') Tj ET';
+
+    // Main title below the blue header band.
+    $streamParts[] = '0.08 0.2 0.4 rg';
+    $streamParts[] = 'BT /F2 12 Tf 148 760 Td (' . pdf_escape('BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)') . ') Tj ET';
 
     // Section title.
-    $sectionTop = 746;
+    $sectionTop = 736;
     $streamParts[] = '0.95 0.97 1 rg';
     $streamParts[] = $left . ' ' . $sectionTop . ' ' . $width . ' 24 re f';
     $streamParts[] = '0.77 0.82 0.9 RG';
