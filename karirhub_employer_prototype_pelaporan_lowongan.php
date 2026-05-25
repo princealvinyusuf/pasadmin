@@ -278,6 +278,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <?php kh_proto_render_styles(); ?>
+    <style>
+        #wizardSummaryBar {
+            border: 1px solid #cfe2ff;
+            border-left: 4px solid #0d6efd;
+            background: #f8fbff;
+        }
+        #wizardSummaryBar .wizard-meta-pill {
+            display: inline-block;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            background: #e7f1ff;
+            color: #0a58ca;
+            font-weight: 600;
+            margin-right: 0.35rem;
+        }
+        #lowonganTabsNav .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-weight: 600;
+        }
+        #lowonganTabsNav .nav-link.active {
+            background: #0d6efd;
+            border-color: #0d6efd;
+            color: #fff;
+        }
+        .wizard-tab-badge {
+            min-width: 88px;
+        }
+        #wizardValidationSummary {
+            border-left: 4px solid #ffc107;
+        }
+    </style>
 </head>
 <body class="kh-proto-page" data-wizard-force-open="<?php echo $_SERVER['REQUEST_METHOD'] === 'POST' ? '0' : '1'; ?>">
 <?php include 'navbar.php'; ?>
@@ -338,9 +371,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="alert alert-primary py-2 d-flex flex-wrap justify-content-between align-items-center gap-2" id="wizardSummaryBar">
                 <div class="small">
-                    <strong>Periode:</strong> <span id="wizardSummaryPeriode"><?php echo h(strtoupper($form['periode_tipe']) . ' - ' . $form['periode_anchor']); ?></span>
-                    &nbsp;|&nbsp;
-                    <strong>Jumlah Lowongan:</strong> <span id="wizardSummaryJumlah"><?php echo h((string)$wizardCount); ?></span>
+                    <span class="wizard-meta-pill"><i class="bi bi-123 me-1"></i>Step 3/3</span>
+                    <span class="wizard-meta-pill"><i class="bi bi-calendar-week me-1"></i><span id="wizardSummaryPeriode"><?php echo h(strtoupper($form['periode_tipe']) . ' - ' . $form['periode_anchor']); ?></span></span>
+                    <span class="wizard-meta-pill"><i class="bi bi-layers me-1"></i><span id="wizardSummaryJumlah"><?php echo h((string)$wizardCount); ?></span> Lowongan</span>
                 </div>
                 <button type="button" class="btn btn-outline-primary btn-sm" id="btnEditWizardFlow">
                     <i class="bi bi-pencil-square me-1"></i>Edit
@@ -524,6 +557,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="modal-body">
                 <div class="small text-muted mb-2" id="wizardStepIndicator">Step 1/2</div>
                 <div id="wizardStep1">
+                    <div class="small text-muted mb-2">Lengkapi dasar periode pelaporan terlebih dahulu.</div>
                     <label class="form-label mb-1">Pilih periode pelaporan lowongan kerja yang ingin anda laporkan</label>
                     <select class="form-select form-select-sm mb-2" id="wizardModalPeriodeTipe">
                         <option value="weekly">Weekly</option>
@@ -533,6 +567,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="date" class="form-control form-control-sm" id="wizardModalPeriodeAnchor">
                 </div>
                 <div id="wizardStep2" style="display:none;">
+                    <div class="small text-muted mb-2">Jumlah ini akan menentukan jumlah tab form lowongan.</div>
                     <label class="form-label mb-1">Berapa banyak lowongan kerja yang ingin anda Buka?</label>
                     <input type="number" min="1" max="50" class="form-control form-control-sm" id="wizardModalJumlahLowongan">
                 </div>
@@ -772,7 +807,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
 
             if (wizardTabProgressText) {
-                wizardTabProgressText.textContent = 'Tab lengkap: ' + complete + '/' + panes.length;
+                wizardTabProgressText.textContent = complete === panes.length
+                    ? 'Semua tab lengkap. Siap submit.'
+                    : 'Tab lengkap: ' + complete + '/' + panes.length;
             }
             if (submitBtn) {
                 submitBtn.disabled = complete !== panes.length;
@@ -818,7 +855,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!wizardSummaryPeriode || !wizardSummaryJumlah) return;
             const tipe = (wizardPeriodeTipe && wizardPeriodeTipe.value ? wizardPeriodeTipe.value : 'monthly').toUpperCase();
             const anchor = wizardPeriodeAnchor && wizardPeriodeAnchor.value ? wizardPeriodeAnchor.value : '';
-            wizardSummaryPeriode.textContent = tipe + ' - ' + anchor;
+            wizardSummaryPeriode.textContent = 'Periode ' + tipe + ' - ' + anchor;
             wizardSummaryJumlah.textContent = wizardJumlahLowongan && wizardJumlahLowongan.value ? wizardJumlahLowongan.value : '1';
         }
 
@@ -830,7 +867,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (wizardPrevBtn) wizardPrevBtn.style.display = isStep1 ? 'none' : '';
             if (wizardNextBtn) wizardNextBtn.style.display = isStep1 ? '' : 'none';
             if (wizardFinishBtn) wizardFinishBtn.style.display = isStep1 ? 'none' : '';
-            if (wizardStepIndicator) wizardStepIndicator.textContent = isStep1 ? 'Step 1/2' : 'Step 2/2';
+            if (wizardStepIndicator) wizardStepIndicator.textContent = isStep1 ? 'Step 1/3' : 'Step 2/3';
         }
 
         if (wizardModalEl && typeof bootstrap !== 'undefined') {
