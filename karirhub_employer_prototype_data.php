@@ -357,16 +357,22 @@ if (!function_exists('karirhub_proto_dashboard_metrics')) {
         ];
 
         foreach ($vacancies as $row) {
-            if ($row['status_lowongan'] === 'Aktif') {
+            $statusLowongan = (string)($row['status_lowongan'] ?? '');
+            $statusKeterisian = (string)($row['status_keterisian'] ?? '');
+            $statusVerifikasi = (string)($row['status_verifikasi'] ?? '');
+            $tanggalLapor = (string)($row['tanggal_lapor'] ?? '');
+
+            if ($statusLowongan === 'Aktif') {
                 $metrics['lowongan_aktif']++;
             }
-            if ($row['status_keterisian'] === 'Terisi') {
+            if ($statusKeterisian === 'Terisi') {
                 $metrics['sudah_terisi']++;
             }
-            if ($row['status_keterisian'] === 'Belum Update' || $row['status_verifikasi'] === 'Perlu Update') {
+            if ($statusKeterisian === 'Belum Update' || $statusVerifikasi === 'Perlu Update') {
                 $metrics['perlu_update']++;
             }
-            if ($metrics['bukti_terbaru'] === null || strcmp($row['tanggal_lapor'], $metrics['bukti_terbaru']['tanggal_lapor']) > 0) {
+            $latestTanggal = (string)($metrics['bukti_terbaru']['tanggal_lapor'] ?? '');
+            if ($metrics['bukti_terbaru'] === null || strcmp($tanggalLapor, $latestTanggal) > 0) {
                 $metrics['bukti_terbaru'] = $row;
             }
         }
