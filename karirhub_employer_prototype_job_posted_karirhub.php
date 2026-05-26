@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
             FROM karirhub_proto_wllp_laporan
             WHERE employer_kode = ?
               AND periode_tipe = ?
-              AND periode_anchor = ?
+              AND ? BETWEEN periode_mulai AND periode_selesai
             ORDER BY created_at DESC
             LIMIT 1
         ");
