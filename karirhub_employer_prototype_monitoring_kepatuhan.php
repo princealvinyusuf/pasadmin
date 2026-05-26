@@ -4,7 +4,7 @@ require_once __DIR__ . '/access_helper.php';
 require_once __DIR__ . '/karirhub_employer_prototype_data.php';
 require_once __DIR__ . '/karirhub_employer_prototype_ui.php';
 
-if (!(current_user_can('karirhub_employer_prototype_view') || current_user_can('manage_settings'))) {
+if (!kh_proto_can_access('karirhub_employer_prototype_monitoring_kepatuhan_view')) {
     http_response_code(403);
     echo 'Forbidden';
     exit;

@@ -6,7 +6,7 @@ require_once __DIR__ . '/karirhub_employer_prototype_storage.php';
 require_once __DIR__ . '/karirhub_employer_prototype_ui.php';
 require_once __DIR__ . '/db.php';
 
-if (!(current_user_can('karirhub_employer_prototype_view') || current_user_can('manage_settings'))) {
+if (!kh_proto_can_access('karirhub_employer_prototype_dashboard_wllp_admin_view')) {
     http_response_code(403);
     echo 'Forbidden';
     exit;

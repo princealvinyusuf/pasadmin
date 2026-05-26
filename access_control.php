@@ -60,6 +60,62 @@ register_menu_permission(
 	'Layanan'
 );
 
+// Karirhub Employer Prototype permissions
+register_menu_permission(
+	$conn,
+	'karirhub_employer_prototype_view',
+	'Karirhub Employer Prototype: Global Access',
+	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
+	'karirhub_employer_prototype_dashboard_wllp_view',
+	'Karirhub Employer Prototype: View Dashboard WLLP',
+	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
+	'karirhub_employer_prototype_dashboard_wllp_admin_view',
+	'Karirhub Employer Prototype: View Dashboard WLLP Admin',
+	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
+	'karirhub_employer_prototype_job_posted_view',
+	'Karirhub Employer Prototype: View Job Posted Karirhub',
+	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
+	'karirhub_employer_prototype_bukti_lapor_view',
+	'Karirhub Employer Prototype: View Bukti Lapor',
+	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
+	'karirhub_employer_prototype_pelaporan_lowongan_view',
+	'Karirhub Employer Prototype: View Pelaporan Lowongan',
+	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
+	'karirhub_employer_prototype_status_keterisian_view',
+	'Karirhub Employer Prototype: View Status Keterisian',
+	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
+	'karirhub_employer_prototype_monitoring_kepatuhan_view',
+	'Karirhub Employer Prototype: View Monitoring Kepatuhan',
+	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
+	'karirhub_employer_prototype_no_reg_bukti_view',
+	'Karirhub Employer Prototype: View No. Reg Bukti',
+	'Karirhub Employer Prototype'
+);
+
 // Super admin guard for destructive actions
 if (isset($_POST['action']) && $_POST['action'] === 'delete_user' && !current_user_is_super_admin()) {
 	http_response_code(403);
