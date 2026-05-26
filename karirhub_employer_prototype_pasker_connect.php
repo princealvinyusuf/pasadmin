@@ -239,6 +239,7 @@ req-20260526-0001
                             <div class="k">Query wajib</div><div class="v"><span class="pc-mono">employer_id</span> (integer &gt; 0)</div>
                             <div class="k">Response utama</div><div class="v"><span class="pc-mono">total_reports, total_items, terisi_items, belum_terisi_items</span></div>
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">422 VALIDATION_FAILED</span> jika employer_id tidak valid.</div>
+                            <div class="k">Narrative reference</div><div class="v">Endpoint ini biasanya menjadi request pertama saat halaman dashboard dibuka. Tujuannya memberi konteks cepat terkait kesehatan pelaporan employer sebelum user melakukan aksi lanjutan. Integrator disarankan menyimpan snapshot metrik ini untuk perbandingan antar periode dan menampilkan warning jika metrik belum terisi terlalu tinggi.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">{
   "success": true,
@@ -262,6 +263,7 @@ req-20260526-0001
                             <div class="k">Query opsional</div><div class="v"><span class="pc-mono">limit, offset</span></div>
                             <div class="k">Response utama</div><div class="v"><span class="pc-mono">data[]</span> dan <span class="pc-mono">pagination</span>.</div>
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">422 VALIDATION_FAILED</span>.</div>
+                            <div class="k">Narrative reference</div><div class="v">Gunakan endpoint ini untuk halaman list dan histori bukti lapor. Praktik terbaik adalah mengandalkan pagination dari API, bukan memuat semua data sekaligus. Untuk UX yang baik, tampilkan total hasil, tombol next/prev, dan simpan posisi <span class="pc-mono">offset</span> agar pengguna bisa kembali ke titik daftar sebelumnya.</div>
                         </div>
                     </div>
 
@@ -274,6 +276,7 @@ req-20260526-0001
                             <div class="k">Purpose</div><div class="v">Membuat report WLLP baru atau reuse report pada periode yang sama untuk employer terkait.</div>
                             <div class="k">Required body</div><div class="v"><span class="pc-mono">employer_id, unit_id, period_type, period_anchor, terms, items[]</span></div>
                             <div class="k">Validation highlights</div><div class="v"><span class="pc-mono">headcount_needed > 0</span>, <span class="pc-mono">period_type weekly/monthly</span>, <span class="pc-mono">terms.agreed = true</span></div>
+                            <div class="k">Narrative reference</div><div class="v">Ini endpoint tulis paling penting pada alur WLLP. Jika request valid, sistem akan membuat nomor bukti dan id lowongan secara otomatis. Saat validasi gagal, object <span class="pc-mono">fields</span> perlu langsung dipetakan ke UI form agar pengguna dapat memperbaiki input tanpa menebak field mana yang salah.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">curl --request POST "<?php echo h($sandboxAbsolute); ?>/wllp/reports" \
   --header "Client-Id: demo-client" \
@@ -322,6 +325,7 @@ req-20260526-0001
                             <div class="k">Input</div><div class="v">JSON rows atau metadata upload file <span class="pc-mono">.xlsx</span>.</div>
                             <div class="k">Response utama</div><div class="v"><span class="pc-mono">batch_id, total_rows, valid_rows, invalid_rows, errors[]</span>.</div>
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">422 BULK_TEMPLATE_INVALID</span>, <span class="pc-mono">422 VALIDATION_FAILED</span>.</div>
+                            <div class="k">Narrative reference</div><div class="v">Tahap ini berfungsi sebagai quality gate. Lakukan validate setiap kali file/rows berubah, lalu tampilkan daftar error per baris ke pengguna. Hindari langsung memanggil commit tanpa validasi karena akan menyulitkan tracing jika ada data campuran valid-invalid di batch besar.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">{
   "batch_id": "BULK-20260526153012-431",
@@ -342,6 +346,7 @@ req-20260526-0001
                             <div class="k">Purpose</div><div class="v">Memproses batch valid menjadi report dan item WLLP.</div>
                             <div class="k">Body wajib</div><div class="v"><span class="pc-mono">batch_id, terms.agreed, terms.version</span></div>
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 BATCH_NOT_FOUND</span>, <span class="pc-mono">409 BATCH_ALREADY_COMMITTED</span>, <span class="pc-mono">422 TERMS_REQUIRED</span>.</div>
+                            <div class="k">Narrative reference</div><div class="v">Endpoint commit harus dianggap non-repeatable untuk batch yang sama. Jika muncul <span class="pc-mono">BATCH_ALREADY_COMMITTED</span>, jangan retry request identik; lakukan proses validate ulang dan hasilkan batch baru. Integrator juga sebaiknya mencatat batch_id final ke log audit internal.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">{
   "batch_id": "BULK-20260526153012-431",
@@ -359,6 +364,7 @@ req-20260526-0001
                             <div class="k">Path wajib</div><div class="v"><span class="pc-mono">id</span> (report id numerik)</div>
                             <div class="k">Response utama</div><div class="v"><span class="pc-mono">report</span> + <span class="pc-mono">items[]</span>.</div>
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 REPORT_NOT_FOUND</span>.</div>
+                            <div class="k">Narrative reference</div><div class="v">Endpoint ini cocok untuk halaman detail tunggal karena menyediakan konteks report dan item dalam satu respons. Gunakan ketika user klik nomor bukti dari list. Bila report tidak ditemukan, arahkan user kembali ke list terbaru dan lakukan refresh sinkronisasi data.</div>
                         </div>
                     </div>
 
@@ -371,6 +377,7 @@ req-20260526-0001
                             <div class="k">Purpose</div><div class="v">Mengunduh dokumen bukti lapor dalam format PDF.</div>
                             <div class="k">Output</div><div class="v"><span class="pc-mono">Content-Type: application/pdf</span></div>
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 REPORT_NOT_FOUND</span>.</div>
+                            <div class="k">Narrative reference</div><div class="v">Karena output berupa file biner, endpoint ini tidak diproses sebagai JSON. Pastikan client mengeksekusi download stream dan menangani nama file dengan benar. Untuk kebutuhan arsip, integrator bisa menyimpan hash dokumen yang diunduh sebagai bukti integritas.</div>
                         </div>
                     </div>
 
@@ -384,6 +391,7 @@ req-20260526-0001
                             <div class="k">Path wajib</div><div class="v"><span class="pc-mono">itemId</span></div>
                             <div class="k">Response utama</div><div class="v">Status, note, filled_count, last_reported_at.</div>
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 ITEM_NOT_FOUND</span>.</div>
+                            <div class="k">Narrative reference</div><div class="v">Gunakan endpoint ini untuk polling status item tertentu tanpa memuat ulang seluruh report. Cocok pada UI modal atau panel detail. Jika data sangat dinamis, gunakan interval polling moderat agar tidak membebani API.</div>
                         </div>
                     </div>
 
@@ -396,6 +404,7 @@ req-20260526-0001
                             <div class="k">Purpose</div><div class="v">Update status proses rekrutmen untuk item lowongan.</div>
                             <div class="k">Required body</div><div class="v"><span class="pc-mono">status</span> (note opsional)</div>
                             <div class="k">Status sample</div><div class="v">Belum Terisi, Proses Seleksi, Terisi</div>
+                            <div class="k">Narrative reference</div><div class="v">Batasi nilai status pada dropdown terstruktur agar konsisten antar integrator. Setiap update sebaiknya menyertakan note singkat untuk memudahkan jejak audit dan analisis perubahan status dari waktu ke waktu.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">{
   "status": "Proses Seleksi",
@@ -412,6 +421,7 @@ req-20260526-0001
                             <div class="k">Purpose</div><div class="v">Mencatat data penempatan pekerja atas item lowongan.</div>
                             <div class="k">Required body</div><div class="v"><span class="pc-mono">nik, full_name, start_date</span></div>
                             <div class="k">Business rule</div><div class="v">Jumlah placement tidak boleh melebihi <span class="pc-mono">headcount_needed</span>.</div>
+                            <div class="k">Narrative reference</div><div class="v">Endpoint ini menandai outcome aktual dari lowongan. Pastikan data personal dimasking di sisi tampilan, dan kirim hanya field yang diperlukan. Jika menerima <span class="pc-mono">PLACEMENT_LIMIT_EXCEEDED</span>, lakukan sinkronisasi ulang item sebelum user menambah placement baru.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">{
   "nik": "3171xxxxxxxxxxxx",
@@ -439,6 +449,7 @@ req-20260526-0001
                             <div class="k">Purpose</div><div class="v">Mengambil daftar lowongan posted dari bridge Karirhub.</div>
                             <div class="k">Response utama</div><div class="v"><span class="pc-mono">job_id, title, location, status, headcount, posting_url</span></div>
                             <div class="k">Error utama</div><div class="v">Error auth standar jika signature tidak valid.</div>
+                            <div class="k">Narrative reference</div><div class="v">Endpoint ini cocok untuk layar pemilihan lowongan sebelum proses add-to-wllp. Integrator dapat menambahkan cache singkat agar pencarian daftar tidak memicu request berulang saat user melakukan navigasi bolak-balik.</div>
                         </div>
                     </div>
 
@@ -451,6 +462,7 @@ req-20260526-0001
                             <div class="k">Purpose</div><div class="v">Menambahkan lowongan dari data Karirhub jobs posted ke report WLLP.</div>
                             <div class="k">Required body</div><div class="v"><span class="pc-mono">employer_id, unit_id, period_type, period_anchor, terms</span></div>
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 JOB_NOT_FOUND</span>, <span class="pc-mono">422 TERMS_REQUIRED</span>.</div>
+                            <div class="k">Narrative reference</div><div class="v">Dipakai saat user memilih lowongan existing agar tidak input manual dari awal. Endpoint ini mempercepat onboarding data, tetapi tetap tunduk pada validasi periode dan terms. Simpan pasangan <span class="pc-mono">jobId - id_lowongan</span> untuk kebutuhan rekonsiliasi.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">{
   "success": true,
@@ -471,6 +483,7 @@ req-20260526-0001
                         <div class="pc-kv mb-2">
                             <div class="k">Purpose</div><div class="v">Ringkasan analitik global lintas employer.</div>
                             <div class="k">Response utama</div><div class="v"><span class="pc-mono">total_employers, total_reports, total_items, submitted_reports, verified_reports</span>.</div>
+                            <div class="k">Narrative reference</div><div class="v">Endpoint ini mendukung monitoring operasional harian tim admin. Umumnya dipakai pada kartu KPI di awal dashboard. Untuk akurasi pelaporan berkala, bandingkan hasilnya dengan export CSV pada periode yang sama.</div>
                         </div>
                     </div>
 
@@ -483,6 +496,7 @@ req-20260526-0001
                             <div class="k">Purpose</div><div class="v">Daftar seluruh report lintas employer untuk admin.</div>
                             <div class="k">Query opsional</div><div class="v"><span class="pc-mono">limit, offset</span></div>
                             <div class="k">Response utama</div><div class="v"><span class="pc-mono">data[]</span> berisi metadata report.</div>
+                            <div class="k">Narrative reference</div><div class="v">Gunakan endpoint ini untuk inspeksi lintas tenant dan tindak lanjut manual. Saat volume tinggi, kombinasikan pagination dan filter UI agar query ringan. Integrator sebaiknya menambahkan fitur search lokal setelah data halaman diterima.</div>
                         </div>
                     </div>
 
@@ -494,6 +508,7 @@ req-20260526-0001
                         <div class="pc-kv mb-2">
                             <div class="k">Purpose</div><div class="v">Analisis kepatuhan report per employer.</div>
                             <div class="k">Response utama</div><div class="v"><span class="pc-mono">reports, total_items, terisi_items, compliance_pct</span>.</div>
+                            <div class="k">Narrative reference</div><div class="v">Endpoint ini ideal sebagai sumber ranking atau heatmap kepatuhan. Integrator dapat menambahkan threshold visual (hijau/kuning/merah) untuk mempercepat identifikasi employer yang memerlukan intervensi.</div>
                         </div>
                     </div>
 
@@ -506,6 +521,7 @@ req-20260526-0001
                             <div class="k">Allowed status</div><div class="v"><span class="pc-mono">verified</span>, <span class="pc-mono">rejected</span>, <span class="pc-mono">needs_update</span></div>
                             <div class="k">Audit</div><div class="v">Perubahan status tercatat pada verification log dan audit log.</div>
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 REPORT_NOT_FOUND</span>, <span class="pc-mono">422 VALIDATION_FAILED</span>.</div>
+                            <div class="k">Narrative reference</div><div class="v">Endpoint governance ini menentukan keputusan final report. Wajibkan pengisian note ketika status berubah untuk menjaga transparansi keputusan. Jika terjadi dispute, note verifikasi menjadi referensi utama proses klarifikasi.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">{
   "status": "verified",
@@ -522,44 +538,8 @@ req-20260526-0001
                             <div class="k">Purpose</div><div class="v">Ekspor data report untuk analitik lanjutan admin.</div>
                             <div class="k">Output</div><div class="v"><span class="pc-mono">Content-Type: text/csv</span>, file <span class="pc-mono">wllp-admin-export.csv</span>.</div>
                             <div class="k">Catatan</div><div class="v">Gunakan endpoint ini untuk kebutuhan rekonsiliasi data offline atau pelaporan periodik.</div>
+                            <div class="k">Narrative reference</div><div class="v">Disarankan dijalankan pada jam non-peak karena ukuran file bisa besar. Untuk laporan periodik, simpan hasil export dengan penamaan timestamp agar histori data dapat dilacak. Jika download terputus, ulangi dengan Request-Id baru.</div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card pc-card mb-3">
-                <div class="card-body">
-                    <div class="pc-section-title mb-2">5.1) Endpoint Narrative Reference (Penjelasan Panjang per Endpoint)</div>
-                    <p class="mb-3">
-                        Bagian ini melengkapi tabel endpoint dengan penjelasan operasional yang lebih rinci. Gunakan sebagai panduan implementasi integrator
-                        dari tahap persiapan request, eksekusi endpoint, sampai penanganan response/error di sisi sistem Anda.
-                    </p>
-
-                    <h6 class="text-primary mb-2">Employer API</h6>
-                    <div class="pc-small mb-2"><strong>GET /api/wllp/employer/dashboard</strong> dipakai untuk menampilkan ringkasan cepat status kepatuhan employer di dashboard internal mitra. Endpoint ini ideal dipanggil sebelum user melakukan aksi tulis agar sistem mengetahui konteks data aktif (jumlah report, jumlah item terisi, dan item belum terisi). Jika <span class="pc-mono">employer_id</span> tidak valid, endpoint akan menolak dengan <span class="pc-mono">422 VALIDATION_FAILED</span>, sehingga integrator sebaiknya melakukan validasi identifier sebelum request dikirim.</div>
-                    <div class="pc-small mb-2"><strong>GET /api/wllp/reports</strong> adalah endpoint list utama untuk menampilkan histori bukti lapor per employer. Kombinasi <span class="pc-mono">limit</span> dan <span class="pc-mono">offset</span> disarankan dipakai di UI tabel agar pagination ringan. Strategi yang direkomendasikan: simpan pointer <span class="pc-mono">next_offset</span> dari response, lalu gunakan <span class="pc-mono">has_more</span> untuk memutuskan apakah perlu request lanjutan.</div>
-                    <div class="pc-small mb-2"><strong>POST /api/wllp/reports</strong> adalah endpoint penulisan inti. Endpoint ini akan membuat report baru atau melakukan reuse report existing untuk periode yang sama sesuai rule backend. Integrator perlu memastikan struktur item valid sejak awal, terutama field kebutuhan tenaga kerja dan persetujuan terms. Jika request gagal validasi, object <span class="pc-mono">fields</span> pada response perlu diteruskan apa adanya ke UI agar pengguna tahu field mana yang perlu diperbaiki.</div>
-                    <div class="pc-small mb-2"><strong>POST /api/wllp/reports/bulk/validate</strong> dipakai sebagai tahap quality gate sebelum commit massal. Tujuannya agar data invalid dipisahkan lebih awal sehingga tidak mencemari data produksi. Integrator disarankan menampilkan daftar error per baris seperti yang diberikan API, termasuk nomor row dan nama field, supaya user bisa memperbaiki file sumber tanpa trial-and-error berulang.</div>
-                    <div class="pc-small mb-2"><strong>POST /api/wllp/reports/bulk/commit</strong> hanya boleh dipanggil setelah hasil validate dinyatakan siap. Endpoint ini mengikat <span class="pc-mono">batch_id</span> ke proses insert sebenarnya. Jika batch sudah pernah diproses, API akan membalas <span class="pc-mono">409 BATCH_ALREADY_COMMITTED</span>; artinya integrator harus membuat batch baru, bukan mengirim ulang commit yang sama.</div>
-                    <div class="pc-small mb-2"><strong>GET /api/wllp/reports/{id}</strong> digunakan untuk halaman detail report. Umumnya dipanggil saat user membuka report dari list. Endpoint ini mengembalikan header report beserta item-itemnya, sehingga cukup satu request untuk membangun tampilan detail dan ringkasan status item.</div>
-                    <div class="pc-small mb-2"><strong>GET /api/wllp/reports/{id}/pdf</strong> dipakai untuk use case unduh/cetak bukti lapor. Karena output berupa binary PDF, integrator perlu mengatur handling download stream dengan benar (bukan parse JSON). Endpoint ini cocok untuk alur arsip, verifikasi manual, atau lampiran dokumen kepatuhan.</div>
-                    <div class="pc-small mb-2"><strong>GET /api/wllp/items/{itemId}/status</strong> efektif untuk sinkronisasi status individual item, misalnya ketika user membuka modal detail lowongan. Endpoint ini memberi status terakhir tanpa perlu memuat ulang seluruh report, sehingga lebih hemat bandwidth pada UI yang interaktif.</div>
-                    <div class="pc-small mb-2"><strong>PUT /api/wllp/items/{itemId}/status</strong> dipakai untuk update progres rekrutmen. Praktik terbaik: tampilkan pilihan status terbatas di UI agar input tetap konsisten (contoh: Belum Terisi, Proses Seleksi, Terisi). Setiap update status sebaiknya dicatat juga di log aplikasi mitra menggunakan <span class="pc-mono">Request-Id</span> agar mudah direkonsiliasi saat audit.</div>
-                    <div class="pc-small mb-3"><strong>POST /api/wllp/items/{itemId}/placements</strong> adalah endpoint finalisasi outcome keterisian. API akan menolak jika jumlah placement melampaui kebutuhan (<span class="pc-mono">PLACEMENT_LIMIT_EXCEEDED</span>). Karena payload mencakup data personal, integrator wajib memastikan data dikirim dari channel aman, disimpan minimal, dan ditampilkan ter-mask di sisi frontend sesuai prinsip privacy-by-design.</div>
-
-                    <h6 class="text-primary mb-2">Karirhub Bridge API</h6>
-                    <div class="pc-small mb-2"><strong>GET /api/karirhub/jobs/posted</strong> menyediakan daftar lowongan sumber Karirhub yang siap dipetakan ke WLLP. Endpoint ini ideal untuk page picker (user memilih lowongan lalu kirim ke WLLP). Implementasi yang disarankan: cache singkat di sisi client/server integrator untuk mengurangi frekuensi panggilan beruntun saat user melakukan browsing list.</div>
-                    <div class="pc-small mb-3"><strong>POST /api/karirhub/jobs/{jobId}/add-to-wllp</strong> mempercepat proses pelaporan karena data lowongan tidak diisi manual dari nol. Endpoint ini tetap memerlukan periode dan terms karena report WLLP harus memiliki konteks periode pelaporan resmi. Response akan mengembalikan nomor bukti dan id lowongan WLLP hasil mapping yang bisa langsung ditampilkan sebagai notifikasi sukses ke user.</div>
-
-                    <h6 class="text-primary mb-2">Admin API</h6>
-                    <div class="pc-small mb-2"><strong>GET /api/admin/wllp/dashboard</strong> digunakan tim admin untuk melihat health metric global, bukan metric spesifik per employer. Endpoint ini cocok dipakai sebagai data source kartu ringkasan di dashboard pengawasan harian.</div>
-                    <div class="pc-small mb-2"><strong>GET /api/admin/wllp/reports</strong> menyediakan daftar report lintas employer untuk kebutuhan inspeksi, sampling, atau tindak lanjut operasional. Saat data volume besar, admin panel sebaiknya tetap menggunakan pagination dan filter tambahan di sisi UI agar performa tetap stabil.</div>
-                    <div class="pc-small mb-2"><strong>GET /api/admin/wllp/compliance</strong> berfokus pada indikator kepatuhan agregat per employer. Endpoint ini cocok dijadikan sumber ranking/compliance chart dan dapat dipadukan dengan alert internal ketika persentase kepatuhan turun di bawah threshold tertentu.</div>
-                    <div class="pc-small mb-2"><strong>PUT /api/admin/wllp/reports/{id}/verification</strong> adalah titik kontrol tata kelola. Status yang diizinkan dibatasi agar alur verifikasi tetap konsisten dan dapat diaudit. Catatan verifikasi sangat disarankan diisi agar jejak keputusan jelas ketika ada dispute atau klarifikasi dari pihak employer.</div>
-                    <div class="pc-small mb-3"><strong>GET /api/admin/wllp/export</strong> menyiapkan data untuk kebutuhan analitik lanjutan di luar aplikasi (spreadsheet/BI). Karena output CSV bisa berukuran besar, integrator/admin sebaiknya menjalankan endpoint ini pada waktu operasional yang tidak sibuk dan memastikan proses download tidak diputus di tengah jalan.</div>
-
-                    <div class="alert alert-secondary mb-0">
-                        <strong>Praktik integrasi yang direkomendasikan:</strong> gunakan <span class="pc-mono">Request-Id</span> sebagai correlation-id di semua log internal, lakukan retry hanya untuk 5xx/timeout, dan selalu generate Request-Id baru pada retry untuk menghindari konflik replay protection.
                     </div>
                 </div>
             </div>
