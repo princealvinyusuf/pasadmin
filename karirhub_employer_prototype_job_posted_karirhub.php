@@ -113,7 +113,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
         $employerKode = (string)($units[$unitKode]['employer_kode'] ?? 'EMP-001');
         $employerNama = (string)($units[$unitKode]['employer_nama'] ?? 'PT Contoh Nusantara');
         $period = kh_proto_derive_period($addForm['periode_tipe'], $addForm['periode_anchor']);
-        $generatedNoReg = kh_proto_generate_no_reg_from_anchor($conn, $period['anchor']);
+        $generatedNoReg = '';
+        $stmtFindHeader = $conn->prepare("
+            SELECT no_reg_bukti
+            FROM karirhub_proto_wllp_laporan
+            WHERE employer_kode = ?
+              AND periode_tipe = ?
+              AND periode_anchor = ?
+            ORDER BY created_at DESC
+            LIMIT 1
+        ");
+        $stmtFindHeader->bind_param('sss', $employerKode, $period['tipe'], $period['anchor']);
+        $stmtFindHeader->execute();
+        $resFoundHeader = $stmtFindHeader->get_result();
+        $foundHeader = $resFoundHeader ? $resFoundHeader->fetch_assoc() : null;
+        $stmtFindHeader->close();
+        if ($foundHeader && (string)($foundHeader['no_reg_bukti'] ?? '') !== '') {
+            $generatedNoReg = (string)$foundHeader['no_reg_bukti'];
+        } else {
+            $generatedNoReg = kh_proto_generate_no_reg_from_anchor($conn, $period['anchor']);
+        }
         $generatedIdLowongan = kh_proto_generate_id_lowongan($conn);
 
         $jabatan = (string)$selectedJob['judul'];
