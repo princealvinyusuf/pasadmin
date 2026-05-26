@@ -227,6 +227,44 @@ req-20260526-0001
                 <div class="card-body">
                     <div class="pc-section-title mb-2 pc-anchor" id="endpoint-details">5) Endpoint Details</div>
 
+                    <h6 class="mb-2 text-primary">Employer API</h6>
+
+                    <div class="pc-endpoint-card mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div><span class="badge text-bg-success me-2">GET</span><span class="pc-mono">/api/wllp/employer/dashboard</span></div>
+                            <span class="pc-small">Employer dashboard metrics</span>
+                        </div>
+                        <div class="pc-kv mb-2">
+                            <div class="k">Purpose</div><div class="v">Ambil ringkasan metrik WLLP milik employer.</div>
+                            <div class="k">Query wajib</div><div class="v"><span class="pc-mono">employer_id</span> (integer &gt; 0)</div>
+                            <div class="k">Response utama</div><div class="v"><span class="pc-mono">total_reports, total_items, terisi_items, belum_terisi_items</span></div>
+                            <div class="k">Error utama</div><div class="v"><span class="pc-mono">422 VALIDATION_FAILED</span> jika employer_id tidak valid.</div>
+                        </div>
+<pre class="pc-pre bg-dark text-light rounded p-3">{
+  "success": true,
+  "data": {
+    "total_reports": 10,
+    "total_items": 46,
+    "terisi_items": 21,
+    "belum_terisi_items": 25
+  }
+}</pre>
+                    </div>
+
+                    <div class="pc-endpoint-card mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div><span class="badge text-bg-success me-2">GET</span><span class="pc-mono">/api/wllp/reports</span></div>
+                            <span class="pc-small">List Bukti Lapor</span>
+                        </div>
+                        <div class="pc-kv mb-2">
+                            <div class="k">Purpose</div><div class="v">Daftar report WLLP per employer.</div>
+                            <div class="k">Query wajib</div><div class="v"><span class="pc-mono">employer_id</span></div>
+                            <div class="k">Query opsional</div><div class="v"><span class="pc-mono">limit, offset</span></div>
+                            <div class="k">Response utama</div><div class="v"><span class="pc-mono">data[]</span> dan <span class="pc-mono">pagination</span>.</div>
+                            <div class="k">Error utama</div><div class="v"><span class="pc-mono">422 VALIDATION_FAILED</span>.</div>
+                        </div>
+                    </div>
+
                     <div class="pc-endpoint-card mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <div><span class="badge text-bg-primary me-2">POST</span><span class="pc-mono">/api/wllp/reports</span></div>
@@ -276,6 +314,81 @@ req-20260526-0001
 
                     <div class="pc-endpoint-card mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div><span class="badge text-bg-primary me-2">POST</span><span class="pc-mono">/api/wllp/reports/bulk/validate</span></div>
+                            <span class="pc-small">Validate bulk payload</span>
+                        </div>
+                        <div class="pc-kv mb-2">
+                            <div class="k">Purpose</div><div class="v">Memvalidasi batch bulk sebelum proses commit.</div>
+                            <div class="k">Input</div><div class="v">JSON rows atau metadata upload file <span class="pc-mono">.xlsx</span>.</div>
+                            <div class="k">Response utama</div><div class="v"><span class="pc-mono">batch_id, total_rows, valid_rows, invalid_rows, errors[]</span>.</div>
+                            <div class="k">Error utama</div><div class="v"><span class="pc-mono">422 BULK_TEMPLATE_INVALID</span>, <span class="pc-mono">422 VALIDATION_FAILED</span>.</div>
+                        </div>
+<pre class="pc-pre bg-dark text-light rounded p-3">{
+  "batch_id": "BULK-20260526153012-431",
+  "template_version": "WLLP-BULK-1.0",
+  "total_rows": 100,
+  "valid_rows": 92,
+  "invalid_rows": 8,
+  "errors": [{"row": 12, "field": "kbji_code", "message": "Kode KBJI tidak ditemukan."}]
+}</pre>
+                    </div>
+
+                    <div class="pc-endpoint-card mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div><span class="badge text-bg-primary me-2">POST</span><span class="pc-mono">/api/wllp/reports/bulk/commit</span></div>
+                            <span class="pc-small">Commit validated batch</span>
+                        </div>
+                        <div class="pc-kv mb-2">
+                            <div class="k">Purpose</div><div class="v">Memproses batch valid menjadi report dan item WLLP.</div>
+                            <div class="k">Body wajib</div><div class="v"><span class="pc-mono">batch_id, terms.agreed, terms.version</span></div>
+                            <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 BATCH_NOT_FOUND</span>, <span class="pc-mono">409 BATCH_ALREADY_COMMITTED</span>, <span class="pc-mono">422 TERMS_REQUIRED</span>.</div>
+                        </div>
+<pre class="pc-pre bg-dark text-light rounded p-3">{
+  "batch_id": "BULK-20260526153012-431",
+  "terms": {"agreed": true, "version": "WLLP-TC-2026-01"}
+}</pre>
+                    </div>
+
+                    <div class="pc-endpoint-card mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div><span class="badge text-bg-success me-2">GET</span><span class="pc-mono">/api/wllp/reports/{id}</span></div>
+                            <span class="pc-small">Report detail</span>
+                        </div>
+                        <div class="pc-kv mb-2">
+                            <div class="k">Purpose</div><div class="v">Mengambil detail satu report berikut seluruh item di dalamnya.</div>
+                            <div class="k">Path wajib</div><div class="v"><span class="pc-mono">id</span> (report id numerik)</div>
+                            <div class="k">Response utama</div><div class="v"><span class="pc-mono">report</span> + <span class="pc-mono">items[]</span>.</div>
+                            <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 REPORT_NOT_FOUND</span>.</div>
+                        </div>
+                    </div>
+
+                    <div class="pc-endpoint-card mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div><span class="badge text-bg-success me-2">GET</span><span class="pc-mono">/api/wllp/reports/{id}/pdf</span></div>
+                            <span class="pc-small">Download Bukti Lapor PDF</span>
+                        </div>
+                        <div class="pc-kv mb-2">
+                            <div class="k">Purpose</div><div class="v">Mengunduh dokumen bukti lapor dalam format PDF.</div>
+                            <div class="k">Output</div><div class="v"><span class="pc-mono">Content-Type: application/pdf</span></div>
+                            <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 REPORT_NOT_FOUND</span>.</div>
+                        </div>
+                    </div>
+
+                    <div class="pc-endpoint-card mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div><span class="badge text-bg-success me-2">GET</span><span class="pc-mono">/api/wllp/items/{itemId}/status</span></div>
+                            <span class="pc-small">Get item status</span>
+                        </div>
+                        <div class="pc-kv mb-2">
+                            <div class="k">Purpose</div><div class="v">Mengambil status keterisian item lowongan.</div>
+                            <div class="k">Path wajib</div><div class="v"><span class="pc-mono">itemId</span></div>
+                            <div class="k">Response utama</div><div class="v">Status, note, filled_count, last_reported_at.</div>
+                            <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 ITEM_NOT_FOUND</span>.</div>
+                        </div>
+                    </div>
+
+                    <div class="pc-endpoint-card mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
                             <div><span class="badge text-bg-warning me-2">PUT</span><span class="pc-mono">/api/wllp/items/{itemId}/status</span></div>
                             <span class="pc-small">Update status keterisian</span>
                         </div>
@@ -315,6 +428,20 @@ req-20260526-0001
 }</pre>
                     </div>
 
+                    <h6 class="mb-2 text-primary">Karirhub Bridge API</h6>
+
+                    <div class="pc-endpoint-card mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div><span class="badge text-bg-success me-2">GET</span><span class="pc-mono">/api/karirhub/jobs/posted</span></div>
+                            <span class="pc-small">List posted jobs</span>
+                        </div>
+                        <div class="pc-kv mb-2">
+                            <div class="k">Purpose</div><div class="v">Mengambil daftar lowongan posted dari bridge Karirhub.</div>
+                            <div class="k">Response utama</div><div class="v"><span class="pc-mono">job_id, title, location, status, headcount, posting_url</span></div>
+                            <div class="k">Error utama</div><div class="v">Error auth standar jika signature tidak valid.</div>
+                        </div>
+                    </div>
+
                     <div class="pc-endpoint-card mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <div><span class="badge text-bg-primary me-2">POST</span><span class="pc-mono">/api/karirhub/jobs/{jobId}/add-to-wllp</span></div>
@@ -323,6 +450,7 @@ req-20260526-0001
                         <div class="pc-kv mb-2">
                             <div class="k">Purpose</div><div class="v">Menambahkan lowongan dari data Karirhub jobs posted ke report WLLP.</div>
                             <div class="k">Required body</div><div class="v"><span class="pc-mono">employer_id, unit_id, period_type, period_anchor, terms</span></div>
+                            <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 JOB_NOT_FOUND</span>, <span class="pc-mono">422 TERMS_REQUIRED</span>.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">{
   "success": true,
@@ -333,7 +461,43 @@ req-20260526-0001
 }</pre>
                     </div>
 
-                    <div class="pc-endpoint-card">
+                    <h6 class="mb-2 text-primary">Admin API</h6>
+
+                    <div class="pc-endpoint-card mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div><span class="badge text-bg-success me-2">GET</span><span class="pc-mono">/api/admin/wllp/dashboard</span></div>
+                            <span class="pc-small">Admin analytics summary</span>
+                        </div>
+                        <div class="pc-kv mb-2">
+                            <div class="k">Purpose</div><div class="v">Ringkasan analitik global lintas employer.</div>
+                            <div class="k">Response utama</div><div class="v"><span class="pc-mono">total_employers, total_reports, total_items, submitted_reports, verified_reports</span>.</div>
+                        </div>
+                    </div>
+
+                    <div class="pc-endpoint-card mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div><span class="badge text-bg-success me-2">GET</span><span class="pc-mono">/api/admin/wllp/reports</span></div>
+                            <span class="pc-small">Cross-employer report list</span>
+                        </div>
+                        <div class="pc-kv mb-2">
+                            <div class="k">Purpose</div><div class="v">Daftar seluruh report lintas employer untuk admin.</div>
+                            <div class="k">Query opsional</div><div class="v"><span class="pc-mono">limit, offset</span></div>
+                            <div class="k">Response utama</div><div class="v"><span class="pc-mono">data[]</span> berisi metadata report.</div>
+                        </div>
+                    </div>
+
+                    <div class="pc-endpoint-card mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div><span class="badge text-bg-success me-2">GET</span><span class="pc-mono">/api/admin/wllp/compliance</span></div>
+                            <span class="pc-small">Compliance overview</span>
+                        </div>
+                        <div class="pc-kv mb-2">
+                            <div class="k">Purpose</div><div class="v">Analisis kepatuhan report per employer.</div>
+                            <div class="k">Response utama</div><div class="v"><span class="pc-mono">reports, total_items, terisi_items, compliance_pct</span>.</div>
+                        </div>
+                    </div>
+
+                    <div class="pc-endpoint-card mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <div><span class="badge text-bg-warning me-2">PUT</span><span class="pc-mono">/api/admin/wllp/reports/{id}/verification</span></div>
                             <span class="pc-small">Admin verification flow</span>
@@ -341,11 +505,24 @@ req-20260526-0001
                         <div class="pc-kv mb-2">
                             <div class="k">Allowed status</div><div class="v"><span class="pc-mono">verified</span>, <span class="pc-mono">rejected</span>, <span class="pc-mono">needs_update</span></div>
                             <div class="k">Audit</div><div class="v">Perubahan status tercatat pada verification log dan audit log.</div>
+                            <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 REPORT_NOT_FOUND</span>, <span class="pc-mono">422 VALIDATION_FAILED</span>.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">{
   "status": "verified",
   "note": "Dokumen valid dan lengkap"
 }</pre>
+                    </div>
+
+                    <div class="pc-endpoint-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div><span class="badge text-bg-success me-2">GET</span><span class="pc-mono">/api/admin/wllp/export</span></div>
+                            <span class="pc-small">CSV export</span>
+                        </div>
+                        <div class="pc-kv mb-2">
+                            <div class="k">Purpose</div><div class="v">Ekspor data report untuk analitik lanjutan admin.</div>
+                            <div class="k">Output</div><div class="v"><span class="pc-mono">Content-Type: text/csv</span>, file <span class="pc-mono">wllp-admin-export.csv</span>.</div>
+                            <div class="k">Catatan</div><div class="v">Gunakan endpoint ini untuk kebutuhan rekonsiliasi data offline atau pelaporan periodik.</div>
+                        </div>
                     </div>
                 </div>
             </div>
