@@ -66,8 +66,36 @@ $addForm = [
     'periode_tipe' => trim((string)($_POST['periode_tipe'] ?? 'monthly')),
     'periode_anchor' => trim((string)($_POST['periode_anchor'] ?? date('Y-m-d'))),
 ];
+$wllpAddedInfo = null;
+$stmtAdded = $conn->prepare("
+    SELECT d.no_reg_bukti, d.id_lowongan
+    FROM karirhub_proto_wllp_pelaporan d
+    WHERE d.jabatan = ?
+      AND d.catatan LIKE 'Auto insert dari Job Posted%'
+    ORDER BY d.created_at DESC
+    LIMIT 1
+");
+$stmtAdded->bind_param('s', $jobTitle);
+$stmtAdded->execute();
+$resAdded = $stmtAdded->get_result();
+$rowAdded = $resAdded ? $resAdded->fetch_assoc() : null;
+$stmtAdded->close();
+if ($rowAdded) {
+    $wllpAddedInfo = [
+        'no_reg_bukti' => (string)($rowAdded['no_reg_bukti'] ?? ''),
+        'id_lowongan' => (string)($rowAdded['id_lowongan'] ?? ''),
+    ];
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'add_to_wllp') {
+    if ($wllpAddedInfo !== null) {
+        $addSuccess = [
+            'no_reg_bukti' => $wllpAddedInfo['no_reg_bukti'],
+            'id_lowongan' => $wllpAddedInfo['id_lowongan'],
+            'periode_label' => 'Sudah pernah ditambahkan ke WLLP',
+        ];
+    }
+    if ($addSuccess === null) {
     if (!in_array($addForm['periode_tipe'], ['weekly', 'monthly'], true)) {
         $addErrors[] = 'Periode Pelaporan wajib Weekly atau Monthly.';
     }
@@ -213,6 +241,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
                 'id_lowongan' => $generatedIdLowongan,
                 'periode_label' => strtoupper($period['tipe']) . ' (' . $period['mulai'] . ' s.d. ' . $period['selesai'] . ')',
             ];
+            $wllpAddedInfo = [
+                'no_reg_bukti' => $generatedNoReg,
+                'id_lowongan' => $generatedIdLowongan,
+            ];
         } catch (Throwable $e) {
             $conn->rollback();
             $addErrors[] = 'Gagal menambahkan lowongan ke WLLP: ' . $e->getMessage();
@@ -221,6 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
         $stmtSaveHeader->close();
         $stmtSaveDetail->close();
         $stmtSaveStatus->close();
+    }
     }
 }
 ?>
@@ -241,6 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
         .jp-actions .btn-outline-light { border-color: rgba(255,255,255,.5); }
         .jp-actions .btn-teal { background: #10a3a3; border-color: #10a3a3; color: #fff; }
         .jp-actions .btn-teal:hover { background: #0f9191; border-color: #0f9191; color: #fff; }
+        .jp-actions .jp-added-flag { border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 700; background: #0d6efd; color: #fff; }
         .jp-panel { border: 1px solid #e7edf5; border-radius: 10px; background: #fff; overflow: hidden; }
         .jp-tabs { border-bottom: 1px solid #e7edf5; padding: 0 12px; display: flex; gap: 8px; flex-wrap: wrap; }
         .jp-tab { color: #24476a; text-decoration: none; padding: 10px 6px; border-bottom: 3px solid transparent; font-size: 14px; font-weight: 700; }
@@ -296,8 +330,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
                     <a class="btn btn-outline-light btn-sm" href="#"><i class="bi bi-pencil-square me-1"></i>Edit Lowongan</a>
                     <a class="btn btn-teal btn-sm" href="#"><i class="bi bi-send-fill me-1"></i>Buka Lowongan</a>
                     <a class="btn btn-outline-light btn-sm" href="#"><i class="bi bi-link-45deg me-1"></i>Salin Link Lowongan</a>
-                    <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#addToWllpModalDetail">
-                        <i class="bi bi-plus-circle me-1"></i>Tambahkan ke dalam WLLP
+                    <?php if ($wllpAddedInfo !== null): ?>
+                        <span class="jp-added-flag">Berhasil ditambahkan ke WLLP</span>
+                    <?php endif; ?>
+                    <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#addToWllpModalDetail"<?php echo $wllpAddedInfo !== null ? ' disabled' : ''; ?>>
+                        <i class="bi bi-plus-circle me-1"></i><?php echo $wllpAddedInfo !== null ? 'Sudah ditambahkan ke WLLP' : 'Tambahkan ke dalam WLLP'; ?>
                     </button>
                 </div>
             </div>

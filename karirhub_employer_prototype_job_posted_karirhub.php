@@ -70,6 +70,30 @@ $jobMap = [];
 foreach ($jobs as $jobRow) {
     $jobMap[(string)$jobRow['judul']] = $jobRow;
 }
+$wllpAddedByJob = [];
+$jobTitles = array_keys($jobMap);
+if (!empty($jobTitles)) {
+    $escapedTitles = array_map(static fn (string $v): string => "'" . $conn->real_escape_string($v) . "'", $jobTitles);
+    $resAdded = $conn->query("
+        SELECT d.jabatan, d.no_reg_bukti, d.id_lowongan, d.created_at
+        FROM karirhub_proto_wllp_pelaporan d
+        WHERE d.jabatan IN (" . implode(',', $escapedTitles) . ")
+          AND d.catatan LIKE 'Auto insert dari Job Posted%'
+        ORDER BY d.created_at DESC
+    ");
+    if ($resAdded) {
+        while ($r = $resAdded->fetch_assoc()) {
+            $jabatanKey = (string)($r['jabatan'] ?? '');
+            if ($jabatanKey === '' || isset($wllpAddedByJob[$jabatanKey])) {
+                continue;
+            }
+            $wllpAddedByJob[$jabatanKey] = [
+                'no_reg_bukti' => (string)($r['no_reg_bukti'] ?? ''),
+                'id_lowongan' => (string)($r['id_lowongan'] ?? ''),
+            ];
+        }
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'add_to_wllp') {
     $selectedJob = $jobMap[$addForm['job_key']] ?? null;
@@ -100,6 +124,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
         $kelurahan = trim((string)($alamatParts[1] ?? 'Kelurahan'));
         $catatan = 'Auto insert dari Job Posted Karirhub (' . $jabatan . ')';
         $statusBelumTerisi = 'Belum Terisi';
+        if (isset($wllpAddedByJob[$jabatan])) {
+            $existing = $wllpAddedByJob[$jabatan];
+            $addSuccess = [
+                'job' => $jabatan,
+                'no_reg_bukti' => (string)$existing['no_reg_bukti'],
+                'id_lowongan' => (string)$existing['id_lowongan'],
+                'periode_label' => 'Sudah pernah ditambahkan ke WLLP',
+            ];
+            goto finalize_add_to_wllp;
+        }
 
         $stmtSaveHeader = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_laporan
@@ -217,6 +251,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
                 'id_lowongan' => $generatedIdLowongan,
                 'periode_label' => strtoupper($period['tipe']) . ' (' . $period['mulai'] . ' s.d. ' . $period['selesai'] . ')',
             ];
+            $wllpAddedByJob[$jabatan] = [
+                'no_reg_bukti' => $generatedNoReg,
+                'id_lowongan' => $generatedIdLowongan,
+            ];
         } catch (Throwable $e) {
             $conn->rollback();
             $addErrors[] = 'Gagal menambahkan lowongan ke WLLP: ' . $e->getMessage();
@@ -227,6 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
         $stmtSaveStatus->close();
     }
 }
+finalize_add_to_wllp:
 
 $filteredJobs = array_values(array_filter($jobs, static function (array $job) use ($statusFilter): bool {
     if ($statusFilter === 'all') {
@@ -255,6 +294,7 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
         .job-posted-status { border-radius: 999px; padding: 6px 14px; font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; }
         .job-posted-status.ditutup { background: #ea3f51; }
         .job-posted-status.aktif { background: #18a365; }
+        .job-posted-status.wllp-added { background: #0d6efd; }
         .job-posted-side-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
         .job-posted-metrics { border-top: 1px solid #edf2f8; background: #fbfcfe; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
         .job-metric { padding: 10px 8px; text-align: center; border-right: 1px solid #edf2f8; }
@@ -338,6 +378,7 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
         </div>
     <?php else: ?>
         <?php foreach ($filteredJobs as $job): ?>
+            <?php $addedInfo = $wllpAddedByJob[(string)$job['judul']] ?? null; ?>
             <div class="job-posted-card">
                 <div class="job-posted-card-head">
                     <div>
@@ -352,14 +393,18 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
                         <span class="job-posted-status <?php echo h((string)$job['status']); ?>">
                             <?php echo (string)$job['status'] === 'ditutup' ? 'Lowongan Ditutup' : 'Lowongan Aktif'; ?>
                         </span>
+                        <?php if ($addedInfo !== null): ?>
+                            <span class="job-posted-status wllp-added">Berhasil ditambahkan ke WLLP</span>
+                        <?php endif; ?>
                         <button
                             type="button"
                             class="btn btn-outline-primary btn-sm js-add-to-wllp-btn"
                             data-job-title="<?php echo h((string)$job['judul']); ?>"
                             data-bs-toggle="modal"
                             data-bs-target="#addToWllpModal"
+                            <?php echo $addedInfo !== null ? ' disabled' : ''; ?>
                         >
-                            <i class="bi bi-plus-circle me-1"></i>Tambahkan ke dalam WLLP
+                            <i class="bi bi-plus-circle me-1"></i><?php echo $addedInfo !== null ? 'Sudah ditambahkan ke WLLP' : 'Tambahkan ke dalam WLLP'; ?>
                         </button>
                     </div>
                 </div>
