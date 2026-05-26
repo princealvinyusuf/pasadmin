@@ -115,6 +115,18 @@ register_menu_permission(
 	'Karirhub Employer Prototype: View No. Reg Bukti',
 	'Karirhub Employer Prototype'
 );
+register_menu_permission(
+	$conn,
+	'karirhub_employer_prototype_pasker_connect_view',
+	'Karirhub Employer Prototype: View Pasker Connect',
+	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
+	'pasker_connect_api_manage',
+	'Pasker Connect API: Manage External Clients',
+	'API'
+);
 
 // Super admin guard for destructive actions
 if (isset($_POST['action']) && $_POST['action'] === 'delete_user' && !current_user_is_super_admin()) {

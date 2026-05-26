@@ -1,5 +1,10 @@
 RewriteEngine On
 
+# Route dynamic API endpoints to API routers.
+RewriteRule ^api/wllp(?:/.*)?$ api_wllp.php [L,QSA]
+RewriteRule ^api/admin/wllp(?:/.*)?$ api_admin_wllp.php [L,QSA]
+RewriteRule ^api/karirhub(?:/.*)?$ api_karirhub.php [L,QSA]
+
 # Redirect direct /file.php requests to /file.
 RewriteCond %{THE_REQUEST} \s/+([^\s?]+)\.php(?:[\s?]|$) [NC]
 RewriteRule ^ %1 [R=301,L,NE]

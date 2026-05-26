@@ -95,6 +95,7 @@
     $canEmailNotification = current_user_can('use_email_notification');
     $canExtensions = current_user_can('view_extensions');
     $canApiKeys = current_user_can('manage_api_keys');
+    $canPaskerConnectApiManage = current_user_can('pasker_connect_api_manage') || $canManageSettings;
     $canMaintenanceMessage = current_user_can('settings_maintenance_message_manage');
     $canHomePopup = current_user_can('settings_home_popup_manage');
     $canAsmenDashboard = current_user_can('asmen_view_dashboard');
@@ -108,7 +109,7 @@
     $hasBlk = ($canDashBlk || $canManageSettings);
     
     $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canAuditTrails || $canMaintenanceMessage || $canHomePopup);
-    $hasApiKeys = ($canManageSettings || $canApiKeys);
+    $hasApiKeys = ($canManageSettings || $canApiKeys || $canPaskerConnectApiManage);
     $canCareerBoostDay = current_user_can('career_boost_day_manage') || $canManageSettings;
     $canCareerBoostDayPic = current_user_can('career_boost_day_pic_manage') || $canManageSettings;
     $canCareerBoostDayBooked = current_user_can('career_boost_day_booked_view') || $canManageSettings;
@@ -130,6 +131,7 @@
     $canKhProtoPelaporan = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_pelaporan_lowongan_view');
     $canKhProtoStatusKeterisian = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_status_keterisian_view');
     $canKhProtoMonitoringKepatuhan = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_monitoring_kepatuhan_view');
+    $canKhProtoPaskerConnect = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_pasker_connect_view');
     $canKarirhubEmployerPrototype = (
         $canKhProtoDashboardWllp
         || $canKhProtoDashboardWllpAdmin
@@ -138,6 +140,7 @@
         || $canKhProtoPelaporan
         || $canKhProtoStatusKeterisian
         || $canKhProtoMonitoringKepatuhan
+        || $canKhProtoPaskerConnect
     );
 
     $hasLayanan = (
@@ -230,6 +233,7 @@
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="apiKeyDropdown">
                         <li><a class="dropdown-item" href="<?php echo $rootUrl; ?>api_keys">API Key Job Seekers</a></li>
+                        <?php if ($canPaskerConnectApiManage): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>pasker_connect_api_clients">Pasker Connect API Clients</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -327,6 +331,7 @@
                         <?php if ($canKhProtoPelaporan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_pelaporan_lowongan"><i class="bi bi-journal-plus me-1"></i>Pelaporan Lowongan</a></li><?php endif; ?>
                         <?php if ($canKhProtoStatusKeterisian): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_status_keterisian"><i class="bi bi-list-check me-1"></i>Status Keterisian</a></li><?php endif; ?>
                         <?php if ($canKhProtoMonitoringKepatuhan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_monitoring_kepatuhan"><i class="bi bi-clipboard-data me-1"></i>Monitoring Kepatuhan</a></li><?php endif; ?>
+                        <?php if ($canKhProtoPaskerConnect): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_pasker_connect"><i class="bi bi-plug me-1"></i>Pasker Connect</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>

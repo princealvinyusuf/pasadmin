@@ -117,6 +117,7 @@ if (!function_exists('kh_proto_render_hero')) {
         $canPelaporan = kh_proto_can_access('karirhub_employer_prototype_pelaporan_lowongan_view');
         $canStatusKeterisian = kh_proto_can_access('karirhub_employer_prototype_status_keterisian_view');
         $canMonitoring = kh_proto_can_access('karirhub_employer_prototype_monitoring_kepatuhan_view');
+        $canPaskerConnect = kh_proto_can_access('karirhub_employer_prototype_pasker_connect_view');
         $hasAnyWllpMenu = (
             $canDashboardWllp
             || $canDashboardWllpAdmin
@@ -125,6 +126,7 @@ if (!function_exists('kh_proto_render_hero')) {
             || $canPelaporan
             || $canStatusKeterisian
             || $canMonitoring
+            || $canPaskerConnect
         );
         ?>
         <section class="kh-hero">
@@ -154,6 +156,7 @@ if (!function_exists('kh_proto_render_hero')) {
                                     <?php if ($canPelaporan): ?><li><a class="dropdown-item" href="karirhub_employer_prototype_pelaporan_lowongan"><i class="bi bi-journal-plus"></i>Pelaporan Lowongan</a></li><?php endif; ?>
                                     <?php if ($canStatusKeterisian): ?><li><a class="dropdown-item" href="karirhub_employer_prototype_status_keterisian"><i class="bi bi-list-task"></i>Status Keterisian</a></li><?php endif; ?>
                                     <?php if ($canMonitoring): ?><li><a class="dropdown-item" href="karirhub_employer_prototype_monitoring_kepatuhan"><i class="bi bi-clipboard-data"></i>Monitoring Kepatuhan</a></li><?php endif; ?>
+                                    <?php if ($canPaskerConnect): ?><li><a class="dropdown-item" href="karirhub_employer_prototype_pasker_connect"><i class="bi bi-plug"></i>Pasker Connect</a></li><?php endif; ?>
                                 </ul>
                             </div>
                             <?php endif; ?>
@@ -212,6 +215,7 @@ if (!function_exists('kh_proto_render_sidebar')) {
         $canPelaporan = kh_proto_can_access('karirhub_employer_prototype_pelaporan_lowongan_view');
         $canStatusKeterisian = kh_proto_can_access('karirhub_employer_prototype_status_keterisian_view');
         $canMonitoring = kh_proto_can_access('karirhub_employer_prototype_monitoring_kepatuhan_view');
+        $canPaskerConnect = kh_proto_can_access('karirhub_employer_prototype_pasker_connect_view');
         $isWllpExpanded = str_starts_with($activeKey, 'wllp_');
         $hasAnyWllpMenu = (
             $canDashboardWllp
@@ -221,6 +225,7 @@ if (!function_exists('kh_proto_render_sidebar')) {
             || $canPelaporan
             || $canStatusKeterisian
             || $canMonitoring
+            || $canPaskerConnect
         );
         $collapseClass = $isWllpExpanded ? 'show' : '';
         $menu = [
@@ -231,6 +236,7 @@ if (!function_exists('kh_proto_render_sidebar')) {
             'wllp_pelaporan' => ['icon' => 'bi-journal-plus', 'label' => 'Pelaporan Lowongan', 'href' => 'karirhub_employer_prototype_pelaporan_lowongan'],
             'wllp_status_keterisian' => ['icon' => 'bi-list-task', 'label' => 'Status Keterisian', 'href' => 'karirhub_employer_prototype_status_keterisian'],
             'wllp_monitoring' => ['icon' => 'bi-clipboard-data', 'label' => 'Monitoring Kepatuhan', 'href' => 'karirhub_employer_prototype_monitoring_kepatuhan'],
+            'wllp_pasker_connect' => ['icon' => 'bi-plug', 'label' => 'Pasker Connect', 'href' => 'karirhub_employer_prototype_pasker_connect'],
         ];
         ?>
         <button type="button" class="kh-side-toggle" id="khSideToggleBtn" title="Hide/Show Sidebar">
@@ -276,6 +282,7 @@ if (!function_exists('kh_proto_render_sidebar')) {
                                 <?php if ($canPelaporan): ?><li><a href="<?php echo kh_proto_h($menu['wllp_pelaporan']['href']); ?>"><i class="bi bi-journal-plus"></i>Pelaporan Lowongan</a></li><?php endif; ?>
                                 <?php if ($canStatusKeterisian): ?><li><a href="<?php echo kh_proto_h($menu['wllp_status_keterisian']['href']); ?>"><i class="bi bi-list-task"></i>Status Keterisian</a></li><?php endif; ?>
                                 <?php if ($canMonitoring): ?><li><a href="<?php echo kh_proto_h($menu['wllp_monitoring']['href']); ?>"><i class="bi bi-clipboard-data"></i>Monitoring Kepatuhan</a></li><?php endif; ?>
+                                <?php if ($canPaskerConnect): ?><li><a href="<?php echo kh_proto_h($menu['wllp_pasker_connect']['href']); ?>"><i class="bi bi-plug"></i>Pasker Connect</a></li><?php endif; ?>
                             </ul>
                         </div>
                     </li>
