@@ -529,6 +529,43 @@ req-20260526-0001
 
             <div class="card pc-card mb-3">
                 <div class="card-body">
+                    <div class="pc-section-title mb-2">5.1) Endpoint Narrative Reference (Penjelasan Panjang per Endpoint)</div>
+                    <p class="mb-3">
+                        Bagian ini melengkapi tabel endpoint dengan penjelasan operasional yang lebih rinci. Gunakan sebagai panduan implementasi integrator
+                        dari tahap persiapan request, eksekusi endpoint, sampai penanganan response/error di sisi sistem Anda.
+                    </p>
+
+                    <h6 class="text-primary mb-2">Employer API</h6>
+                    <div class="pc-small mb-2"><strong>GET /api/wllp/employer/dashboard</strong> dipakai untuk menampilkan ringkasan cepat status kepatuhan employer di dashboard internal mitra. Endpoint ini ideal dipanggil sebelum user melakukan aksi tulis agar sistem mengetahui konteks data aktif (jumlah report, jumlah item terisi, dan item belum terisi). Jika <span class="pc-mono">employer_id</span> tidak valid, endpoint akan menolak dengan <span class="pc-mono">422 VALIDATION_FAILED</span>, sehingga integrator sebaiknya melakukan validasi identifier sebelum request dikirim.</div>
+                    <div class="pc-small mb-2"><strong>GET /api/wllp/reports</strong> adalah endpoint list utama untuk menampilkan histori bukti lapor per employer. Kombinasi <span class="pc-mono">limit</span> dan <span class="pc-mono">offset</span> disarankan dipakai di UI tabel agar pagination ringan. Strategi yang direkomendasikan: simpan pointer <span class="pc-mono">next_offset</span> dari response, lalu gunakan <span class="pc-mono">has_more</span> untuk memutuskan apakah perlu request lanjutan.</div>
+                    <div class="pc-small mb-2"><strong>POST /api/wllp/reports</strong> adalah endpoint penulisan inti. Endpoint ini akan membuat report baru atau melakukan reuse report existing untuk periode yang sama sesuai rule backend. Integrator perlu memastikan struktur item valid sejak awal, terutama field kebutuhan tenaga kerja dan persetujuan terms. Jika request gagal validasi, object <span class="pc-mono">fields</span> pada response perlu diteruskan apa adanya ke UI agar pengguna tahu field mana yang perlu diperbaiki.</div>
+                    <div class="pc-small mb-2"><strong>POST /api/wllp/reports/bulk/validate</strong> dipakai sebagai tahap quality gate sebelum commit massal. Tujuannya agar data invalid dipisahkan lebih awal sehingga tidak mencemari data produksi. Integrator disarankan menampilkan daftar error per baris seperti yang diberikan API, termasuk nomor row dan nama field, supaya user bisa memperbaiki file sumber tanpa trial-and-error berulang.</div>
+                    <div class="pc-small mb-2"><strong>POST /api/wllp/reports/bulk/commit</strong> hanya boleh dipanggil setelah hasil validate dinyatakan siap. Endpoint ini mengikat <span class="pc-mono">batch_id</span> ke proses insert sebenarnya. Jika batch sudah pernah diproses, API akan membalas <span class="pc-mono">409 BATCH_ALREADY_COMMITTED</span>; artinya integrator harus membuat batch baru, bukan mengirim ulang commit yang sama.</div>
+                    <div class="pc-small mb-2"><strong>GET /api/wllp/reports/{id}</strong> digunakan untuk halaman detail report. Umumnya dipanggil saat user membuka report dari list. Endpoint ini mengembalikan header report beserta item-itemnya, sehingga cukup satu request untuk membangun tampilan detail dan ringkasan status item.</div>
+                    <div class="pc-small mb-2"><strong>GET /api/wllp/reports/{id}/pdf</strong> dipakai untuk use case unduh/cetak bukti lapor. Karena output berupa binary PDF, integrator perlu mengatur handling download stream dengan benar (bukan parse JSON). Endpoint ini cocok untuk alur arsip, verifikasi manual, atau lampiran dokumen kepatuhan.</div>
+                    <div class="pc-small mb-2"><strong>GET /api/wllp/items/{itemId}/status</strong> efektif untuk sinkronisasi status individual item, misalnya ketika user membuka modal detail lowongan. Endpoint ini memberi status terakhir tanpa perlu memuat ulang seluruh report, sehingga lebih hemat bandwidth pada UI yang interaktif.</div>
+                    <div class="pc-small mb-2"><strong>PUT /api/wllp/items/{itemId}/status</strong> dipakai untuk update progres rekrutmen. Praktik terbaik: tampilkan pilihan status terbatas di UI agar input tetap konsisten (contoh: Belum Terisi, Proses Seleksi, Terisi). Setiap update status sebaiknya dicatat juga di log aplikasi mitra menggunakan <span class="pc-mono">Request-Id</span> agar mudah direkonsiliasi saat audit.</div>
+                    <div class="pc-small mb-3"><strong>POST /api/wllp/items/{itemId}/placements</strong> adalah endpoint finalisasi outcome keterisian. API akan menolak jika jumlah placement melampaui kebutuhan (<span class="pc-mono">PLACEMENT_LIMIT_EXCEEDED</span>). Karena payload mencakup data personal, integrator wajib memastikan data dikirim dari channel aman, disimpan minimal, dan ditampilkan ter-mask di sisi frontend sesuai prinsip privacy-by-design.</div>
+
+                    <h6 class="text-primary mb-2">Karirhub Bridge API</h6>
+                    <div class="pc-small mb-2"><strong>GET /api/karirhub/jobs/posted</strong> menyediakan daftar lowongan sumber Karirhub yang siap dipetakan ke WLLP. Endpoint ini ideal untuk page picker (user memilih lowongan lalu kirim ke WLLP). Implementasi yang disarankan: cache singkat di sisi client/server integrator untuk mengurangi frekuensi panggilan beruntun saat user melakukan browsing list.</div>
+                    <div class="pc-small mb-3"><strong>POST /api/karirhub/jobs/{jobId}/add-to-wllp</strong> mempercepat proses pelaporan karena data lowongan tidak diisi manual dari nol. Endpoint ini tetap memerlukan periode dan terms karena report WLLP harus memiliki konteks periode pelaporan resmi. Response akan mengembalikan nomor bukti dan id lowongan WLLP hasil mapping yang bisa langsung ditampilkan sebagai notifikasi sukses ke user.</div>
+
+                    <h6 class="text-primary mb-2">Admin API</h6>
+                    <div class="pc-small mb-2"><strong>GET /api/admin/wllp/dashboard</strong> digunakan tim admin untuk melihat health metric global, bukan metric spesifik per employer. Endpoint ini cocok dipakai sebagai data source kartu ringkasan di dashboard pengawasan harian.</div>
+                    <div class="pc-small mb-2"><strong>GET /api/admin/wllp/reports</strong> menyediakan daftar report lintas employer untuk kebutuhan inspeksi, sampling, atau tindak lanjut operasional. Saat data volume besar, admin panel sebaiknya tetap menggunakan pagination dan filter tambahan di sisi UI agar performa tetap stabil.</div>
+                    <div class="pc-small mb-2"><strong>GET /api/admin/wllp/compliance</strong> berfokus pada indikator kepatuhan agregat per employer. Endpoint ini cocok dijadikan sumber ranking/compliance chart dan dapat dipadukan dengan alert internal ketika persentase kepatuhan turun di bawah threshold tertentu.</div>
+                    <div class="pc-small mb-2"><strong>PUT /api/admin/wllp/reports/{id}/verification</strong> adalah titik kontrol tata kelola. Status yang diizinkan dibatasi agar alur verifikasi tetap konsisten dan dapat diaudit. Catatan verifikasi sangat disarankan diisi agar jejak keputusan jelas ketika ada dispute atau klarifikasi dari pihak employer.</div>
+                    <div class="pc-small mb-3"><strong>GET /api/admin/wllp/export</strong> menyiapkan data untuk kebutuhan analitik lanjutan di luar aplikasi (spreadsheet/BI). Karena output CSV bisa berukuran besar, integrator/admin sebaiknya menjalankan endpoint ini pada waktu operasional yang tidak sibuk dan memastikan proses download tidak diputus di tengah jalan.</div>
+
+                    <div class="alert alert-secondary mb-0">
+                        <strong>Praktik integrasi yang direkomendasikan:</strong> gunakan <span class="pc-mono">Request-Id</span> sebagai correlation-id di semua log internal, lakukan retry hanya untuk 5xx/timeout, dan selalu generate Request-Id baru pada retry untuk menghindari konflik replay protection.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card pc-card mb-3">
+                <div class="card-body">
                     <div class="pc-section-title mb-2 pc-anchor" id="errors">6) Error Catalog</div>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered mb-0">
