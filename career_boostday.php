@@ -656,6 +656,7 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
             <div class="text-muted small">Database: <code><?php echo h($activeDb); ?></code> • Total: <b><?php echo number_format($total); ?></b></div>
         </div>
         <div class="d-flex gap-2 align-items-center">
+            <a class="btn btn-outline-secondary" href="<?php echo h($appBaseUrl . 'career_boostday_access_settings'); ?>"><i class="bi bi-shield-lock me-1"></i>Akses</a>
             <a class="btn btn-outline-secondary" href="<?php echo h($appBaseUrl . 'career_boostday_slot'); ?>"><i class="bi bi-calendar-week me-1"></i>Jadwal</a>
             <a class="btn btn-outline-secondary" href="<?php echo h($appBaseUrl . 'career_boostday_pic'); ?>"><i class="bi bi-people me-1"></i>PIC</a>
             <a class="btn btn-outline-secondary" href="<?php echo h($appBaseUrl . 'career_boostday_attendance'); ?>"><i class="bi bi-check2-square me-1"></i>Konfirmasi Kehadiran</a>

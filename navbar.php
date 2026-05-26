@@ -114,6 +114,7 @@
     $canCareerBoostDayBooked = current_user_can('career_boost_day_booked_view') || $canManageSettings;
     $canCareerBoostDayTestimonial = current_user_can('career_boost_day_testimonial_manage') || $canCareerBoostDay || $canManageSettings;
     $canCareerBoostDayAttendance = $canCareerBoostDay;
+    $canCareerBoostDayAccess = $canCareerBoostDay;
     $canFormHasilKonseling = current_user_can('form_hasil_konseling_manage') || $canManageSettings;
     $canMiniJobi = current_user_can('settings_minijobi_manage') || $canManageSettings;
     $canCareerBoostDaySlot = $canCareerBoostDay; // same permission
@@ -272,8 +273,9 @@
                         <?php if ($canManageSettings || $canPaskerRoom): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>pasker_room_settings">Pasker Room Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canPaskerFacilitySettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>pasker_facility_settings">Pasker Facility Settings</a></li><?php endif; ?>
                         <?php if ($canMiniJobi): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>mini_jobi_jobs">miniJobi Jobs</a></li><?php endif; ?>
-                        <?php if (($canManageSettings || $canPaskerRoom) && ($canCareerBoostDay || $canCareerBoostDayPic || $canCareerBoostDayBooked || $canFormHasilKonseling || $canWalkinGallery)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
+                        <?php if (($canManageSettings || $canPaskerRoom) && ($canCareerBoostDay || $canCareerBoostDayAccess || $canCareerBoostDayPic || $canCareerBoostDayBooked || $canFormHasilKonseling || $canWalkinGallery)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
                         <?php if ($canCareerBoostDay): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday">Career Boost Day</a></li><?php endif; ?>
+                        <?php if ($canCareerBoostDayAccess): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_access_settings">Career Boost Day Access</a></li><?php endif; ?>
                         <?php if ($canCareerBoostDaySlot): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_slot">Career Boost Day Jadwal</a></li><?php endif; ?>
                         <?php if ($canCareerBoostDayPic): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_pic">Career Boost Day PIC</a></li><?php endif; ?>
                         <?php if ($canCareerBoostDayBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>career_boostday_booked">Career Boost Day Booked</a></li><?php endif; ?>
