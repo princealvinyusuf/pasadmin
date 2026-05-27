@@ -22,6 +22,7 @@ $sandboxAbsolute = $scheme . '://' . $host . $sandboxBase;
 $productionBase = 'https://joss.kemnaker.go.id/api';
 $showEmployerDashboardEndpoint = false;
 $showAdminApiEndpoints = false;
+$showKarirhubBridgeApiEndpoints = false;
 
 $endpointGroups = [
     [
@@ -210,6 +211,7 @@ req-20260526-0001
                             <tbody>
                             <?php foreach ($endpointGroups as $group): ?>
                                 <?php if (!$showAdminApiEndpoints && $group['title'] === 'Admin API') { continue; } ?>
+                                <?php if (!$showKarirhubBridgeApiEndpoints && $group['title'] === 'Karirhub Bridge API') { continue; } ?>
                                 <?php foreach ($group['rows'] as $row): ?>
                                     <?php if (!$showEmployerDashboardEndpoint && $row[1] === '/api/wllp/employer/dashboard') { continue; } ?>
                                     <tr>
@@ -444,6 +446,7 @@ req-20260526-0001
 }</pre>
                     </div>
 
+                    <?php if ($showKarirhubBridgeApiEndpoints): ?>
                     <h6 class="mb-2 text-primary">Karirhub Bridge API</h6>
 
                     <div class="pc-endpoint-card mb-3">
@@ -478,6 +481,7 @@ req-20260526-0001
   "status_label": "Berhasil ditambahkan ke WLLP"
 }</pre>
                     </div>
+                    <?php endif; ?>
 
                     <?php if ($showAdminApiEndpoints): ?>
                     <h6 class="mb-2 text-primary">Admin API</h6>
