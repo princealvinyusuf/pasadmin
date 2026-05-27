@@ -25,7 +25,7 @@ $endpointGroups = [
     [
         'title' => 'Employer API',
         'rows' => [
-            ['GET', '/api/wllp/employer/dashboard', 'Employer dashboard metrics', 'Read'],
+            ['GET', '[internal endpoint]', 'Employer dashboard metrics (restricted)', 'Read'],
             ['GET', '/api/wllp/reports', 'List Bukti Lapor by employer', 'Read'],
             ['POST', '/api/wllp/reports', 'Create manual WLLP report', 'Write'],
             ['POST', '/api/wllp/reports/bulk/validate', 'Validate bulk payload', 'Write'],
@@ -231,15 +231,15 @@ req-20260526-0001
 
                     <div class="pc-endpoint-card mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div><span class="badge text-bg-success me-2">GET</span><span class="pc-mono">/api/wllp/employer/dashboard</span></div>
-                            <span class="pc-small">Employer dashboard metrics</span>
+                            <div><span class="badge text-bg-success me-2">GET</span><span class="pc-mono">[internal endpoint]</span></div>
+                            <span class="pc-small">Employer dashboard metrics (restricted)</span>
                         </div>
                         <div class="pc-kv mb-2">
-                            <div class="k">Purpose</div><div class="v">Ambil ringkasan metrik WLLP milik employer.</div>
-                            <div class="k">Query wajib</div><div class="v"><span class="pc-mono">employer_id</span> (integer &gt; 0)</div>
-                            <div class="k">Response utama</div><div class="v"><span class="pc-mono">total_reports, total_items, terisi_items, belum_terisi_items</span></div>
-                            <div class="k">Error utama</div><div class="v"><span class="pc-mono">422 VALIDATION_FAILED</span> jika employer_id tidak valid.</div>
-                            <div class="k">Narrative reference</div><div class="v">Endpoint ini biasanya menjadi request pertama saat halaman dashboard dibuka. Tujuannya memberi konteks cepat terkait kesehatan pelaporan employer sebelum user melakukan aksi lanjutan. Integrator disarankan menyimpan snapshot metrik ini untuk perbandingan antar periode dan menampilkan warning jika metrik belum terisi terlalu tinggi.</div>
+                            <div class="k">Purpose</div><div class="v">Ringkasan metrik employer tersedia via endpoint internal terbatas.</div>
+                            <div class="k">Akses</div><div class="v">Endpoint ini tidak dipublikasikan pada dokumentasi eksternal.</div>
+                            <div class="k">Response utama</div><div class="v">Ringkasan metrik employer sesuai kebijakan akses sistem.</div>
+                            <div class="k">Error utama</div><div class="v">Standard auth/validation error sesuai kontrak integrasi internal.</div>
+                            <div class="k">Narrative reference</div><div class="v">Detail endpoint disembunyikan untuk mencegah eksposur rute internal. Gunakan channel internal untuk kebutuhan akses yang sah.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">{
   "success": true,
