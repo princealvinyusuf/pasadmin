@@ -21,6 +21,7 @@ $sandboxBase = rtrim($baseUrl, '/') . '/api';
 $sandboxAbsolute = $scheme . '://' . $host . $sandboxBase;
 $productionBase = 'https://joss.kemnaker.go.id/api';
 $showEmployerDashboardEndpoint = false;
+$showAdminApiEndpoints = false;
 
 $endpointGroups = [
     [
@@ -208,6 +209,7 @@ req-20260526-0001
                             </thead>
                             <tbody>
                             <?php foreach ($endpointGroups as $group): ?>
+                                <?php if (!$showAdminApiEndpoints && $group['title'] === 'Admin API') { continue; } ?>
                                 <?php foreach ($group['rows'] as $row): ?>
                                     <?php if (!$showEmployerDashboardEndpoint && $row[1] === '/api/wllp/employer/dashboard') { continue; } ?>
                                     <tr>
@@ -477,6 +479,7 @@ req-20260526-0001
 }</pre>
                     </div>
 
+                    <?php if ($showAdminApiEndpoints): ?>
                     <h6 class="mb-2 text-primary">Admin API</h6>
 
                     <div class="pc-endpoint-card mb-3">
@@ -545,6 +548,7 @@ req-20260526-0001
                             <div class="k">Narrative reference</div><div class="v">Disarankan dijalankan pada jam non-peak karena ukuran file bisa besar. Untuk laporan periodik, simpan hasil export dengan penamaan timestamp agar histori data dapat dilacak. Jika download terputus, ulangi dengan Request-Id baru.</div>
                         </div>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
