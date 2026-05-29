@@ -23,6 +23,7 @@ $productionBase = 'https://joss.kemnaker.go.id/api';
 $showEmployerDashboardEndpoint = false;
 $showAdminApiEndpoints = false;
 $showKarirhubBridgeApiEndpoints = false;
+$showEmployerBulkEndpoints = false;
 
 $endpointGroups = [
     [
@@ -214,6 +215,7 @@ req-20260526-0001
                                 <?php if (!$showKarirhubBridgeApiEndpoints && $group['title'] === 'Karirhub Bridge API') { continue; } ?>
                                 <?php foreach ($group['rows'] as $row): ?>
                                     <?php if (!$showEmployerDashboardEndpoint && $row[1] === '/api/wllp/employer/dashboard') { continue; } ?>
+                                    <?php if (!$showEmployerBulkEndpoints && in_array($row[1], ['/api/wllp/reports/bulk/validate', '/api/wllp/reports/bulk/commit'], true)) { continue; } ?>
                                     <tr>
                                         <td><?php echo h($group['title']); ?></td>
                                         <td><span class="badge text-bg-<?php echo $row[0] === 'GET' ? 'success' : ($row[0] === 'PUT' ? 'warning' : 'primary'); ?>"><?php echo h($row[0]); ?></span></td>
@@ -323,6 +325,7 @@ req-20260526-0001
 }</pre>
                     </div>
 
+                    <?php if ($showEmployerBulkEndpoints): ?>
                     <div class="pc-endpoint-card mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <div><span class="badge text-bg-primary me-2">POST</span><span class="pc-mono">/api/wllp/reports/bulk/validate</span></div>
@@ -361,6 +364,7 @@ req-20260526-0001
   "terms": {"agreed": true, "version": "WLLP-TC-2026-01"}
 }</pre>
                     </div>
+                    <?php endif; ?>
 
                     <div class="pc-endpoint-card mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
