@@ -133,7 +133,7 @@ if (!function_exists('kh_proto_render_hero')) {
             <div class="container">
                 <div class="kh-topnav">
                     <div class="kh-topnav-left">
-                        <img class="kh-topnav-logo" src="images/logo-white.png" alt="Logo Kemnaker">
+                        <img class="kh-topnav-logo" src="images/logo-white backup.png" alt="Logo Kemnaker">
                         <div class="kh-topnav-links">
                             <a class="active" href="<?php echo kh_proto_h($secondaryHref); ?>">Daftar Pekerjaan</a>
                             <?php if ($canBuktiLapor): ?>
