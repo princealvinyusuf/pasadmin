@@ -608,10 +608,12 @@ if (isset($_POST['update_id'])) {
             // Insert new detail lowongan if provided
             if (isset($_POST['detail_lowongan']) && is_array($_POST['detail_lowongan'])) {
                 $hasNamaPerusahaanCol = column_exists($conn, 'kemitraan_detail_lowongan', 'nama_perusahaan');
+                $hasJumlahPenempatanCol = column_exists($conn, 'kemitraan_detail_lowongan', 'jumlah_penempatan');
                 
                 foreach ($_POST['detail_lowongan'] as $dl) {
                     $jabatan = trim($dl['jabatan_yang_dibuka'] ?? '');
                     $jumlah = trim($dl['jumlah_kebutuhan'] ?? '');
+                    $jumlahPenempatan = trim($dl['jumlah_penempatan'] ?? '');
                     $gender = trim($dl['gender'] ?? '');
                     $pendidikan = trim($dl['pendidikan_terakhir'] ?? '');
                     $pengalaman = trim($dl['pengalaman_kerja'] ?? '');
@@ -636,20 +638,39 @@ if (isset($_POST['update_id'])) {
                         }
                     }
                     
+                    $insertColumns = [
+                        'kemitraan_id',
+                        'jabatan_yang_dibuka',
+                        'jumlah_kebutuhan',
+                        'gender',
+                        'pendidikan_terakhir',
+                        'pengalaman_kerja',
+                        'kompetensi_yang_dibutuhkan',
+                        'tahapan_seleksi',
+                        'lokasi_penempatan',
+                    ];
+                    $insertValues = [$id, $jabatan, $jumlah, $gender, $pendidikan, $pengalaman, $kompetensi, $tahapan, $lokasi];
+                    $insertTypes = "issssssss";
+
+                    if ($hasJumlahPenempatanCol) {
+                        $insertColumns[] = 'jumlah_penempatan';
+                        $insertValues[] = $jumlahPenempatan;
+                        $insertTypes .= "s";
+                    }
+
                     if ($hasNamaPerusahaanCol) {
-                        $insStmt = $conn->prepare("INSERT INTO kemitraan_detail_lowongan (kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan, gender, pendidikan_terakhir, pengalaman_kerja, kompetensi_yang_dibutuhkan, tahapan_seleksi, lokasi_penempatan, nama_perusahaan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                        if ($insStmt) {
-                            $insStmt->bind_param("isssssssss", $id, $jabatan, $jumlah, $gender, $pendidikan, $pengalaman, $kompetensi, $tahapan, $lokasi, $namaPerusahaanValue);
-                            $insStmt->execute();
-                            $insStmt->close();
-                        }
-                    } else {
-                        $insStmt = $conn->prepare("INSERT INTO kemitraan_detail_lowongan (kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan, gender, pendidikan_terakhir, pengalaman_kerja, kompetensi_yang_dibutuhkan, tahapan_seleksi, lokasi_penempatan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                        if ($insStmt) {
-                            $insStmt->bind_param("issssssss", $id, $jabatan, $jumlah, $gender, $pendidikan, $pengalaman, $kompetensi, $tahapan, $lokasi);
-                            $insStmt->execute();
-                            $insStmt->close();
-                        }
+                        $insertColumns[] = 'nama_perusahaan';
+                        $insertValues[] = $namaPerusahaanValue;
+                        $insertTypes .= "s";
+                    }
+
+                    $placeholders = implode(', ', array_fill(0, count($insertColumns), '?'));
+                    $insSql = "INSERT INTO kemitraan_detail_lowongan (" . implode(', ', $insertColumns) . ") VALUES ($placeholders)";
+                    $insStmt = $conn->prepare($insSql);
+                    if ($insStmt) {
+                        $insStmt->bind_param($insertTypes, ...$insertValues);
+                        $insStmt->execute();
+                        $insStmt->close();
                     }
                 }
             }
@@ -711,8 +732,14 @@ if (table_exists($conn, 'kemitraan_detail_lowongan')) {
         $hasNamaPerusahaanCol = $colRes->num_rows > 0;
         $colRes->free();
     }
+    $hasJumlahPenempatanCol = false;
+    if ($colRes = $conn->query("SHOW COLUMNS FROM kemitraan_detail_lowongan LIKE 'jumlah_penempatan'")) {
+        $hasJumlahPenempatanCol = $colRes->num_rows > 0;
+        $colRes->free();
+    }
     $namaPerusahaanSelect = $hasNamaPerusahaanCol ? ", nama_perusahaan" : "";
-    $dlRes = $conn->query("SELECT kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan, gender, pendidikan_terakhir, pengalaman_kerja, kompetensi_yang_dibutuhkan, tahapan_seleksi, lokasi_penempatan{$namaPerusahaanSelect} FROM kemitraan_detail_lowongan ORDER BY kemitraan_id ASC, id ASC");
+    $jumlahPenempatanSelect = $hasJumlahPenempatanCol ? ", jumlah_penempatan" : "";
+    $dlRes = $conn->query("SELECT kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan{$jumlahPenempatanSelect}, gender, pendidikan_terakhir, pengalaman_kerja, kompetensi_yang_dibutuhkan, tahapan_seleksi, lokasi_penempatan{$namaPerusahaanSelect} FROM kemitraan_detail_lowongan ORDER BY kemitraan_id ASC, id ASC");
     if ($dlRes) {
         while ($dl = $dlRes->fetch_assoc()) {
             $kid = intval($dl['kemitraan_id']);
@@ -741,6 +768,7 @@ if (table_exists($conn, 'kemitraan_detail_lowongan')) {
             $detailLowonganByKemitraan[$kid][] = [
                 'jabatan_yang_dibuka' => $dl['jabatan_yang_dibuka'] ?? '',
                 'jumlah_kebutuhan' => $dl['jumlah_kebutuhan'] ?? '',
+                'jumlah_penempatan' => $dl['jumlah_penempatan'] ?? '',
                 'gender' => $dl['gender'] ?? '',
                 'pendidikan_terakhir' => $dl['pendidikan_terakhir'] ?? '',
                 'pengalaman_kerja' => $dl['pengalaman_kerja'] ?? '',
@@ -1309,6 +1337,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                         <div class="fw-semibold mb-2">Lowongan #${idx + 1}</div>
                         <div><span class="text-muted">Jabatan Yang Dibuka:</span> ${escapeHtml(l.jabatan_yang_dibuka)}</div>
                         <div><span class="text-muted">Jumlah Kebutuhan:</span> ${escapeHtml(l.jumlah_kebutuhan)}</div>
+                        <div><span class="text-muted">Jumlah Penempatan:</span> ${escapeHtml(l.jumlah_penempatan || '-')}</div>
                         <div><span class="text-muted">Gender:</span> ${escapeHtml(l.gender || '-')}</div>
                         <div><span class="text-muted">Pendidikan Terakhir:</span> ${escapeHtml(l.pendidikan_terakhir || '-')}</div>
                         <div><span class="text-muted">Pengalaman Kerja:</span> ${escapeHtml(l.pengalaman_kerja || '-')}</div>
@@ -1515,6 +1544,10 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                   <div class="col-md-6">
                     <label class="form-label small">Jumlah Kebutuhan</label>
                     <input type="text" name="detail_lowongan[${idx}][jumlah_kebutuhan]" class="form-control form-control-sm" value="${data ? (data.jumlah_kebutuhan || '') : ''}">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small">Jumlah Penempatan (Admin)</label>
+                    <input type="text" name="detail_lowongan[${idx}][jumlah_penempatan]" class="form-control form-control-sm" value="${data ? (data.jumlah_penempatan || '') : ''}">
                   </div>
                   <div class="col-md-6">
                     <label class="form-label small">Gender</label>
