@@ -1454,12 +1454,43 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                     payload.set('detail_lowongan_id', lowonganId);
                     payload.set('jumlah_penempatan', jumlahPenempatan);
 
-                    const resp = await fetch('kemitraan_submission.php', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                      body: payload.toString()
-                    });
-                    const result = await resp.json();
+                    // Try posting to current route first, then fallback aliases.
+                    const endpoints = [
+                      window.location.pathname + window.location.search,
+                      'kemitraan_submission',
+                      'kemitraan_submission.php'
+                    ];
+                    let resp = null;
+                    let lastFetchError = null;
+
+                    for (const endpoint of endpoints) {
+                      try {
+                        resp = await fetch(endpoint, {
+                          method: 'POST',
+                          credentials: 'same-origin',
+                          headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                            'X-Requested-With': 'XMLHttpRequest'
+                          },
+                          body: payload.toString()
+                        });
+                        break;
+                      } catch (fetchErr) {
+                        lastFetchError = fetchErr;
+                      }
+                    }
+
+                    if (!resp) {
+                      throw new Error((lastFetchError && lastFetchError.message) ? lastFetchError.message : 'Failed to fetch');
+                    }
+
+                    const rawText = await resp.text();
+                    let result = null;
+                    try {
+                      result = JSON.parse(rawText);
+                    } catch (jsonErr) {
+                      throw new Error(resp.ok ? 'Response bukan JSON valid.' : (`HTTP ${resp.status}`));
+                    }
 
                     if (!result || !result.ok) {
                       throw new Error((result && result.message) ? result.message : 'Gagal menyimpan data.');
