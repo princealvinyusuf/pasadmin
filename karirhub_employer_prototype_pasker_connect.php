@@ -225,7 +225,7 @@ $endpointGroups = [
                             <div class="k">Query opsional</div><div class="v"><span class="pc-mono">limit, offset</span></div>
                             <div class="k">Response utama</div><div class="v"><span class="pc-mono">data[]</span> dan <span class="pc-mono">pagination</span>.</div>
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">422 VALIDATION_FAILED</span>.</div>
-                            <div class="k">Narrative reference</div><div class="v">Gunakan endpoint ini untuk halaman list dan histori bukti lapor. Praktik terbaik adalah mengandalkan pagination dari API, bukan memuat semua data sekaligus. Untuk UX yang baik, tampilkan total hasil, tombol next/prev, dan simpan posisi <span class="pc-mono">offset</span> agar pengguna bisa kembali ke titik daftar sebelumnya.</div>
+                            <div class="k">Narrative reference</div><div class="v">Gunakan endpoint ini untuk halaman list dan histori bukti lapor.</div>
                         </div>
                     </div>
 
