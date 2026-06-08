@@ -272,11 +272,11 @@ $endpointGroups = [
       "village": "Senayan",
       "job_field_id": "Akunting",
       "industry_id": "Perbankan",
-      "marital_status_requirement": "Tidak diwajibkan",
+      "marital_status_requirement": "Single",
       "work_type": "Full Time",
       "valid_from": "2026-06-03",
       "valid_until": "2026-07-03",
-      "posting_url": "https://wllpconnect.kemnaker.go.id/jobs/staff-operasional"
+      "posting_url": "https://glints.com/id/en/opportunities/jobs/staff-akunting/a252f626-eee7-4874-943a-83963c73e704 "
     }]
   }'
 
