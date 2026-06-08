@@ -471,7 +471,7 @@ $endpointGroups = [
                             <div class="k">Purpose</div><div class="v">Update status proses rekrutmen untuk item lowongan.</div>
                             <div class="k">Required body</div><div class="v"><span class="pc-mono">status</span> (note opsional)</div>
                             <div class="k">Status sample</div><div class="v">Belum Terisi, Proses Seleksi, Terisi</div>
-                            <div class="k">Narrative reference</div><div class="v">Batasi nilai status pada dropdown terstruktur agar konsisten antar integrator. Setiap update sebaiknya menyertakan note singkat untuk memudahkan jejak audit dan analisis perubahan status dari waktu ke waktu.</div>
+                            <div class="k">Narrative reference</div><div class="v">Update status proses rekrutmen untuk item lowongan.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">{
   "status": "Proses Seleksi",
