@@ -14,12 +14,8 @@ function h(string $value): string
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
-$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$host = (string)($_SERVER['HTTP_HOST'] ?? 'localhost');
-$baseUrl = '/pasadmin';
-$sandboxBase = rtrim($baseUrl, '/') . '/api';
-$sandboxAbsolute = $scheme . '://' . $host . $sandboxBase;
-$productionBase = 'https://joss.kemnaker.go.id/api';
+$sandboxAbsolute = 'https://sandbox.wllpconnect.kemnaker.go.id';
+$productionBase = 'https://wllpconnect.kemnaker.go.id';
 $showEmployerDashboardEndpoint = false;
 $showAdminApiEndpoints = false;
 $showKarirhubBridgeApiEndpoints = false;
@@ -119,7 +115,7 @@ $endpointGroups = [
                     <ul class="mb-0">
                         <li>Sandbox Base URL: <span class="pc-mono"><?php echo h($sandboxAbsolute); ?></span></li>
                         <li>Production Base URL: <span class="pc-mono"><?php echo h($productionBase); ?></span></li>
-                        <li>Format response: JSON (kecuali endpoint export CSV dan report PDF).</li>
+                        <li>Format response: JSON (kecuali endpoint report PDF).</li>
                         <li>Metode autentikasi: Signature berbasis HMAC SHA256.</li>
                     </ul>
                     <div class="pc-hr"></div>
