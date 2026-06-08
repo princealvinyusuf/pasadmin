@@ -227,6 +227,37 @@ $endpointGroups = [
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">422 VALIDATION_FAILED</span>.</div>
                             <div class="k">Narrative reference</div><div class="v">Gunakan endpoint ini untuk halaman list dan histori bukti lapor.</div>
                         </div>
+<pre class="pc-pre bg-dark text-light rounded p-3">curl --request GET "<?php echo h($sandboxAbsolute); ?>/wllp/reports?employer_id=1&limit=10&offset=0" \
+  --header "Client-Id: demo-client" \
+  --header "Request-Id: req-20260526-0002" \
+  --header "Request-Timestamp: 2026-05-26T05:01:00Z" \
+  --header "Signature: &lt;hmac_sha256_signature&gt;" \
+  --header "Content-Type: application/json"
+
+# Success example
+{
+  "success": true,
+  "data": [
+    {
+      "id": 501,
+      "no_reg_bukti": "WLLP-572606-00000001",
+      "employer_id": 1,
+      "employer_name": "PT Contoh Nusantara",
+      "unit_name": "Kantor Pusat",
+      "period_type": "weekly",
+      "period_start": "2026-06-02",
+      "period_end": "2026-06-08",
+      "verification_status": "submitted",
+      "created_at": "2026-06-03 09:12:33"
+    }
+  ],
+  "pagination": {
+    "limit": 10,
+    "offset": 0,
+    "next_offset": 10,
+    "has_more": false
+  }
+}</pre>
                     </div>
 
                     <div class="pc-endpoint-card mb-3">
