@@ -439,6 +439,27 @@ $endpointGroups = [
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 ITEM_NOT_FOUND</span>.</div>
                             <div class="k">Narrative reference</div><div class="v">Gunakan endpoint ini untuk polling status item tertentu tanpa memuat ulang seluruh report. Cocok pada UI modal atau panel detail. Jika data sangat dinamis, gunakan interval polling moderat agar tidak membebani API.</div>
                         </div>
+<pre class="pc-pre bg-dark text-light rounded p-3">curl --request GET "<?php echo h($sandboxAbsolute); ?>/wllp/items/9001/status" \
+  --header "Client-Id: demo-client" \
+  --header "Request-Id: req-20260526-0004" \
+  --header "Request-Timestamp: 2026-05-26T05:03:00Z" \
+  --header "Signature: &lt;hmac_sha256_signature&gt;" \
+  --header "Content-Type: application/json"
+
+# Success example
+{
+  "success": true,
+  "data": {
+    "id": 9001,
+    "id_lowongan": "LK-000001",
+    "title": "Staff Operasional",
+    "headcount_needed": 3,
+    "status": "Belum Terisi",
+    "note": null,
+    "filled_count": 0,
+    "last_reported_at": "2026-06-03 09:12:33"
+  }
+}</pre>
                     </div>
 
                     <div class="pc-endpoint-card mb-3">
