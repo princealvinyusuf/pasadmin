@@ -558,7 +558,7 @@ $endpointGroups = [
                                 <tr>
                                     <td><span class="badge text-bg-primary">v1.0</span></td>
                                     <td><?php echo h(date('Y-m-d')); ?></td>
-                                    <td>Initial release: employer/admin/karirhub bridge endpoints, signature auth, replay protection, audit logging.</td>
+                                    <td>Initial release: employer API endpoints, signature auth, logging.</td>
                                     <td>Backward compatible baseline</td>
                                 </tr>
                             </tbody>
