@@ -551,21 +551,6 @@ $endpointGroups = [
                 </div>
             </div>
 
-            <div class="card pc-card mb-3">
-                <div class="card-body">
-                    <div class="pc-section-title mb-2 pc-anchor" id="checklist">8) Go-live Checklist</div>
-                    <ol class="mb-0">
-                        <li>Dapatkan <span class="pc-mono">Client-Id</span> dan <span class="pc-mono">Client-Secret</span> dari admin Kemnaker.</li>
-                        <li>Sinkronkan server time dengan UTC (NTP).</li>
-                        <li>Implementasikan HMAC SHA256 signer dan validasi canonical string.</li>
-                        <li>Uji positive scenario untuk semua endpoint utama.</li>
-                        <li>Uji negative scenario: signature invalid, timestamp expired, duplicate Request-Id, payload invalid.</li>
-                        <li>Verifikasi log monitoring request di dashboard API clients.</li>
-                        <li>Siapkan proses rotasi secret dan incident response kontak teknis.</li>
-                    </ol>
-                </div>
-            </div>
-
             <div class="card pc-card">
                 <div class="card-body">
                     <div class="pc-section-title mb-2 pc-anchor" id="changelog">9) Changelog & Versioning</div>
