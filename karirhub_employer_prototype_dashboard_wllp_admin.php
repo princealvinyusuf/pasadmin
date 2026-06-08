@@ -329,14 +329,14 @@ $summaryCards = [
     ['label' => 'Total Lowongan Dilaporkan', 'value' => (string)$funnel['dilaporkan'], 'tone' => 'primary', 'sub' => $deltaLabel],
     ['label' => 'Lowongan Aktif', 'value' => (string)$funnel['aktif'], 'tone' => 'info', 'sub' => 'Status belum terisi dan masa berlaku aktif'],
     ['label' => 'Sudah Terisi', 'value' => (string)$funnel['terisi'], 'tone' => 'success', 'sub' => 'Data status keterisian terkonfirmasi'],
-    ['label' => 'Perlu Update', 'value' => (string)$funnel['perlu_update'], 'tone' => 'warning', 'sub' => 'Butuh tindak lanjut employer/unit'],
+    ['label' => 'Belum Terisi', 'value' => (string)$funnel['perlu_update'], 'tone' => 'warning', 'sub' => 'Butuh tindak lanjut employer/unit'],
 ];
 
 $trendLabels = array_map(static fn (array $r): string => $r['period'], $trendRows);
 $trendTotal = array_map(static fn (array $r): int => (int)$r['total'], $trendRows);
 $trendTerisi = array_map(static fn (array $r): int => (int)$r['terisi'], $trendRows);
 
-$funnelLabels = ['Dilaporkan', 'Aktif', 'Terisi', 'Perlu Update'];
+$funnelLabels = ['Dilaporkan', 'Aktif', 'Terisi', 'Belum Terisi'];
 $funnelData = [$funnel['dilaporkan'], $funnel['aktif'], $funnel['terisi'], $funnel['perlu_update']];
 
 $geoLabels = array_map(static fn (array $r): string => $r['provinsi'], $geoRows);
@@ -561,7 +561,7 @@ $baseFilterParams = [
                                     <th>Periode</th>
                                     <th>Total</th>
                                     <th>Terisi</th>
-                                    <th>Perlu Update</th>
+                                    <th>Belum Terisi</th>
                                     <th>Aksi</th>
                                 </tr>
                             </thead>

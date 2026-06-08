@@ -550,7 +550,7 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <select id="status" name="status" class="form-select form-select-sm">
                         <option value="all"<?php echo $statusFilter === 'all' ? ' selected' : ''; ?>>Semua Status</option>
                         <option value="terverifikasi"<?php echo $statusFilter === 'terverifikasi' ? ' selected' : ''; ?>>Terverifikasi</option>
-                        <option value="perlu update"<?php echo $statusFilter === 'perlu update' ? ' selected' : ''; ?>>Perlu Update</option>
+                        <option value="perlu update"<?php echo $statusFilter === 'perlu update' ? ' selected' : ''; ?>>Belum Terisi</option>
                     </select>
                 </div>
                 <div class="col-12 col-md-4">

@@ -120,7 +120,7 @@ $filteredRows = array_values(array_filter($allRows, static function (array $row)
                     <select id="verifikasi" name="verifikasi" class="form-select form-select-sm">
                         <option value="all"<?php echo $verifikasiFilter === 'all' ? ' selected' : ''; ?>>Semua</option>
                         <option value="terverifikasi"<?php echo $verifikasiFilter === 'terverifikasi' ? ' selected' : ''; ?>>Terverifikasi</option>
-                        <option value="perlu update"<?php echo $verifikasiFilter === 'perlu update' ? ' selected' : ''; ?>>Perlu Update</option>
+                        <option value="perlu update"<?php echo $verifikasiFilter === 'perlu update' ? ' selected' : ''; ?>>Belum Terisi</option>
                     </select>
                 </div>
                 <div class="col-12 col-md-2 d-grid">

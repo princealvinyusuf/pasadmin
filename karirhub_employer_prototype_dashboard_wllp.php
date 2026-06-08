@@ -68,7 +68,7 @@ $summaryCards = [
     ['label' => 'Lowongan Dilaporkan', 'value' => (string)$metrics['total_dilaporkan'], 'tone' => 'primary'],
     ['label' => 'Lowongan Aktif', 'value' => (string)$metrics['lowongan_aktif'], 'tone' => 'info'],
     ['label' => 'Sudah Terisi', 'value' => (string)$metrics['sudah_terisi'], 'tone' => 'success'],
-    ['label' => 'Perlu Update Status', 'value' => (string)$metrics['perlu_update'], 'tone' => 'warning'],
+    ['label' => 'Belum Terisi', 'value' => (string)$metrics['perlu_update'], 'tone' => 'warning'],
 ];
 ?>
 <!DOCTYPE html>
