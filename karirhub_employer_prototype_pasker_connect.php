@@ -423,7 +423,7 @@ $endpointGroups = [
                             <div class="k">Purpose</div><div class="v">Mengunduh dokumen bukti lapor dalam format PDF.</div>
                             <div class="k">Output</div><div class="v"><span class="pc-mono">Content-Type: application/pdf</span></div>
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 REPORT_NOT_FOUND</span>.</div>
-                            <div class="k">Narrative reference</div><div class="v">Karena output berupa file biner, endpoint ini tidak diproses sebagai JSON. Pastikan client mengeksekusi download stream dan menangani nama file dengan benar. Untuk kebutuhan arsip, integrator bisa menyimpan hash dokumen yang diunduh sebagai bukti integritas.</div>
+                            <div class="k">Narrative reference</div><div class="v">Mengunduh dokumen bukti lapor dalam format PDF.</div>
                         </div>
                     </div>
 
