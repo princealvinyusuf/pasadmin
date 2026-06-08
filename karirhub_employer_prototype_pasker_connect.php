@@ -146,7 +146,7 @@ $endpointGroups = [
                             <tbody>
                             <tr><td class="pc-mono">Client-Id</td><td>Yes</td><td>Identifier client dari Kemnaker.</td></tr>
                             <tr><td class="pc-mono">Request-Id</td><td>Yes</td><td>Harus unik per request.</td></tr>
-                            <tr><td class="pc-mono">Request-Timestamp</td><td>Yes</td><td>ISO8601 UTC, toleransi 5 menit.</td></tr>
+                            <tr><td class="pc-mono">Request-Timestamp</td><td>Yes</td><td>ISO8601 UTC.</td></tr>
                             <tr><td class="pc-mono">Signature</td><td>Yes</td><td>HMAC SHA256 canonical request.</td></tr>
                             <tr><td class="pc-mono">Content-Type</td><td>Yes</td><td><span class="pc-mono">application/json</span> untuk request JSON.</td></tr>
                             </tbody>
