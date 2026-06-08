@@ -90,7 +90,7 @@ $filteredSummary = array_values(array_filter($summaryRows, static function (arra
                             <th>Unit</th>
                             <th>Total Laporan</th>
                             <th>Status Terisi</th>
-                            <th>Belum Update</th>
+                            <th>Belum Terisi</th>
                             <th>Kepatuhan (%)</th>
                             <th>Status</th>
                         </tr>

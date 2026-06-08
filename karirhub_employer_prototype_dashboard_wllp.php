@@ -171,7 +171,7 @@ $summaryCards = [
                             <th>Unit</th>
                             <th>Total Laporan</th>
                             <th>Terisi</th>
-                            <th>Belum Update</th>
+                            <th>Belum Terisi</th>
                             <th>Kepatuhan</th>
                             <th>Status</th>
                         </tr>
