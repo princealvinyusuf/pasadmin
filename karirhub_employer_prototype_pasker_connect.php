@@ -380,6 +380,38 @@ $endpointGroups = [
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 REPORT_NOT_FOUND</span>.</div>
                             <div class="k">Narrative reference</div><div class="v">Endpoint ini cocok untuk halaman detail tunggal karena menyediakan konteks report dan item dalam satu respons. Gunakan ketika user klik nomor bukti dari list. Bila report tidak ditemukan, arahkan user kembali ke list terbaru dan lakukan refresh sinkronisasi data.</div>
                         </div>
+<pre class="pc-pre bg-dark text-light rounded p-3">curl --request GET "<?php echo h($sandboxAbsolute); ?>/wllp/reports/501" \
+  --header "Client-Id: demo-client" \
+  --header "Request-Id: req-20260526-0003" \
+  --header "Request-Timestamp: 2026-05-26T05:02:00Z" \
+  --header "Signature: &lt;hmac_sha256_signature&gt;" \
+  --header "Content-Type: application/json"
+
+# Success example
+{
+  "success": true,
+  "report": {
+    "id": 501,
+    "no_reg_bukti": "WLLP-572606-00000001",
+    "employer_id": 1,
+    "employer_name": "PT Contoh Nusantara",
+    "unit_name": "Kantor Pusat",
+    "period_type": "weekly",
+    "period_start": "2026-06-02",
+    "period_end": "2026-06-08",
+    "verification_status": "submitted",
+    "created_at": "2026-06-03 09:12:33"
+  },
+  "items": [
+    {
+      "id": 9001,
+      "id_lowongan": "LK-000001",
+      "title": "Staff Operasional",
+      "headcount_needed": 3,
+      "status": "Belum Terisi"
+    }
+  ]
+}</pre>
                     </div>
 
                     <div class="pc-endpoint-card mb-3">
