@@ -541,10 +541,7 @@ $endpointGroups = [
                     <div class="pc-section-title mb-2 pc-anchor" id="ops">6) Operational Guidance</div>
                     <ul class="mb-0">
                         <li><strong>Retry policy:</strong> retry hanya untuk 5xx/timeout, tidak untuk 4xx validasi.</li>
-                        <li><strong>Idempotency:</strong> setiap retry wajib memakai <span class="pc-mono">Request-Id</span> baru.</li>
                         <li><strong>Backoff:</strong> disarankan exponential backoff (1s, 2s, 4s, 8s; max 30s).</li>
-                        <li><strong>Correlation:</strong> simpan <span class="pc-mono">Request-Id</span> di log client untuk troubleshooting.</li>
-                        <li><strong>Time sync:</strong> gunakan NTP sinkron UTC untuk mencegah auth failure karena skew timestamp.</li>
                     </ul>
                 </div>
             </div>
