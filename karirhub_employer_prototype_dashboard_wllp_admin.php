@@ -3,6 +3,7 @@ require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
 require_once __DIR__ . '/karirhub_employer_prototype_data.php';
 require_once __DIR__ . '/karirhub_employer_prototype_storage.php';
+require_once __DIR__ . '/wllp_external_storage.php';
 require_once __DIR__ . '/karirhub_employer_prototype_ui.php';
 require_once __DIR__ . '/db.php';
 
@@ -22,11 +23,13 @@ $units = $dataset['units'] ?? [];
 $employers = $dataset['employers'] ?? [];
 kh_proto_ensure_multi_tables($conn);
 kh_proto_seed_multi_from_dataset($conn, $dataset, $units);
+wllp_external_ensure_schema($conn);
 
 $filters = [
     'periode_tipe' => trim((string)($_GET['periode_tipe'] ?? 'all')),
     'anchor_mulai' => trim((string)($_GET['anchor_mulai'] ?? '')),
     'anchor_sampai' => trim((string)($_GET['anchor_sampai'] ?? '')),
+    'sumber' => trim((string)($_GET['sumber'] ?? 'all')),
     'employer' => trim((string)($_GET['employer'] ?? 'all')),
     'unit' => trim((string)($_GET['unit'] ?? 'all')),
     'status_keterisian' => trim((string)($_GET['status_keterisian'] ?? 'all')),
@@ -40,10 +43,16 @@ $allowedStatus = ['all', 'Terisi', 'Belum Terisi', 'Proses Seleksi', 'Belum Upda
 if (!in_array($filters['status_keterisian'], $allowedStatus, true)) {
     $filters['status_keterisian'] = 'all';
 }
+$allowedSumber = ['all', 'internal', 'external'];
+if (!in_array($filters['sumber'], $allowedSumber, true)) {
+    $filters['sumber'] = 'all';
+}
 
 $rows = [];
 $res = $conn->query("
     SELECT
+        'internal' AS sumber_key,
+        'WLLP Internal' AS sumber_label,
         h.no_reg_bukti,
         h.periode_tipe,
         CAST(h.periode_anchor AS CHAR) AS periode_anchor,
@@ -68,6 +77,37 @@ $res = $conn->query("
 ");
 if ($res) {
     while ($r = $res->fetch_assoc()) {
+        $rows[] = $r;
+    }
+}
+$resExternal = $conn->query("
+    SELECT
+        'external' AS sumber_key,
+        'WLLP External' AS sumber_label,
+        r.no_reg_bukti,
+        r.period_type AS periode_tipe,
+        CAST(r.period_anchor AS CHAR) AS periode_anchor,
+        CAST(r.period_start AS CHAR) AS periode_mulai,
+        CAST(r.period_end AS CHAR) AS periode_selesai,
+        r.verification_status AS status_verifikasi,
+        i.id_lowongan,
+        r.employer_code AS employer_kode,
+        r.employer_name AS employer_nama,
+        r.unit_code AS unit_kode,
+        r.unit_name AS unit_nama,
+        i.title AS jabatan,
+        i.headcount_needed AS jumlah_kebutuhan,
+        '' AS provinsi,
+        '' AS kota,
+        CAST(i.valid_until AS CHAR) AS masa_berlaku_sampai,
+        COALESCE(s.status, 'Belum Terisi') AS status_keterisian
+    FROM wllp_reports r
+    JOIN wllp_report_items i ON i.report_id = r.id
+    LEFT JOIN wllp_item_statuses s ON s.item_id = i.id
+    ORDER BY r.period_anchor DESC, i.created_at DESC
+");
+if ($resExternal) {
+    while ($r = $resExternal->fetch_assoc()) {
         $rows[] = $r;
     }
 }
@@ -120,6 +160,9 @@ $filteredRows = array_values(array_filter($rows, static function (array $row) us
         return false;
     }
     if ($filters['anchor_sampai'] !== '' && $anchor !== '' && $anchor > $filters['anchor_sampai']) {
+        return false;
+    }
+    if ($filters['sumber'] !== 'all' && (string)($row['sumber_key'] ?? 'internal') !== $filters['sumber']) {
         return false;
     }
     if ($filters['employer'] !== 'all' && (string)($row['employer_kode'] ?? '') !== $filters['employer']) {
@@ -303,6 +346,7 @@ $baseFilterParams = [
     'periode_tipe' => $filters['periode_tipe'],
     'anchor_mulai' => $filters['anchor_mulai'],
     'anchor_sampai' => $filters['anchor_sampai'],
+    'sumber' => $filters['sumber'],
     'employer' => $filters['employer'],
     'unit' => $filters['unit'],
     'status_keterisian' => $filters['status_keterisian'],
@@ -373,6 +417,14 @@ $baseFilterParams = [
                         <?php foreach ($employerOptions as $code => $name): ?>
                             <option value="<?php echo h((string)$code); ?>"<?php echo $filters['employer'] === (string)$code ? ' selected' : ''; ?>><?php echo h((string)$name); ?></option>
                         <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label">Sumber</label>
+                    <select name="sumber" class="form-select form-select-sm">
+                        <option value="all"<?php echo $filters['sumber'] === 'all' ? ' selected' : ''; ?>>Semua Sumber</option>
+                        <option value="internal"<?php echo $filters['sumber'] === 'internal' ? ' selected' : ''; ?>>WLLP Internal</option>
+                        <option value="external"<?php echo $filters['sumber'] === 'external' ? ' selected' : ''; ?>>WLLP External</option>
                     </select>
                 </div>
                 <div class="col-6 col-md-3">
