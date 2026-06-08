@@ -256,8 +256,27 @@ $endpointGroups = [
     "items": [{
       "title": "Staff Operasional",
       "headcount_needed": 3,
+      "gender_requirement": "Semua",
+      "age_min": 21,
+      "age_max": 35,
+      "education_min_id": 5,
       "job_description": "Melakukan operasional harian.",
-      "skills": "Microsoft Office, komunikasi"
+      "skills": "Microsoft Office, komunikasi",
+      "experience_min_years": 1,
+      "salary_min": 5000000,
+      "salary_max": 7000000,
+      "kbji_code": "24231",
+      "province_id": 31,
+      "city_id": 3171,
+      "district_id": 317101,
+      "village_id": 3171011001,
+      "job_field_id": 12,
+      "industry_id": 4,
+      "marital_status_requirement": "Tidak diwajibkan",
+      "work_type": "Full Time",
+      "valid_from": "2026-06-03",
+      "valid_until": "2026-07-03",
+      "posting_url": "https://wllpconnect.kemnaker.go.id/jobs/staff-operasional"
     }]
   }'
 
