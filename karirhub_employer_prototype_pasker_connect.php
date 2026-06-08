@@ -437,7 +437,7 @@ $endpointGroups = [
                             <div class="k">Path wajib</div><div class="v"><span class="pc-mono">itemId</span></div>
                             <div class="k">Response utama</div><div class="v">Status, note, filled_count, last_reported_at.</div>
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 ITEM_NOT_FOUND</span>.</div>
-                            <div class="k">Narrative reference</div><div class="v">Gunakan endpoint ini untuk polling status item tertentu tanpa memuat ulang seluruh report. Cocok pada UI modal atau panel detail. Jika data sangat dinamis, gunakan interval polling moderat agar tidak membebani API.</div>
+                            <div class="k">Narrative reference</div><div class="v">Mengambil status keterisian item lowongan.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">curl --request GET "<?php echo h($sandboxAbsolute); ?>/wllp/items/9001/status" \
   --header "Client-Id: demo-client" \
