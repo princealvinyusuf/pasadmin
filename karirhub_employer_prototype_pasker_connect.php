@@ -513,7 +513,7 @@ $endpointGroups = [
   --data '{
   "nik": "3171xxxxxxxxxxxx",
   "full_name": "Budi Santoso",
-  "education_id": 5,
+  "education_id": "S1",
   "gender": "Laki-laki",
   "birth_place": "Jakarta",
   "birth_date": "1998-01-20",
