@@ -502,7 +502,7 @@ $endpointGroups = [
                             <div class="k">Purpose</div><div class="v">Mencatat data penempatan pekerja atas item lowongan.</div>
                             <div class="k">Required body</div><div class="v"><span class="pc-mono">nik, full_name, start_date</span></div>
                             <div class="k">Business rule</div><div class="v">Jumlah placement tidak boleh melebihi <span class="pc-mono">headcount_needed</span>.</div>
-                            <div class="k">Narrative reference</div><div class="v">Endpoint ini menandai outcome aktual dari lowongan. Pastikan data personal dimasking di sisi tampilan, dan kirim hanya field yang diperlukan. Jika menerima <span class="pc-mono">PLACEMENT_LIMIT_EXCEEDED</span>, lakukan sinkronisasi ulang item sebelum user menambah placement baru.</div>
+                            <div class="k">Narrative reference</div><div class="v">Pastikan data personal dimasking.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">curl --request POST "<?php echo h($sandboxAbsolute); ?>/wllp/items/9001/placements" \
   --header "Client-Id: demo-client" \
