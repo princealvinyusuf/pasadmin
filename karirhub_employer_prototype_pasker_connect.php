@@ -235,7 +235,7 @@ $endpointGroups = [
                             <span class="pc-small">Create manual WLLP report</span>
                         </div>
                         <div class="pc-kv mb-2">
-                            <div class="k">Purpose</div><div class="v">Membuat report WLLP baru atau reuse report pada periode yang sama untuk employer terkait.</div>
+                            <div class="k">Purpose</div><div class="v">Membuat report WLLP baru.</div>
                             <div class="k">Required body</div><div class="v"><span class="pc-mono">employer_id, unit_id, period_type, period_anchor, terms, items[]</span></div>
                             <div class="k">Validation highlights</div><div class="v"><span class="pc-mono">headcount_needed > 0</span>, <span class="pc-mono">period_type weekly/monthly</span>, <span class="pc-mono">terms.agreed = true</span></div>
                             <div class="k">Narrative reference</div><div class="v">Ini endpoint tulis paling penting pada alur WLLP. Jika request valid, sistem akan membuat nomor bukti dan id lowongan secara otomatis. Saat validasi gagal, object <span class="pc-mono">fields</span> perlu langsung dipetakan ke UI form agar pengguna dapat memperbaiki input tanpa menebak field mana yang salah.</div>
