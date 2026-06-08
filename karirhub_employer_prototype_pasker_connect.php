@@ -123,12 +123,10 @@ $endpointGroups = [
                     <div class="pc-toc d-flex flex-wrap gap-2">
                         <a class="pc-chip" href="#overview">Overview</a>
                         <a class="pc-chip" href="#auth">Authentication</a>
-                        <a class="pc-chip" href="#conventions">Request Conventions</a>
                         <a class="pc-chip" href="#endpoint-summary">Endpoint Summary</a>
                         <a class="pc-chip" href="#endpoint-details">Endpoint Details</a>
                         <a class="pc-chip" href="#errors">Error Catalog</a>
                         <a class="pc-chip" href="#ops">Operational Guidance</a>
-                        <a class="pc-chip" href="#checklist">Go-live Checklist</a>
                         <a class="pc-chip" href="#changelog">Changelog</a>
                     </div>
                 </div>
@@ -157,7 +155,7 @@ $endpointGroups = [
 
             <div class="card pc-card mb-3">
                 <div class="card-body">
-                    <div class="pc-section-title mb-2 pc-anchor" id="endpoint-summary">4) Endpoint Summary</div>
+                    <div class="pc-section-title mb-2 pc-anchor" id="endpoint-summary">3) Endpoint Summary</div>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover align-middle mb-0">
                             <thead class="table-light">
@@ -187,7 +185,7 @@ $endpointGroups = [
 
             <div class="card pc-card mb-3">
                 <div class="card-body">
-                    <div class="pc-section-title mb-2 pc-anchor" id="endpoint-details">5) Endpoint Details</div>
+                    <div class="pc-section-title mb-2 pc-anchor" id="endpoint-details">4) Endpoint Details</div>
 
                     <h6 class="mb-2 text-primary">Employer API</h6>
 
@@ -516,7 +514,7 @@ $endpointGroups = [
 
             <div class="card pc-card mb-3">
                 <div class="card-body">
-                    <div class="pc-section-title mb-2 pc-anchor" id="errors">6) Error Catalog</div>
+                    <div class="pc-section-title mb-2 pc-anchor" id="errors">5) Error Catalog</div>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered mb-0">
                             <thead class="table-light">
@@ -540,7 +538,7 @@ $endpointGroups = [
 
             <div class="card pc-card mb-3">
                 <div class="card-body">
-                    <div class="pc-section-title mb-2 pc-anchor" id="ops">7) Operational Guidance</div>
+                    <div class="pc-section-title mb-2 pc-anchor" id="ops">6) Operational Guidance</div>
                     <ul class="mb-0">
                         <li><strong>Retry policy:</strong> retry hanya untuk 5xx/timeout, tidak untuk 4xx validasi.</li>
                         <li><strong>Idempotency:</strong> setiap retry wajib memakai <span class="pc-mono">Request-Id</span> baru.</li>
@@ -553,7 +551,7 @@ $endpointGroups = [
 
             <div class="card pc-card">
                 <div class="card-body">
-                    <div class="pc-section-title mb-2 pc-anchor" id="changelog">9) Changelog & Versioning</div>
+                    <div class="pc-section-title mb-2 pc-anchor" id="changelog">7) Changelog & Versioning</div>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered mb-0">
                             <thead class="table-light">
