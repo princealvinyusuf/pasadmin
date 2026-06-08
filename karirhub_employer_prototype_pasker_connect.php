@@ -378,7 +378,7 @@ $endpointGroups = [
                             <div class="k">Path wajib</div><div class="v"><span class="pc-mono">id</span> (report id numerik)</div>
                             <div class="k">Response utama</div><div class="v"><span class="pc-mono">report</span> + <span class="pc-mono">items[]</span>.</div>
                             <div class="k">Error utama</div><div class="v"><span class="pc-mono">404 REPORT_NOT_FOUND</span>.</div>
-                            <div class="k">Narrative reference</div><div class="v">Endpoint ini cocok untuk halaman detail tunggal karena menyediakan konteks report dan item dalam satu respons. Gunakan ketika user klik nomor bukti dari list. Bila report tidak ditemukan, arahkan user kembali ke list terbaru dan lakukan refresh sinkronisasi data.</div>
+                            <div class="k">Narrative reference</div><div class="v">Endpoint ini digunakan untuk melihat detail tunggal report dalam satu respons.</div>
                         </div>
 <pre class="pc-pre bg-dark text-light rounded p-3">curl --request GET "<?php echo h($sandboxAbsolute); ?>/wllp/reports/501" \
   --header "Client-Id: demo-client" \
