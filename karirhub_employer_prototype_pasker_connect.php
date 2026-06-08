@@ -152,21 +152,6 @@ $endpointGroups = [
                             </tbody>
                         </table>
                     </div>
-                    <div class="pc-code-block">
-<pre class="pc-pre"># Signature formula
-signature = HEX( HMAC_SHA256(canonical_string, client_secret) )
-
-# Example canonical string
-POST
-/api/wllp/reports
-demo-client
-req-20260526-0001
-2026-05-26T05:00:00Z
-2f3d7d3f18f8f5d0ab63b0bb1f9e4f0e5f6cc57bf4d0bb1f2f92f2a1d06322a1</pre>
-                    </div>
-                    <div class="pc-small mt-2">
-                        Notes: Untuk request GET tanpa body, gunakan SHA256 dari string kosong. Signature selalu dihitung dari raw JSON body persis seperti yang dikirim.
-                    </div>
                 </div>
             </div>
 
