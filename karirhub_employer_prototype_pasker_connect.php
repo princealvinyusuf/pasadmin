@@ -152,10 +152,6 @@ $endpointGroups = [
                             </tbody>
                         </table>
                     </div>
-                    <div class="alert alert-info mb-3">
-                        Canonical string:<br>
-                        <span class="pc-mono">METHOD + "\\n" + PATH + "\\n" + Client-Id + "\\n" + Request-Id + "\\n" + Request-Timestamp + "\\n" + SHA256(raw_body)</span>
-                    </div>
                     <div class="pc-code-block">
 <pre class="pc-pre"># Signature formula
 signature = HEX( HMAC_SHA256(canonical_string, client_secret) )
