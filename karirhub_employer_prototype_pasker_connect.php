@@ -504,7 +504,13 @@ $endpointGroups = [
                             <div class="k">Business rule</div><div class="v">Jumlah placement tidak boleh melebihi <span class="pc-mono">headcount_needed</span>.</div>
                             <div class="k">Narrative reference</div><div class="v">Endpoint ini menandai outcome aktual dari lowongan. Pastikan data personal dimasking di sisi tampilan, dan kirim hanya field yang diperlukan. Jika menerima <span class="pc-mono">PLACEMENT_LIMIT_EXCEEDED</span>, lakukan sinkronisasi ulang item sebelum user menambah placement baru.</div>
                         </div>
-<pre class="pc-pre bg-dark text-light rounded p-3">{
+<pre class="pc-pre bg-dark text-light rounded p-3">curl --request POST "<?php echo h($sandboxAbsolute); ?>/wllp/items/9001/placements" \
+  --header "Client-Id: demo-client" \
+  --header "Request-Id: req-20260526-0006" \
+  --header "Request-Timestamp: 2026-05-26T05:05:00Z" \
+  --header "Signature: &lt;hmac_sha256_signature&gt;" \
+  --header "Content-Type: application/json" \
+  --data '{
   "nik": "3171xxxxxxxxxxxx",
   "full_name": "Budi Santoso",
   "education_id": 5,
@@ -516,6 +522,17 @@ $endpointGroups = [
   "start_date": "2026-06-10",
   "email": "budi@example.com",
   "phone": "081234567890"
+}'
+
+# Success example (201)
+{
+  "success": true,
+  "placement": {
+    "id": 3001,
+    "item_id": 9001,
+    "nik_masked": "3171********1234",
+    "full_name": "Budi Santoso"
+  }
 }</pre>
                     </div>
 
