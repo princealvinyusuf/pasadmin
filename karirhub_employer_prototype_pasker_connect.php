@@ -157,29 +157,6 @@ $endpointGroups = [
 
             <div class="card pc-card mb-3">
                 <div class="card-body">
-                    <div class="pc-section-title mb-2 pc-anchor" id="conventions">3) Request & Response Conventions</div>
-                    <div class="pc-kv mb-3">
-                        <div class="k">Protocol</div><div class="v">HTTPS only</div>
-                        <div class="k">Request timestamp</div><div class="v">ISO8601 UTC (contoh: <span class="pc-mono">2026-05-26T05:00:00Z</span>)</div>
-                        <div class="k">Pagination</div><div class="v"><span class="pc-mono">limit</span> dan <span class="pc-mono">offset</span> pada endpoint list</div>
-                        <div class="k">Success envelope</div><div class="v"><span class="pc-mono">{"success":true,...}</span></div>
-                        <div class="k">Error envelope</div><div class="v"><span class="pc-mono">{"success":false,"error_code":"..."}</span></div>
-                    </div>
-                    <div class="pc-code-block">
-<pre class="pc-pre">{
-  "success": false,
-  "error_code": "VALIDATION_FAILED",
-  "message": "Data belum lengkap.",
-  "fields": {
-    "items.0.title": "Required field."
-  }
-}</pre>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card pc-card mb-3">
-                <div class="card-body">
                     <div class="pc-section-title mb-2 pc-anchor" id="endpoint-summary">4) Endpoint Summary</div>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover align-middle mb-0">
