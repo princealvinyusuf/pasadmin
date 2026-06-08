@@ -115,7 +115,7 @@ $endpointGroups = [
             <div class="card pc-card mb-3">
                 <div class="card-body">
                     <div class="pc-section-title mb-2 pc-anchor" id="overview">1) Gambaran Umum</div>
-                    <p class="mb-2">Pasker Connect menggunakan model request signed header bergaya JOSS, dengan dukungan endpoint employer, admin, dan bridge data Karirhub jobs. API ini ditujukan untuk sistem eksternal seperti portal kerja mitra, agregator lowongan, dan integrator institusi.</p>
+                    <p class="mb-2">Pasker Connect menggunakan model request signed header bergaya JOSS, dengan dukungan endpoint employer API. API ini ditujukan untuk sistem eksternal seperti portal kerja mitra, agregator lowongan, dan integrator institusi.</p>
                     <ul class="mb-0">
                         <li>Sandbox Base URL: <span class="pc-mono"><?php echo h($sandboxAbsolute); ?></span></li>
                         <li>Production Base URL: <span class="pc-mono"><?php echo h($productionBase); ?></span></li>
