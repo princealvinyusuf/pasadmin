@@ -473,7 +473,21 @@ $endpointGroups = [
                             <div class="k">Status sample</div><div class="v">Belum Terisi, Proses Seleksi, Terisi</div>
                             <div class="k">Narrative reference</div><div class="v">Update status proses rekrutmen untuk item lowongan.</div>
                         </div>
-<pre class="pc-pre bg-dark text-light rounded p-3">{
+<pre class="pc-pre bg-dark text-light rounded p-3">curl --request PUT "<?php echo h($sandboxAbsolute); ?>/wllp/items/9001/status" \
+  --header "Client-Id: demo-client" \
+  --header "Request-Id: req-20260526-0005" \
+  --header "Request-Timestamp: 2026-05-26T05:04:00Z" \
+  --header "Signature: &lt;hmac_sha256_signature&gt;" \
+  --header "Content-Type: application/json" \
+  --data '{
+  "status": "Proses Seleksi",
+  "note": "Kandidat sedang tahap interview"
+}'
+
+# Success example
+{
+  "success": true,
+  "item_id": 9001,
   "status": "Proses Seleksi",
   "note": "Kandidat sedang tahap interview"
 }</pre>
