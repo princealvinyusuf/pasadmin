@@ -256,7 +256,7 @@ $endpointGroups = [
     "items": [{
       "title": "Staff Operasional",
       "headcount_needed": 3,
-      "gender_requirement": "Semua",
+      "gender_requirement": "Perempuan",
       "age_min": 21,
       "age_max": 35,
       "education_min_id": 5,
