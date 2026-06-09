@@ -652,11 +652,17 @@ if (isset($_POST['update_id'])) {
             if (isset($_POST['detail_lowongan']) && is_array($_POST['detail_lowongan'])) {
                 $hasNamaPerusahaanCol = column_exists($conn, 'kemitraan_detail_lowongan', 'nama_perusahaan');
                 $hasJumlahPenempatanCol = column_exists($conn, 'kemitraan_detail_lowongan', 'jumlah_penempatan');
+                $hasSasaranPemenuhanCol = column_exists($conn, 'kemitraan_detail_lowongan', 'sasaran_pemenuhan_walk_in_interview');
                 
                 foreach ($_POST['detail_lowongan'] as $dl) {
                     $jabatan = trim($dl['jabatan_yang_dibuka'] ?? '');
                     $jumlah = trim($dl['jumlah_kebutuhan'] ?? '');
                     $jumlahPenempatan = trim($dl['jumlah_penempatan'] ?? '');
+                    $sasaranPemenuhan = max(0, intval($dl['sasaran_pemenuhan_walk_in_interview'] ?? 0));
+                    $jumlahKebutuhanInt = max(0, intval($jumlah));
+                    if ($sasaranPemenuhan > $jumlahKebutuhanInt) {
+                        $sasaranPemenuhan = $jumlahKebutuhanInt;
+                    }
                     $gender = trim($dl['gender'] ?? '');
                     $pendidikan = trim($dl['pendidikan_terakhir'] ?? '');
                     $pengalaman = trim($dl['pengalaman_kerja'] ?? '');
@@ -694,6 +700,12 @@ if (isset($_POST['update_id'])) {
                     ];
                     $insertValues = [$id, $jabatan, $jumlah, $gender, $pendidikan, $pengalaman, $kompetensi, $tahapan, $lokasi];
                     $insertTypes = "issssssss";
+
+                    if ($hasSasaranPemenuhanCol) {
+                        $insertColumns[] = 'sasaran_pemenuhan_walk_in_interview';
+                        $insertValues[] = $sasaranPemenuhan;
+                        $insertTypes .= "i";
+                    }
 
                     if ($hasJumlahPenempatanCol) {
                         $insertColumns[] = 'jumlah_penempatan';
@@ -775,14 +787,20 @@ if (table_exists($conn, 'kemitraan_detail_lowongan')) {
         $hasNamaPerusahaanCol = $colRes->num_rows > 0;
         $colRes->free();
     }
+    $hasSasaranPemenuhanCol = false;
+    if ($colRes = $conn->query("SHOW COLUMNS FROM kemitraan_detail_lowongan LIKE 'sasaran_pemenuhan_walk_in_interview'")) {
+        $hasSasaranPemenuhanCol = $colRes->num_rows > 0;
+        $colRes->free();
+    }
     $hasJumlahPenempatanCol = false;
     if ($colRes = $conn->query("SHOW COLUMNS FROM kemitraan_detail_lowongan LIKE 'jumlah_penempatan'")) {
         $hasJumlahPenempatanCol = $colRes->num_rows > 0;
         $colRes->free();
     }
     $namaPerusahaanSelect = $hasNamaPerusahaanCol ? ", nama_perusahaan" : "";
+    $sasaranPemenuhanSelect = $hasSasaranPemenuhanCol ? ", sasaran_pemenuhan_walk_in_interview" : "";
     $jumlahPenempatanSelect = $hasJumlahPenempatanCol ? ", jumlah_penempatan" : "";
-    $dlRes = $conn->query("SELECT id, kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan{$jumlahPenempatanSelect}, gender, pendidikan_terakhir, pengalaman_kerja, kompetensi_yang_dibutuhkan, tahapan_seleksi, lokasi_penempatan{$namaPerusahaanSelect} FROM kemitraan_detail_lowongan ORDER BY kemitraan_id ASC, id ASC");
+    $dlRes = $conn->query("SELECT id, kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan{$sasaranPemenuhanSelect}{$jumlahPenempatanSelect}, gender, pendidikan_terakhir, pengalaman_kerja, kompetensi_yang_dibutuhkan, tahapan_seleksi, lokasi_penempatan{$namaPerusahaanSelect} FROM kemitraan_detail_lowongan ORDER BY kemitraan_id ASC, id ASC");
     if ($dlRes) {
         while ($dl = $dlRes->fetch_assoc()) {
             $kid = intval($dl['kemitraan_id']);
@@ -812,6 +830,7 @@ if (table_exists($conn, 'kemitraan_detail_lowongan')) {
                 'id' => intval($dl['id'] ?? 0),
                 'jabatan_yang_dibuka' => $dl['jabatan_yang_dibuka'] ?? '',
                 'jumlah_kebutuhan' => $dl['jumlah_kebutuhan'] ?? '',
+                'sasaran_pemenuhan_walk_in_interview' => $dl['sasaran_pemenuhan_walk_in_interview'] ?? 0,
                 'jumlah_penempatan' => $dl['jumlah_penempatan'] ?? '',
                 'gender' => $dl['gender'] ?? '',
                 'pendidikan_terakhir' => $dl['pendidikan_terakhir'] ?? '',
@@ -1383,6 +1402,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                         <div class="fw-semibold mb-2">Lowongan #${idx + 1}</div>
                         <div><span class="text-muted">Jabatan Yang Dibuka:</span> ${escapeHtml(l.jabatan_yang_dibuka)}</div>
                         <div><span class="text-muted">Jumlah Kebutuhan:</span> ${escapeHtml(l.jumlah_kebutuhan)}</div>
+                        <div><span class="text-muted">Sasaran Pemenuhan (Walk In Interview):</span> ${escapeHtml(l.sasaran_pemenuhan_walk_in_interview ?? 0)}</div>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                           <span class="text-muted">Jumlah Penempatan:</span>
                           <input
@@ -1702,7 +1722,19 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                   </div>
                   <div class="col-md-6">
                     <label class="form-label small">Jumlah Kebutuhan</label>
-                    <input type="text" name="detail_lowongan[${idx}][jumlah_kebutuhan]" class="form-control form-control-sm" value="${data ? (data.jumlah_kebutuhan || '') : ''}">
+                    <input type="number" min="1" name="detail_lowongan[${idx}][jumlah_kebutuhan]" class="form-control form-control-sm js-jumlah-kebutuhan-input" value="${data ? (data.jumlah_kebutuhan || '') : ''}">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small">Sasaran Pemenuhan Kebutuhan Kandidat melalui Walk In Interview ini</label>
+                    <input
+                      type="range"
+                      name="detail_lowongan[${idx}][sasaran_pemenuhan_walk_in_interview]"
+                      class="form-range js-sasaran-walkin-slider"
+                      min="0"
+                      max="0"
+                      value="${data ? (parseInt(data.sasaran_pemenuhan_walk_in_interview ?? 0, 10) || 0) : 0}"
+                    >
+                    <small class="text-muted d-block">Nilai: <span class="js-sasaran-walkin-value">0 / 0</span></small>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label small">Jumlah Penempatan (Admin)</label>
@@ -1741,6 +1773,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
             `;
             
             container.insertAdjacentHTML('beforeend', itemHtml);
+            syncLowonganSasaranSlider(container.querySelector(`[data-index="${idx}"]`));
             
             // Update remove button handlers
             document.querySelectorAll('.remove-lowongan-btn').forEach(btn => {
@@ -1754,6 +1787,25 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 }
               });
             });
+          }
+
+          function syncLowonganSasaranSlider(item) {
+            if (!item) return;
+            const jumlahInput = item.querySelector('.js-jumlah-kebutuhan-input');
+            const slider = item.querySelector('.js-sasaran-walkin-slider');
+            const valueLabel = item.querySelector('.js-sasaran-walkin-value');
+            if (!slider || !valueLabel) return;
+
+            const jumlahVal = parseInt((jumlahInput && jumlahInput.value) ? jumlahInput.value : '0', 10);
+            const maxValue = Number.isFinite(jumlahVal) && jumlahVal > 0 ? jumlahVal : 0;
+            slider.max = String(maxValue);
+            slider.disabled = maxValue === 0;
+
+            const sliderVal = parseInt(slider.value || '0', 10);
+            const safeSliderVal = Number.isFinite(sliderVal) ? sliderVal : 0;
+            const clampedVal = Math.min(Math.max(safeSliderVal, 0), maxValue);
+            slider.value = String(clampedVal);
+            valueLabel.textContent = `${clampedVal} / ${maxValue}`;
           }
           
           function renumberDetailLowongan() {
@@ -1772,12 +1824,22 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                   input.setAttribute('name', newName);
                 }
               });
+
+              syncLowonganSasaranSlider(item);
             });
           }
           
           // Add new lowongan button
           document.getElementById('add_detail_lowongan_btn').addEventListener('click', function() {
             addDetailLowonganItem();
+          });
+
+          document.getElementById('detail_lowongan_container').addEventListener('input', function(e) {
+            const target = e.target;
+            if (!target || !(target instanceof Element)) return;
+            if (!target.classList.contains('js-jumlah-kebutuhan-input') && !target.classList.contains('js-sasaran-walkin-slider')) return;
+            const item = target.closest('[data-index]');
+            syncLowonganSasaranSlider(item);
           });
         });
         </script>
