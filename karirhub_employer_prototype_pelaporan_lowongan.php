@@ -330,6 +330,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         #wizardValidationSummary {
             border-left: 4px solid #ffc107;
         }
+        .wizard-url-row .btn {
+            min-width: 2.25rem;
+        }
     </style>
 </head>
 <body class="kh-proto-page" data-wizard-force-open="<?php echo $wizardForceOpen; ?>" data-initial-landing-mode="<?php echo h($initialLandingMode); ?>">
@@ -586,7 +589,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </div>
                                         <div class="col-12">
                                             <label class="form-label mb-1">Alamat URL Postingan Loker</label>
-                                            <input type="url" class="form-control form-control-sm wizard-lowongan-field" name="alamat_url_postingan_loker[]" placeholder="https://karirhub.kemnaker.go.id/..." value="<?php echo h((string)$tab['alamat_url_postingan_loker']); ?>" data-tab-index="<?php echo $index; ?>" data-field="alamat_url_postingan_loker" data-required="1">
+                                            <div class="wizard-url-group" data-tab-index="<?php echo $index; ?>">
+                                                <div class="wizard-url-list">
+                                                    <?php
+                                                    $urlRows = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string)$tab['alamat_url_postingan_loker'])), static fn ($v) => $v !== ''));
+                                                    if (empty($urlRows)) {
+                                                        $urlRows[] = '';
+                                                    }
+                                                    ?>
+                                                    <?php foreach ($urlRows as $urlValue): ?>
+                                                        <div class="input-group input-group-sm mb-2 wizard-url-row">
+                                                            <input type="url" class="form-control wizard-url-input" placeholder="https://karirhub.kemnaker.go.id/..." value="<?php echo h((string)$urlValue); ?>">
+                                                            <button type="button" class="btn btn-outline-danger wizard-url-remove" title="Hapus URL">
+                                                                <i class="bi bi-dash"></i>
+                                                            </button>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                                <div class="d-flex justify-content-end">
+                                                    <button type="button" class="btn btn-outline-primary btn-sm wizard-url-add">
+                                                        <i class="bi bi-plus-lg me-1"></i>Tambah URL
+                                                    </button>
+                                                </div>
+                                                <input type="hidden" class="wizard-lowongan-field" name="alamat_url_postingan_loker[]" value="<?php echo h((string)$tab['alamat_url_postingan_loker']); ?>" data-tab-index="<?php echo $index; ?>" data-field="alamat_url_postingan_loker" data-required="1">
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -869,6 +895,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         }
 
+        function splitUrlLines(rawValue) {
+            return String(rawValue || '')
+                .split(/\r?\n/)
+                .map((x) => x.trim())
+                .filter((x) => x !== '');
+        }
+
+        function syncUrlGroup(group) {
+            if (!group) return;
+            const hiddenField = group.querySelector('.wizard-lowongan-field[data-field="alamat_url_postingan_loker"]');
+            const rows = Array.from(group.querySelectorAll('.wizard-url-row'));
+            const values = rows
+                .map((row) => {
+                    const input = row.querySelector('.wizard-url-input');
+                    return input ? String(input.value || '').trim() : '';
+                })
+                .filter((x) => x !== '');
+            if (hiddenField) {
+                hiddenField.value = values.join('\n');
+            }
+            rows.forEach((row) => {
+                const removeBtn = row.querySelector('.wizard-url-remove');
+                if (removeBtn) {
+                    removeBtn.disabled = rows.length <= 1;
+                }
+            });
+        }
+
+        function buildUrlRow(urlValue) {
+            const row = document.createElement('div');
+            row.className = 'input-group input-group-sm mb-2 wizard-url-row';
+
+            const input = document.createElement('input');
+            input.type = 'url';
+            input.className = 'form-control wizard-url-input';
+            input.placeholder = 'https://karirhub.kemnaker.go.id/...';
+            input.value = urlValue || '';
+            row.appendChild(input);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-outline-danger wizard-url-remove';
+            removeBtn.title = 'Hapus URL';
+            removeBtn.innerHTML = '<i class="bi bi-dash"></i>';
+            row.appendChild(removeBtn);
+
+            return row;
+        }
+
+        function setUrlGroupValues(group, rawValue) {
+            if (!group) return;
+            const list = group.querySelector('.wizard-url-list');
+            if (!list) return;
+            list.innerHTML = '';
+            const rows = splitUrlLines(rawValue);
+            const values = rows.length ? rows : [''];
+            values.forEach((urlValue) => {
+                list.appendChild(buildUrlRow(urlValue));
+            });
+            syncUrlGroup(group);
+        }
+
+        function setupAllUrlGroups(scope) {
+            const root = scope || document;
+            Array.from(root.querySelectorAll('.wizard-url-group')).forEach((group) => {
+                const hiddenField = group.querySelector('.wizard-lowongan-field[data-field="alamat_url_postingan_loker"]');
+                setUrlGroupValues(group, hiddenField ? hiddenField.value : '');
+            });
+        }
+
         function renderLowonganTabs(count, values) {
             if (!tabsNav || !tabsContent) return;
             const safeCount = Math.max(1, Math.min(50, parseInt(String(count), 10) || 1));
@@ -909,6 +1005,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     el.setAttribute('data-tab-index', String(i));
                     el.classList.remove('is-invalid');
                 });
+                const urlGroup = pane.querySelector('.wizard-url-group');
+                const rawUrlValues = Object.prototype.hasOwnProperty.call(rowData, 'alamat_url_postingan_loker')
+                    ? rowData.alamat_url_postingan_loker
+                    : defaultValueByField('alamat_url_postingan_loker');
+                setUrlGroupValues(urlGroup, rawUrlValues);
                 tabsContent.appendChild(pane);
             }
             validateTabs(false);
@@ -934,16 +1035,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     const labelNode = wrapper ? wrapper.querySelector('label') : null;
                     const label = String((labelNode ? labelNode.textContent : '') || el.getAttribute('data-field') || 'Field').trim();
                     const empty = required && value === '';
+                    let validationTarget = el;
+                    if (el.getAttribute('data-field') === 'alamat_url_postingan_loker') {
+                        const urlGroup = el.closest('.wizard-url-group');
+                        const firstVisibleInput = urlGroup ? urlGroup.querySelector('.wizard-url-input') : null;
+                        if (firstVisibleInput) {
+                            validationTarget = firstVisibleInput;
+                        }
+                    }
                     if (empty) {
                         rowIssues.push(label + ' wajib diisi');
                     }
                     if (showDetails) {
-                        el.classList.toggle('is-invalid', empty);
+                        validationTarget.classList.toggle('is-invalid', empty);
                         if (empty && !firstInvalidField) {
-                            firstInvalidField = el;
+                            firstInvalidField = validationTarget;
                         }
                     } else {
-                        el.classList.remove('is-invalid');
+                        validationTarget.classList.remove('is-invalid');
                     }
                 });
                 if (row.jumlah_kebutuhan && (!/^\d+$/.test(row.jumlah_kebutuhan) || parseInt(row.jumlah_kebutuhan, 10) <= 0)) {
@@ -1005,10 +1114,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         document.addEventListener('input', function (evt) {
             if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-lowongan-field')) {
                 validateTabs(false);
+                return;
+            }
+            if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-url-input')) {
+                const group = evt.target.closest('.wizard-url-group');
+                syncUrlGroup(group);
+                validateTabs(false);
             }
         });
         document.addEventListener('change', function (evt) {
             if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-lowongan-field')) {
+                validateTabs(false);
+                return;
+            }
+            if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-url-input')) {
+                const group = evt.target.closest('.wizard-url-group');
+                syncUrlGroup(group);
+                validateTabs(false);
+            }
+        });
+        document.addEventListener('click', function (evt) {
+            const addBtn = evt.target ? evt.target.closest('.wizard-url-add') : null;
+            if (addBtn) {
+                const group = addBtn.closest('.wizard-url-group');
+                const list = group ? group.querySelector('.wizard-url-list') : null;
+                if (!group || !list) return;
+                const row = buildUrlRow('');
+                list.appendChild(row);
+                syncUrlGroup(group);
+                const input = row.querySelector('.wizard-url-input');
+                if (input) input.focus();
+                return;
+            }
+            const removeBtn = evt.target ? evt.target.closest('.wizard-url-remove') : null;
+            if (removeBtn) {
+                const group = removeBtn.closest('.wizard-url-group');
+                const list = group ? group.querySelector('.wizard-url-list') : null;
+                const rows = list ? list.querySelectorAll('.wizard-url-row') : [];
+                const row = removeBtn.closest('.wizard-url-row');
+                if (!group || !list || !row) return;
+                if (rows.length <= 1) {
+                    const input = row.querySelector('.wizard-url-input');
+                    if (input) input.value = '';
+                } else {
+                    row.remove();
+                }
+                syncUrlGroup(group);
                 validateTabs(false);
             }
         });
@@ -1078,6 +1229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         renderLowonganTabs(parseInt((wizardJumlahLowongan && wizardJumlahLowongan.value) || '1', 10) || 1, collectLowonganValues());
+        setupAllUrlGroups(tabsContent || document);
         applyWizardSummary();
         if (btnLandingBulk) {
             btnLandingBulk.addEventListener('click', function () {
