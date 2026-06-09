@@ -56,6 +56,7 @@ $lowonganDefaults = [
     'industri_sektor' => '',
     'status_pernikahan' => '',
     'tipe_kerja' => '',
+    'platform_kanal' => '',
     'masa_berlaku_mulai' => date('Y-m-d'),
     'masa_berlaku_sampai' => date('Y-m-d', strtotime('+30 days')),
     'alamat_url_postingan_loker' => '',
@@ -133,6 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'industri_sektor' => 'Industri / Sektor',
         'status_pernikahan' => 'Status Pernikahan',
         'tipe_kerja' => 'Tipe Kerja',
+        'platform_kanal' => 'Platform/Kanal',
         'masa_berlaku_mulai' => 'Masa Berlaku Mulai',
         'masa_berlaku_sampai' => 'Masa Berlaku Sampai',
         'alamat_url_postingan_loker' => 'Alamat URL Postingan Loker',
@@ -185,8 +187,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO karirhub_proto_wllp_pelaporan (
                 no_reg_bukti, id_lowongan, employer_kode, employer_nama, unit_kode, unit_nama, jabatan, jumlah_kebutuhan, jenis_kelamin, usia_min, usia_max,
                 pendidikan_minimal, deskripsi_pekerjaan, keterampilan_utama, pengalaman_min_tahun, rentang_gaji, kode_kbji, provinsi, kota, kecamatan, kelurahan,
-                bidang_pekerjaan, industri_sektor, status_pernikahan, tipe_kerja, masa_berlaku_mulai, masa_berlaku_sampai, alamat_url_postingan_loker, catatan, status_verifikasi
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Terverifikasi')
+                bidang_pekerjaan, industri_sektor, status_pernikahan, tipe_kerja, platform_kanal, masa_berlaku_mulai, masa_berlaku_sampai, alamat_url_postingan_loker, catatan, status_verifikasi
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Terverifikasi')
         ");
         $stmtSaveStatus = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_status (no_reg_bukti, id_lowongan, employer_kode, employer_nama, jabatan, unit_nama, status_saat_ini, tanggal_lapor, tanggal_terisi)
@@ -222,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $jabatanItem = (string)$item['jabatan'];
 
                 $stmtSaveDetail->bind_param(
-                    str_repeat('s', 29),
+                    str_repeat('s', 30),
                     $generatedNoReg,
                     $generatedIdLowongan,
                     $employerKode,
@@ -248,6 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $item['industri_sektor'],
                     $item['status_pernikahan'],
                     $item['tipe_kerja'],
+                    $item['platform_kanal'],
                     $item['masa_berlaku_mulai'],
                     $item['masa_berlaku_sampai'],
                     $item['alamat_url_postingan_loker'],
@@ -580,6 +583,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             </select>
                                         </div>
                                         <div class="col-12 col-md-6">
+                                            <label class="form-label mb-1">Platform/Kanal</label>
+                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="platform_kanal[]" value="<?php echo h((string)$tab['platform_kanal']); ?>" placeholder="Contoh: Karirhub, LinkedIn, Jobstreet" data-tab-index="<?php echo $index; ?>" data-field="platform_kanal" data-required="1">
+                                        </div>
+                                        <div class="col-12 col-md-6">
                                             <label class="form-label mb-1">Masa Berlaku Mulai</label>
                                             <input type="date" class="form-control form-control-sm wizard-lowongan-field" name="masa_berlaku_mulai[]" value="<?php echo h((string)$tab['masa_berlaku_mulai']); ?>" data-tab-index="<?php echo $index; ?>" data-field="masa_berlaku_mulai" data-required="1">
                                         </div>
@@ -805,6 +812,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'Industri / Sektor',
             'Status Pernikahan',
             'Tipe Kerja',
+            'Platform/Kanal',
             'Masa Berlaku Mulai',
             'Masa Berlaku Sampai',
             'Alamat URL Postingan Loker',
@@ -1349,6 +1357,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'Logistik',
                     'Belum Menikah',
                     'Full Time',
+                    'Karirhub',
                     '2026-05-21',
                     '2026-06-21',
                     'https://karirhub.kemnaker.go.id/lowongan/contoh',

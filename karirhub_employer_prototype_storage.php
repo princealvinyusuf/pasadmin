@@ -123,6 +123,7 @@ if (!function_exists('kh_proto_ensure_multi_tables')) {
                 industri_sektor VARCHAR(180) NOT NULL,
                 status_pernikahan VARCHAR(40) NOT NULL,
                 tipe_kerja VARCHAR(40) NOT NULL DEFAULT '',
+                platform_kanal VARCHAR(120) NOT NULL DEFAULT '',
                 masa_berlaku_mulai DATE NOT NULL,
                 masa_berlaku_sampai DATE NOT NULL,
                 alamat_url_postingan_loker VARCHAR(500) NOT NULL,
@@ -139,6 +140,7 @@ if (!function_exists('kh_proto_ensure_multi_tables')) {
         $conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS employer_kode VARCHAR(40) NOT NULL DEFAULT 'EMP-001' AFTER id_lowongan");
         $conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS employer_nama VARCHAR(255) NOT NULL DEFAULT 'PT Contoh Nusantara' AFTER employer_kode");
         $conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS tipe_kerja VARCHAR(40) NOT NULL DEFAULT '' AFTER status_pernikahan");
+        $conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS platform_kanal VARCHAR(120) NOT NULL DEFAULT '' AFTER tipe_kerja");
 
         $conn->query("
             CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_status (
@@ -243,9 +245,9 @@ if (!function_exists('kh_proto_seed_multi_from_dataset')) {
             INSERT INTO karirhub_proto_wllp_pelaporan
             (no_reg_bukti, id_lowongan, employer_kode, employer_nama, unit_kode, unit_nama, jabatan, jumlah_kebutuhan, jenis_kelamin, usia_min, usia_max, pendidikan_minimal,
              deskripsi_pekerjaan, keterampilan_utama, pengalaman_min_tahun, rentang_gaji, kode_kbji, provinsi, kota, kecamatan, kelurahan,
-             bidang_pekerjaan, industri_sektor, status_pernikahan, tipe_kerja, masa_berlaku_mulai, masa_berlaku_sampai, alamat_url_postingan_loker,
+             bidang_pekerjaan, industri_sektor, status_pernikahan, tipe_kerja, platform_kanal, masa_berlaku_mulai, masa_berlaku_sampai, alamat_url_postingan_loker,
              catatan, status_verifikasi)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmtStatus = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_status
@@ -303,16 +305,17 @@ if (!function_exists('kh_proto_seed_multi_from_dataset')) {
             $industriSektor = (string)($row['industri_sektor'] ?? '');
             $statusPernikahan = (string)($row['status_pernikahan'] ?? '');
             $tipeKerja = (string)($row['tipe_kerja'] ?? ($row['employment_type'] ?? ''));
+            $platformKanal = (string)($row['platform_kanal'] ?? 'Karirhub');
             $masaMulai = (string)($row['masa_berlaku_mulai'] ?? $tanggalLapor);
             $masaSampai = (string)($row['masa_berlaku_sampai'] ?? $tanggalLapor);
             $urlPosting = (string)($row['alamat_url_postingan_loker'] ?? '');
             $catatanItem = (string)($row['catatan'] ?? '');
 
             $stmtItem->bind_param(
-                str_repeat('s', 30),
+                str_repeat('s', 31),
                 $noReg, $idLowongan, $employerKode, $employerNama, $unitKode, $unitNama, $jabatan, $jumlahKebutuhan, $jenisKelamin, $usiaMin, $usiaMax, $pendidikanMinimal,
                 $deskripsiPekerjaan, $keterampilanUtama, $pengalamanMin, $rentangGaji, $kodeKbji, $provinsi, $kota, $kecamatan, $kelurahan,
-                $bidangPekerjaan, $industriSektor, $statusPernikahan, $tipeKerja, $masaMulai, $masaSampai, $urlPosting, $catatanItem, $statusVerifikasi
+                $bidangPekerjaan, $industriSektor, $statusPernikahan, $tipeKerja, $platformKanal, $masaMulai, $masaSampai, $urlPosting, $catatanItem, $statusVerifikasi
             );
             $stmtItem->execute();
 
