@@ -1402,7 +1402,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                         <div class="fw-semibold mb-2">Lowongan #${idx + 1}</div>
                         <div><span class="text-muted">Jabatan Yang Dibuka:</span> ${escapeHtml(l.jabatan_yang_dibuka)}</div>
                         <div><span class="text-muted">Jumlah Kebutuhan:</span> ${escapeHtml(l.jumlah_kebutuhan)}</div>
-                        <div><span class="text-muted">Sasaran Pemenuhan (Walk In Interview):</span> ${escapeHtml(l.sasaran_pemenuhan_walk_in_interview ?? 0)}</div>
+                        <div><span class="text-muted">Target Pemenuhan Kebutuhan Kandidat melalui Walk In Interview ini (Jumlah):</span> ${escapeHtml(l.sasaran_pemenuhan_walk_in_interview ?? 0)}</div>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                           <span class="text-muted">Jumlah Penempatan:</span>
                           <input
@@ -1725,7 +1725,7 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                     <input type="number" min="1" name="detail_lowongan[${idx}][jumlah_kebutuhan]" class="form-control form-control-sm js-jumlah-kebutuhan-input" value="${data ? (data.jumlah_kebutuhan || '') : ''}">
                   </div>
                   <div class="col-12">
-                    <label class="form-label small">Sasaran Pemenuhan Kebutuhan Kandidat melalui Walk In Interview ini</label>
+                    <label class="form-label small">Target Pemenuhan Kebutuhan Kandidat melalui Walk In Interview ini (Jumlah)</label>
                     <input
                       type="range"
                       name="detail_lowongan[${idx}][sasaran_pemenuhan_walk_in_interview]"
