@@ -60,6 +60,7 @@ $lowonganDefaults = [
     'masa_berlaku_mulai' => date('Y-m-d'),
     'masa_berlaku_sampai' => date('Y-m-d', strtotime('+30 days')),
     'alamat_url_postingan_loker' => '',
+    'alamat_url_postingan_loker_main' => '',
 ];
 $lowonganFieldKeys = array_keys($lowonganDefaults);
 
@@ -154,6 +155,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (($item['masa_berlaku_mulai'] ?? '') !== '' && ($item['masa_berlaku_sampai'] ?? '') !== '' && $item['masa_berlaku_mulai'] > $item['masa_berlaku_sampai']) {
             $errors[] = 'Lowongan ' . ($idx + 1) . ': Masa berlaku mulai tidak boleh lebih akhir dari masa berlaku sampai.';
+        }
+        $urlRows = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string)($item['alamat_url_postingan_loker'] ?? ''))), static fn ($v) => $v !== ''));
+        $mainUrl = trim((string)($item['alamat_url_postingan_loker_main'] ?? ''));
+        if (count($urlRows) > 1 && $mainUrl === '') {
+            $errors[] = 'Lowongan ' . ($idx + 1) . ': Jika URL postingan lebih dari satu, wajib pilih satu Main URL.';
+        }
+        if ($mainUrl !== '' && !in_array($mainUrl, $urlRows, true)) {
+            $errors[] = 'Lowongan ' . ($idx + 1) . ': Main URL harus salah satu dari daftar URL postingan.';
+        }
+        if (!empty($urlRows)) {
+            if ($mainUrl === '' || !in_array($mainUrl, $urlRows, true)) {
+                $mainUrl = $urlRows[0];
+            }
+            if (count($urlRows) > 1) {
+                $orderedUrls = [$mainUrl];
+                foreach ($urlRows as $urlRow) {
+                    if ($urlRow !== $mainUrl) {
+                        $orderedUrls[] = $urlRow;
+                    }
+                }
+                $urlRows = $orderedUrls;
+            }
+            $wizardLowonganTabs[$idx]['alamat_url_postingan_loker'] = implode("\n", $urlRows);
+            $wizardLowonganTabs[$idx]['alamat_url_postingan_loker_main'] = $mainUrl;
         }
     }
 
@@ -335,6 +360,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .wizard-url-row .btn {
             min-width: 2.25rem;
+        }
+        .wizard-url-main-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            color: #4f647a;
+            padding: 0 0.5rem;
+            border-left: 0;
+            border-right: 0;
+            background: #f8fbff;
+            border-top: 1px solid #ced4da;
+            border-bottom: 1px solid #ced4da;
         }
     </style>
 </head>
@@ -603,22 +641,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                     if (empty($urlRows)) {
                                                         $urlRows[] = '';
                                                     }
+                                                    $mainUrlRow = trim((string)($tab['alamat_url_postingan_loker_main'] ?? ''));
+                                                    if ($mainUrlRow === '' && !empty($urlRows)) {
+                                                        $mainUrlRow = (string)$urlRows[0];
+                                                    }
+                                                    $mainUrlInputName = 'wizard_url_main_' . $index;
                                                     ?>
-                                                    <?php foreach ($urlRows as $urlValue): ?>
+                                                    <?php foreach ($urlRows as $urlIdx => $urlValue): ?>
                                                         <div class="input-group input-group-sm mb-2 wizard-url-row">
                                                             <input type="url" class="form-control wizard-url-input" placeholder="https://karirhub.kemnaker.go.id/..." value="<?php echo h((string)$urlValue); ?>">
+                                                            <label class="wizard-url-main-wrap">
+                                                                <input
+                                                                    type="radio"
+                                                                    class="form-check-input mt-0 wizard-url-main"
+                                                                    name="<?php echo h($mainUrlInputName); ?>"
+                                                                    <?php echo ((string)$urlValue !== '' && (string)$urlValue === $mainUrlRow) || ((string)$urlValue === '' && $urlIdx === 0 && $mainUrlRow === '') ? ' checked' : ''; ?>
+                                                                >
+                                                                Main URL
+                                                            </label>
                                                             <button type="button" class="btn btn-outline-danger wizard-url-remove" title="Hapus URL">
                                                                 <i class="bi bi-dash"></i>
                                                             </button>
                                                         </div>
                                                     <?php endforeach; ?>
                                                 </div>
+                                                <div class="small text-muted mt-1">Jika URL lebih dari satu, pilih salah satu sebagai Main URL.</div>
                                                 <div class="d-flex justify-content-end">
                                                     <button type="button" class="btn btn-outline-primary btn-sm wizard-url-add">
                                                         <i class="bi bi-plus-lg me-1"></i>Tambah URL
                                                     </button>
                                                 </div>
                                                 <input type="hidden" class="wizard-lowongan-field" name="alamat_url_postingan_loker[]" value="<?php echo h((string)$tab['alamat_url_postingan_loker']); ?>" data-tab-index="<?php echo $index; ?>" data-field="alamat_url_postingan_loker" data-required="1">
+                                                <input type="hidden" class="wizard-lowongan-field" name="alamat_url_postingan_loker_main[]" value="<?php echo h((string)$tab['alamat_url_postingan_loker_main']); ?>" data-tab-index="<?php echo $index; ?>" data-field="alamat_url_postingan_loker_main">
                                             </div>
                                         </div>
                                     </div>
@@ -913,25 +967,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function syncUrlGroup(group) {
             if (!group) return;
             const hiddenField = group.querySelector('.wizard-lowongan-field[data-field="alamat_url_postingan_loker"]');
+            const hiddenMainField = group.querySelector('.wizard-lowongan-field[data-field="alamat_url_postingan_loker_main"]');
             const rows = Array.from(group.querySelectorAll('.wizard-url-row'));
-            const values = rows
-                .map((row) => {
-                    const input = row.querySelector('.wizard-url-input');
-                    return input ? String(input.value || '').trim() : '';
-                })
-                .filter((x) => x !== '');
+            const values = [];
+            let selectedMain = '';
+            rows.forEach((row) => {
+                const input = row.querySelector('.wizard-url-input');
+                const radio = row.querySelector('.wizard-url-main');
+                const value = input ? String(input.value || '').trim() : '';
+                if (value !== '') {
+                    values.push(value);
+                }
+                if (radio && radio.checked && value !== '') {
+                    selectedMain = value;
+                }
+            });
+            if (values.length === 1) {
+                selectedMain = values[0];
+            }
             if (hiddenField) {
                 hiddenField.value = values.join('\n');
             }
-            rows.forEach((row) => {
+            if (hiddenMainField) {
+                hiddenMainField.value = selectedMain;
+            }
+            rows.forEach((row, rowIdx) => {
+                const input = row.querySelector('.wizard-url-input');
+                const radio = row.querySelector('.wizard-url-main');
                 const removeBtn = row.querySelector('.wizard-url-remove');
+                const value = input ? String(input.value || '').trim() : '';
+                if (radio) {
+                    if (values.length === 0 && rowIdx === 0) {
+                        radio.checked = true;
+                    } else if (value !== '' && selectedMain !== '') {
+                        radio.checked = value === selectedMain;
+                    }
+                }
                 if (removeBtn) {
                     removeBtn.disabled = rows.length <= 1;
                 }
             });
         }
 
-        function buildUrlRow(urlValue) {
+        function getUrlMainRadioName(group) {
+            const tabIndex = String(group.getAttribute('data-tab-index') || '0');
+            return 'wizard_url_main_' + tabIndex;
+        }
+
+        function buildUrlRow(urlValue, radioName, isMain) {
             const row = document.createElement('div');
             row.className = 'input-group input-group-sm mb-2 wizard-url-row';
 
@@ -941,6 +1024,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             input.placeholder = 'https://karirhub.kemnaker.go.id/...';
             input.value = urlValue || '';
             row.appendChild(input);
+
+            const mainWrap = document.createElement('label');
+            mainWrap.className = 'wizard-url-main-wrap';
+
+            const mainRadio = document.createElement('input');
+            mainRadio.type = 'radio';
+            mainRadio.className = 'form-check-input mt-0 wizard-url-main';
+            mainRadio.name = radioName;
+            mainRadio.checked = Boolean(isMain);
+            mainWrap.appendChild(mainRadio);
+            mainWrap.append('Main URL');
+            row.appendChild(mainWrap);
 
             const removeBtn = document.createElement('button');
             removeBtn.type = 'button';
@@ -956,11 +1051,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!group) return;
             const list = group.querySelector('.wizard-url-list');
             if (!list) return;
+            const hiddenMainField = group.querySelector('.wizard-lowongan-field[data-field="alamat_url_postingan_loker_main"]');
+            const mainValue = hiddenMainField ? String(hiddenMainField.value || '').trim() : '';
+            const radioName = getUrlMainRadioName(group);
             list.innerHTML = '';
             const rows = splitUrlLines(rawValue);
             const values = rows.length ? rows : [''];
-            values.forEach((urlValue) => {
-                list.appendChild(buildUrlRow(urlValue));
+            values.forEach((urlValue, idx) => {
+                const isMain = mainValue !== '' ? urlValue === mainValue : idx === 0;
+                list.appendChild(buildUrlRow(urlValue, radioName, isMain));
             });
             syncUrlGroup(group);
         }
@@ -1072,6 +1171,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (row.masa_berlaku_mulai && row.masa_berlaku_sampai && row.masa_berlaku_mulai > row.masa_berlaku_sampai) {
                     rowIssues.push('Masa Berlaku Mulai tidak boleh lebih akhir');
                 }
+                const urlLines = splitUrlLines(row.alamat_url_postingan_loker || '');
+                const mainUrl = String(row.alamat_url_postingan_loker_main || '').trim();
+                if (urlLines.length > 1 && mainUrl === '') {
+                    rowIssues.push('Jika URL lebih dari satu, pilih Main URL');
+                }
+                if (mainUrl !== '' && !urlLines.includes(mainUrl)) {
+                    rowIssues.push('Main URL harus ada di daftar URL');
+                }
 
                 const ok = rowIssues.length === 0;
                 const badge = document.getElementById('wizardTabBadge-' + idx);
@@ -1140,6 +1247,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 syncUrlGroup(group);
                 validateTabs(false);
             }
+            if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-url-main')) {
+                const group = evt.target.closest('.wizard-url-group');
+                syncUrlGroup(group);
+                validateTabs(false);
+            }
         });
         document.addEventListener('click', function (evt) {
             const addBtn = evt.target ? evt.target.closest('.wizard-url-add') : null;
@@ -1147,7 +1259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 const group = addBtn.closest('.wizard-url-group');
                 const list = group ? group.querySelector('.wizard-url-list') : null;
                 if (!group || !list) return;
-                const row = buildUrlRow('');
+                const row = buildUrlRow('', getUrlMainRadioName(group), false);
                 list.appendChild(row);
                 syncUrlGroup(group);
                 const input = row.querySelector('.wizard-url-input');
