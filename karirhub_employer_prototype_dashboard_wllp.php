@@ -100,9 +100,6 @@ $summaryCards = [
             <a class="btn btn-outline-secondary btn-sm" href="karirhub_employer_prototype_pelaporan_lowongan">
                 <i class="bi bi-journal-plus me-1"></i>Pelaporan Lowongan
             </a>
-            <a class="btn btn-primary btn-sm" href="karirhub_employer_prototype_no_reg_bukti">
-                <i class="bi bi-upc-scan me-1"></i>No. Reg Bukti
-            </a>
         </div>
     </div>
 
