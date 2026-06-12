@@ -657,7 +657,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                                     name="<?php echo h($mainUrlInputName); ?>"
                                                                     <?php echo ((string)$urlValue !== '' && (string)$urlValue === $mainUrlRow) || ((string)$urlValue === '' && $urlIdx === 0 && $mainUrlRow === '') ? ' checked' : ''; ?>
                                                                 >
-                                                                Main URL
+                                                                URL Utama
                                                             </label>
                                                             <button type="button" class="btn btn-outline-danger wizard-url-remove" title="Hapus URL">
                                                                 <i class="bi bi-dash"></i>
@@ -1034,7 +1034,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mainRadio.name = radioName;
             mainRadio.checked = Boolean(isMain);
             mainWrap.appendChild(mainRadio);
-            mainWrap.append('Main URL');
+            mainWrap.append('URL Utama');
             row.appendChild(mainWrap);
 
             const removeBtn = document.createElement('button');
