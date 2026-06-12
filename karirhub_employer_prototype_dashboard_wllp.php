@@ -61,8 +61,6 @@ if ($resActivities) {
 }
 
 $metrics = karirhub_proto_dashboard_metrics($vacancies);
-$complianceByUnit = karirhub_proto_compliance_by_unit($units, $vacancies);
-$latestProof = $metrics['bukti_terbaru'];
 
 $summaryCards = [
     ['label' => 'Lowongan Dilaporkan', 'value' => (string)$metrics['total_dilaporkan'], 'tone' => 'primary'],
@@ -126,71 +124,6 @@ $summaryCards = [
                 </div>
             </div>
         <?php endforeach; ?>
-    </div>
-
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
-            <h5 class="card-title mb-3">Ringkasan Kepatuhan</h5>
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="p-3 rounded border bg-white h-100">
-                        <div class="text-muted small">Status Bulan Berjalan</div>
-                        <?php $statusBulanan = $metrics['perlu_update'] > 1 ? 'Perlu Perhatian' : 'Patuh'; ?>
-                        <div class="fw-semibold text-<?php echo h($statusBulanan === 'Patuh' ? 'success' : 'warning'); ?>"><?php echo h($statusBulanan); ?></div>
-                        <div class="small text-muted">
-                            <?php echo h((string)($metrics['total_dilaporkan'] - $metrics['perlu_update'])); ?> dari
-                            <?php echo h((string)$metrics['total_dilaporkan']); ?> lowongan sudah update status.
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 rounded border bg-white h-100">
-                        <div class="text-muted small">Bukti Lapor Terbaru</div>
-                        <div class="fw-semibold"><?php echo h((string)($latestProof['no_reg_bukti'] ?? '-')); ?></div>
-                        <div class="small text-muted">Diterbitkan <?php echo h((string)($latestProof['tanggal_lapor'] ?? '-')); ?></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 rounded border bg-white h-100">
-                        <div class="text-muted small">Masa Berlaku Monitoring</div>
-                        <div class="fw-semibold"><?php echo h((string)($latestProof['masa_berlaku_sampai'] ?? '-')); ?></div>
-                        <div class="small text-muted"><?php echo h((string)$metrics['perlu_update']); ?> lowongan memerlukan update keterisian.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
-            <h5 class="card-title mb-3">Monitoring Kepatuhan per Unit</h5>
-            <div class="table-responsive">
-                <table class="table table-bordered table-sm align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Unit</th>
-                            <th>Total Laporan</th>
-                            <th>Terisi</th>
-                            <th>Belum Terisi</th>
-                            <th>Kepatuhan</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($complianceByUnit as $row): ?>
-                        <tr>
-                            <td><?php echo h($row['unit']); ?></td>
-                            <td><?php echo h((string)$row['total']); ?></td>
-                            <td><?php echo h((string)$row['terisi']); ?></td>
-                            <td><?php echo h((string)$row['belum_update']); ?></td>
-                            <td><?php echo h((string)$row['patuh_pct']); ?>%</td>
-                            <td><span class="badge text-bg-<?php echo h(karirhub_proto_status_badge_class($row['status'])); ?>"><?php echo h($row['status']); ?></span></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </div>
 
     <div class="card border-0 shadow-sm">
