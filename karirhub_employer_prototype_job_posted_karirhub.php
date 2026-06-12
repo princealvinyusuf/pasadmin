@@ -415,16 +415,17 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
                         <?php if ($addedInfo !== null): ?>
                             <span class="job-posted-status wllp-added">Berhasil ditambahkan ke WLLP</span>
                         <?php endif; ?>
+                        <?php if ($addedInfo === null): ?>
                         <button
                             type="button"
                             class="btn btn-outline-primary btn-sm js-add-to-wllp-btn"
                             data-job-title="<?php echo h((string)$job['judul']); ?>"
                             data-bs-toggle="modal"
                             data-bs-target="#addToWllpModal"
-                            <?php echo $addedInfo !== null ? ' disabled' : ''; ?>
                         >
-                            <i class="bi bi-plus-circle me-1"></i><?php echo $addedInfo !== null ? 'Sudah ditambahkan ke WLLP' : 'Tambahkan ke dalam WLLP'; ?>
+                            <i class="bi bi-plus-circle me-1"></i>Tambahkan ke dalam WLLP
                         </button>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <div class="job-posted-metrics">
