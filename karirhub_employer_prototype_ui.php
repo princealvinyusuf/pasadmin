@@ -116,7 +116,6 @@ if (!function_exists('kh_proto_render_hero')) {
         $canBuktiLapor = kh_proto_can_access('karirhub_employer_prototype_bukti_lapor_view');
         $canPelaporan = kh_proto_can_access('karirhub_employer_prototype_pelaporan_lowongan_view');
         $canStatusKeterisian = kh_proto_can_access('karirhub_employer_prototype_status_keterisian_view');
-        $canMonitoring = kh_proto_can_access('karirhub_employer_prototype_monitoring_kepatuhan_view');
         $canPaskerConnect = kh_proto_can_access('karirhub_employer_prototype_pasker_connect_view');
         $hasAnyWllpMenu = (
             $canDashboardWllp
@@ -125,7 +124,6 @@ if (!function_exists('kh_proto_render_hero')) {
             || $canBuktiLapor
             || $canPelaporan
             || $canStatusKeterisian
-            || $canMonitoring
             || $canPaskerConnect
         );
         ?>
@@ -139,9 +137,6 @@ if (!function_exists('kh_proto_render_hero')) {
                             <?php if ($canBuktiLapor): ?>
                                 <a href="karirhub_employer_prototype_bukti_lapor">Profil + Ulasan Perusahaan</a>
                             <?php endif; ?>
-                            <?php if ($canMonitoring): ?>
-                                <a href="karirhub_employer_prototype_monitoring_kepatuhan">Lainnya <i class="bi bi-chevron-down"></i></a>
-                            <?php endif; ?>
                             <?php if ($hasAnyWllpMenu): ?>
                             <div class="dropdown">
                                 <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -152,10 +147,9 @@ if (!function_exists('kh_proto_render_hero')) {
                                     <?php if ($canDashboardWllpAdmin): ?><li><a class="dropdown-item" href="karirhub_employer_prototype_dashboard_wllp_admin"><i class="bi bi-bar-chart-line"></i>Dashboard WLLP Admin</a></li><?php endif; ?>
                                     <?php if ($canJobPosted): ?><li><a class="dropdown-item" href="karirhub_employer_prototype_job_posted_karirhub"><i class="bi bi-briefcase"></i>Job Posted Karirhub</a></li><?php endif; ?>
                                     <?php if ($canBuktiLapor): ?><li><a class="dropdown-item" href="karirhub_employer_prototype_bukti_lapor"><i class="bi bi-file-earmark-check"></i>Bukti Lapor</a></li><?php endif; ?>
-                                    <?php if (($canPelaporan || $canStatusKeterisian || $canMonitoring) && ($canDashboardWllp || $canDashboardWllpAdmin || $canJobPosted || $canBuktiLapor)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
+                                    <?php if (($canPelaporan || $canStatusKeterisian) && ($canDashboardWllp || $canDashboardWllpAdmin || $canJobPosted || $canBuktiLapor)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
                                     <?php if ($canPelaporan): ?><li><a class="dropdown-item" href="karirhub_employer_prototype_pelaporan_lowongan"><i class="bi bi-journal-plus"></i>Pelaporan Lowongan</a></li><?php endif; ?>
                                     <?php if ($canStatusKeterisian): ?><li><a class="dropdown-item" href="karirhub_employer_prototype_status_keterisian"><i class="bi bi-list-task"></i>Status Keterisian</a></li><?php endif; ?>
-                                    <?php if ($canMonitoring): ?><li><a class="dropdown-item" href="karirhub_employer_prototype_monitoring_kepatuhan"><i class="bi bi-clipboard-data"></i>Monitoring Kepatuhan</a></li><?php endif; ?>
                                     <?php if ($canPaskerConnect): ?><li><a class="dropdown-item" href="karirhub_employer_prototype_pasker_connect"><i class="bi bi-plug"></i>Pasker Connect</a></li><?php endif; ?>
                                 </ul>
                             </div>
@@ -214,7 +208,6 @@ if (!function_exists('kh_proto_render_sidebar')) {
         $canBuktiLapor = kh_proto_can_access('karirhub_employer_prototype_bukti_lapor_view');
         $canPelaporan = kh_proto_can_access('karirhub_employer_prototype_pelaporan_lowongan_view');
         $canStatusKeterisian = kh_proto_can_access('karirhub_employer_prototype_status_keterisian_view');
-        $canMonitoring = kh_proto_can_access('karirhub_employer_prototype_monitoring_kepatuhan_view');
         $canPaskerConnect = kh_proto_can_access('karirhub_employer_prototype_pasker_connect_view');
         $isWllpExpanded = str_starts_with($activeKey, 'wllp_');
         $hasAnyWllpMenu = (
@@ -224,7 +217,6 @@ if (!function_exists('kh_proto_render_sidebar')) {
             || $canBuktiLapor
             || $canPelaporan
             || $canStatusKeterisian
-            || $canMonitoring
             || $canPaskerConnect
         );
         $collapseClass = $isWllpExpanded ? 'show' : '';
@@ -235,7 +227,6 @@ if (!function_exists('kh_proto_render_sidebar')) {
             'wllp_bukti_lapor' => ['icon' => 'bi-file-earmark-check', 'label' => 'Bukti Lapor', 'href' => 'karirhub_employer_prototype_bukti_lapor'],
             'wllp_pelaporan' => ['icon' => 'bi-journal-plus', 'label' => 'Pelaporan Lowongan', 'href' => 'karirhub_employer_prototype_pelaporan_lowongan'],
             'wllp_status_keterisian' => ['icon' => 'bi-list-task', 'label' => 'Status Keterisian', 'href' => 'karirhub_employer_prototype_status_keterisian'],
-            'wllp_monitoring' => ['icon' => 'bi-clipboard-data', 'label' => 'Monitoring Kepatuhan', 'href' => 'karirhub_employer_prototype_monitoring_kepatuhan'],
             'wllp_pasker_connect' => ['icon' => 'bi-plug', 'label' => 'Pasker Connect', 'href' => 'karirhub_employer_prototype_pasker_connect'],
         ];
         ?>
@@ -278,10 +269,9 @@ if (!function_exists('kh_proto_render_sidebar')) {
                                 <?php if ($canDashboardWllpAdmin): ?><li><a href="<?php echo kh_proto_h($menu['dashboard_wllp_admin']['href']); ?>"><i class="bi bi-bar-chart-line"></i>Dashboard WLLP Admin</a></li><?php endif; ?>
                                 <?php if ($canJobPosted): ?><li><a href="<?php echo kh_proto_h($menu['wllp_job_posted']['href']); ?>"><i class="bi bi-briefcase"></i>Job Posted Karirhub</a></li><?php endif; ?>
                                 <?php if ($canBuktiLapor): ?><li><a href="<?php echo kh_proto_h($menu['wllp_bukti_lapor']['href']); ?>"><i class="bi bi-file-earmark-check"></i>Bukti Lapor</a></li><?php endif; ?>
-                                <?php if (($canPelaporan || $canStatusKeterisian || $canMonitoring) && ($canDashboardWllp || $canDashboardWllpAdmin || $canJobPosted || $canBuktiLapor)): ?><li class="kh-side-divider"></li><?php endif; ?>
+                                <?php if (($canPelaporan || $canStatusKeterisian) && ($canDashboardWllp || $canDashboardWllpAdmin || $canJobPosted || $canBuktiLapor)): ?><li class="kh-side-divider"></li><?php endif; ?>
                                 <?php if ($canPelaporan): ?><li><a href="<?php echo kh_proto_h($menu['wllp_pelaporan']['href']); ?>"><i class="bi bi-journal-plus"></i>Pelaporan Lowongan</a></li><?php endif; ?>
                                 <?php if ($canStatusKeterisian): ?><li><a href="<?php echo kh_proto_h($menu['wllp_status_keterisian']['href']); ?>"><i class="bi bi-list-task"></i>Status Keterisian</a></li><?php endif; ?>
-                                <?php if ($canMonitoring): ?><li><a href="<?php echo kh_proto_h($menu['wllp_monitoring']['href']); ?>"><i class="bi bi-clipboard-data"></i>Monitoring Kepatuhan</a></li><?php endif; ?>
                                 <?php if ($canPaskerConnect): ?><li><a href="<?php echo kh_proto_h($menu['wllp_pasker_connect']['href']); ?>"><i class="bi bi-plug"></i>Pasker Connect</a></li><?php endif; ?>
                             </ul>
                         </div>
