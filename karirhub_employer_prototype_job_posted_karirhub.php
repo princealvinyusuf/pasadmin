@@ -315,6 +315,9 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
         .job-posted-status.aktif { background: #18a365; }
         .job-posted-status.wllp-added { background: #0d6efd; }
         .job-posted-side-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+        .job-posted-wllp-added-wrap { display: inline-flex; align-items: center; gap: 6px; }
+        .job-posted-tooltip-btn { border: 0; background: transparent; color: #6c7f95; padding: 0; line-height: 1; }
+        .job-posted-tooltip-btn:hover { color: #0d6efd; }
         .job-posted-metrics { border-top: 1px solid #edf2f8; background: #fbfcfe; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
         .job-metric { padding: 10px 8px; text-align: center; border-right: 1px solid #edf2f8; }
         .job-metric:last-child { border-right: none; }
@@ -413,7 +416,19 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
                             <?php echo (string)$job['status'] === 'ditutup' ? 'Lowongan Ditutup' : 'Lowongan Aktif'; ?>
                         </span>
                         <?php if ($addedInfo !== null): ?>
-                            <span class="job-posted-status wllp-added">Berhasil ditambahkan ke WLLP</span>
+                            <span class="job-posted-wllp-added-wrap">
+                                <span class="job-posted-status wllp-added">Berhasil ditambahkan ke WLLP</span>
+                                <button
+                                    type="button"
+                                    class="job-posted-tooltip-btn"
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="left"
+                                    title="Lowongan Pekerjaan Ini Telah ditambahkan secara Otomatis ke dalam Wajib Lapor Lowongan Pekerjaan"
+                                    aria-label="Informasi status WLLP"
+                                >
+                                    <i class="bi bi-info-circle-fill"></i>
+                                </button>
+                            </span>
                         <?php endif; ?>
                         <?php if ($addedInfo === null): ?>
                         <button
@@ -517,6 +532,11 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
             const title = btn.getAttribute('data-job-title') || '';
             jobKeyInput.value = title;
             jobTitleText.textContent = title || '-';
+        });
+
+        const tooltipTriggers = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltipTriggers.forEach(function (el) {
+            bootstrap.Tooltip.getOrCreateInstance(el);
         });
 
         <?php if (!empty($addErrors)): ?>
