@@ -22,6 +22,63 @@ function kh_proto_generate_no_reg_bukti(mysqli $conn, string $anchorDate): strin
     return kh_proto_generate_no_reg_from_anchor($conn, $anchorDate);
 }
 
+function kh_proto_parse_platform_kanal(string $raw): array
+{
+    $parts = preg_split('/\s*,\s*/', $raw) ?: [];
+    $allowed = ['Job Portal', 'Social Media', 'Lainnya'];
+    $result = [];
+    foreach ($parts as $part) {
+        $value = trim((string)$part);
+        if ($value === '' || !in_array($value, $allowed, true) || in_array($value, $result, true)) {
+            continue;
+        }
+        $result[] = $value;
+    }
+    return $result;
+}
+
+function kh_proto_parse_posting_rows(string $raw): array
+{
+    $rows = [];
+    $lines = preg_split('/\r\n|\r|\n/', $raw) ?: [];
+    foreach ($lines as $line) {
+        $line = trim((string)$line);
+        if ($line === '') {
+            continue;
+        }
+        if (str_contains($line, '||')) {
+            $parts = array_map('trim', explode('||', $line, 3));
+            $rows[] = [
+                'channel' => (string)($parts[0] ?? ''),
+                'source' => (string)($parts[1] ?? ''),
+                'url' => (string)($parts[2] ?? ''),
+            ];
+            continue;
+        }
+        $rows[] = [
+            'channel' => '',
+            'source' => '',
+            'url' => $line,
+        ];
+    }
+    return $rows;
+}
+
+function kh_proto_serialize_posting_rows(array $rows): string
+{
+    $lines = [];
+    foreach ($rows as $row) {
+        $channel = trim((string)($row['channel'] ?? ''));
+        $source = trim((string)($row['source'] ?? ''));
+        $url = trim((string)($row['url'] ?? ''));
+        if ($url === '') {
+            continue;
+        }
+        $lines[] = $channel . '||' . $source . '||' . $url;
+    }
+    return implode("\n", $lines);
+}
+
 $dataset = karirhub_proto_dataset();
 $units = $dataset['units'];
 kh_proto_ensure_multi_tables($conn);
@@ -156,28 +213,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (($item['masa_berlaku_mulai'] ?? '') !== '' && ($item['masa_berlaku_sampai'] ?? '') !== '' && $item['masa_berlaku_mulai'] > $item['masa_berlaku_sampai']) {
             $errors[] = 'Lowongan ' . ($idx + 1) . ': Masa berlaku mulai tidak boleh lebih akhir dari masa berlaku sampai.';
         }
-        $urlRows = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string)($item['alamat_url_postingan_loker'] ?? ''))), static fn ($v) => $v !== ''));
+        $selectedChannels = kh_proto_parse_platform_kanal((string)($item['platform_kanal'] ?? ''));
+        if (empty($selectedChannels)) {
+            $errors[] = 'Lowongan ' . ($idx + 1) . ': Platform/Kanal wajib dipilih.';
+        }
+        $postingRowsRaw = kh_proto_parse_posting_rows((string)($item['alamat_url_postingan_loker'] ?? ''));
+        $postingRows = [];
+        foreach ($postingRowsRaw as $postingRow) {
+            $rowUrl = trim((string)($postingRow['url'] ?? ''));
+            $rowSource = trim((string)($postingRow['source'] ?? ''));
+            if ($rowUrl === '' && $rowSource === '') {
+                continue;
+            }
+            $postingRows[] = [
+                'channel' => trim((string)($postingRow['channel'] ?? '')),
+                'source' => $rowSource,
+                'url' => $rowUrl,
+            ];
+        }
+        foreach ($postingRows as $postingRow) {
+            if ($postingRow['source'] === '') {
+                $errors[] = 'Lowongan ' . ($idx + 1) . ': Sumber URL wajib diisi.';
+                break;
+            }
+            if ($postingRow['channel'] !== '' && !in_array($postingRow['channel'], $selectedChannels, true)) {
+                $errors[] = 'Lowongan ' . ($idx + 1) . ': Kanal sumber URL tidak sesuai dengan Platform/Kanal terpilih.';
+                break;
+            }
+        }
+        $urlRows = array_values(array_filter(array_map(static fn (array $row): string => (string)($row['url'] ?? ''), $postingRows), static fn ($v) => $v !== ''));
         $mainUrl = trim((string)($item['alamat_url_postingan_loker_main'] ?? ''));
         if (count($urlRows) > 1 && $mainUrl === '') {
-            $errors[] = 'Lowongan ' . ($idx + 1) . ': Jika URL postingan lebih dari satu, wajib pilih satu Main URL.';
+            $errors[] = 'Lowongan ' . ($idx + 1) . ': Jika URL postingan lebih dari satu, wajib pilih satu URL Utama.';
         }
         if ($mainUrl !== '' && !in_array($mainUrl, $urlRows, true)) {
-            $errors[] = 'Lowongan ' . ($idx + 1) . ': Main URL harus salah satu dari daftar URL postingan.';
+            $errors[] = 'Lowongan ' . ($idx + 1) . ': URL Utama harus salah satu dari daftar URL postingan.';
         }
-        if (!empty($urlRows)) {
+        if (!empty($postingRows)) {
             if ($mainUrl === '' || !in_array($mainUrl, $urlRows, true)) {
-                $mainUrl = $urlRows[0];
+                $mainUrl = (string)($postingRows[0]['url'] ?? '');
             }
-            if (count($urlRows) > 1) {
-                $orderedUrls = [$mainUrl];
-                foreach ($urlRows as $urlRow) {
-                    if ($urlRow !== $mainUrl) {
-                        $orderedUrls[] = $urlRow;
+            if (count($postingRows) > 1) {
+                usort($postingRows, static function (array $a, array $b) use ($mainUrl): int {
+                    $aMain = (string)($a['url'] ?? '') === $mainUrl ? 0 : 1;
+                    $bMain = (string)($b['url'] ?? '') === $mainUrl ? 0 : 1;
+                    if ($aMain === $bMain) {
+                        return 0;
+                    }
+                    return $aMain <=> $bMain;
+                });
+            }
+            if (count($selectedChannels) === 1) {
+                foreach ($postingRows as $pIdx => $postingRow) {
+                    if (trim((string)($postingRow['channel'] ?? '')) === '') {
+                        $postingRows[$pIdx]['channel'] = $selectedChannels[0];
                     }
                 }
-                $urlRows = $orderedUrls;
             }
-            $wizardLowonganTabs[$idx]['alamat_url_postingan_loker'] = implode("\n", $urlRows);
+            $wizardLowonganTabs[$idx]['platform_kanal'] = implode(', ', $selectedChannels);
+            $wizardLowonganTabs[$idx]['alamat_url_postingan_loker'] = kh_proto_serialize_posting_rows($postingRows);
             $wizardLowonganTabs[$idx]['alamat_url_postingan_loker_main'] = $mainUrl;
         }
     }
@@ -373,6 +467,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: #f8fbff;
             border-top: 1px solid #ced4da;
             border-bottom: 1px solid #ced4da;
+        }
+        .wizard-url-section {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.65rem;
+            margin-bottom: 0.5rem;
+            background: #fff;
+        }
+        .wizard-url-section-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.4rem;
+        }
+        .wizard-url-row {
+            display: grid;
+            grid-template-columns: minmax(180px, 32%) minmax(240px, 1fr) auto auto;
+            gap: 0.35rem;
+            align-items: center;
+            margin-bottom: 0.35rem;
+        }
+        .wizard-url-source-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        @media (max-width: 991px) {
+            .wizard-url-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -622,7 +747,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </div>
                                         <div class="col-12 col-md-6">
                                             <label class="form-label mb-1">Platform/Kanal</label>
-                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="platform_kanal[]" value="<?php echo h((string)$tab['platform_kanal']); ?>" placeholder="Contoh: Karirhub, LinkedIn, Jobstreet" data-tab-index="<?php echo $index; ?>" data-field="platform_kanal" data-required="1">
+                                            <?php
+                                            $selectedPlatforms = array_values(array_filter(array_map('trim', preg_split('/\s*,\s*/', (string)($tab['platform_kanal'] ?? ''))), static fn ($v) => $v !== ''));
+                                            $platformOptions = ['Job Portal', 'Social Media', 'Lainnya'];
+                                            ?>
+                                            <div class="wizard-platform-group border rounded p-2 bg-light" data-tab-index="<?php echo $index; ?>">
+                                                <div class="d-flex flex-wrap gap-3">
+                                                    <?php foreach ($platformOptions as $platformOption): ?>
+                                                        <div class="form-check m-0">
+                                                            <input
+                                                                class="form-check-input wizard-platform-check"
+                                                                type="checkbox"
+                                                                value="<?php echo h($platformOption); ?>"
+                                                                id="platform-<?php echo $index; ?>-<?php echo strtolower(str_replace(' ', '-', $platformOption)); ?>"
+                                                                <?php echo in_array($platformOption, $selectedPlatforms, true) ? ' checked' : ''; ?>
+                                                            >
+                                                            <label class="form-check-label small" for="platform-<?php echo $index; ?>-<?php echo strtolower(str_replace(' ', '-', $platformOption)); ?>">
+                                                                <?php echo h($platformOption); ?>
+                                                            </label>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                                <input type="hidden" class="wizard-lowongan-field" name="platform_kanal[]" value="<?php echo h((string)$tab['platform_kanal']); ?>" data-tab-index="<?php echo $index; ?>" data-field="platform_kanal" data-required="1">
+                                            </div>
                                         </div>
                                         <div class="col-12 col-md-6">
                                             <label class="form-label mb-1">Masa Berlaku Mulai</label>
@@ -635,42 +782,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <div class="col-12">
                                             <label class="form-label mb-1">Alamat URL Postingan Loker</label>
                                             <div class="wizard-url-group" data-tab-index="<?php echo $index; ?>">
-                                                <div class="wizard-url-list">
-                                                    <?php
-                                                    $urlRows = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string)$tab['alamat_url_postingan_loker'])), static fn ($v) => $v !== ''));
-                                                    if (empty($urlRows)) {
-                                                        $urlRows[] = '';
-                                                    }
-                                                    $mainUrlRow = trim((string)($tab['alamat_url_postingan_loker_main'] ?? ''));
-                                                    if ($mainUrlRow === '' && !empty($urlRows)) {
-                                                        $mainUrlRow = (string)$urlRows[0];
-                                                    }
-                                                    $mainUrlInputName = 'wizard_url_main_' . $index;
-                                                    ?>
-                                                    <?php foreach ($urlRows as $urlIdx => $urlValue): ?>
-                                                        <div class="input-group input-group-sm mb-2 wizard-url-row">
-                                                            <input type="url" class="form-control wizard-url-input" placeholder="https://karirhub.kemnaker.go.id/..." value="<?php echo h((string)$urlValue); ?>">
-                                                            <label class="wizard-url-main-wrap">
-                                                                <input
-                                                                    type="radio"
-                                                                    class="form-check-input mt-0 wizard-url-main"
-                                                                    name="<?php echo h($mainUrlInputName); ?>"
-                                                                    <?php echo ((string)$urlValue !== '' && (string)$urlValue === $mainUrlRow) || ((string)$urlValue === '' && $urlIdx === 0 && $mainUrlRow === '') ? ' checked' : ''; ?>
-                                                                >
-                                                                URL Utama
-                                                            </label>
-                                                            <button type="button" class="btn btn-outline-danger wizard-url-remove" title="Hapus URL">
-                                                                <i class="bi bi-dash"></i>
-                                                            </button>
-                                                        </div>
-                                                    <?php endforeach; ?>
-                                                </div>
-                                                <div class="small text-muted mt-1">Jika URL lebih dari satu, pilih salah satu sebagai Main URL.</div>
-                                                <div class="d-flex justify-content-end">
-                                                    <button type="button" class="btn btn-outline-primary btn-sm wizard-url-add">
-                                                        <i class="bi bi-plus-lg me-1"></i>Tambah URL
-                                                    </button>
-                                                </div>
+                                                <div class="wizard-url-list"></div>
+                                                <div class="small text-muted mt-1">Jika URL lebih dari satu, pilih salah satu sebagai URL Utama.</div>
                                                 <input type="hidden" class="wizard-lowongan-field" name="alamat_url_postingan_loker[]" value="<?php echo h((string)$tab['alamat_url_postingan_loker']); ?>" data-tab-index="<?php echo $index; ?>" data-field="alamat_url_postingan_loker" data-required="1">
                                                 <input type="hidden" class="wizard-lowongan-field" name="alamat_url_postingan_loker_main[]" value="<?php echo h((string)$tab['alamat_url_postingan_loker_main']); ?>" data-tab-index="<?php echo $index; ?>" data-field="alamat_url_postingan_loker_main">
                                             </div>
@@ -964,49 +1077,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 .filter((x) => x !== '');
         }
 
-        function syncUrlGroup(group) {
-            if (!group) return;
-            const hiddenField = group.querySelector('.wizard-lowongan-field[data-field="alamat_url_postingan_loker"]');
-            const hiddenMainField = group.querySelector('.wizard-lowongan-field[data-field="alamat_url_postingan_loker_main"]');
-            const rows = Array.from(group.querySelectorAll('.wizard-url-row'));
-            const values = [];
-            let selectedMain = '';
-            rows.forEach((row) => {
-                const input = row.querySelector('.wizard-url-input');
-                const radio = row.querySelector('.wizard-url-main');
-                const value = input ? String(input.value || '').trim() : '';
-                if (value !== '') {
-                    values.push(value);
-                }
-                if (radio && radio.checked && value !== '') {
-                    selectedMain = value;
-                }
-            });
-            if (values.length === 1) {
-                selectedMain = values[0];
-            }
-            if (hiddenField) {
-                hiddenField.value = values.join('\n');
-            }
-            if (hiddenMainField) {
-                hiddenMainField.value = selectedMain;
-            }
-            rows.forEach((row, rowIdx) => {
-                const input = row.querySelector('.wizard-url-input');
-                const radio = row.querySelector('.wizard-url-main');
-                const removeBtn = row.querySelector('.wizard-url-remove');
-                const value = input ? String(input.value || '').trim() : '';
-                if (radio) {
-                    if (values.length === 0 && rowIdx === 0) {
-                        radio.checked = true;
-                    } else if (value !== '' && selectedMain !== '') {
-                        radio.checked = value === selectedMain;
-                    }
-                }
-                if (removeBtn) {
-                    removeBtn.disabled = rows.length <= 1;
+        const allowedPlatformChannels = ['Job Portal', 'Social Media', 'Lainnya'];
+        const sourceOptionsByChannel = {
+            'Job Portal': ['Jobstreet', 'Glints', 'Kalibrr', 'Kitalulus', 'HiredToday', 'Toploker', 'Redy', 'Tambahkan Isian'],
+            'Social Media': ['Instagram', 'Facebook', 'Tiktok', 'Twitter', 'Tambahkan Isian'],
+        };
+
+        function parsePlatformValue(rawValue) {
+            const parts = String(rawValue || '')
+                .split(',')
+                .map((x) => x.trim())
+                .filter((x) => x !== '');
+            const unique = [];
+            parts.forEach((part) => {
+                if (allowedPlatformChannels.includes(part) && !unique.includes(part)) {
+                    unique.push(part);
                 }
             });
+            return unique;
+        }
+
+        function parsePostingRows(rawValue) {
+            return splitUrlLines(rawValue).map((line) => {
+                const parts = line.split('||');
+                if (parts.length >= 3) {
+                    return {
+                        channel: String(parts[0] || '').trim(),
+                        source: String(parts[1] || '').trim(),
+                        url: String(parts.slice(2).join('||') || '').trim(),
+                    };
+                }
+                return {
+                    channel: '',
+                    source: '',
+                    url: String(line || '').trim(),
+                };
+            });
+        }
+
+        function serializePostingRows(rows) {
+            return rows
+                .filter((row) => String(row.url || '').trim() !== '')
+                .map((row) => [row.channel || '', row.source || '', row.url || ''].join('||'))
+                .join('\n');
         }
 
         function getUrlMainRadioName(group) {
@@ -1014,20 +1127,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             return 'wizard_url_main_' + tabIndex;
         }
 
-        function buildUrlRow(urlValue, radioName, isMain) {
-            const row = document.createElement('div');
-            row.className = 'input-group input-group-sm mb-2 wizard-url-row';
+        function getTabPaneForElement(el) {
+            return el ? el.closest('.tab-pane') : null;
+        }
 
-            const input = document.createElement('input');
-            input.type = 'url';
-            input.className = 'form-control wizard-url-input';
-            input.placeholder = 'https://karirhub.kemnaker.go.id/...';
-            input.value = urlValue || '';
-            row.appendChild(input);
+        function getSelectedPlatformsInPane(tabPane) {
+            if (!tabPane) return [];
+            const group = tabPane.querySelector('.wizard-platform-group');
+            if (!group) return [];
+            const checked = Array.from(group.querySelectorAll('.wizard-platform-check:checked'))
+                .map((x) => String(x.value || '').trim())
+                .filter((x) => allowedPlatformChannels.includes(x));
+            return Array.from(new Set(checked));
+        }
+
+        function syncPlatformGroup(group) {
+            if (!group) return;
+            const hiddenField = group.querySelector('.wizard-lowongan-field[data-field="platform_kanal"]');
+            const checked = Array.from(group.querySelectorAll('.wizard-platform-check:checked'))
+                .map((x) => String(x.value || '').trim())
+                .filter((x) => allowedPlatformChannels.includes(x));
+            if (hiddenField) {
+                hiddenField.value = Array.from(new Set(checked)).join(', ');
+            }
+        }
+
+        function buildSourceInput(channel, sourceValue) {
+            const sourceWrap = document.createElement('div');
+            sourceWrap.className = 'wizard-url-source-wrap';
+            if (channel === 'Lainnya') {
+                const textInput = document.createElement('input');
+                textInput.type = 'text';
+                textInput.className = 'form-control form-control-sm wizard-url-source-input';
+                textInput.placeholder = 'Isi sumber lainnya';
+                textInput.value = sourceValue || '';
+                sourceWrap.appendChild(textInput);
+                return sourceWrap;
+            }
+
+            const select = document.createElement('select');
+            select.className = 'form-select form-select-sm wizard-url-source-select';
+            const options = ['Pilih Sumber'].concat(sourceOptionsByChannel[channel] || []);
+            const knownOptions = sourceOptionsByChannel[channel] || [];
+            const hasCustomValue = sourceValue && !knownOptions.includes(sourceValue);
+            options.forEach((opt) => {
+                const option = document.createElement('option');
+                option.value = opt === 'Pilih Sumber' ? '' : opt;
+                option.textContent = opt;
+                if (opt === sourceValue || (hasCustomValue && opt === 'Tambahkan Isian')) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+            sourceWrap.appendChild(select);
+
+            const customInput = document.createElement('input');
+            customInput.type = 'text';
+            customInput.className = 'form-control form-control-sm wizard-url-source-custom';
+            customInput.placeholder = 'Isi sumber lainnya';
+            customInput.value = hasCustomValue ? sourceValue : '';
+            customInput.style.display = select.value === 'Tambahkan Isian' ? '' : 'none';
+            sourceWrap.appendChild(customInput);
+            return sourceWrap;
+        }
+
+        function resolveSourceFromRow(row) {
+            if (!row) return '';
+            const sourceText = row.querySelector('.wizard-url-source-input');
+            if (sourceText) {
+                return String(sourceText.value || '').trim();
+            }
+            const sourceSelect = row.querySelector('.wizard-url-source-select');
+            const sourceCustom = row.querySelector('.wizard-url-source-custom');
+            if (!sourceSelect) return '';
+            if (sourceSelect.value === 'Tambahkan Isian') {
+                return sourceCustom ? String(sourceCustom.value || '').trim() : '';
+            }
+            return String(sourceSelect.value || '').trim();
+        }
+
+        function buildUrlRow(channel, sourceValue, urlValue, radioName, isMain) {
+            const row = document.createElement('div');
+            row.className = 'wizard-url-row';
+            row.setAttribute('data-channel', channel);
+
+            const sourceCell = document.createElement('div');
+            sourceCell.appendChild(buildSourceInput(channel, sourceValue));
+            row.appendChild(sourceCell);
+
+            const urlInput = document.createElement('input');
+            urlInput.type = 'url';
+            urlInput.className = 'form-control form-control-sm wizard-url-input';
+            urlInput.placeholder = 'https://karirhub.kemnaker.go.id/...';
+            urlInput.value = urlValue || '';
+            row.appendChild(urlInput);
 
             const mainWrap = document.createElement('label');
             mainWrap.className = 'wizard-url-main-wrap';
-
             const mainRadio = document.createElement('input');
             mainRadio.type = 'radio';
             mainRadio.className = 'form-check-input mt-0 wizard-url-main';
@@ -1039,7 +1235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             const removeBtn = document.createElement('button');
             removeBtn.type = 'button';
-            removeBtn.className = 'btn btn-outline-danger wizard-url-remove';
+            removeBtn.className = 'btn btn-outline-danger btn-sm wizard-url-remove';
             removeBtn.title = 'Hapus URL';
             removeBtn.innerHTML = '<i class="bi bi-dash"></i>';
             row.appendChild(removeBtn);
@@ -1047,28 +1243,134 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             return row;
         }
 
-        function setUrlGroupValues(group, rawValue) {
+        function syncUrlGroup(group) {
+            if (!group) return;
+            const hiddenField = group.querySelector('.wizard-lowongan-field[data-field="alamat_url_postingan_loker"]');
+            const hiddenMainField = group.querySelector('.wizard-lowongan-field[data-field="alamat_url_postingan_loker_main"]');
+            const sections = Array.from(group.querySelectorAll('.wizard-url-section'));
+            const rows = Array.from(group.querySelectorAll('.wizard-url-row'));
+
+            const collected = [];
+            let selectedMain = '';
+            rows.forEach((row) => {
+                const channel = String(row.getAttribute('data-channel') || '').trim();
+                const source = resolveSourceFromRow(row);
+                const urlInput = row.querySelector('.wizard-url-input');
+                const radio = row.querySelector('.wizard-url-main');
+                const url = urlInput ? String(urlInput.value || '').trim() : '';
+                if (url !== '' || source !== '') {
+                    collected.push({ channel, source, url });
+                }
+                if (radio && radio.checked && url !== '') {
+                    selectedMain = url;
+                }
+            });
+            if (collected.length === 1) {
+                selectedMain = collected[0].url;
+            }
+            if (hiddenField) {
+                hiddenField.value = serializePostingRows(collected);
+            }
+            if (hiddenMainField) {
+                hiddenMainField.value = selectedMain;
+            }
+
+            sections.forEach((section) => {
+                const sectionRows = Array.from(section.querySelectorAll('.wizard-url-row'));
+                sectionRows.forEach((row, rowIdx) => {
+                    const removeBtn = row.querySelector('.wizard-url-remove');
+                    if (removeBtn) {
+                        removeBtn.disabled = sectionRows.length <= 1;
+                    }
+                    const radio = row.querySelector('.wizard-url-main');
+                    const urlInput = row.querySelector('.wizard-url-input');
+                    const url = urlInput ? String(urlInput.value || '').trim() : '';
+                    if (radio) {
+                        if (selectedMain !== '' && url !== '') {
+                            radio.checked = url === selectedMain;
+                        } else if (sectionRows.length === 1 && rowIdx === 0) {
+                            radio.checked = true;
+                        }
+                    }
+                });
+            });
+        }
+
+        function renderUrlGroup(group) {
             if (!group) return;
             const list = group.querySelector('.wizard-url-list');
-            if (!list) return;
+            const hiddenField = group.querySelector('.wizard-lowongan-field[data-field="alamat_url_postingan_loker"]');
             const hiddenMainField = group.querySelector('.wizard-lowongan-field[data-field="alamat_url_postingan_loker_main"]');
-            const mainValue = hiddenMainField ? String(hiddenMainField.value || '').trim() : '';
+            if (!list || !hiddenField) return;
+
+            const pane = getTabPaneForElement(group);
+            const selectedChannels = getSelectedPlatformsInPane(pane);
+            const existingRows = parsePostingRows(hiddenField.value || '');
+            const mainUrl = hiddenMainField ? String(hiddenMainField.value || '').trim() : '';
             const radioName = getUrlMainRadioName(group);
             list.innerHTML = '';
-            const rows = splitUrlLines(rawValue);
-            const values = rows.length ? rows : [''];
-            values.forEach((urlValue, idx) => {
-                const isMain = mainValue !== '' ? urlValue === mainValue : idx === 0;
-                list.appendChild(buildUrlRow(urlValue, radioName, isMain));
+
+            if (!selectedChannels.length) {
+                const emptyHelp = document.createElement('div');
+                emptyHelp.className = 'small text-muted';
+                emptyHelp.textContent = 'Pilih Platform/Kanal terlebih dahulu untuk menambahkan sumber URL.';
+                list.appendChild(emptyHelp);
+                hiddenField.value = '';
+                if (hiddenMainField) hiddenMainField.value = '';
+                return;
+            }
+
+            selectedChannels.forEach((channel) => {
+                const section = document.createElement('div');
+                section.className = 'wizard-url-section';
+                section.setAttribute('data-channel', channel);
+
+                const head = document.createElement('div');
+                head.className = 'wizard-url-section-head';
+                const title = document.createElement('div');
+                title.className = 'small fw-semibold text-primary';
+                title.textContent = channel;
+                const addBtn = document.createElement('button');
+                addBtn.type = 'button';
+                addBtn.className = 'btn btn-outline-primary btn-sm wizard-url-add';
+                addBtn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>Tambah URL';
+                head.appendChild(title);
+                head.appendChild(addBtn);
+                section.appendChild(head);
+
+                const colHead = document.createElement('div');
+                colHead.className = 'wizard-url-row small text-muted fw-semibold';
+                colHead.innerHTML = '<div>Sumber</div><div>URL</div><div>URL Utama</div><div></div>';
+                section.appendChild(colHead);
+
+                const rowsWrap = document.createElement('div');
+                rowsWrap.className = 'wizard-url-rows-wrap';
+                const channelRows = existingRows.filter((row) => {
+                    const rowChannel = String(row.channel || '').trim();
+                    if (rowChannel === channel) return true;
+                    return rowChannel === '' && selectedChannels.length === 1;
+                });
+                const useRows = channelRows.length ? channelRows : [{ channel, source: '', url: '' }];
+                useRows.forEach((rowData, idx) => {
+                    rowsWrap.appendChild(buildUrlRow(
+                        channel,
+                        String(rowData.source || ''),
+                        String(rowData.url || ''),
+                        radioName,
+                        String(rowData.url || '') !== '' && String(rowData.url || '') === mainUrl && idx === 0
+                    ));
+                });
+                section.appendChild(rowsWrap);
+                list.appendChild(section);
             });
+
             syncUrlGroup(group);
         }
 
         function setupAllUrlGroups(scope) {
             const root = scope || document;
             Array.from(root.querySelectorAll('.wizard-url-group')).forEach((group) => {
-                const hiddenField = group.querySelector('.wizard-lowongan-field[data-field="alamat_url_postingan_loker"]');
-                setUrlGroupValues(group, hiddenField ? hiddenField.value : '');
+                renderUrlGroup(group);
             });
         }
 
@@ -1105,6 +1407,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 const rowData = data[i] || {};
+                const selectedPlatforms = parsePlatformValue(rowData.platform_kanal || '');
+                pane.querySelectorAll('.wizard-platform-check').forEach((checkbox) => {
+                    checkbox.checked = selectedPlatforms.includes(String(checkbox.value || '').trim());
+                });
                 pane.querySelectorAll('.wizard-lowongan-field').forEach((el) => {
                     const field = el.getAttribute('data-field');
                     const rawValue = Object.prototype.hasOwnProperty.call(rowData, field) ? rowData[field] : defaultValueByField(field);
@@ -1113,10 +1419,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     el.classList.remove('is-invalid');
                 });
                 const urlGroup = pane.querySelector('.wizard-url-group');
-                const rawUrlValues = Object.prototype.hasOwnProperty.call(rowData, 'alamat_url_postingan_loker')
-                    ? rowData.alamat_url_postingan_loker
-                    : defaultValueByField('alamat_url_postingan_loker');
-                setUrlGroupValues(urlGroup, rawUrlValues);
+                if (urlGroup) {
+                    const hiddenUrlField = urlGroup.querySelector('.wizard-lowongan-field[data-field="alamat_url_postingan_loker"]');
+                    if (hiddenUrlField && !Object.prototype.hasOwnProperty.call(rowData, 'alamat_url_postingan_loker')) {
+                        hiddenUrlField.value = defaultValueByField('alamat_url_postingan_loker');
+                    }
+                    const platformGroup = pane.querySelector('.wizard-platform-group');
+                    syncPlatformGroup(platformGroup);
+                    renderUrlGroup(urlGroup);
+                }
                 tabsContent.appendChild(pane);
             }
             validateTabs(false);
@@ -1172,12 +1483,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     rowIssues.push('Masa Berlaku Mulai tidak boleh lebih akhir');
                 }
                 const urlLines = splitUrlLines(row.alamat_url_postingan_loker || '');
+                const postingRows = parsePostingRows(row.alamat_url_postingan_loker || '');
                 const mainUrl = String(row.alamat_url_postingan_loker_main || '').trim();
                 if (urlLines.length > 1 && mainUrl === '') {
-                    rowIssues.push('Jika URL lebih dari satu, pilih Main URL');
+                    rowIssues.push('Jika URL lebih dari satu, pilih URL Utama');
                 }
                 if (mainUrl !== '' && !urlLines.includes(mainUrl)) {
-                    rowIssues.push('Main URL harus ada di daftar URL');
+                    rowIssues.push('URL Utama harus ada di daftar URL');
+                }
+                if (postingRows.some((r) => String(r.url || '').trim() !== '' && String(r.source || '').trim() === '')) {
+                    rowIssues.push('Sumber wajib diisi untuk setiap URL');
+                }
+                const selectedPlatforms = parsePlatformValue(row.platform_kanal || '');
+                if (postingRows.some((r) => String(r.channel || '').trim() !== '' && !selectedPlatforms.includes(String(r.channel || '').trim()))) {
+                    rowIssues.push('Sumber URL tidak sesuai Platform/Kanal terpilih');
                 }
 
                 const ok = rowIssues.length === 0;
@@ -1235,6 +1554,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 const group = evt.target.closest('.wizard-url-group');
                 syncUrlGroup(group);
                 validateTabs(false);
+                return;
+            }
+            if (evt.target && evt.target.classList && (evt.target.classList.contains('wizard-url-source-input') || evt.target.classList.contains('wizard-url-source-custom'))) {
+                const group = evt.target.closest('.wizard-url-group');
+                syncUrlGroup(group);
+                validateTabs(false);
             }
         });
         document.addEventListener('change', function (evt) {
@@ -1242,10 +1567,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 validateTabs(false);
                 return;
             }
+            if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-platform-check')) {
+                const platformGroup = evt.target.closest('.wizard-platform-group');
+                syncPlatformGroup(platformGroup);
+                const tabPane = getTabPaneForElement(platformGroup);
+                const urlGroup = tabPane ? tabPane.querySelector('.wizard-url-group') : null;
+                renderUrlGroup(urlGroup);
+                validateTabs(false);
+                return;
+            }
             if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-url-input')) {
                 const group = evt.target.closest('.wizard-url-group');
                 syncUrlGroup(group);
                 validateTabs(false);
+                return;
+            }
+            if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-url-source-select')) {
+                const sourceWrap = evt.target.closest('.wizard-url-source-wrap');
+                const customInput = sourceWrap ? sourceWrap.querySelector('.wizard-url-source-custom') : null;
+                if (customInput) {
+                    customInput.style.display = evt.target.value === 'Tambahkan Isian' ? '' : 'none';
+                    if (evt.target.value !== 'Tambahkan Isian') {
+                        customInput.value = '';
+                    } else {
+                        customInput.focus();
+                    }
+                }
+                const group = evt.target.closest('.wizard-url-group');
+                syncUrlGroup(group);
+                validateTabs(false);
+                return;
             }
             if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-url-main')) {
                 const group = evt.target.closest('.wizard-url-group');
@@ -1256,11 +1607,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         document.addEventListener('click', function (evt) {
             const addBtn = evt.target ? evt.target.closest('.wizard-url-add') : null;
             if (addBtn) {
+                const section = addBtn.closest('.wizard-url-section');
                 const group = addBtn.closest('.wizard-url-group');
-                const list = group ? group.querySelector('.wizard-url-list') : null;
-                if (!group || !list) return;
-                const row = buildUrlRow('', getUrlMainRadioName(group), false);
-                list.appendChild(row);
+                const rowsWrap = section ? section.querySelector('.wizard-url-rows-wrap') : null;
+                if (!group || !section || !rowsWrap) return;
+                const channel = String(section.getAttribute('data-channel') || '').trim();
+                const row = buildUrlRow(channel, '', '', getUrlMainRadioName(group), false);
+                rowsWrap.appendChild(row);
                 syncUrlGroup(group);
                 const input = row.querySelector('.wizard-url-input');
                 if (input) input.focus();
