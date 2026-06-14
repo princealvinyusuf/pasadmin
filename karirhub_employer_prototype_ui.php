@@ -202,6 +202,9 @@ if (!function_exists('kh_proto_render_hero')) {
 if (!function_exists('kh_proto_render_sidebar')) {
     function kh_proto_render_sidebar(string $activeKey = 'dashboard_wllp'): void
     {
+        // Sidebar intentionally hidden for Karirhub Employer Prototype pages.
+        return;
+
         $canDashboardWllp = kh_proto_can_access('karirhub_employer_prototype_dashboard_wllp_view');
         $canDashboardWllpAdmin = kh_proto_can_access('karirhub_employer_prototype_dashboard_wllp_admin_view');
         $canJobPosted = kh_proto_can_access('karirhub_employer_prototype_job_posted_view');
