@@ -191,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'bidang_pekerjaan' => 'Bidang Pekerjaan',
         'industri_sektor' => 'Industri / Sektor',
         'status_pernikahan' => 'Status Pernikahan',
-        'tipe_kerja' => 'Tipe Kerja',
+        'tipe_kerja' => 'Status Pekerjaan',
         'platform_kanal' => 'Platform/Kanal',
         'masa_berlaku_mulai' => 'Masa Berlaku Mulai',
         'masa_berlaku_sampai' => 'Masa Berlaku Sampai',
@@ -737,7 +737,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             </select>
                                         </div>
                                         <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Tipe Kerja</label>
+                                            <label class="form-label mb-1">Status Pekerjaan</label>
                                             <select class="form-select form-select-sm wizard-lowongan-field" name="tipe_kerja[]" data-tab-index="<?php echo $index; ?>" data-field="tipe_kerja" data-required="1">
                                                 <option value="">Pilih</option>
                                                 <?php foreach (['Full Time', 'Part Time', 'Contract', 'Internship'] as $tipe): ?>
@@ -978,7 +978,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'Bidang Pekerjaan',
             'Industri / Sektor',
             'Status Pernikahan',
-            'Tipe Kerja',
+            'Status Pekerjaan',
             'Platform/Kanal',
             'Masa Berlaku Mulai',
             'Masa Berlaku Sampai',
@@ -1876,8 +1876,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 issues.push('Baris ' + line + ': kolom kosong -> ' + missing.join(', '));
                                 return;
                             }
-                            if (!allowedTipe.includes(map['Tipe Kerja'])) {
-                                issues.push('Baris ' + line + ': Tipe Kerja harus Full Time / Part Time / Contract / Internship.');
+                            if (!allowedTipe.includes(map['Status Pekerjaan'])) {
+                                issues.push('Baris ' + line + ': Status Pekerjaan harus Full Time / Part Time / Contract / Internship.');
                                 return;
                             }
                             if (!allowedPeriode.includes(map['Periode Tipe'])) {
