@@ -64,6 +64,26 @@ function kh_proto_parse_posting_rows(string $raw): array
     return $rows;
 }
 
+function kh_proto_parse_csv_values(string $raw, array $allowed = []): array
+{
+    $parts = preg_split('/\s*,\s*/', $raw) ?: [];
+    $result = [];
+    foreach ($parts as $part) {
+        $value = trim((string)$part);
+        if ($value === '') {
+            continue;
+        }
+        if (!empty($allowed) && !in_array($value, $allowed, true)) {
+            continue;
+        }
+        if (in_array($value, $result, true)) {
+            continue;
+        }
+        $result[] = $value;
+    }
+    return $result;
+}
+
 function kh_proto_serialize_posting_rows(array $rows): string
 {
     $lines = [];
@@ -102,6 +122,8 @@ $lowonganDefaults = [
     'pendidikan_minimal' => '',
     'deskripsi_pekerjaan' => '',
     'keterampilan_utama' => '',
+    'kondisi_fisik' => '',
+    'jenis_disabilitas_tidak_diperbolehkan' => '',
     'pengalaman_min_tahun' => '',
     'rentang_gaji' => '',
     'kode_kbji' => '',
@@ -179,6 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $requiredLowonganFields = [
         'jabatan' => 'Jabatan',
         'jumlah_kebutuhan' => 'Jumlah Kebutuhan',
+        'kondisi_fisik' => 'Kondisi Fisik',
         'usia_min' => 'Usia Minimal',
         'usia_max' => 'Usia Maksimal',
         'pendidikan_minimal' => 'Pendidikan Minimal',
@@ -214,6 +237,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (($item['masa_berlaku_mulai'] ?? '') !== '' && ($item['masa_berlaku_sampai'] ?? '') !== '' && $item['masa_berlaku_mulai'] > $item['masa_berlaku_sampai']) {
             $errors[] = 'Lowongan ' . ($idx + 1) . ': Masa berlaku mulai tidak boleh lebih akhir dari masa berlaku sampai.';
         }
+
+        $kondisiFisik = kh_proto_parse_csv_values((string)($item['kondisi_fisik'] ?? ''), ['Disabilitas', 'Non Disabilitas']);
+        $wizardLowonganTabs[$idx]['kondisi_fisik'] = implode(', ', $kondisiFisik);
+        $jenisDisabilitas = kh_proto_parse_csv_values(
+            (string)($item['jenis_disabilitas_tidak_diperbolehkan'] ?? ''),
+            ['Tuna daksa', 'Tuna grahita', 'Tuna wicara', 'Tuna netra', 'Tuna rungu', 'Tuna ganda']
+        );
+        if (in_array('Disabilitas', $kondisiFisik, true)) {
+            $wizardLowonganTabs[$idx]['jenis_disabilitas_tidak_diperbolehkan'] = implode(', ', $jenisDisabilitas);
+        } else {
+            $wizardLowonganTabs[$idx]['jenis_disabilitas_tidak_diperbolehkan'] = '';
+        }
+
         $metodePublikasi = trim((string)($item['metode_publikasi_loker'] ?? ''));
         if (!in_array($metodePublikasi, ['Online', 'Offline'], true)) {
             $errors[] = 'Lowongan ' . ($idx + 1) . ': Metode publikasi loker harus Online atau Offline.';
@@ -701,6 +737,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                             <?php endforeach; ?>
                                                         </select>
                                                     </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label mb-1">Kondisi Fisik</label>
+                                                        <?php
+                                                        $selectedKondisiFisik = kh_proto_parse_csv_values((string)($tab['kondisi_fisik'] ?? ''), ['Disabilitas', 'Non Disabilitas']);
+                                                        $selectedJenisDisabilitas = kh_proto_parse_csv_values(
+                                                            (string)($tab['jenis_disabilitas_tidak_diperbolehkan'] ?? ''),
+                                                            ['Tuna daksa', 'Tuna grahita', 'Tuna wicara', 'Tuna netra', 'Tuna rungu', 'Tuna ganda']
+                                                        );
+                                                        ?>
+                                                        <div class="wizard-kondisi-group border rounded p-2 bg-light" data-tab-index="<?php echo $index; ?>">
+                                                            <div class="d-flex flex-wrap gap-3">
+                                                                <?php foreach (['Disabilitas', 'Non Disabilitas'] as $kondisi): ?>
+                                                                    <?php $kondisiKey = strtolower(str_replace(' ', '-', $kondisi)); ?>
+                                                                    <div class="form-check m-0">
+                                                                        <input
+                                                                            class="form-check-input wizard-kondisi-check"
+                                                                            type="checkbox"
+                                                                            value="<?php echo h($kondisi); ?>"
+                                                                            id="kondisi-<?php echo $index; ?>-<?php echo h($kondisiKey); ?>"
+                                                                            <?php echo in_array($kondisi, $selectedKondisiFisik, true) ? ' checked' : ''; ?>
+                                                                        >
+                                                                        <label class="form-check-label small" for="kondisi-<?php echo $index; ?>-<?php echo h($kondisiKey); ?>"><?php echo h($kondisi); ?></label>
+                                                                    </div>
+                                                                <?php endforeach; ?>
+                                                            </div>
+                                                            <input type="hidden" class="wizard-lowongan-field" name="kondisi_fisik[]" value="<?php echo h((string)$tab['kondisi_fisik']); ?>" data-tab-index="<?php echo $index; ?>" data-field="kondisi_fisik" data-required="0">
+                                                            <div class="wizard-disabilitas-only mt-2" style="<?php echo in_array('Disabilitas', $selectedKondisiFisik, true) ? '' : 'display:none;'; ?>">
+                                                                <label class="form-label mb-1">Pilih jenis disabilitas yang tidak diperbolehkan untuk melamar.</label>
+                                                                <div class="d-flex flex-wrap gap-3">
+                                                                    <?php foreach (['Tuna daksa', 'Tuna grahita', 'Tuna wicara', 'Tuna netra', 'Tuna rungu', 'Tuna ganda'] as $jenisDisabilitas): ?>
+                                                                        <?php $jenisDisabilitasKey = strtolower(str_replace(' ', '-', $jenisDisabilitas)); ?>
+                                                                        <div class="form-check m-0">
+                                                                            <input
+                                                                                class="form-check-input wizard-disabilitas-jenis-check"
+                                                                                type="checkbox"
+                                                                                value="<?php echo h($jenisDisabilitas); ?>"
+                                                                                id="jenis-disabilitas-<?php echo $index; ?>-<?php echo h($jenisDisabilitasKey); ?>"
+                                                                                <?php echo in_array($jenisDisabilitas, $selectedJenisDisabilitas, true) ? ' checked' : ''; ?>
+                                                                            >
+                                                                            <label class="form-check-label small" for="jenis-disabilitas-<?php echo $index; ?>-<?php echo h($jenisDisabilitasKey); ?>"><?php echo h($jenisDisabilitas); ?></label>
+                                                                        </div>
+                                                                    <?php endforeach; ?>
+                                                                </div>
+                                                                <input type="hidden" class="wizard-lowongan-field" name="jenis_disabilitas_tidak_diperbolehkan[]" value="<?php echo h((string)($tab['jenis_disabilitas_tidak_diperbolehkan'] ?? '')); ?>" data-tab-index="<?php echo $index; ?>" data-field="jenis_disabilitas_tidak_diperbolehkan" data-required="0">
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                     <div class="col-6 col-md-3">
                                                         <label class="form-label mb-1">Usia Minimal</label>
                                                         <input type="number" min="18" class="form-control form-control-sm wizard-lowongan-field" name="usia_min[]" value="<?php echo h((string)$tab['usia_min']); ?>" data-tab-index="<?php echo $index; ?>" data-field="usia_min" data-required="1">
@@ -1153,23 +1236,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         const allowedPlatformChannels = ['Job Portal', 'Social Media', 'Lainnya'];
+        const allowedKondisiFisik = ['Disabilitas', 'Non Disabilitas'];
+        const allowedJenisDisabilitas = ['Tuna daksa', 'Tuna grahita', 'Tuna wicara', 'Tuna netra', 'Tuna rungu', 'Tuna ganda'];
         const sourceOptionsByChannel = {
             'Job Portal': ['Jobstreet', 'Glints', 'Kalibrr', 'Kitalulus', 'HiredToday', 'Toploker', 'Redy', 'Tambahkan Isian'],
             'Social Media': ['Instagram', 'Facebook', 'Tiktok', 'Twitter', 'Tambahkan Isian'],
         };
 
-        function parsePlatformValue(rawValue) {
+        function parseCsvList(rawValue, allowedValues) {
             const parts = String(rawValue || '')
                 .split(',')
                 .map((x) => x.trim())
                 .filter((x) => x !== '');
             const unique = [];
             parts.forEach((part) => {
-                if (allowedPlatformChannels.includes(part) && !unique.includes(part)) {
+                if (allowedValues && allowedValues.length && !allowedValues.includes(part)) {
+                    return;
+                }
+                if (!unique.includes(part)) {
                     unique.push(part);
                 }
             });
             return unique;
+        }
+
+        function parsePlatformValue(rawValue) {
+            return parseCsvList(rawValue, allowedPlatformChannels);
         }
 
         function parsePostingRows(rawValue) {
@@ -1264,6 +1356,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (hiddenField) {
                 hiddenField.value = Array.from(new Set(checked)).join(', ');
             }
+        }
+
+        function syncKondisiGroup(group) {
+            if (!group) return;
+            const hiddenKondisi = group.querySelector('.wizard-lowongan-field[data-field="kondisi_fisik"]');
+            const hiddenJenis = group.querySelector('.wizard-lowongan-field[data-field="jenis_disabilitas_tidak_diperbolehkan"]');
+            const checkedKondisi = Array.from(group.querySelectorAll('.wizard-kondisi-check:checked'))
+                .map((x) => String(x.value || '').trim())
+                .filter((x) => allowedKondisiFisik.includes(x));
+            if (hiddenKondisi) {
+                hiddenKondisi.value = Array.from(new Set(checkedKondisi)).join(', ');
+            }
+            const checkedJenis = Array.from(group.querySelectorAll('.wizard-disabilitas-jenis-check:checked'))
+                .map((x) => String(x.value || '').trim())
+                .filter((x) => allowedJenisDisabilitas.includes(x));
+            const hasDisabilitas = checkedKondisi.includes('Disabilitas');
+            if (hiddenJenis) {
+                hiddenJenis.value = hasDisabilitas ? Array.from(new Set(checkedJenis)).join(', ') : '';
+            }
+            if (!hasDisabilitas) {
+                group.querySelectorAll('.wizard-disabilitas-jenis-check').forEach((el) => {
+                    el.checked = false;
+                });
+            }
+        }
+
+        function applyKondisiFisikVisibility(tabPane) {
+            if (!tabPane) return;
+            const group = tabPane.querySelector('.wizard-kondisi-group');
+            if (!group) return;
+            const checkedKondisi = Array.from(group.querySelectorAll('.wizard-kondisi-check:checked'))
+                .map((x) => String(x.value || '').trim());
+            const showDisabilitas = checkedKondisi.includes('Disabilitas');
+            const disabilitasWrap = group.querySelector('.wizard-disabilitas-only');
+            if (disabilitasWrap) {
+                disabilitasWrap.style.display = showDisabilitas ? '' : 'none';
+            }
+            syncKondisiGroup(group);
         }
 
         function buildSourceInput(channel, sourceValue) {
@@ -1540,6 +1670,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 const rowData = data[i] || {};
                 const selectedPlatforms = parsePlatformValue(rowData.platform_kanal || '');
+                const selectedKondisi = parseCsvList(rowData.kondisi_fisik || '', allowedKondisiFisik);
+                const selectedJenisDisabilitas = parseCsvList(rowData.jenis_disabilitas_tidak_diperbolehkan || '', allowedJenisDisabilitas);
                 pane.querySelectorAll('.wizard-platform-check').forEach((checkbox) => {
                     const optionKey = String(checkbox.value || '').toLowerCase().replace(/\s+/g, '-');
                     const newId = 'platform-' + i + '-' + optionKey;
@@ -1549,6 +1681,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         cbLabel.setAttribute('for', newId);
                     }
                     checkbox.checked = selectedPlatforms.includes(String(checkbox.value || '').trim());
+                });
+                pane.querySelectorAll('.wizard-kondisi-check').forEach((checkbox) => {
+                    const optionKey = String(checkbox.value || '').toLowerCase().replace(/\s+/g, '-');
+                    const newId = 'kondisi-' + i + '-' + optionKey;
+                    checkbox.id = newId;
+                    const cbLabel = checkbox.closest('.form-check') ? checkbox.closest('.form-check').querySelector('.form-check-label') : null;
+                    if (cbLabel) {
+                        cbLabel.setAttribute('for', newId);
+                    }
+                    checkbox.checked = selectedKondisi.includes(String(checkbox.value || '').trim());
+                });
+                pane.querySelectorAll('.wizard-disabilitas-jenis-check').forEach((checkbox) => {
+                    const optionKey = String(checkbox.value || '').toLowerCase().replace(/\s+/g, '-');
+                    const newId = 'jenis-disabilitas-' + i + '-' + optionKey;
+                    checkbox.id = newId;
+                    const cbLabel = checkbox.closest('.form-check') ? checkbox.closest('.form-check').querySelector('.form-check-label') : null;
+                    if (cbLabel) {
+                        cbLabel.setAttribute('for', newId);
+                    }
+                    checkbox.checked = selectedJenisDisabilitas.includes(String(checkbox.value || '').trim());
                 });
                 pane.querySelectorAll('.wizard-lowongan-field').forEach((el) => {
                     const field = el.getAttribute('data-field');
@@ -1562,6 +1714,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     el.setAttribute('data-tab-index', String(i));
                     el.classList.remove('is-invalid');
                 });
+                applyKondisiFisikVisibility(pane);
                 applyMetodePublikasiVisibility(pane);
                 const urlGroup = pane.querySelector('.wizard-url-group');
                 if (urlGroup) {
@@ -1647,6 +1800,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 if (row.masa_berlaku_mulai && row.masa_berlaku_sampai && row.masa_berlaku_mulai > row.masa_berlaku_sampai) {
                     rowIssues.push('Masa Berlaku Mulai tidak boleh lebih akhir');
+                }
+                const kondisiFisik = parseCsvList(row.kondisi_fisik || '', allowedKondisiFisik);
+                if (!kondisiFisik.length) {
+                    rowIssues.push('Kondisi Fisik wajib dipilih');
                 }
                 const metodePublikasi = (row.metode_publikasi_loker || '').trim();
                 if (!['Online', 'Offline'].includes(metodePublikasi)) {
@@ -1749,6 +1906,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         });
         document.addEventListener('change', function (evt) {
+            if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-kondisi-check')) {
+                const group = evt.target.closest('.wizard-kondisi-group');
+                const tabPane = getTabPaneForElement(group);
+                applyKondisiFisikVisibility(tabPane);
+                validateTabs(false);
+                return;
+            }
+            if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-disabilitas-jenis-check')) {
+                const group = evt.target.closest('.wizard-kondisi-group');
+                syncKondisiGroup(group);
+                validateTabs(false);
+                return;
+            }
             if (evt.target && evt.target.classList && evt.target.classList.contains('wizard-metode-publikasi-radio')) {
                 const tabPane = getTabPaneForElement(evt.target);
                 applyMetodePublikasiVisibility(tabPane);
