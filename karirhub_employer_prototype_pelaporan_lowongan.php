@@ -111,7 +111,7 @@ $lowonganDefaults = [
     'kelurahan' => '',
     'bidang_pekerjaan' => '',
     'industri_sektor' => '',
-    'status_pernikahan' => '',
+    'status_pernikahan' => 'Tidak Dipersyaratkan',
     'tipe_kerja' => '',
     'platform_kanal' => '',
     'masa_berlaku_mulai' => date('Y-m-d'),
@@ -190,7 +190,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'kelurahan' => 'Kelurahan',
         'bidang_pekerjaan' => 'Bidang Pekerjaan',
         'industri_sektor' => 'Industri / Sektor',
-        'status_pernikahan' => 'Status Pernikahan',
         'tipe_kerja' => 'Status Pekerjaan',
         'platform_kanal' => 'Platform/Kanal',
         'masa_berlaku_mulai' => 'Masa Berlaku Mulai',
@@ -728,15 +727,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="industri_sektor[]" value="<?php echo h((string)$tab['industri_sektor']); ?>" data-tab-index="<?php echo $index; ?>" data-field="industri_sektor" data-required="1">
                                         </div>
                                         <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Status Pernikahan</label>
-                                            <select class="form-select form-select-sm wizard-lowongan-field" name="status_pernikahan[]" data-tab-index="<?php echo $index; ?>" data-field="status_pernikahan" data-required="1">
-                                                <option value="">Pilih</option>
-                                                <?php foreach (['Belum Menikah', 'Menikah', 'Cerai Hidup', 'Cerai Mati'] as $statusNikah): ?>
-                                                    <option value="<?php echo h($statusNikah); ?>"<?php echo ($tab['status_pernikahan'] ?? '') === $statusNikah ? ' selected' : ''; ?>><?php echo h($statusNikah); ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </div>
-                                        <div class="col-12 col-md-6">
                                             <label class="form-label mb-1">Status Pekerjaan</label>
                                             <select class="form-select form-select-sm wizard-lowongan-field" name="tipe_kerja[]" data-tab-index="<?php echo $index; ?>" data-field="tipe_kerja" data-required="1">
                                                 <option value="">Pilih</option>
@@ -977,7 +967,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'Kelurahan',
             'Bidang Pekerjaan',
             'Industri / Sektor',
-            'Status Pernikahan',
             'Status Pekerjaan',
             'Platform/Kanal',
             'Masa Berlaku Mulai',
@@ -1820,7 +1809,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'Pejaten Timur',
                     'Operasional',
                     'Logistik',
-                    'Belum Menikah',
                     'Full Time',
                     'Karirhub',
                     '2026-05-21',
