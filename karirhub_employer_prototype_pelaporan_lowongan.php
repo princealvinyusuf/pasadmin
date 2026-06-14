@@ -680,156 +680,179 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="tab-content border border-top-0 bg-white p-3" id="lowonganTabsContent">
                             <?php foreach ($wizardLowonganTabs as $index => $tab): ?>
                                 <div class="tab-pane fade<?php echo $index === 0 ? ' show active' : ''; ?>" id="lowongan-pane-<?php echo $index; ?>" role="tabpanel" aria-labelledby="lowongan-tab-<?php echo $index; ?>">
-                                    <div class="row g-2">
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Jabatan (Lowongan <?php echo $index + 1; ?>)</label>
-                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="jabatan[]" value="<?php echo h((string)$tab['jabatan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="jabatan" data-required="1">
-                                        </div>
-                                        <div class="col-6 col-md-3">
-                                            <label class="form-label mb-1">Jumlah Kebutuhan</label>
-                                            <input type="number" min="1" class="form-control form-control-sm wizard-lowongan-field" name="jumlah_kebutuhan[]" value="<?php echo h((string)$tab['jumlah_kebutuhan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="jumlah_kebutuhan" data-required="1">
-                                        </div>
-                                        <div class="col-6 col-md-3">
-                                            <label class="form-label mb-1">Jenis Kelamin</label>
-                                            <select class="form-select form-select-sm wizard-lowongan-field" name="jenis_kelamin[]" data-tab-index="<?php echo $index; ?>" data-field="jenis_kelamin">
-                                                <?php foreach (['Semua', 'Laki-laki', 'Perempuan'] as $jk): ?>
-                                                    <option value="<?php echo h($jk); ?>"<?php echo ($tab['jenis_kelamin'] ?? '') === $jk ? ' selected' : ''; ?>><?php echo h($jk); ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </div>
-                                        <div class="col-6 col-md-3">
-                                            <label class="form-label mb-1">Usia Min</label>
-                                            <input type="number" min="18" class="form-control form-control-sm wizard-lowongan-field" name="usia_min[]" value="<?php echo h((string)$tab['usia_min']); ?>" data-tab-index="<?php echo $index; ?>" data-field="usia_min" data-required="1">
-                                        </div>
-                                        <div class="col-6 col-md-3">
-                                            <label class="form-label mb-1">Usia Max</label>
-                                            <input type="number" min="18" class="form-control form-control-sm wizard-lowongan-field" name="usia_max[]" value="<?php echo h((string)$tab['usia_max']); ?>" data-tab-index="<?php echo $index; ?>" data-field="usia_max" data-required="1">
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Pendidikan Minimal</label>
-                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="pendidikan_minimal[]" value="<?php echo h((string)$tab['pendidikan_minimal']); ?>" data-tab-index="<?php echo $index; ?>" data-field="pendidikan_minimal" data-required="1">
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Pengalaman Minimal (tahun)</label>
-                                            <input type="number" min="0" class="form-control form-control-sm wizard-lowongan-field" name="pengalaman_min_tahun[]" value="<?php echo h((string)$tab['pengalaman_min_tahun']); ?>" data-tab-index="<?php echo $index; ?>" data-field="pengalaman_min_tahun" data-required="1">
-                                        </div>
+                                    <div class="row g-3">
                                         <div class="col-12">
-                                            <label class="form-label mb-1">Deskripsi Pekerjaan</label>
-                                            <textarea class="form-control form-control-sm wizard-lowongan-field" name="deskripsi_pekerjaan[]" rows="3" data-tab-index="<?php echo $index; ?>" data-field="deskripsi_pekerjaan" data-required="1"><?php echo h((string)$tab['deskripsi_pekerjaan']); ?></textarea>
-                                        </div>
-                                        <div class="col-12">
-                                            <label class="form-label mb-1">Keterampilan Utama</label>
-                                            <textarea class="form-control form-control-sm wizard-lowongan-field" name="keterampilan_utama[]" rows="2" data-tab-index="<?php echo $index; ?>" data-field="keterampilan_utama" data-required="1"><?php echo h((string)$tab['keterampilan_utama']); ?></textarea>
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Rentang Gaji</label>
-                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="rentang_gaji[]" value="<?php echo h((string)$tab['rentang_gaji']); ?>" placeholder="Rp5.000.000 - Rp7.000.000" data-tab-index="<?php echo $index; ?>" data-field="rentang_gaji" data-required="1">
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Kode KBJI</label>
-                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="kode_kbji[]" value="<?php echo h((string)$tab['kode_kbji']); ?>" placeholder="Contoh: 24231" data-tab-index="<?php echo $index; ?>" data-field="kode_kbji" data-required="1">
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Provinsi</label>
-                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="provinsi[]" value="<?php echo h((string)$tab['provinsi']); ?>" data-tab-index="<?php echo $index; ?>" data-field="provinsi" data-required="1">
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Kota</label>
-                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="kota[]" value="<?php echo h((string)$tab['kota']); ?>" data-tab-index="<?php echo $index; ?>" data-field="kota" data-required="1">
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Kecamatan</label>
-                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="kecamatan[]" value="<?php echo h((string)$tab['kecamatan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="kecamatan" data-required="1">
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Kelurahan</label>
-                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="kelurahan[]" value="<?php echo h((string)$tab['kelurahan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="kelurahan" data-required="1">
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Bidang Pekerjaan</label>
-                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="bidang_pekerjaan[]" value="<?php echo h((string)$tab['bidang_pekerjaan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="bidang_pekerjaan" data-required="1">
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Industri / Sektor</label>
-                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="industri_sektor[]" value="<?php echo h((string)$tab['industri_sektor']); ?>" data-tab-index="<?php echo $index; ?>" data-field="industri_sektor" data-required="1">
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Status Pekerjaan</label>
-                                            <select class="form-select form-select-sm wizard-lowongan-field" name="tipe_kerja[]" data-tab-index="<?php echo $index; ?>" data-field="tipe_kerja" data-required="1">
-                                                <option value="">Pilih</option>
-                                                <?php foreach (['Full Time', 'Part Time', 'Contract', 'Internship'] as $tipe): ?>
-                                                    <option value="<?php echo h($tipe); ?>"<?php echo ($tab['tipe_kerja'] ?? '') === $tipe ? ' selected' : ''; ?>><?php echo h($tipe); ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Metode publikasi loker</label>
-                                            <div class="d-flex flex-wrap gap-3 border rounded p-2 bg-light">
-                                                <?php
-                                                $metodePublikasi = in_array((string)($tab['metode_publikasi_loker'] ?? 'Online'), ['Online', 'Offline'], true)
-                                                    ? (string)$tab['metode_publikasi_loker']
-                                                    : 'Online';
-                                                ?>
-                                                <div class="form-check m-0">
-                                                    <input class="form-check-input wizard-lowongan-field wizard-metode-publikasi-radio" type="radio" name="metode_publikasi_loker[<?php echo $index; ?>]" id="metode-online-<?php echo $index; ?>" value="Online" data-tab-index="<?php echo $index; ?>" data-field="metode_publikasi_loker" data-required="0"<?php echo $metodePublikasi === 'Online' ? ' checked' : ''; ?>>
-                                                    <label class="form-check-label small" for="metode-online-<?php echo $index; ?>">Online</label>
-                                                </div>
-                                                <div class="form-check m-0">
-                                                    <input class="form-check-input wizard-lowongan-field wizard-metode-publikasi-radio" type="radio" name="metode_publikasi_loker[<?php echo $index; ?>]" id="metode-offline-<?php echo $index; ?>" value="Offline" data-tab-index="<?php echo $index; ?>" data-field="metode_publikasi_loker" data-required="0"<?php echo $metodePublikasi === 'Offline' ? ' checked' : ''; ?>>
-                                                    <label class="form-check-label small" for="metode-offline-<?php echo $index; ?>">Offline</label>
+                                            <div class="border rounded p-3 bg-light-subtle">
+                                                <div class="fw-semibold mb-2">Informasi Jabatan</div>
+                                                <div class="row g-2">
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Jabatan (Lowongan <?php echo $index + 1; ?>)</label>
+                                                        <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="jabatan[]" value="<?php echo h((string)$tab['jabatan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="jabatan" data-required="1">
+                                                    </div>
+                                                    <div class="col-6 col-md-3">
+                                                        <label class="form-label mb-1">Jumlah Kebutuhan</label>
+                                                        <input type="number" min="1" class="form-control form-control-sm wizard-lowongan-field" name="jumlah_kebutuhan[]" value="<?php echo h((string)$tab['jumlah_kebutuhan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="jumlah_kebutuhan" data-required="1">
+                                                    </div>
+                                                    <div class="col-6 col-md-3">
+                                                        <label class="form-label mb-1">Jenis Kelamin</label>
+                                                        <select class="form-select form-select-sm wizard-lowongan-field" name="jenis_kelamin[]" data-tab-index="<?php echo $index; ?>" data-field="jenis_kelamin">
+                                                            <?php foreach (['Semua', 'Laki-laki', 'Perempuan'] as $jk): ?>
+                                                                <option value="<?php echo h($jk); ?>"<?php echo ($tab['jenis_kelamin'] ?? '') === $jk ? ' selected' : ''; ?>><?php echo h($jk); ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-6 col-md-3">
+                                                        <label class="form-label mb-1">Usia Minimal</label>
+                                                        <input type="number" min="18" class="form-control form-control-sm wizard-lowongan-field" name="usia_min[]" value="<?php echo h((string)$tab['usia_min']); ?>" data-tab-index="<?php echo $index; ?>" data-field="usia_min" data-required="1">
+                                                    </div>
+                                                    <div class="col-6 col-md-3">
+                                                        <label class="form-label mb-1">Usia Maksimal</label>
+                                                        <input type="number" min="18" class="form-control form-control-sm wizard-lowongan-field" name="usia_max[]" value="<?php echo h((string)$tab['usia_max']); ?>" data-tab-index="<?php echo $index; ?>" data-field="usia_max" data-required="1">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Pendidikan Minimal</label>
+                                                        <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="pendidikan_minimal[]" value="<?php echo h((string)$tab['pendidikan_minimal']); ?>" data-tab-index="<?php echo $index; ?>" data-field="pendidikan_minimal" data-required="1">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Pengalaman Minimal (tahun)</label>
+                                                        <input type="number" min="0" class="form-control form-control-sm wizard-lowongan-field" name="pengalaman_min_tahun[]" value="<?php echo h((string)$tab['pengalaman_min_tahun']); ?>" data-tab-index="<?php echo $index; ?>" data-field="pengalaman_min_tahun" data-required="1">
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label mb-1">Deskripsi Pekerjaan</label>
+                                                        <textarea class="form-control form-control-sm wizard-lowongan-field" name="deskripsi_pekerjaan[]" rows="3" data-tab-index="<?php echo $index; ?>" data-field="deskripsi_pekerjaan" data-required="1"><?php echo h((string)$tab['deskripsi_pekerjaan']); ?></textarea>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label mb-1">Keterampilan Utama</label>
+                                                        <textarea class="form-control form-control-sm wizard-lowongan-field" name="keterampilan_utama[]" rows="2" data-tab-index="<?php echo $index; ?>" data-field="keterampilan_utama" data-required="1"><?php echo h((string)$tab['keterampilan_utama']); ?></textarea>
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Rentang Gaji</label>
+                                                        <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="rentang_gaji[]" value="<?php echo h((string)$tab['rentang_gaji']); ?>" placeholder="Rp5.000.000 - Rp7.000.000" data-tab-index="<?php echo $index; ?>" data-field="rentang_gaji" data-required="1">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Bidang Pekerjaan</label>
+                                                        <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="bidang_pekerjaan[]" value="<?php echo h((string)$tab['bidang_pekerjaan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="bidang_pekerjaan" data-required="1">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Industri / Sektor</label>
+                                                        <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="industri_sektor[]" value="<?php echo h((string)$tab['industri_sektor']); ?>" data-tab-index="<?php echo $index; ?>" data-field="industri_sektor" data-required="1">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Status Pekerjaan</label>
+                                                        <select class="form-select form-select-sm wizard-lowongan-field" name="tipe_kerja[]" data-tab-index="<?php echo $index; ?>" data-field="tipe_kerja" data-required="1">
+                                                            <option value="">Pilih</option>
+                                                            <?php foreach (['Full Time', 'Part Time', 'Contract', 'Internship'] as $tipe): ?>
+                                                                <option value="<?php echo h($tipe); ?>"<?php echo ($tab['tipe_kerja'] ?? '') === $tipe ? ' selected' : ''; ?>><?php echo h($tipe); ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Masa Berlaku Loker Mulai</label>
+                                                        <input type="date" class="form-control form-control-sm wizard-lowongan-field" name="masa_berlaku_mulai[]" value="<?php echo h((string)$tab['masa_berlaku_mulai']); ?>" data-tab-index="<?php echo $index; ?>" data-field="masa_berlaku_mulai" data-required="1">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Masa Berlaku Loker Sampai</label>
+                                                        <input type="date" class="form-control form-control-sm wizard-lowongan-field" name="masa_berlaku_sampai[]" value="<?php echo h((string)$tab['masa_berlaku_sampai']); ?>" data-tab-index="<?php echo $index; ?>" data-field="masa_berlaku_sampai" data-required="1">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Kode KBJI</label>
+                                                        <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="kode_kbji[]" value="<?php echo h((string)$tab['kode_kbji']); ?>" placeholder="Contoh: 24231" data-tab-index="<?php echo $index; ?>" data-field="kode_kbji" data-required="1">
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-12 col-md-6 wizard-online-only">
-                                            <label class="form-label mb-1">Platform/Kanal</label>
-                                            <?php
-                                            $selectedPlatforms = array_values(array_filter(array_map('trim', preg_split('/\s*,\s*/', (string)($tab['platform_kanal'] ?? ''))), static fn ($v) => $v !== ''));
-                                            $platformOptions = ['Job Portal', 'Social Media', 'Lainnya'];
-                                            ?>
-                                            <div class="wizard-platform-group border rounded p-2 bg-light" data-tab-index="<?php echo $index; ?>">
-                                                <div class="d-flex flex-wrap gap-3">
-                                                    <?php foreach ($platformOptions as $platformOption): ?>
-                                                        <div class="form-check m-0">
-                                                            <input
-                                                                class="form-check-input wizard-platform-check"
-                                                                type="checkbox"
-                                                                value="<?php echo h($platformOption); ?>"
-                                                                id="platform-<?php echo $index; ?>-<?php echo strtolower(str_replace(' ', '-', $platformOption)); ?>"
-                                                                <?php echo in_array($platformOption, $selectedPlatforms, true) ? ' checked' : ''; ?>
-                                                            >
-                                                            <label class="form-check-label small" for="platform-<?php echo $index; ?>-<?php echo strtolower(str_replace(' ', '-', $platformOption)); ?>">
-                                                                <?php echo h($platformOption); ?>
-                                                            </label>
+
+                                        <div class="col-12">
+                                            <div class="border rounded p-3 bg-light-subtle">
+                                                <div class="fw-semibold mb-2">Lokasi Penempatan</div>
+                                                <div class="row g-2">
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Provinsi</label>
+                                                        <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="provinsi[]" value="<?php echo h((string)$tab['provinsi']); ?>" data-tab-index="<?php echo $index; ?>" data-field="provinsi" data-required="1">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Kota</label>
+                                                        <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="kota[]" value="<?php echo h((string)$tab['kota']); ?>" data-tab-index="<?php echo $index; ?>" data-field="kota" data-required="1">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Kecamatan</label>
+                                                        <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="kecamatan[]" value="<?php echo h((string)$tab['kecamatan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="kecamatan" data-required="1">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Kelurahan</label>
+                                                        <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="kelurahan[]" value="<?php echo h((string)$tab['kelurahan']); ?>" data-tab-index="<?php echo $index; ?>" data-field="kelurahan" data-required="1">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="border rounded p-3 bg-light-subtle">
+                                                <div class="fw-semibold mb-2">Sarana Penyebaran Loker</div>
+                                                <div class="row g-2">
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Metode publikasi loker</label>
+                                                        <div class="d-flex flex-wrap gap-3 border rounded p-2 bg-light">
+                                                            <?php
+                                                            $metodePublikasi = in_array((string)($tab['metode_publikasi_loker'] ?? 'Online'), ['Online', 'Offline'], true)
+                                                                ? (string)$tab['metode_publikasi_loker']
+                                                                : 'Online';
+                                                            ?>
+                                                            <div class="form-check m-0">
+                                                                <input class="form-check-input wizard-lowongan-field wizard-metode-publikasi-radio" type="radio" name="metode_publikasi_loker[<?php echo $index; ?>]" id="metode-online-<?php echo $index; ?>" value="Online" data-tab-index="<?php echo $index; ?>" data-field="metode_publikasi_loker" data-required="0"<?php echo $metodePublikasi === 'Online' ? ' checked' : ''; ?>>
+                                                                <label class="form-check-label small" for="metode-online-<?php echo $index; ?>">Online</label>
+                                                            </div>
+                                                            <div class="form-check m-0">
+                                                                <input class="form-check-input wizard-lowongan-field wizard-metode-publikasi-radio" type="radio" name="metode_publikasi_loker[<?php echo $index; ?>]" id="metode-offline-<?php echo $index; ?>" value="Offline" data-tab-index="<?php echo $index; ?>" data-field="metode_publikasi_loker" data-required="0"<?php echo $metodePublikasi === 'Offline' ? ' checked' : ''; ?>>
+                                                                <label class="form-check-label small" for="metode-offline-<?php echo $index; ?>">Offline</label>
+                                                            </div>
                                                         </div>
-                                                    <?php endforeach; ?>
+                                                    </div>
+                                                    <div class="col-12 col-md-6 wizard-online-only">
+                                                        <label class="form-label mb-1">Platform/Kanal</label>
+                                                        <?php
+                                                        $selectedPlatforms = array_values(array_filter(array_map('trim', preg_split('/\s*,\s*/', (string)($tab['platform_kanal'] ?? ''))), static fn ($v) => $v !== ''));
+                                                        $platformOptions = ['Job Portal', 'Social Media', 'Lainnya'];
+                                                        ?>
+                                                        <div class="wizard-platform-group border rounded p-2 bg-light" data-tab-index="<?php echo $index; ?>">
+                                                            <div class="d-flex flex-wrap gap-3">
+                                                                <?php foreach ($platformOptions as $platformOption): ?>
+                                                                    <div class="form-check m-0">
+                                                                        <input
+                                                                            class="form-check-input wizard-platform-check"
+                                                                            type="checkbox"
+                                                                            value="<?php echo h($platformOption); ?>"
+                                                                            id="platform-<?php echo $index; ?>-<?php echo strtolower(str_replace(' ', '-', $platformOption)); ?>"
+                                                                            <?php echo in_array($platformOption, $selectedPlatforms, true) ? ' checked' : ''; ?>
+                                                                        >
+                                                                        <label class="form-check-label small" for="platform-<?php echo $index; ?>-<?php echo strtolower(str_replace(' ', '-', $platformOption)); ?>">
+                                                                            <?php echo h($platformOption); ?>
+                                                                        </label>
+                                                                    </div>
+                                                                <?php endforeach; ?>
+                                                            </div>
+                                                            <input type="hidden" class="wizard-lowongan-field" name="platform_kanal[]" value="<?php echo h((string)$tab['platform_kanal']); ?>" data-tab-index="<?php echo $index; ?>" data-field="platform_kanal" data-required="0">
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 wizard-online-only">
+                                                        <label class="form-label mb-1">Alamat URL Postingan Loker</label>
+                                                        <div class="wizard-url-group" data-tab-index="<?php echo $index; ?>">
+                                                            <div class="wizard-url-list"></div>
+                                                            <div class="small text-muted mt-1">Jika URL lebih dari satu, pilih salah satu sebagai URL Utama.</div>
+                                                            <input type="hidden" class="wizard-lowongan-field" name="alamat_url_postingan_loker[]" value="<?php echo h((string)$tab['alamat_url_postingan_loker']); ?>" data-tab-index="<?php echo $index; ?>" data-field="alamat_url_postingan_loker" data-required="0">
+                                                            <input type="hidden" class="wizard-lowongan-field" name="alamat_url_postingan_loker_main[]" value="<?php echo h((string)$tab['alamat_url_postingan_loker_main']); ?>" data-tab-index="<?php echo $index; ?>" data-field="alamat_url_postingan_loker_main">
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 col-md-6 wizard-offline-only" style="display:none;">
+                                                        <label class="form-label mb-1">Media yang digunakan untuk publikasi</label>
+                                                        <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="media_publikasi_offline[]" value="<?php echo h((string)($tab['media_publikasi_offline'] ?? '')); ?>" data-tab-index="<?php echo $index; ?>" data-field="media_publikasi_offline" data-required="0">
+                                                    </div>
+                                                    <div class="col-12 col-md-6 wizard-offline-only" style="display:none;">
+                                                        <label class="form-label mb-1">Alasan menggunakan metode offline</label>
+                                                        <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="alasan_metode_offline[]" value="<?php echo h((string)($tab['alasan_metode_offline'] ?? '')); ?>" data-tab-index="<?php echo $index; ?>" data-field="alasan_metode_offline" data-required="0">
+                                                    </div>
                                                 </div>
-                                                <input type="hidden" class="wizard-lowongan-field" name="platform_kanal[]" value="<?php echo h((string)$tab['platform_kanal']); ?>" data-tab-index="<?php echo $index; ?>" data-field="platform_kanal" data-required="0">
                                             </div>
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Masa Berlaku Mulai</label>
-                                            <input type="date" class="form-control form-control-sm wizard-lowongan-field" name="masa_berlaku_mulai[]" value="<?php echo h((string)$tab['masa_berlaku_mulai']); ?>" data-tab-index="<?php echo $index; ?>" data-field="masa_berlaku_mulai" data-required="1">
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label mb-1">Masa Berlaku Sampai</label>
-                                            <input type="date" class="form-control form-control-sm wizard-lowongan-field" name="masa_berlaku_sampai[]" value="<?php echo h((string)$tab['masa_berlaku_sampai']); ?>" data-tab-index="<?php echo $index; ?>" data-field="masa_berlaku_sampai" data-required="1">
-                                        </div>
-                                        <div class="col-12 wizard-online-only">
-                                            <label class="form-label mb-1">Alamat URL Postingan Loker</label>
-                                            <div class="wizard-url-group" data-tab-index="<?php echo $index; ?>">
-                                                <div class="wizard-url-list"></div>
-                                                <div class="small text-muted mt-1">Jika URL lebih dari satu, pilih salah satu sebagai URL Utama.</div>
-                                                <input type="hidden" class="wizard-lowongan-field" name="alamat_url_postingan_loker[]" value="<?php echo h((string)$tab['alamat_url_postingan_loker']); ?>" data-tab-index="<?php echo $index; ?>" data-field="alamat_url_postingan_loker" data-required="0">
-                                                <input type="hidden" class="wizard-lowongan-field" name="alamat_url_postingan_loker_main[]" value="<?php echo h((string)$tab['alamat_url_postingan_loker_main']); ?>" data-tab-index="<?php echo $index; ?>" data-field="alamat_url_postingan_loker_main">
-                                            </div>
-                                        </div>
-                                        <div class="col-12 col-md-6 wizard-offline-only" style="display:none;">
-                                            <label class="form-label mb-1">Media yang digunakan untuk publikasi</label>
-                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="media_publikasi_offline[]" value="<?php echo h((string)($tab['media_publikasi_offline'] ?? '')); ?>" data-tab-index="<?php echo $index; ?>" data-field="media_publikasi_offline" data-required="0">
-                                        </div>
-                                        <div class="col-12 col-md-6 wizard-offline-only" style="display:none;">
-                                            <label class="form-label mb-1">Alasan menggunakan metode offline</label>
-                                            <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="alasan_metode_offline[]" value="<?php echo h((string)($tab['alasan_metode_offline'] ?? '')); ?>" data-tab-index="<?php echo $index; ?>" data-field="alasan_metode_offline" data-required="0">
                                         </div>
                                     </div>
                                 </div>
