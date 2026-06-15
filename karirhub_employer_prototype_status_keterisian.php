@@ -497,7 +497,10 @@ foreach ($rows as $row) {
                                 }
                             ?>
                             <tr>
-                                <td class="fw-semibold"><?php echo h($row['no_reg_bukti']); ?></td>
+                                <td class="fw-semibold">
+                                    <div><?php echo h($row['no_reg_bukti']); ?></div>
+                                    <a class="btn btn-outline-primary btn-sm mt-1" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&detail_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&detail_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>">Lihat Detail</a>
+                                </td>
                                 <td><?php echo h($row['id_lowongan']); ?></td>
                                 <td class="small"><?php echo h(strtoupper((string)$row['periode_tipe']) . ' (' . (string)$row['periode_mulai'] . ' s.d. ' . (string)$row['periode_selesai'] . ')'); ?></td>
                                 <td><?php echo h($row['jabatan']); ?></td>
@@ -509,7 +512,6 @@ foreach ($rows as $row) {
                                 <td><?php echo h((string)($row['tanggal_terisi'] ?? '-')); ?></td>
                                 <td>
                                     <div class="btn-group btn-group-sm flex-wrap" role="group">
-                                        <a class="btn btn-outline-primary" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&detail_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&detail_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>">Lihat Detail</a>
                                         <a class="btn btn-outline-secondary" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>&simulate_status=Belum%20Terisi">Belum</a>
                                         <a class="btn btn-outline-info" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>&simulate_status=Proses%20Seleksi">Seleksi</a>
                                         <a class="btn btn-outline-success" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&open_terisi_for=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&open_terisi_id=<?php echo h(urlencode($row['id_lowongan'])); ?>">Terisi</a>
