@@ -754,7 +754,7 @@ foreach ($rows as $row) {
             'Pendidikan',
             'Alamat',
             'Status Disabilitas',
-            'TMT',
+            'Tanggal Mulai Kerja',
             'Email',
             'Nomor Hp',
         ];
