@@ -965,12 +965,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 </div>
 
-<div class="modal fade" id="syaratKetentuanModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="syaratKetentuanModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">SYARAT DAN KETENTUAN WAJIB LAPOR LOWONGAN PEKERJAAN</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body small">
                 <h6>1. Ketentuan Umum</h6>
@@ -1024,7 +1023,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </label>
                 </div>
                 <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
                     <button type="button" class="btn btn-primary btn-sm" id="btnSetujuDanSubmit">Setuju</button>
                 </div>
             </div>
