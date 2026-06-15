@@ -1186,7 +1186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         let wizardStep = 1;
         const tooltipTextByKey = {
             unit_kode: 'Pilih unit usaha yang melaporkan lowongan pada periode ini.',
-            periode_tipe: 'Pilih jenis periode pelaporan (Weekly/Monthly) untuk pengelompokan laporan.',
+            periode_tipe: 'Pilih jenis periode pelaporan (Monthly) untuk pengelompokan laporan.',
             periode_anchor: 'Tanggal acuan untuk menghitung awal dan akhir periode pelaporan.',
             jumlah_id_lowongan: 'Jumlah lowongan yang akan diisi (1-50). Setiap lowongan punya satu tab.',
             jabatan: 'Nama posisi/jabatan yang dibuka. Tulis spesifik agar mudah dicari pelamar.',
@@ -1194,7 +1194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             jenis_kelamin: 'Pilih preferensi jenis kelamin pelamar. Gunakan "Semua" bila tidak dibatasi.',
             kondisi_fisik: 'Pilih kategori pelamar yang diperbolehkan (Disabilitas/Non Disabilitas).',
             jenis_disabilitas_tidak_diperbolehkan: 'Isi hanya jika memilih Disabilitas. Centang jenis yang tidak sesuai kebutuhan kerja.',
-            usia_min: 'Batas usia terendah pelamar (minimal 18 tahun).',
+            usia_min: 'Batas usia terendah pelamar (minimal 17 tahun).',
             usia_max: 'Batas usia tertinggi pelamar (harus sama dengan atau lebih besar dari usia minimal).',
             pendidikan_minimal: 'Kualifikasi pendidikan minimal yang diterima (contoh: SMA/SMK, D3, S1).',
             pengalaman_min_tahun: 'Lama pengalaman kerja minimal. Isi 0 jika fresh graduate diperbolehkan.',
