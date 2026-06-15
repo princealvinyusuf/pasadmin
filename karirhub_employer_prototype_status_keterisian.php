@@ -568,6 +568,9 @@ foreach ($rows as $row) {
                 <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>" class="btn-close"></a>
             </div>
             <div class="modal-body" style="max-height: calc(100vh - 220px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                <div class="alert alert-primary py-2 mb-3">
+                    Untuk melakukan pelaporan penempatan data pegawai secara massal, silahkan gunakan template berikut.
+                </div>
                 <div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
                     <button type="button" class="btn btn-outline-success btn-sm" id="btnDownloadTemplate">
                         <i class="bi bi-download me-1"></i>Download Template
