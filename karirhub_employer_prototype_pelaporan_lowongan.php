@@ -1042,7 +1042,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="small text-muted mb-2">Lengkapi dasar periode pelaporan terlebih dahulu.</div>
                     <label class="form-label mb-1">Pilih periode pelaporan lowongan kerja yang ingin anda laporkan</label>
                     <select class="form-select form-select-sm mb-2" id="wizardModalPeriodeTipe">
-                        <option value="weekly">Weekly</option>
                         <option value="monthly">Monthly</option>
                     </select>
                     <label class="form-label mb-1">Tanggal Mulai periode</label>
