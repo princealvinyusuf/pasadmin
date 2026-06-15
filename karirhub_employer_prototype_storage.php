@@ -211,9 +211,16 @@ if (!function_exists('kh_proto_ensure_multi_tables')) {
         ");
         $conn->query("ALTER TABLE karirhub_proto_wllp_penempatan ADD COLUMN IF NOT EXISTS urutan_penempatan INT NOT NULL DEFAULT 1 AFTER id_lowongan");
         $pkColumns = [];
-        $pkRes = $conn->query("SHOW INDEX FROM karirhub_proto_wllp_penempatan WHERE Key_name = 'PRIMARY' ORDER BY Seq_in_index");
+        $pkRes = $conn->query("SHOW INDEX FROM karirhub_proto_wllp_penempatan WHERE Key_name = 'PRIMARY'");
         if ($pkRes) {
+            $pkIndexRows = [];
             while ($pkRow = $pkRes->fetch_assoc()) {
+                $pkIndexRows[] = $pkRow;
+            }
+            usort($pkIndexRows, static function (array $a, array $b): int {
+                return ((int)($a['Seq_in_index'] ?? 0)) <=> ((int)($b['Seq_in_index'] ?? 0));
+            });
+            foreach ($pkIndexRows as $pkRow) {
                 $pkColumns[] = (string)($pkRow['Column_name'] ?? '');
             }
         }
