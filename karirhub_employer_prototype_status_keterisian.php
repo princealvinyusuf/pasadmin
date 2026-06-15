@@ -157,17 +157,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['form_action'] ?? '
         }
     }
 
+    $validPegawaiRows = [];
+    $requiredFieldCount = count($requiredPegawaiFields);
     for ($idx = 0; $idx < $targetPegawaiCount; $idx++) {
         $rowLabel = 'Pegawai ke-' . ($idx + 1);
-        foreach ($requiredPegawaiFields as $field => $label) {
-            if (($pegawaiFormRows[$idx][$field] ?? '') === '') {
-                $pegawaiErrors[] = $rowLabel . ': ' . $label . ' wajib diisi.';
+        $filledFieldCount = 0;
+        foreach ($requiredPegawaiFields as $field => $_label) {
+            if (($pegawaiFormRows[$idx][$field] ?? '') !== '') {
+                $filledFieldCount++;
             }
+        }
+        if ($filledFieldCount === 0) {
+            continue;
+        }
+        if ($filledFieldCount < $requiredFieldCount) {
+            foreach ($requiredPegawaiFields as $field => $label) {
+                if (($pegawaiFormRows[$idx][$field] ?? '') === '') {
+                    $pegawaiErrors[] = $rowLabel . ': ' . $label . ' wajib diisi.';
+                }
+            }
+            continue;
         }
         $statusDisabilitas = $pegawaiFormRows[$idx]['status_disabilitas'] ?? '';
         if ($statusDisabilitas !== '' && !in_array($statusDisabilitas, ['Iya', 'Tidak'], true)) {
             $pegawaiErrors[] = $rowLabel . ': Status Disabilitas hanya boleh Iya atau Tidak.';
+            continue;
         }
+        $validPegawaiRows[] = $pegawaiFormRows[$idx];
+    }
+    if (empty($validPegawaiRows)) {
+        $pegawaiErrors[] = 'Isi minimal 1 Data Pegawai secara lengkap untuk melanjutkan.';
     }
 
     if (empty($pegawaiErrors)) {
@@ -184,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['form_action'] ?? '
                     (no_reg_bukti, id_lowongan, urutan_penempatan, nik, nama_lengkap, pendidikan, jenis_kelamin, tempat_lahir, tanggal_lahir, alamat, status_disabilitas, tmt, email, nomor_hp)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            foreach ($pegawaiFormRows as $index => $pegawaiForm) {
+            foreach ($validPegawaiRows as $index => $pegawaiForm) {
                 $urutanPenempatan = $index + 1;
                 $jenisKelamin = '-';
                 $tempatLahir = '-';
@@ -211,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['form_action'] ?? '
             $stmtSavePegawai->close();
 
             $statusTerisi = 'Terisi';
-            $tanggalTerisiNow = $pegawaiFormRows[0]['tmt'] !== '' ? $pegawaiFormRows[0]['tmt'] : date('Y-m-d');
+            $tanggalTerisiNow = $validPegawaiRows[0]['tmt'] !== '' ? $validPegawaiRows[0]['tmt'] : date('Y-m-d');
             $stmtUpdateStatus = $conn->prepare("UPDATE karirhub_proto_wllp_status SET status_saat_ini = ?, tanggal_terisi = ? WHERE no_reg_bukti = ? AND id_lowongan = ?");
             $stmtUpdateStatus->bind_param('ssss', $statusTerisi, $tanggalTerisiNow, $openTerisiNoReg, $openTerisiIdLowongan);
             $stmtUpdateStatus->execute();
@@ -220,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['form_action'] ?? '
             $conn->commit();
 
             $successMessage = 'Simulasi update status untuk ' . $openTerisiNoReg . ' / ' . $openTerisiIdLowongan . ' -> Terisi berhasil. '
-                . count($pegawaiFormRows) . ' data pegawai telah dilengkapi.';
+                . count($validPegawaiRows) . ' data pegawai telah dilengkapi.';
             $openTerisiNoReg = '';
             $openTerisiIdLowongan = '';
             $pegawaiFormRows = [];
