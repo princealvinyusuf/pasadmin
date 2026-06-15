@@ -395,12 +395,6 @@ foreach ($rows as $row) {
             <div class="text-muted small">Simulasi update status lowongan WLLP</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-outline-success btn-sm" id="btnDownloadTemplate">
-                <i class="bi bi-download me-1"></i>Download Template
-            </button>
-            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkImportModal">
-                <i class="bi bi-file-earmark-arrow-up me-1"></i>Bulk Import
-            </button>
             <a class="btn btn-outline-primary btn-sm" href="karirhub_employer_prototype_dashboard_wllp">
                 <i class="bi bi-arrow-left me-1"></i>Kembali ke Dashboard WLLP
             </a>
@@ -574,6 +568,14 @@ foreach ($rows as $row) {
                 <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>" class="btn-close"></a>
             </div>
             <div class="modal-body" style="max-height: calc(100vh - 220px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                <div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+                    <button type="button" class="btn btn-outline-success btn-sm" id="btnDownloadTemplate">
+                        <i class="bi bi-download me-1"></i>Download Template
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkImportModal">
+                        <i class="bi bi-file-earmark-arrow-up me-1"></i>Bulk Import
+                    </button>
+                </div>
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-header bg-light fw-semibold">Informasi Lowongan Pekerjaan</div>
                     <div class="card-body">
