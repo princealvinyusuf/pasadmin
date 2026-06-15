@@ -569,15 +569,15 @@ foreach ($rows as $row) {
             </div>
             <div class="modal-body" style="max-height: calc(100vh - 220px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
                 <div class="alert alert-primary py-2 mb-3">
-                    Untuk melakukan pelaporan penempatan data pegawai secara massal, silahkan gunakan template berikut.
-                </div>
-                <div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
-                    <button type="button" class="btn btn-outline-success btn-sm" id="btnDownloadTemplate">
-                        <i class="bi bi-download me-1"></i>Download Template
-                    </button>
-                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkImportModal">
-                        <i class="bi bi-file-earmark-arrow-up me-1"></i>Bulk Import
-                    </button>
+                    <div class="mb-2">Untuk melakukan pelaporan penempatan data pegawai secara massal, silahkan gunakan template berikut.</div>
+                    <div class="d-flex flex-wrap justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-success btn-sm" id="btnDownloadTemplate">
+                            <i class="bi bi-download me-1"></i>Download Template
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkImportModal">
+                            <i class="bi bi-file-earmark-arrow-up me-1"></i>Bulk Import
+                        </button>
+                    </div>
                 </div>
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-header bg-light fw-semibold">Informasi Lowongan Pekerjaan</div>
