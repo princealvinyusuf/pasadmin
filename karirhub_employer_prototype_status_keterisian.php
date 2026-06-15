@@ -112,12 +112,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['form_action'] ?? '
         'nik' => 'NIK',
         'nama_lengkap' => 'Nama Lengkap',
         'pendidikan' => 'Pendidikan',
-        'jenis_kelamin' => 'Jenis Kelamin',
-        'tempat_lahir' => 'Tempat Lahir',
-        'tanggal_lahir' => 'Tanggal Lahir',
         'alamat' => 'Alamat',
         'status_disabilitas' => 'Status Disabilitas',
-        'tmt' => 'TMT',
+        'tmt' => 'Tanggal Mulai Kerja',
         'email' => 'Email',
         'nomor_hp' => 'Nomor Hp',
     ];
@@ -420,22 +417,6 @@ foreach ($rows as $row) {
                             <label class="form-label mb-1">Pendidikan</label>
                             <input type="text" name="pendidikan" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['pendidikan']); ?>">
                         </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label mb-1">Jenis Kelamin</label>
-                            <select name="jenis_kelamin" class="form-select form-select-sm">
-                                <option value="">Pilih</option>
-                                <option value="Laki-laki"<?php echo $pegawaiForm['jenis_kelamin'] === 'Laki-laki' ? ' selected' : ''; ?>>Laki-laki</option>
-                                <option value="Perempuan"<?php echo $pegawaiForm['jenis_kelamin'] === 'Perempuan' ? ' selected' : ''; ?>>Perempuan</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label mb-1">Tempat Lahir</label>
-                            <input type="text" name="tempat_lahir" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['tempat_lahir']); ?>">
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label mb-1">Tanggal Lahir</label>
-                            <input type="date" name="tanggal_lahir" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['tanggal_lahir']); ?>">
-                        </div>
                         <div class="col-12">
                             <label class="form-label mb-1">Alamat</label>
                             <textarea name="alamat" class="form-control form-control-sm" rows="2"><?php echo h($pegawaiForm['alamat']); ?></textarea>
@@ -449,7 +430,7 @@ foreach ($rows as $row) {
                             </select>
                         </div>
                         <div class="col-12 col-md-6">
-                            <label class="form-label mb-1">TMT</label>
+                            <label class="form-label mb-1">Tanggal Mulai Kerja</label>
                             <input type="date" name="tmt" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['tmt']); ?>">
                         </div>
                         <div class="col-12 col-md-6">
