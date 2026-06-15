@@ -23,7 +23,7 @@ kh_proto_ensure_multi_tables($conn);
 kh_proto_seed_multi_from_dataset($conn, $dataset, $units);
 
 $statusFilter = trim((string)($_REQUEST['status'] ?? 'all'));
-$allowedStatus = ['all', 'belum terisi', 'proses seleksi', 'terisi', 'belum update'];
+$allowedStatus = ['all', 'belum terisi', 'proses seleksi', 'terisi'];
 if (!in_array($statusFilter, $allowedStatus, true)) {
     $statusFilter = 'all';
 }
@@ -283,7 +283,6 @@ foreach ($rows as $row) {
                         <option value="belum terisi"<?php echo $statusFilter === 'belum terisi' ? ' selected' : ''; ?>>Belum Terisi</option>
                         <option value="proses seleksi"<?php echo $statusFilter === 'proses seleksi' ? ' selected' : ''; ?>>Proses Seleksi</option>
                         <option value="terisi"<?php echo $statusFilter === 'terisi' ? ' selected' : ''; ?>>Terisi</option>
-                        <option value="belum update"<?php echo $statusFilter === 'belum update' ? ' selected' : ''; ?>>Belum Update</option>
                     </select>
                 </div>
                 <div class="col-12 col-md-4">
