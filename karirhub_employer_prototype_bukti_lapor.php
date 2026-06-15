@@ -627,7 +627,7 @@ if ($action === 'unduh' && $actionRow !== null) {
                                 <td><span class="badge text-bg-<?php echo h($badgeClass); ?>"><?php echo h($row['status_verifikasi']); ?></span></td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
-                                        <a class="btn btn-outline-primary" href="<?php echo h($urlLihat); ?>">Lihat</a>
+                                        <a class="btn btn-outline-primary" href="<?php echo h($urlLihat); ?>">Lihat Detail</a>
                                         <a class="btn btn-outline-secondary" href="<?php echo h($urlCetak); ?>">Cetak</a>
                                         <a class="btn btn-outline-dark" href="<?php echo h($urlUnduh); ?>">Unduh PDF</a>
                                     </div>
