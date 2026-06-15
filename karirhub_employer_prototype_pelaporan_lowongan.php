@@ -556,6 +556,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flex-direction: column;
             gap: 0.25rem;
         }
+        .kh-tooltip-trigger {
+            color: #6c757d;
+            line-height: 1;
+            vertical-align: middle;
+        }
+        .kh-tooltip-trigger:hover,
+        .kh-tooltip-trigger:focus {
+            color: #0d6efd;
+        }
         @media (max-width: 991px) {
             .wizard-url-row {
                 grid-template-columns: 1fr;
@@ -1175,6 +1184,119 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const pelaporanForm = document.querySelector('form[method="POST"]');
         const initialLandingMode = document.body.getAttribute('data-initial-landing-mode') || '';
         let wizardStep = 1;
+        const tooltipTextByKey = {
+            unit_kode: 'Pilih unit usaha yang melaporkan lowongan pada periode ini.',
+            periode_tipe: 'Pilih jenis periode pelaporan (Weekly/Monthly) untuk pengelompokan laporan.',
+            periode_anchor: 'Tanggal acuan untuk menghitung awal dan akhir periode pelaporan.',
+            jumlah_id_lowongan: 'Jumlah lowongan yang akan diisi (1-50). Setiap lowongan punya satu tab.',
+            jabatan: 'Nama posisi/jabatan yang dibuka. Tulis spesifik agar mudah dicari pelamar.',
+            jumlah_kebutuhan: 'Jumlah orang yang dibutuhkan untuk jabatan ini (harus lebih dari 0).',
+            jenis_kelamin: 'Pilih preferensi jenis kelamin pelamar. Gunakan "Semua" bila tidak dibatasi.',
+            kondisi_fisik: 'Pilih kategori pelamar yang diperbolehkan (Disabilitas/Non Disabilitas).',
+            jenis_disabilitas_tidak_diperbolehkan: 'Isi hanya jika memilih Disabilitas. Centang jenis yang tidak sesuai kebutuhan kerja.',
+            usia_min: 'Batas usia terendah pelamar (minimal 18 tahun).',
+            usia_max: 'Batas usia tertinggi pelamar (harus sama dengan atau lebih besar dari usia minimal).',
+            pendidikan_minimal: 'Kualifikasi pendidikan minimal yang diterima (contoh: SMA/SMK, D3, S1).',
+            pengalaman_min_tahun: 'Lama pengalaman kerja minimal. Isi 0 jika fresh graduate diperbolehkan.',
+            deskripsi_pekerjaan: 'Ringkasan tugas utama dan tanggung jawab harian posisi ini.',
+            keterampilan_utama: 'Daftar keterampilan inti yang wajib dimiliki pelamar.',
+            rentang_gaji: 'Kisaran kompensasi yang ditawarkan (contoh: Rp5.000.000 - Rp7.000.000).',
+            bidang_pekerjaan: 'Bidang fungsi pekerjaan (contoh: Administrasi, Operasional, IT).',
+            industri_sektor: 'Sektor usaha posisi ini (contoh: Manufaktur, Retail, Jasa).',
+            tipe_kerja: 'Jenis hubungan kerja (Full Time, Part Time, Contract, Internship).',
+            masa_berlaku_mulai: 'Tanggal mulai lowongan aktif dipublikasikan.',
+            masa_berlaku_sampai: 'Tanggal akhir lowongan aktif (tidak boleh sebelum tanggal mulai).',
+            kode_kbji: 'Kode klasifikasi jabatan sesuai KBJI (contoh: 24231).',
+            provinsi: 'Provinsi lokasi kerja.',
+            kota: 'Kota atau kabupaten lokasi kerja.',
+            kecamatan: 'Kecamatan lokasi kerja.',
+            kelurahan: 'Kelurahan atau desa lokasi kerja.',
+            metode_publikasi_loker: 'Pilih kanal publikasi lowongan: Online atau Offline.',
+            platform_kanal: 'Pilih media publikasi online yang digunakan untuk lowongan ini.',
+            alamat_url_postingan_loker: 'Masukkan URL postingan. Jika lebih dari satu URL, pilih salah satu sebagai URL Utama.',
+            media_publikasi_offline: 'Sebutkan media offline yang dipakai (contoh: koran, banner, job fair).',
+            alasan_metode_offline: 'Jelaskan alasan lowongan dipublikasikan secara offline.',
+            catatan: 'Catatan tambahan untuk internal pelaporan lowongan.',
+            wizardModalPeriodeTipe: 'Pilih jenis periode pelaporan (Weekly/Monthly) untuk pengelompokan laporan.',
+            wizardModalPeriodeAnchor: 'Tanggal acuan untuk menghitung awal dan akhir periode pelaporan.',
+            wizardModalJumlahLowongan: 'Jumlah lowongan yang akan diisi (1-50). Setiap lowongan punya satu tab.'
+        };
+
+        function normalizeFieldName(rawName) {
+            return String(rawName || '')
+                .replace(/\[\]$/, '')
+                .replace(/\[\d+\]$/, '')
+                .trim();
+        }
+
+        function findRelatedControl(labelEl) {
+            if (!labelEl) return null;
+            const forAttr = String(labelEl.getAttribute('for') || '').trim();
+            if (forAttr) {
+                const controlByFor = document.getElementById(forAttr);
+                if (controlByFor) return controlByFor;
+            }
+            let sibling = labelEl.nextElementSibling;
+            while (sibling) {
+                if (sibling.matches && sibling.matches('input, select, textarea')) {
+                    return sibling;
+                }
+                const nestedControl = sibling.querySelector ? sibling.querySelector('input, select, textarea, .wizard-lowongan-field[data-field]') : null;
+                if (nestedControl) {
+                    return nestedControl;
+                }
+                sibling = sibling.nextElementSibling;
+            }
+            const scope = labelEl.closest('[class*="col-"], #wizardStep1, #wizardStep2, .wizard-disabilitas-only, .wizard-kondisi-group') || labelEl.parentElement;
+            if (!scope) return null;
+            return scope.querySelector('.wizard-lowongan-field[data-field], input[name], select[name], textarea[name], input[id], select[id], textarea[id]');
+        }
+
+        function resolveTooltipKeyForLabel(labelEl) {
+            const explicitKey = String(labelEl.getAttribute('data-tooltip-key') || '').trim();
+            if (explicitKey && tooltipTextByKey[explicitKey]) return explicitKey;
+            const control = findRelatedControl(labelEl);
+            if (!control) return '';
+            const fieldKey = String(control.getAttribute('data-field') || '').trim();
+            if (fieldKey && tooltipTextByKey[fieldKey]) return fieldKey;
+            const controlName = normalizeFieldName(control.getAttribute('name'));
+            if (controlName && tooltipTextByKey[controlName]) return controlName;
+            const controlId = String(control.id || '').trim();
+            if (controlId && tooltipTextByKey[controlId]) return controlId;
+            return '';
+        }
+
+        function initFieldTooltips(scope) {
+            if (typeof bootstrap === 'undefined') return;
+            const root = scope || document;
+            root.querySelectorAll('.kh-tooltip-trigger[data-bs-toggle="tooltip"]').forEach((trigger) => {
+                bootstrap.Tooltip.getOrCreateInstance(trigger, {
+                    container: 'body',
+                    trigger: 'hover focus',
+                    placement: 'top'
+                });
+            });
+        }
+
+        function decorateFieldTooltips(scope) {
+            const root = scope || document;
+            root.querySelectorAll('label.form-label').forEach((labelEl) => {
+                if (labelEl.querySelector('.kh-tooltip-trigger')) return;
+                const tooltipKey = resolveTooltipKeyForLabel(labelEl);
+                const tooltipText = tooltipKey ? tooltipTextByKey[tooltipKey] : '';
+                if (!tooltipText) return;
+                labelEl.classList.add('d-inline-flex', 'align-items-center', 'gap-1');
+                const trigger = document.createElement('button');
+                trigger.type = 'button';
+                trigger.className = 'btn btn-link border-0 p-0 text-decoration-none kh-tooltip-trigger';
+                trigger.setAttribute('data-bs-toggle', 'tooltip');
+                trigger.setAttribute('data-bs-title', tooltipText);
+                trigger.setAttribute('aria-label', 'Info field');
+                trigger.innerHTML = '<i class="bi bi-info-circle-fill" aria-hidden="true"></i>';
+                labelEl.appendChild(trigger);
+            });
+            initFieldTooltips(root);
+        }
 
         function defaultValueByField(field) {
             if (field === 'jenis_kelamin') return 'Semua';
@@ -1740,6 +1862,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 tabsContent.appendChild(pane);
             }
+            decorateFieldTooltips(tabsContent);
             validateTabs(false);
         }
 
@@ -2080,6 +2203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         renderLowonganTabs(parseInt((wizardJumlahLowongan && wizardJumlahLowongan.value) || '1', 10) || 1, collectLowonganValues());
+        decorateFieldTooltips(document);
         setupAllUrlGroups(tabsContent || document);
         applyWizardSummary();
         if (btnLandingBulk) {
