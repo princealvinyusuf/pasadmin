@@ -65,7 +65,8 @@ $resRows = $conn->query("
         COALESCE(p.status_disabilitas, '') AS status_disabilitas,
         COALESCE(CAST(p.tmt AS CHAR), '') AS tmt,
         COALESCE(p.email, '') AS email,
-        COALESCE(p.nomor_hp, '') AS nomor_hp
+        COALESCE(p.nomor_hp, '') AS nomor_hp,
+        COALESCE(pc.jumlah_penempatan, 0) AS jumlah_penempatan
     FROM karirhub_proto_wllp_pelaporan d
     LEFT JOIN karirhub_proto_wllp_status s
         ON s.no_reg_bukti = d.no_reg_bukti AND s.id_lowongan = d.id_lowongan
@@ -82,6 +83,12 @@ $resRows = $conn->query("
             AND pmin.urutan_penempatan = p1.urutan_penempatan
     ) p
         ON p.no_reg_bukti = d.no_reg_bukti AND p.id_lowongan = d.id_lowongan
+    LEFT JOIN (
+        SELECT no_reg_bukti, id_lowongan, COUNT(*) AS jumlah_penempatan
+        FROM karirhub_proto_wllp_penempatan
+        GROUP BY no_reg_bukti, id_lowongan
+    ) pc
+        ON pc.no_reg_bukti = d.no_reg_bukti AND pc.id_lowongan = d.id_lowongan
     LEFT JOIN karirhub_proto_wllp_laporan h
         ON h.no_reg_bukti = d.no_reg_bukti
     ORDER BY d.created_at DESC, d.no_reg_bukti DESC, d.id_lowongan DESC
@@ -407,6 +414,8 @@ foreach ($rows as $row) {
                             <th>Periode</th>
                             <th>Jabatan</th>
                             <th>Unit</th>
+                            <th>Jumlah Kebutuhan</th>
+                            <th>Jumlah Penempatan</th>
                             <th>Status Saat Ini</th>
                             <th>Tanggal Lapor</th>
                             <th>Tanggal Terisi</th>
@@ -415,7 +424,7 @@ foreach ($rows as $row) {
                     </thead>
                     <tbody>
                     <?php if (empty($filteredRows)): ?>
-                        <tr><td colspan="9" class="text-center text-muted">Tidak ada data.</td></tr>
+                        <tr><td colspan="11" class="text-center text-muted">Tidak ada data.</td></tr>
                     <?php else: ?>
                         <?php foreach ($filteredRows as $row): ?>
                             <tr>
@@ -424,6 +433,8 @@ foreach ($rows as $row) {
                                 <td class="small"><?php echo h(strtoupper((string)$row['periode_tipe']) . ' (' . (string)$row['periode_mulai'] . ' s.d. ' . (string)$row['periode_selesai'] . ')'); ?></td>
                                 <td><?php echo h($row['jabatan']); ?></td>
                                 <td><?php echo h($units[$row['unit_kode']]['nama'] ?? $row['unit_kode']); ?></td>
+                                <td><?php echo h((string)($row['jumlah_kebutuhan'] ?? 0)); ?></td>
+                                <td><?php echo h((string)($row['jumlah_penempatan'] ?? 0)); ?></td>
                                 <td><span class="badge text-bg-<?php echo h(karirhub_proto_status_badge_class($row['status_keterisian'])); ?>"><?php echo h($row['status_keterisian']); ?></span></td>
                                 <td><?php echo h($row['tanggal_lapor']); ?></td>
                                 <td><?php echo h((string)($row['tanggal_terisi'] ?? '-')); ?></td>
