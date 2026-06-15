@@ -101,7 +101,7 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
         ['Jumlah Penempatan', (string)($row['jumlah_penempatan'] ?? 0)],
         ['Unit/Perusahaan', $unitName],
         ['Masa Berlaku', (string)($row['masa_berlaku_mulai'] ?? '-') . ' s.d. ' . (string)($row['masa_berlaku_sampai'] ?? '-')],
-        ['Tipe Kerja', (string)($row['tipe_kerja'] ?? '-')],
+        ['Status Pekerjaan', (string)($row['tipe_kerja'] ?? '-')],
         ['Kode KBJI', (string)($row['kode_kbji'] ?? '-')],
         ['Provinsi', (string)($row['provinsi'] ?? '-')],
         ['Kota', (string)($row['kota'] ?? '-')],
@@ -109,8 +109,6 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
         ['Kelurahan', (string)($row['kelurahan'] ?? '-')],
         ['Bidang Pekerjaan', (string)($row['bidang_pekerjaan'] ?? '-')],
         ['Industri / Sektor', (string)($row['industri_sektor'] ?? '-')],
-        ['Status Pernikahan', (string)($row['status_pernikahan'] ?? '-')],
-        ['Status Verifikasi', (string)($row['status_verifikasi'] ?? '-')],
         ['Status Keterisian', (string)($row['status_keterisian'] ?? '-')],
     ];
 
