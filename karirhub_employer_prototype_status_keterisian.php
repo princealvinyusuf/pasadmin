@@ -292,6 +292,65 @@ if ($openTerisiRow !== null) {
         $pegawaiFormRows = array_slice($pegawaiFormRows, 0, $openTerisiJumlahKebutuhan);
     }
 }
+$detailNoReg = trim((string)($_GET['detail_no_reg'] ?? ''));
+$detailIdLowongan = trim((string)($_GET['detail_id_lowongan'] ?? ''));
+$detailKey = $detailNoReg . '||' . $detailIdLowongan;
+$detailRow = ($detailNoReg !== '' && $detailIdLowongan !== '' && isset($rowMap[$detailKey])) ? $rowMap[$detailKey] : null;
+$detailLowonganInfo = null;
+$detailPegawaiRows = [];
+if ($detailRow !== null) {
+    $stmtDetailLowongan = $conn->prepare("
+        SELECT
+            no_reg_bukti,
+            id_lowongan,
+            jabatan,
+            unit_nama,
+            jumlah_kebutuhan,
+            jenis_kelamin,
+            usia_min,
+            usia_max,
+            pendidikan_minimal,
+            pengalaman_min_tahun,
+            rentang_gaji,
+            keterampilan_utama,
+            CAST(masa_berlaku_mulai AS CHAR) AS masa_berlaku_mulai,
+            CAST(masa_berlaku_sampai AS CHAR) AS masa_berlaku_sampai,
+            status_verifikasi
+        FROM karirhub_proto_wllp_pelaporan
+        WHERE no_reg_bukti = ? AND id_lowongan = ?
+        LIMIT 1
+    ");
+    $stmtDetailLowongan->bind_param('ss', $detailNoReg, $detailIdLowongan);
+    $stmtDetailLowongan->execute();
+    $detailLowonganResult = $stmtDetailLowongan->get_result();
+    if ($detailLowonganResult) {
+        $detailLowonganInfo = $detailLowonganResult->fetch_assoc() ?: null;
+    }
+    $stmtDetailLowongan->close();
+
+    $stmtDetailPegawai = $conn->prepare("
+        SELECT
+            urutan_penempatan,
+            nik,
+            nama_lengkap,
+            pendidikan,
+            alamat,
+            status_disabilitas,
+            CAST(tmt AS CHAR) AS tmt,
+            email,
+            nomor_hp
+        FROM karirhub_proto_wllp_penempatan
+        WHERE no_reg_bukti = ? AND id_lowongan = ?
+        ORDER BY urutan_penempatan ASC
+    ");
+    $stmtDetailPegawai->bind_param('ss', $detailNoReg, $detailIdLowongan);
+    $stmtDetailPegawai->execute();
+    $detailPegawaiResult = $stmtDetailPegawai->get_result();
+    while ($detailPegawaiResult && ($detailPegawai = $detailPegawaiResult->fetch_assoc())) {
+        $detailPegawaiRows[] = $detailPegawai;
+    }
+    $stmtDetailPegawai->close();
+}
 $templateRows = $rows;
 
 $filteredRows = array_values(array_filter($rows, static function (array $row) use ($statusFilter, $unitFilter): bool {
@@ -419,7 +478,7 @@ foreach ($rows as $row) {
                             <th>Status Saat Ini</th>
                             <th>Tanggal Lapor</th>
                             <th>Tanggal Terisi</th>
-                            <th>Simulasi Update</th>
+                            <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -449,7 +508,8 @@ foreach ($rows as $row) {
                                 <td><?php echo h($row['tanggal_lapor']); ?></td>
                                 <td><?php echo h((string)($row['tanggal_terisi'] ?? '-')); ?></td>
                                 <td>
-                                    <div class="btn-group btn-group-sm">
+                                    <div class="btn-group btn-group-sm flex-wrap" role="group">
+                                        <a class="btn btn-outline-primary" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&detail_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&detail_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>">Lihat Detail</a>
                                         <a class="btn btn-outline-secondary" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>&simulate_status=Belum%20Terisi">Belum</a>
                                         <a class="btn btn-outline-info" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>&simulate_status=Proses%20Seleksi">Seleksi</a>
                                         <a class="btn btn-outline-success" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&open_terisi_for=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&open_terisi_id=<?php echo h(urlencode($row['id_lowongan'])); ?>">Terisi</a>
@@ -502,6 +562,90 @@ foreach ($rows as $row) {
         </div>
     </div>
 </div>
+
+<?php if ($detailRow !== null): ?>
+<div class="modal fade show" id="detailWllpModal" tabindex="-1" aria-modal="true" role="dialog" style="display:block; background: rgba(0,0,0,0.35); overflow-y:auto; -webkit-overflow-scrolling:touch;">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-height: calc(100vh - 2rem);">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detail WLLP</h5>
+                <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>" class="btn-close"></a>
+            </div>
+            <div class="modal-body" style="max-height: calc(100vh - 220px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-light fw-semibold">Informasi Lowongan Pekerjaan</div>
+                    <div class="card-body">
+                        <?php if ($detailLowonganInfo === null): ?>
+                            <div class="text-muted small">Detail lowongan tidak ditemukan.</div>
+                        <?php else: ?>
+                            <div class="row g-3 small">
+                                <div class="col-12 col-md-4"><span class="text-muted">No. Reg Bukti</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['no_reg_bukti']); ?></div></div>
+                                <div class="col-12 col-md-4"><span class="text-muted">ID Lowongan</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['id_lowongan']); ?></div></div>
+                                <div class="col-12 col-md-4"><span class="text-muted">Unit</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['unit_nama']); ?></div></div>
+                                <div class="col-12 col-md-6"><span class="text-muted">Jabatan</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['jabatan']); ?></div></div>
+                                <div class="col-12 col-md-3"><span class="text-muted">Jumlah Kebutuhan</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['jumlah_kebutuhan']); ?></div></div>
+                                <div class="col-12 col-md-3"><span class="text-muted">Status Verifikasi</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['status_verifikasi']); ?></div></div>
+                                <div class="col-12 col-md-4"><span class="text-muted">Jenis Kelamin</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['jenis_kelamin']); ?></div></div>
+                                <div class="col-12 col-md-4"><span class="text-muted">Usia</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['usia_min'] . ' - ' . (string)$detailLowonganInfo['usia_max'] . ' tahun'); ?></div></div>
+                                <div class="col-12 col-md-4"><span class="text-muted">Pendidikan Minimal</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['pendidikan_minimal']); ?></div></div>
+                                <div class="col-12 col-md-4"><span class="text-muted">Pengalaman Minimal</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['pengalaman_min_tahun']); ?> tahun</div></div>
+                                <div class="col-12 col-md-4"><span class="text-muted">Rentang Gaji</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['rentang_gaji']); ?></div></div>
+                                <div class="col-12 col-md-4"><span class="text-muted">Masa Berlaku</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['masa_berlaku_mulai'] . ' s.d. ' . (string)$detailLowonganInfo['masa_berlaku_sampai']); ?></div></div>
+                                <div class="col-12"><span class="text-muted">Keterampilan Utama</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['keterampilan_utama']); ?></div></div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light fw-semibold">Data Pegawai yang Ditempatkan</div>
+                    <div class="card-body">
+                        <?php if (empty($detailPegawaiRows)): ?>
+                            <div class="text-muted small">Belum ada data pegawai yang ditempatkan.</div>
+                        <?php else: ?>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>NIK</th>
+                                            <th>Nama Lengkap</th>
+                                            <th>Pendidikan</th>
+                                            <th>Tanggal Mulai Kerja</th>
+                                            <th>Status Disabilitas</th>
+                                            <th>Email</th>
+                                            <th>Nomor Hp</th>
+                                            <th>Alamat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($detailPegawaiRows as $pegawaiDetail): ?>
+                                            <tr>
+                                                <td><?php echo h((string)$pegawaiDetail['urutan_penempatan']); ?></td>
+                                                <td><?php echo h((string)$pegawaiDetail['nik']); ?></td>
+                                                <td><?php echo h((string)$pegawaiDetail['nama_lengkap']); ?></td>
+                                                <td><?php echo h((string)$pegawaiDetail['pendidikan']); ?></td>
+                                                <td><?php echo h((string)$pegawaiDetail['tmt']); ?></td>
+                                                <td><?php echo h((string)$pegawaiDetail['status_disabilitas']); ?></td>
+                                                <td><?php echo h((string)$pegawaiDetail['email']); ?></td>
+                                                <td><?php echo h((string)$pegawaiDetail['nomor_hp']); ?></td>
+                                                <td><?php echo h((string)$pegawaiDetail['alamat']); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>" class="btn btn-outline-secondary btn-sm">Tutup</a>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <?php if ($openTerisiRow !== null): ?>
 <div class="modal fade show" id="terisiPegawaiModal" tabindex="-1" aria-modal="true" role="dialog" style="display:block; background: rgba(0,0,0,0.35); overflow-y:auto; -webkit-overflow-scrolling:touch;">
