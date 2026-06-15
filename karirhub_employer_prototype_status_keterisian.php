@@ -416,7 +416,6 @@ foreach ($rows as $row) {
                             <th>Unit</th>
                             <th>Jumlah Kebutuhan</th>
                             <th>Jumlah Penempatan</th>
-                            <th>Progress</th>
                             <th>Status Saat Ini</th>
                             <th>Tanggal Lapor</th>
                             <th>Tanggal Terisi</th>
@@ -425,7 +424,7 @@ foreach ($rows as $row) {
                     </thead>
                     <tbody>
                     <?php if (empty($filteredRows)): ?>
-                        <tr><td colspan="12" class="text-center text-muted">Tidak ada data.</td></tr>
+                        <tr><td colspan="11" class="text-center text-muted">Tidak ada data.</td></tr>
                     <?php else: ?>
                         <?php foreach ($filteredRows as $row): ?>
                             <?php
@@ -445,7 +444,6 @@ foreach ($rows as $row) {
                                 <td><?php echo h($row['jabatan']); ?></td>
                                 <td><?php echo h($units[$row['unit_kode']]['nama'] ?? $row['unit_kode']); ?></td>
                                 <td><?php echo h((string)($row['jumlah_kebutuhan'] ?? 0)); ?></td>
-                                <td><?php echo h((string)($row['jumlah_penempatan'] ?? 0)); ?></td>
                                 <td><span class="badge text-bg-<?php echo h($progressClass); ?>"><?php echo h((string)$penempatan . ' / ' . (string)$kebutuhan); ?></span></td>
                                 <td><span class="badge text-bg-<?php echo h(karirhub_proto_status_badge_class($row['status_keterisian'])); ?>"><?php echo h($row['status_keterisian']); ?></span></td>
                                 <td><?php echo h($row['tanggal_lapor']); ?></td>
