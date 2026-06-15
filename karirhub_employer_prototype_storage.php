@@ -115,6 +115,7 @@ if (!function_exists('kh_proto_ensure_multi_tables')) {
                 pengalaman_min_tahun INT NOT NULL,
                 rentang_gaji VARCHAR(120) NOT NULL,
                 kode_kbji VARCHAR(50) NOT NULL,
+                lokasi_penempatan_sesuai_profil_perusahaan VARCHAR(10) NOT NULL DEFAULT '',
                 provinsi VARCHAR(120) NOT NULL,
                 kota VARCHAR(120) NOT NULL,
                 kecamatan VARCHAR(120) NOT NULL,
@@ -141,6 +142,7 @@ if (!function_exists('kh_proto_ensure_multi_tables')) {
         $conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS employer_nama VARCHAR(255) NOT NULL DEFAULT 'PT Contoh Nusantara' AFTER employer_kode");
         $conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS tipe_kerja VARCHAR(40) NOT NULL DEFAULT '' AFTER status_pernikahan");
         $conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS platform_kanal VARCHAR(120) NOT NULL DEFAULT '' AFTER tipe_kerja");
+        $conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS lokasi_penempatan_sesuai_profil_perusahaan VARCHAR(10) NOT NULL DEFAULT '' AFTER kode_kbji");
 
         $conn->query("
             CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_status (
@@ -263,10 +265,10 @@ if (!function_exists('kh_proto_seed_multi_from_dataset')) {
         $stmtItem = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_pelaporan
             (no_reg_bukti, id_lowongan, employer_kode, employer_nama, unit_kode, unit_nama, jabatan, jumlah_kebutuhan, jenis_kelamin, usia_min, usia_max, pendidikan_minimal,
-             deskripsi_pekerjaan, keterampilan_utama, pengalaman_min_tahun, rentang_gaji, kode_kbji, provinsi, kota, kecamatan, kelurahan,
+             deskripsi_pekerjaan, keterampilan_utama, pengalaman_min_tahun, rentang_gaji, kode_kbji, lokasi_penempatan_sesuai_profil_perusahaan, provinsi, kota, kecamatan, kelurahan,
              bidang_pekerjaan, industri_sektor, status_pernikahan, tipe_kerja, platform_kanal, masa_berlaku_mulai, masa_berlaku_sampai, alamat_url_postingan_loker,
              catatan, status_verifikasi)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmtStatus = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_status
@@ -316,6 +318,7 @@ if (!function_exists('kh_proto_seed_multi_from_dataset')) {
             $pengalamanMin = (int)($row['pengalaman_min_tahun'] ?? 0);
             $rentangGaji = (string)($row['rentang_gaji'] ?? '-');
             $kodeKbji = (string)($row['kode_kbji'] ?? '');
+            $lokasiPenempatanSesuaiProfilPerusahaan = (string)($row['lokasi_penempatan_sesuai_profil_perusahaan'] ?? '');
             $provinsi = (string)($row['provinsi'] ?? ($units[$unitKode]['provinsi'] ?? ''));
             $kota = (string)($row['kota'] ?? ($units[$unitKode]['kota'] ?? ''));
             $kecamatan = (string)($row['kecamatan'] ?? '');
@@ -331,9 +334,9 @@ if (!function_exists('kh_proto_seed_multi_from_dataset')) {
             $catatanItem = (string)($row['catatan'] ?? '');
 
             $stmtItem->bind_param(
-                str_repeat('s', 31),
+                str_repeat('s', 32),
                 $noReg, $idLowongan, $employerKode, $employerNama, $unitKode, $unitNama, $jabatan, $jumlahKebutuhan, $jenisKelamin, $usiaMin, $usiaMax, $pendidikanMinimal,
-                $deskripsiPekerjaan, $keterampilanUtama, $pengalamanMin, $rentangGaji, $kodeKbji, $provinsi, $kota, $kecamatan, $kelurahan,
+                $deskripsiPekerjaan, $keterampilanUtama, $pengalamanMin, $rentangGaji, $kodeKbji, $lokasiPenempatanSesuaiProfilPerusahaan, $provinsi, $kota, $kecamatan, $kelurahan,
                 $bidangPekerjaan, $industriSektor, $statusPernikahan, $tipeKerja, $platformKanal, $masaMulai, $masaSampai, $urlPosting, $catatanItem, $statusVerifikasi
             );
             $stmtItem->execute();

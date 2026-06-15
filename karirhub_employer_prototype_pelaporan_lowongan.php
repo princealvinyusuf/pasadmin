@@ -127,6 +127,7 @@ $lowonganDefaults = [
     'pengalaman_min_tahun' => '',
     'rentang_gaji' => '',
     'kode_kbji' => '',
+    'lokasi_penempatan_sesuai_profil_perusahaan' => '',
     'provinsi' => '',
     'kota' => '',
     'kecamatan' => '',
@@ -210,6 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'keterampilan_utama' => 'Keterampilan Utama',
         'pengalaman_min_tahun' => 'Pengalaman Minimal (tahun)',
         'rentang_gaji' => 'Rentang Gaji',
+        'lokasi_penempatan_sesuai_profil_perusahaan' => 'Lokasi penempatan sesuai profil perusahaan',
         'provinsi' => 'Provinsi',
         'kota' => 'Kota',
         'kecamatan' => 'Kecamatan',
@@ -236,6 +238,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (($item['masa_berlaku_mulai'] ?? '') !== '' && ($item['masa_berlaku_sampai'] ?? '') !== '' && $item['masa_berlaku_mulai'] > $item['masa_berlaku_sampai']) {
             $errors[] = 'Lowongan ' . ($idx + 1) . ': Masa berlaku mulai tidak boleh lebih akhir dari masa berlaku sampai.';
+        }
+        if (($item['lokasi_penempatan_sesuai_profil_perusahaan'] ?? '') !== '' && !in_array((string)$item['lokasi_penempatan_sesuai_profil_perusahaan'], ['Ya', 'Tidak'], true)) {
+            $errors[] = 'Lowongan ' . ($idx + 1) . ': Lokasi penempatan sesuai profil perusahaan harus Ya atau Tidak.';
         }
 
         $kondisiFisik = kh_proto_parse_csv_values((string)($item['kondisi_fisik'] ?? ''), ['Disabilitas', 'Non Disabilitas']);
@@ -355,9 +360,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmtSaveDetail = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_pelaporan (
                 no_reg_bukti, id_lowongan, employer_kode, employer_nama, unit_kode, unit_nama, jabatan, jumlah_kebutuhan, jenis_kelamin, usia_min, usia_max,
-                pendidikan_minimal, deskripsi_pekerjaan, keterampilan_utama, pengalaman_min_tahun, rentang_gaji, kode_kbji, provinsi, kota, kecamatan, kelurahan,
+                pendidikan_minimal, deskripsi_pekerjaan, keterampilan_utama, pengalaman_min_tahun, rentang_gaji, kode_kbji, lokasi_penempatan_sesuai_profil_perusahaan, provinsi, kota, kecamatan, kelurahan,
                 bidang_pekerjaan, industri_sektor, status_pernikahan, tipe_kerja, platform_kanal, masa_berlaku_mulai, masa_berlaku_sampai, alamat_url_postingan_loker, catatan, status_verifikasi
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Terverifikasi')
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Terverifikasi')
         ");
         $stmtSaveStatus = $conn->prepare("
             INSERT INTO karirhub_proto_wllp_status (no_reg_bukti, id_lowongan, employer_kode, employer_nama, jabatan, unit_nama, status_saat_ini, tanggal_lapor, tanggal_terisi)
@@ -393,7 +398,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $jabatanItem = (string)$item['jabatan'];
 
                 $stmtSaveDetail->bind_param(
-                    str_repeat('s', 30),
+                    str_repeat('s', 31),
                     $generatedNoReg,
                     $generatedIdLowongan,
                     $employerKode,
@@ -411,6 +416,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pengalamanMinInt,
                     $item['rentang_gaji'],
                     $item['kode_kbji'],
+                    $item['lokasi_penempatan_sesuai_profil_perusahaan'],
                     $item['provinsi'],
                     $item['kota'],
                     $item['kecamatan'],
@@ -862,6 +868,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                 <div class="fw-semibold mb-2">Lokasi Penempatan</div>
                                                 <div class="row g-2">
                                                     <div class="col-12 col-md-6">
+                                                        <label class="form-label mb-1">Apakah lokasi penempatan sama dengan lokasi yang tercantum pada Profil Perusahaan</label>
+                                                        <select class="form-select form-select-sm wizard-lowongan-field" name="lokasi_penempatan_sesuai_profil_perusahaan[]" data-tab-index="<?php echo $index; ?>" data-field="lokasi_penempatan_sesuai_profil_perusahaan" data-required="1">
+                                                            <option value="">Pilih</option>
+                                                            <option value="Ya"<?php echo ($tab['lokasi_penempatan_sesuai_profil_perusahaan'] ?? '') === 'Ya' ? ' selected' : ''; ?>>Ya</option>
+                                                            <option value="Tidak"<?php echo ($tab['lokasi_penempatan_sesuai_profil_perusahaan'] ?? '') === 'Tidak' ? ' selected' : ''; ?>>Tidak</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
                                                         <label class="form-label mb-1">Provinsi</label>
                                                         <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="provinsi[]" value="<?php echo h((string)$tab['provinsi']); ?>" data-tab-index="<?php echo $index; ?>" data-field="provinsi" data-required="1">
                                                     </div>
@@ -1134,6 +1148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'Status Pekerjaan',
             'Masa Berlaku Mulai',
             'Masa Berlaku Sampai',
+            'Lokasi Penempatan Sesuai Profil Perusahaan',
             'Kode KBJI (Opsional)',
             'Provinsi',
             'Kota',
@@ -1212,6 +1227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             tipe_kerja: 'Jenis hubungan kerja (Full Time, Part Time, Contract, Internship).',
             masa_berlaku_mulai: 'Tanggal mulai lowongan aktif dipublikasikan.',
             masa_berlaku_sampai: 'Tanggal akhir lowongan aktif (tidak boleh sebelum tanggal mulai).',
+            lokasi_penempatan_sesuai_profil_perusahaan: 'Pilih Ya jika lokasi penempatan sama dengan lokasi pada Profil Perusahaan, pilih Tidak jika berbeda.',
             kode_kbji: 'Kode klasifikasi jabatan sesuai KBJI (contoh: 24231).',
             provinsi: 'Provinsi lokasi kerja.',
             kota: 'Kota atau kabupaten lokasi kerja.',
@@ -1244,6 +1260,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'tipe_kerja',
             'masa_berlaku_mulai',
             'masa_berlaku_sampai',
+            'lokasi_penempatan_sesuai_profil_perusahaan',
             'provinsi',
             'kota',
             'kecamatan',
@@ -2343,6 +2360,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'Full Time',
                     '2026-05-21',
                     '2026-06-21',
+                    'Ya',
                     '24231',
                     'DKI Jakarta',
                     'Jakarta Selatan',
@@ -2391,6 +2409,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         const dataRows = rows.slice(1).filter((r) => r.some((c) => String(c).trim() !== ''));
                         const allowedTipe = ['Full Time', 'Part Time', 'Contract', 'Internship'];
                         const allowedPeriode = ['Monthly'];
+                        const allowedLokasiSesuaiProfil = ['Ya', 'Tidak'];
                         const requiredImportHeaders = [
                             'Unit Kode',
                             'Periode Tipe',
@@ -2412,6 +2431,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'Status Pekerjaan',
                             'Masa Berlaku Mulai',
                             'Masa Berlaku Sampai',
+                            'Lokasi Penempatan Sesuai Profil Perusahaan',
                             'Provinsi',
                             'Kota',
                             'Kecamatan',
@@ -2437,6 +2457,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                             if (!allowedPeriode.includes(map['Periode Tipe'])) {
                                 issues.push('Baris ' + line + ': Periode Tipe harus Monthly.');
+                                return;
+                            }
+                            if (!allowedLokasiSesuaiProfil.includes(map['Lokasi Penempatan Sesuai Profil Perusahaan'])) {
+                                issues.push('Baris ' + line + ': Lokasi Penempatan Sesuai Profil Perusahaan harus Ya/Tidak.');
                                 return;
                             }
                             if (!allowedMetodePublikasi.includes(map['Metode Publikasi Loker'])) {
