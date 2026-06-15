@@ -533,7 +533,7 @@ foreach ($rows as $row) {
             </div>
             <div class="modal-body">
                 <div class="alert alert-info py-2">
-                    Gunakan file dari tombol <strong>Download Template</strong> (data lowongan sudah otomatis terisi dari sistem). Saat import, pastikan kolom wajib terisi: NIK, Nama Lengkap, Pendidikan, Jenis Kelamin, Tempat Lahir, Tanggal Lahir, Alamat, Status Disabilitas (Iya/Tidak), TMT, Email, dan Nomor Hp.
+                    Gunakan file dari tombol <strong>Download Template</strong> (data lowongan sudah otomatis terisi dari sistem). Saat import, pastikan kolom wajib terisi: NIK, Nama Lengkap, Pendidikan, Alamat, Status Disabilitas (Iya/Tidak), TMT, Email, dan Nomor Hp.
                 </div>
                 <div class="mb-3">
                     <label class="form-label mb-1">Pilih file Excel (.xlsx)</label>
@@ -752,9 +752,6 @@ foreach ($rows as $row) {
             'NIK',
             'Nama Lengkap',
             'Pendidikan',
-            'Jenis Kelamin',
-            'Tempat Lahir',
-            'Tanggal Lahir',
             'Alamat',
             'Status Disabilitas',
             'TMT',
@@ -785,9 +782,6 @@ foreach ($rows as $row) {
                         row.nik || '',
                         row.nama_lengkap || '',
                         row.pendidikan || '',
-                        row.jenis_kelamin || '',
-                        row.tempat_lahir || '',
-                        row.tanggal_lahir || '',
                         row.alamat || '',
                         row.status_disabilitas || '',
                         row.tmt || '',
@@ -796,7 +790,7 @@ foreach ($rows as $row) {
                     ];
                 });
                 if (!rows.length) {
-                    rows.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
+                    rows.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
                 }
                 const ws = XLSX.utils.aoa_to_sheet([headers].concat(rows));
                 const wb = XLSX.utils.book_new();
