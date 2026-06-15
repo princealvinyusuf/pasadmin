@@ -192,6 +192,7 @@ if (!function_exists('kh_proto_ensure_multi_tables')) {
             CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_penempatan (
                 no_reg_bukti VARCHAR(60) NOT NULL,
                 id_lowongan VARCHAR(30) NOT NULL,
+                urutan_penempatan INT NOT NULL DEFAULT 1,
                 nik VARCHAR(30) NOT NULL,
                 nama_lengkap VARCHAR(180) NOT NULL,
                 pendidikan VARCHAR(120) NOT NULL,
@@ -205,9 +206,20 @@ if (!function_exists('kh_proto_ensure_multi_tables')) {
                 nomor_hp VARCHAR(40) NOT NULL,
                 created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                PRIMARY KEY (no_reg_bukti, id_lowongan)
+                PRIMARY KEY (no_reg_bukti, id_lowongan, urutan_penempatan)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
+        $conn->query("ALTER TABLE karirhub_proto_wllp_penempatan ADD COLUMN IF NOT EXISTS urutan_penempatan INT NOT NULL DEFAULT 1 AFTER id_lowongan");
+        $pkColumns = [];
+        $pkRes = $conn->query("SHOW INDEX FROM karirhub_proto_wllp_penempatan WHERE Key_name = 'PRIMARY' ORDER BY Seq_in_index");
+        if ($pkRes) {
+            while ($pkRow = $pkRes->fetch_assoc()) {
+                $pkColumns[] = (string)($pkRow['Column_name'] ?? '');
+            }
+        }
+        if ($pkColumns !== ['no_reg_bukti', 'id_lowongan', 'urutan_penempatan']) {
+            $conn->query("ALTER TABLE karirhub_proto_wllp_penempatan DROP PRIMARY KEY, ADD PRIMARY KEY (no_reg_bukti, id_lowongan, urutan_penempatan)");
+        }
     }
 }
 

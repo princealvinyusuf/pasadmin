@@ -409,7 +409,18 @@ $resDetails = $conn->query("
         COALESCE(p.nomor_hp, '') AS nomor_hp
     FROM karirhub_proto_wllp_pelaporan d
     LEFT JOIN karirhub_proto_wllp_status s ON s.no_reg_bukti = d.no_reg_bukti AND s.id_lowongan = d.id_lowongan
-    LEFT JOIN karirhub_proto_wllp_penempatan p ON p.no_reg_bukti = d.no_reg_bukti AND p.id_lowongan = d.id_lowongan
+    LEFT JOIN (
+        SELECT p1.*
+        FROM karirhub_proto_wllp_penempatan p1
+        INNER JOIN (
+            SELECT no_reg_bukti, id_lowongan, MIN(urutan_penempatan) AS urutan_penempatan
+            FROM karirhub_proto_wllp_penempatan
+            GROUP BY no_reg_bukti, id_lowongan
+        ) pmin
+            ON pmin.no_reg_bukti = p1.no_reg_bukti
+            AND pmin.id_lowongan = p1.id_lowongan
+            AND pmin.urutan_penempatan = p1.urutan_penempatan
+    ) p ON p.no_reg_bukti = d.no_reg_bukti AND p.id_lowongan = d.id_lowongan
     ORDER BY d.no_reg_bukti DESC, d.id_lowongan ASC
 ");
 if ($resDetails) {

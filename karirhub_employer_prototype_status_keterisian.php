@@ -46,6 +46,7 @@ $resRows = $conn->query("
         d.no_reg_bukti,
         d.id_lowongan,
         d.jabatan,
+        d.jumlah_kebutuhan,
         d.unit_kode,
         d.unit_nama,
         COALESCE(s.status_saat_ini, 'Belum Terisi') AS status_keterisian,
@@ -68,7 +69,18 @@ $resRows = $conn->query("
     FROM karirhub_proto_wllp_pelaporan d
     LEFT JOIN karirhub_proto_wllp_status s
         ON s.no_reg_bukti = d.no_reg_bukti AND s.id_lowongan = d.id_lowongan
-    LEFT JOIN karirhub_proto_wllp_penempatan p
+    LEFT JOIN (
+        SELECT p1.*
+        FROM karirhub_proto_wllp_penempatan p1
+        INNER JOIN (
+            SELECT no_reg_bukti, id_lowongan, MIN(urutan_penempatan) AS urutan_penempatan
+            FROM karirhub_proto_wllp_penempatan
+            GROUP BY no_reg_bukti, id_lowongan
+        ) pmin
+            ON pmin.no_reg_bukti = p1.no_reg_bukti
+            AND pmin.id_lowongan = p1.id_lowongan
+            AND pmin.urutan_penempatan = p1.urutan_penempatan
+    ) p
         ON p.no_reg_bukti = d.no_reg_bukti AND p.id_lowongan = d.id_lowongan
     LEFT JOIN karirhub_proto_wllp_laporan h
         ON h.no_reg_bukti = d.no_reg_bukti
@@ -87,20 +99,27 @@ foreach ($rows as $row) {
     $rowMap[$key] = $row;
 }
 
-$pegawaiForm = [
-    'nik' => trim((string)($_POST['nik'] ?? '')),
-    'nama_lengkap' => trim((string)($_POST['nama_lengkap'] ?? '')),
-    'pendidikan' => trim((string)($_POST['pendidikan'] ?? '')),
-    'jenis_kelamin' => trim((string)($_POST['jenis_kelamin'] ?? '')),
-    'tempat_lahir' => trim((string)($_POST['tempat_lahir'] ?? '')),
-    'tanggal_lahir' => trim((string)($_POST['tanggal_lahir'] ?? '')),
-    'alamat' => trim((string)($_POST['alamat'] ?? '')),
-    'status_disabilitas' => trim((string)($_POST['status_disabilitas'] ?? '')),
-    'tmt' => trim((string)($_POST['tmt'] ?? '')),
-    'email' => trim((string)($_POST['email'] ?? '')),
-    'nomor_hp' => trim((string)($_POST['nomor_hp'] ?? '')),
+$requiredPegawaiFields = [
+    'nik' => 'NIK',
+    'nama_lengkap' => 'Nama Lengkap',
+    'pendidikan' => 'Pendidikan',
+    'alamat' => 'Alamat',
+    'status_disabilitas' => 'Status Disabilitas',
+    'tmt' => 'Tanggal Mulai Kerja',
+    'email' => 'Email',
+    'nomor_hp' => 'Nomor Hp',
 ];
-
+$pegawaiDefaultRow = [
+    'nik' => '',
+    'nama_lengkap' => '',
+    'pendidikan' => '',
+    'alamat' => '',
+    'status_disabilitas' => '',
+    'tmt' => '',
+    'email' => '',
+    'nomor_hp' => '',
+];
+$pegawaiFormRows = [];
 $pegawaiErrors = [];
 $openTerisiNoReg = trim((string)($_GET['open_terisi_for'] ?? ''));
 $openTerisiIdLowongan = trim((string)($_GET['open_terisi_id'] ?? ''));
@@ -108,85 +127,145 @@ $openTerisiIdLowongan = trim((string)($_GET['open_terisi_id'] ?? ''));
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['form_action'] ?? '') === 'submit_terisi_data') {
     $openTerisiNoReg = trim((string)($_POST['no_reg_bukti'] ?? ''));
     $openTerisiIdLowongan = trim((string)($_POST['id_lowongan'] ?? ''));
-    $requiredPegawaiFields = [
-        'nik' => 'NIK',
-        'nama_lengkap' => 'Nama Lengkap',
-        'pendidikan' => 'Pendidikan',
-        'alamat' => 'Alamat',
-        'status_disabilitas' => 'Status Disabilitas',
-        'tmt' => 'Tanggal Mulai Kerja',
-        'email' => 'Email',
-        'nomor_hp' => 'Nomor Hp',
-    ];
-    foreach ($requiredPegawaiFields as $field => $label) {
-        if ($pegawaiForm[$field] === '') {
-            $pegawaiErrors[] = $label . ' wajib diisi.';
+    $openKey = $openTerisiNoReg . '||' . $openTerisiIdLowongan;
+
+    $targetPegawaiCount = max(1, (int)($_POST['jumlah_kebutuhan_target'] ?? 1));
+    foreach ($requiredPegawaiFields as $field => $_label) {
+        $rawValues = $_POST[$field] ?? [];
+        if (!is_array($rawValues)) {
+            $rawValues = [$rawValues];
+        }
+        for ($idx = 0; $idx < $targetPegawaiCount; $idx++) {
+            if (!isset($pegawaiFormRows[$idx])) {
+                $pegawaiFormRows[$idx] = $pegawaiDefaultRow;
+            }
+            $pegawaiFormRows[$idx][$field] = trim((string)($rawValues[$idx] ?? ''));
         }
     }
-    if ($pegawaiForm['status_disabilitas'] !== '' && !in_array($pegawaiForm['status_disabilitas'], ['Iya', 'Tidak'], true)) {
-        $pegawaiErrors[] = 'Status Disabilitas hanya boleh Iya atau Tidak.';
-    }
-    $openKey = $openTerisiNoReg . '||' . $openTerisiIdLowongan;
+
     if ($openTerisiNoReg === '' || $openTerisiIdLowongan === '' || !isset($rowMap[$openKey])) {
         $pegawaiErrors[] = 'Data lowongan untuk status Terisi tidak ditemukan.';
+    } else {
+        $jumlahKebutuhan = max(1, (int)($rowMap[$openKey]['jumlah_kebutuhan'] ?? 1));
+        if ($targetPegawaiCount !== $jumlahKebutuhan) {
+            $targetPegawaiCount = $jumlahKebutuhan;
+            for ($idx = 0; $idx < $targetPegawaiCount; $idx++) {
+                if (!isset($pegawaiFormRows[$idx])) {
+                    $pegawaiFormRows[$idx] = $pegawaiDefaultRow;
+                }
+            }
+        }
+    }
+
+    for ($idx = 0; $idx < $targetPegawaiCount; $idx++) {
+        $rowLabel = 'Pegawai ke-' . ($idx + 1);
+        foreach ($requiredPegawaiFields as $field => $label) {
+            if (($pegawaiFormRows[$idx][$field] ?? '') === '') {
+                $pegawaiErrors[] = $rowLabel . ': ' . $label . ' wajib diisi.';
+            }
+        }
+        $statusDisabilitas = $pegawaiFormRows[$idx]['status_disabilitas'] ?? '';
+        if ($statusDisabilitas !== '' && !in_array($statusDisabilitas, ['Iya', 'Tidak'], true)) {
+            $pegawaiErrors[] = $rowLabel . ': Status Disabilitas hanya boleh Iya atau Tidak.';
+        }
     }
 
     if (empty($pegawaiErrors)) {
-        $stmtSavePegawai = $conn->prepare("
-            INSERT INTO karirhub_proto_wllp_penempatan
-                (no_reg_bukti, id_lowongan, nik, nama_lengkap, pendidikan, jenis_kelamin, tempat_lahir, tanggal_lahir, alamat, status_disabilitas, tmt, email, nomor_hp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-                nik = VALUES(nik),
-                nama_lengkap = VALUES(nama_lengkap),
-                pendidikan = VALUES(pendidikan),
-                jenis_kelamin = VALUES(jenis_kelamin),
-                tempat_lahir = VALUES(tempat_lahir),
-                tanggal_lahir = VALUES(tanggal_lahir),
-                alamat = VALUES(alamat),
-                status_disabilitas = VALUES(status_disabilitas),
-                tmt = VALUES(tmt),
-                email = VALUES(email),
-                nomor_hp = VALUES(nomor_hp)
-        ");
-        $stmtSavePegawai->bind_param(
-            'sssssssssssss',
-            $openTerisiNoReg,
-            $openTerisiIdLowongan,
-            $pegawaiForm['nik'],
-            $pegawaiForm['nama_lengkap'],
-            $pegawaiForm['pendidikan'],
-            $pegawaiForm['jenis_kelamin'],
-            $pegawaiForm['tempat_lahir'],
-            $pegawaiForm['tanggal_lahir'],
-            $pegawaiForm['alamat'],
-            $pegawaiForm['status_disabilitas'],
-            $pegawaiForm['tmt'],
-            $pegawaiForm['email'],
-            $pegawaiForm['nomor_hp']
-        );
-        $stmtSavePegawai->execute();
-        $stmtSavePegawai->close();
+        try {
+            $conn->begin_transaction();
 
-        $statusTerisi = 'Terisi';
-        $tanggalTerisiNow = $pegawaiForm['tmt'] !== '' ? $pegawaiForm['tmt'] : date('Y-m-d');
-        $stmtUpdateStatus = $conn->prepare("UPDATE karirhub_proto_wllp_status SET status_saat_ini = ?, tanggal_terisi = ? WHERE no_reg_bukti = ? AND id_lowongan = ?");
-        $stmtUpdateStatus->bind_param('ssss', $statusTerisi, $tanggalTerisiNow, $openTerisiNoReg, $openTerisiIdLowongan);
-        $stmtUpdateStatus->execute();
-        $stmtUpdateStatus->close();
+            $stmtDeletePegawai = $conn->prepare("DELETE FROM karirhub_proto_wllp_penempatan WHERE no_reg_bukti = ? AND id_lowongan = ?");
+            $stmtDeletePegawai->bind_param('ss', $openTerisiNoReg, $openTerisiIdLowongan);
+            $stmtDeletePegawai->execute();
+            $stmtDeletePegawai->close();
 
-        $successMessage = 'Simulasi update status untuk ' . $openTerisiNoReg . ' / ' . $openTerisiIdLowongan . ' -> Terisi berhasil. Data pegawai ditempatkan atas nama '
-            . $pegawaiForm['nama_lengkap'] . ' telah dilengkapi.';
-        $openTerisiNoReg = '';
-        $openTerisiIdLowongan = '';
-        foreach ($pegawaiForm as $key => $_) {
-            $pegawaiForm[$key] = '';
+            $stmtSavePegawai = $conn->prepare("
+                INSERT INTO karirhub_proto_wllp_penempatan
+                    (no_reg_bukti, id_lowongan, urutan_penempatan, nik, nama_lengkap, pendidikan, jenis_kelamin, tempat_lahir, tanggal_lahir, alamat, status_disabilitas, tmt, email, nomor_hp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            foreach ($pegawaiFormRows as $index => $pegawaiForm) {
+                $urutanPenempatan = $index + 1;
+                $jenisKelamin = '-';
+                $tempatLahir = '-';
+                $tanggalLahir = '1970-01-01';
+                $stmtSavePegawai->bind_param(
+                    'ssisssssssssss',
+                    $openTerisiNoReg,
+                    $openTerisiIdLowongan,
+                    $urutanPenempatan,
+                    $pegawaiForm['nik'],
+                    $pegawaiForm['nama_lengkap'],
+                    $pegawaiForm['pendidikan'],
+                    $jenisKelamin,
+                    $tempatLahir,
+                    $tanggalLahir,
+                    $pegawaiForm['alamat'],
+                    $pegawaiForm['status_disabilitas'],
+                    $pegawaiForm['tmt'],
+                    $pegawaiForm['email'],
+                    $pegawaiForm['nomor_hp']
+                );
+                $stmtSavePegawai->execute();
+            }
+            $stmtSavePegawai->close();
+
+            $statusTerisi = 'Terisi';
+            $tanggalTerisiNow = $pegawaiFormRows[0]['tmt'] !== '' ? $pegawaiFormRows[0]['tmt'] : date('Y-m-d');
+            $stmtUpdateStatus = $conn->prepare("UPDATE karirhub_proto_wllp_status SET status_saat_ini = ?, tanggal_terisi = ? WHERE no_reg_bukti = ? AND id_lowongan = ?");
+            $stmtUpdateStatus->bind_param('ssss', $statusTerisi, $tanggalTerisiNow, $openTerisiNoReg, $openTerisiIdLowongan);
+            $stmtUpdateStatus->execute();
+            $stmtUpdateStatus->close();
+
+            $conn->commit();
+
+            $successMessage = 'Simulasi update status untuk ' . $openTerisiNoReg . ' / ' . $openTerisiIdLowongan . ' -> Terisi berhasil. '
+                . count($pegawaiFormRows) . ' data pegawai telah dilengkapi.';
+            $openTerisiNoReg = '';
+            $openTerisiIdLowongan = '';
+            $pegawaiFormRows = [];
+        } catch (Throwable $e) {
+            $conn->rollback();
+            $pegawaiErrors[] = 'Gagal menyimpan data pegawai. Silakan coba lagi.';
         }
     }
 }
 
 $openKey = $openTerisiNoReg . '||' . $openTerisiIdLowongan;
 $openTerisiRow = ($openTerisiNoReg !== '' && $openTerisiIdLowongan !== '' && isset($rowMap[$openKey])) ? $rowMap[$openKey] : null;
+if ($openTerisiRow !== null) {
+    $openTerisiJumlahKebutuhan = max(1, (int)($openTerisiRow['jumlah_kebutuhan'] ?? 1));
+    if (empty($pegawaiFormRows)) {
+        $resPegawai = $conn->prepare("
+            SELECT nik, nama_lengkap, pendidikan, alamat, status_disabilitas, CAST(tmt AS CHAR) AS tmt, email, nomor_hp
+            FROM karirhub_proto_wllp_penempatan
+            WHERE no_reg_bukti = ? AND id_lowongan = ?
+            ORDER BY urutan_penempatan ASC
+        ");
+        $resPegawai->bind_param('ss', $openTerisiNoReg, $openTerisiIdLowongan);
+        $resPegawai->execute();
+        $resPegawaiResult = $resPegawai->get_result();
+        while ($resPegawaiResult && ($pegawai = $resPegawaiResult->fetch_assoc())) {
+            $pegawaiFormRows[] = [
+                'nik' => (string)($pegawai['nik'] ?? ''),
+                'nama_lengkap' => (string)($pegawai['nama_lengkap'] ?? ''),
+                'pendidikan' => (string)($pegawai['pendidikan'] ?? ''),
+                'alamat' => (string)($pegawai['alamat'] ?? ''),
+                'status_disabilitas' => (string)($pegawai['status_disabilitas'] ?? ''),
+                'tmt' => (string)($pegawai['tmt'] ?? ''),
+                'email' => (string)($pegawai['email'] ?? ''),
+                'nomor_hp' => (string)($pegawai['nomor_hp'] ?? ''),
+            ];
+        }
+        $resPegawai->close();
+    }
+    for ($idx = count($pegawaiFormRows); $idx < $openTerisiJumlahKebutuhan; $idx++) {
+        $pegawaiFormRows[] = $pegawaiDefaultRow;
+    }
+    if (count($pegawaiFormRows) > $openTerisiJumlahKebutuhan) {
+        $pegawaiFormRows = array_slice($pegawaiFormRows, 0, $openTerisiJumlahKebutuhan);
+    }
+}
 $templateRows = $rows;
 
 $filteredRows = array_values(array_filter($rows, static function (array $row) use ($statusFilter, $unitFilter): bool {
@@ -397,51 +476,58 @@ foreach ($rows as $row) {
                     <div class="small text-muted mb-2">
                         No. Reg Bukti: <strong><?php echo h($openTerisiRow['no_reg_bukti']); ?></strong> &middot;
                         ID Lowongan: <strong><?php echo h($openTerisiRow['id_lowongan']); ?></strong> &middot;
-                        Jabatan: <strong><?php echo h($openTerisiRow['jabatan']); ?></strong>
+                        Jabatan: <strong><?php echo h($openTerisiRow['jabatan']); ?></strong> &middot;
+                        Jumlah Kebutuhan: <strong><?php echo h((string)$openTerisiJumlahKebutuhan); ?></strong>
                     </div>
                     <input type="hidden" name="form_action" value="submit_terisi_data">
                     <input type="hidden" name="no_reg_bukti" value="<?php echo h($openTerisiRow['no_reg_bukti']); ?>">
                     <input type="hidden" name="id_lowongan" value="<?php echo h($openTerisiRow['id_lowongan']); ?>">
+                    <input type="hidden" name="jumlah_kebutuhan_target" value="<?php echo h((string)$openTerisiJumlahKebutuhan); ?>">
                     <input type="hidden" name="status" value="<?php echo h($statusFilter); ?>">
                     <input type="hidden" name="unit" value="<?php echo h($unitFilter); ?>">
-                    <div class="row g-3">
-                        <div class="col-12 col-md-6">
-                            <label class="form-label mb-1">NIK</label>
-                            <input type="text" name="nik" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['nik']); ?>">
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label mb-1">Nama Lengkap</label>
-                            <input type="text" name="nama_lengkap" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['nama_lengkap']); ?>">
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label mb-1">Pendidikan</label>
-                            <input type="text" name="pendidikan" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['pendidikan']); ?>">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label mb-1">Alamat</label>
-                            <textarea name="alamat" class="form-control form-control-sm" rows="2"><?php echo h($pegawaiForm['alamat']); ?></textarea>
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label mb-1">Status Disabilitas</label>
-                            <select name="status_disabilitas" class="form-select form-select-sm">
-                                <option value="">Pilih</option>
-                                <option value="Iya"<?php echo $pegawaiForm['status_disabilitas'] === 'Iya' ? ' selected' : ''; ?>>Iya</option>
-                                <option value="Tidak"<?php echo $pegawaiForm['status_disabilitas'] === 'Tidak' ? ' selected' : ''; ?>>Tidak</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label mb-1">Tanggal Mulai Kerja</label>
-                            <input type="date" name="tmt" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['tmt']); ?>">
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label mb-1">Email</label>
-                            <input type="email" name="email" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['email']); ?>">
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label mb-1">Nomor Hp</label>
-                            <input type="text" name="nomor_hp" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['nomor_hp']); ?>">
+                    <?php foreach ($pegawaiFormRows as $pegawaiIndex => $pegawaiForm): ?>
+                    <div class="border rounded p-3 mb-3">
+                        <div class="fw-semibold small mb-2">Data Pegawai <?php echo h((string)($pegawaiIndex + 1)); ?> dari <?php echo h((string)$openTerisiJumlahKebutuhan); ?></div>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label mb-1">NIK</label>
+                                <input type="text" name="nik[]" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['nik']); ?>">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label mb-1">Nama Lengkap</label>
+                                <input type="text" name="nama_lengkap[]" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['nama_lengkap']); ?>">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label mb-1">Pendidikan</label>
+                                <input type="text" name="pendidikan[]" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['pendidikan']); ?>">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label mb-1">Alamat</label>
+                                <textarea name="alamat[]" class="form-control form-control-sm" rows="2"><?php echo h($pegawaiForm['alamat']); ?></textarea>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label mb-1">Status Disabilitas</label>
+                                <select name="status_disabilitas[]" class="form-select form-select-sm">
+                                    <option value="">Pilih</option>
+                                    <option value="Iya"<?php echo $pegawaiForm['status_disabilitas'] === 'Iya' ? ' selected' : ''; ?>>Iya</option>
+                                    <option value="Tidak"<?php echo $pegawaiForm['status_disabilitas'] === 'Tidak' ? ' selected' : ''; ?>>Tidak</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label mb-1">Tanggal Mulai Kerja</label>
+                                <input type="date" name="tmt[]" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['tmt']); ?>">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label mb-1">Email</label>
+                                <input type="email" name="email[]" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['email']); ?>">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label mb-1">Nomor Hp</label>
+                                <input type="text" name="nomor_hp[]" class="form-control form-control-sm" value="<?php echo h($pegawaiForm['nomor_hp']); ?>">
+                            </div>
                         </div>
                     </div>
+                    <?php endforeach; ?>
                 </div>
                 <div class="modal-footer">
                     <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>" class="btn btn-outline-secondary btn-sm">Batal</a>
