@@ -201,6 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $requiredLowonganFields = [
         'jabatan' => 'Jabatan',
         'jumlah_kebutuhan' => 'Jumlah Kebutuhan',
+        'jenis_kelamin' => 'Jenis Kelamin',
         'kondisi_fisik' => 'Kondisi Fisik',
         'usia_min' => 'Usia Minimal',
         'usia_max' => 'Usia Maksimal',
@@ -209,7 +210,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'keterampilan_utama' => 'Keterampilan Utama',
         'pengalaman_min_tahun' => 'Pengalaman Minimal (tahun)',
         'rentang_gaji' => 'Rentang Gaji',
-        'kode_kbji' => 'Kode KBJI',
         'provinsi' => 'Provinsi',
         'kota' => 'Kota',
         'kecamatan' => 'Kecamatan',
@@ -258,9 +258,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($metodePublikasi === 'Online') {
             $selectedChannels = kh_proto_parse_platform_kanal((string)($item['platform_kanal'] ?? ''));
-            if (empty($selectedChannels)) {
-                $errors[] = 'Lowongan ' . ($idx + 1) . ': Platform/Kanal wajib dipilih untuk metode Online.';
-            }
             $postingRowsRaw = kh_proto_parse_posting_rows((string)($item['alamat_url_postingan_loker'] ?? ''));
             $postingRows = [];
             foreach ($postingRowsRaw as $postingRow) {
@@ -275,15 +272,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'url' => $rowUrl,
                 ];
             }
-            if (empty($postingRows)) {
-                $errors[] = 'Lowongan ' . ($idx + 1) . ': Alamat URL Postingan Loker wajib diisi untuk metode Online.';
-            }
             foreach ($postingRows as $postingRow) {
                 if ($postingRow['source'] === '') {
                     $errors[] = 'Lowongan ' . ($idx + 1) . ': Sumber URL wajib diisi.';
                     break;
                 }
-                if ($postingRow['channel'] !== '' && !in_array($postingRow['channel'], $selectedChannels, true)) {
+                if ($postingRow['channel'] !== '' && !empty($selectedChannels) && !in_array($postingRow['channel'], $selectedChannels, true)) {
                     $errors[] = 'Lowongan ' . ($idx + 1) . ': Kanal sumber URL tidak sesuai dengan Platform/Kanal terpilih.';
                     break;
                 }
@@ -325,12 +319,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $wizardLowonganTabs[$idx]['alasan_metode_offline'] = '';
             $wizardLowonganTabs[$idx]['metode_publikasi_loker'] = 'Online';
         } else {
-            if (trim((string)($item['media_publikasi_offline'] ?? '')) === '') {
-                $errors[] = 'Lowongan ' . ($idx + 1) . ': Media yang digunakan untuk publikasi wajib diisi untuk metode Offline.';
-            }
-            if (trim((string)($item['alasan_metode_offline'] ?? '')) === '') {
-                $errors[] = 'Lowongan ' . ($idx + 1) . ': Alasan menggunakan metode offline wajib diisi.';
-            }
             $wizardLowonganTabs[$idx]['platform_kanal'] = '';
             $wizardLowonganTabs[$idx]['alamat_url_postingan_loker'] = '';
             $wizardLowonganTabs[$idx]['alamat_url_postingan_loker_main'] = '';
@@ -565,6 +553,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .kh-tooltip-trigger:focus {
             color: #0d6efd;
         }
+        .kh-required-indicator {
+            color: #dc3545;
+            font-weight: 700;
+        }
+        .kh-optional-indicator {
+            color: #6c757d;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
         @media (max-width: 991px) {
             .wizard-url-row {
                 grid-template-columns: 1fr;
@@ -740,7 +737,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                     </div>
                                                     <div class="col-6 col-md-3">
                                                         <label class="form-label mb-1">Jenis Kelamin</label>
-                                                        <select class="form-select form-select-sm wizard-lowongan-field" name="jenis_kelamin[]" data-tab-index="<?php echo $index; ?>" data-field="jenis_kelamin">
+                                                        <select class="form-select form-select-sm wizard-lowongan-field" name="jenis_kelamin[]" data-tab-index="<?php echo $index; ?>" data-field="jenis_kelamin" data-required="1">
                                                             <?php foreach (['Semua', 'Laki-laki', 'Perempuan'] as $jk): ?>
                                                                 <option value="<?php echo h($jk); ?>"<?php echo ($tab['jenis_kelamin'] ?? '') === $jk ? ' selected' : ''; ?>><?php echo h($jk); ?></option>
                                                             <?php endforeach; ?>
@@ -848,7 +845,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                     </div>
                                                     <div class="col-12 col-md-6">
                                                         <label class="form-label mb-1">Kode KBJI</label>
-                                                        <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="kode_kbji[]" value="<?php echo h((string)$tab['kode_kbji']); ?>" placeholder="Contoh: 24231" data-tab-index="<?php echo $index; ?>" data-field="kode_kbji" data-required="1">
+                                                        <input type="text" class="form-control form-control-sm wizard-lowongan-field" name="kode_kbji[]" value="<?php echo h((string)$tab['kode_kbji']); ?>" placeholder="Contoh: 24231" data-tab-index="<?php echo $index; ?>" data-field="kode_kbji" data-required="0">
                                                     </div>
                                                 </div>
                                             </div>
@@ -1221,6 +1218,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             wizardModalPeriodeAnchor: 'Tanggal acuan untuk menghitung awal dan akhir periode pelaporan.',
             wizardModalJumlahLowongan: 'Jumlah lowongan yang akan diisi (1-50). Setiap lowongan punya satu tab.'
         };
+        const requiredFieldKeys = new Set([
+            'jabatan',
+            'jumlah_kebutuhan',
+            'jenis_kelamin',
+            'kondisi_fisik',
+            'usia_min',
+            'usia_max',
+            'pendidikan_minimal',
+            'pengalaman_min_tahun',
+            'deskripsi_pekerjaan',
+            'keterampilan_utama',
+            'rentang_gaji',
+            'bidang_pekerjaan',
+            'industri_sektor',
+            'tipe_kerja',
+            'masa_berlaku_mulai',
+            'masa_berlaku_sampai',
+            'provinsi',
+            'kota',
+            'kecamatan',
+            'kelurahan',
+            'metode_publikasi_loker'
+        ]);
+        const optionalFieldKeys = new Set([
+            'kode_kbji',
+            'platform_kanal',
+            'alamat_url_postingan_loker',
+            'media_publikasi_offline',
+            'alasan_metode_offline',
+            'catatan'
+        ]);
 
         function normalizeFieldName(rawName) {
             return String(rawName || '')
@@ -1281,8 +1309,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function decorateFieldTooltips(scope) {
             const root = scope || document;
             root.querySelectorAll('label.form-label').forEach((labelEl) => {
-                if (labelEl.querySelector('.kh-tooltip-trigger')) return;
                 const tooltipKey = resolveTooltipKeyForLabel(labelEl);
+                if (!labelEl.querySelector('.kh-required-indicator') && requiredFieldKeys.has(tooltipKey)) {
+                    labelEl.classList.add('d-inline-flex', 'align-items-center', 'gap-1');
+                    const requiredMarker = document.createElement('span');
+                    requiredMarker.className = 'kh-required-indicator';
+                    requiredMarker.setAttribute('aria-hidden', 'true');
+                    requiredMarker.textContent = '*';
+                    labelEl.appendChild(requiredMarker);
+                }
+                if (!labelEl.querySelector('.kh-optional-indicator') && optionalFieldKeys.has(tooltipKey)) {
+                    labelEl.classList.add('d-inline-flex', 'align-items-center', 'gap-1');
+                    const optionalMarker = document.createElement('span');
+                    optionalMarker.className = 'kh-optional-indicator';
+                    optionalMarker.textContent = '(opsional)';
+                    labelEl.appendChild(optionalMarker);
+                }
+                if (labelEl.querySelector('.kh-tooltip-trigger')) return;
                 const tooltipText = tooltipKey ? tooltipTextByKey[tooltipKey] : '';
                 if (!tooltipText) return;
                 labelEl.classList.add('d-inline-flex', 'align-items-center', 'gap-1');
@@ -1948,12 +1991,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     const urlLines = splitUrlLines(row.alamat_url_postingan_loker || '');
                     const postingRows = parsePostingRows(row.alamat_url_postingan_loker || '');
                     const mainUrl = String(row.alamat_url_postingan_loker_main || '').trim();
-                    if (!parsePlatformValue(row.platform_kanal || '').length) {
-                        rowIssues.push('Platform/Kanal wajib dipilih');
-                    }
-                    if (!postingRows.length) {
-                        rowIssues.push('Alamat URL Postingan Loker wajib diisi');
-                    }
                     if (urlLines.length > 1 && mainUrl === '') {
                         rowIssues.push('Jika URL lebih dari satu, pilih URL Utama');
                     }
@@ -1964,16 +2001,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         rowIssues.push('Sumber wajib diisi untuk setiap URL');
                     }
                     const selectedPlatforms = parsePlatformValue(row.platform_kanal || '');
-                    if (postingRows.some((r) => String(r.channel || '').trim() !== '' && !selectedPlatforms.includes(String(r.channel || '').trim()))) {
+                    if (selectedPlatforms.length > 0 && postingRows.some((r) => String(r.channel || '').trim() !== '' && !selectedPlatforms.includes(String(r.channel || '').trim()))) {
                         rowIssues.push('Sumber URL tidak sesuai Platform/Kanal terpilih');
-                    }
-                }
-                if (metodePublikasi === 'Offline') {
-                    if (!String(row.media_publikasi_offline || '').trim()) {
-                        rowIssues.push('Media yang digunakan untuk publikasi wajib diisi');
-                    }
-                    if (!String(row.alasan_metode_offline || '').trim()) {
-                        rowIssues.push('Alasan menggunakan metode offline wajib diisi');
                     }
                 }
 
