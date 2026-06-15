@@ -569,7 +569,13 @@ foreach ($rows as $row) {
             </div>
             <div class="modal-body" style="max-height: calc(100vh - 220px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
                 <div class="alert alert-primary py-2 mb-3">
-                    <div class="mb-2">Untuk melakukan pelaporan penempatan data pegawai secara massal, silahkan gunakan template berikut.</div>
+                    <div class="fw-semibold mb-1">Panduan Singkat Bulk Import</div>
+                    <ul class="mb-2 ps-3 small">
+                        <li>Langkah 1: Klik <strong>Download Template</strong> untuk mengambil format terbaru.</li>
+                        <li>Langkah 2: Isi data pegawai sesuai kolom wajib, lalu simpan file Excel.</li>
+                        <li>Langkah 3: Klik <strong>Bulk Import</strong> untuk unggah file dan cek hasil validasi.</li>
+                        <li>Catatan: Gunakan file template resmi agar header sesuai.</li>
+                    </ul>
                     <div class="d-flex flex-wrap justify-content-end gap-2">
                         <button type="button" class="btn btn-outline-success btn-sm" id="btnDownloadTemplate">
                             <i class="bi bi-download me-1"></i>Download Template
