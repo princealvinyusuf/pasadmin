@@ -622,6 +622,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <i class="bi bi-arrow-left-right me-1"></i>Ubah Metode
                 </button>
             </div>
+            <div class="alert alert-info py-2 px-3 mb-3 small" role="alert">
+                <div class="fw-semibold mb-1">Panduan Singkat Bulk Import</div>
+                <ul class="mb-0 ps-3">
+                    <li>Langkah 1: Klik <strong>Download Template</strong> untuk mendapatkan format kolom terbaru.</li>
+                    <li>Langkah 2: Isi data lowongan sesuai kolom wajib, lalu simpan file Excel.</li>
+                    <li>Langkah 3: Klik <strong>Bulk Import</strong> untuk unggah file dan cek hasil validasi.</li>
+                    <li>Catatan: Kolom bertanda opsional boleh dikosongkan.</li>
+                </ul>
+            </div>
             <div class="d-flex flex-wrap gap-2">
                 <button type="button" class="btn btn-outline-success btn-sm" id="btnDownloadPelaporanTemplate">
                     <i class="bi bi-download me-1"></i>Download Template
