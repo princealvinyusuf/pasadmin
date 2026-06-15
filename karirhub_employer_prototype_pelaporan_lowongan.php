@@ -1108,30 +1108,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'Periode Tipe',
             'Periode Anchor',
             'Jumlah ID Lowongan',
-            'Daftar Jabatan (Pisahkan |)',
             'Jabatan',
             'Jumlah Kebutuhan',
             'Jenis Kelamin',
+            'Kondisi Fisik',
+            'Jenis Disabilitas Tidak Diperbolehkan',
             'Usia Min',
             'Usia Max',
             'Pendidikan Minimal',
+            'Pengalaman Min (Tahun)',
             'Deskripsi Pekerjaan',
             'Keterampilan Utama',
-            'Pengalaman Min (Tahun)',
             'Rentang Gaji',
-            'Kode KBJI',
+            'Bidang Pekerjaan',
+            'Industri / Sektor',
+            'Status Pekerjaan',
+            'Masa Berlaku Mulai',
+            'Masa Berlaku Sampai',
+            'Kode KBJI (Opsional)',
             'Provinsi',
             'Kota',
             'Kecamatan',
             'Kelurahan',
-            'Bidang Pekerjaan',
-            'Industri / Sektor',
-            'Status Pekerjaan',
-            'Platform/Kanal',
-            'Masa Berlaku Mulai',
-            'Masa Berlaku Sampai',
-            'Alamat URL Postingan Loker',
-            'Catatan',
+            'Metode Publikasi Loker',
+            'Platform/Kanal (Opsional)',
+            'Alamat URL Postingan Loker (Opsional)',
+            'Media Publikasi Offline (Opsional)',
+            'Alasan Metode Offline (Opsional)',
+            'Catatan (Opsional)',
         ];
 
         const btnDownload = document.getElementById('btnDownloadPelaporanTemplate');
@@ -2313,29 +2317,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'Monthly',
                     '2026-05-21',
                     '2',
-                    'Staff Operasional|Admin Operasional',
                     'Staff Operasional',
                     '3',
                     'Semua',
+                    'Non Disabilitas',
+                    '',
                     '20',
                     '35',
                     'D3',
+                    '1',
                     'Menjalankan operasional harian sesuai SOP.',
                     'Administrasi, komunikasi, Microsoft Office',
-                    '1',
                     'Rp4.500.000 - Rp6.000.000',
+                    'Operasional',
+                    'Logistik',
+                    'Full Time',
+                    '2026-05-21',
+                    '2026-06-21',
                     '24231',
                     'DKI Jakarta',
                     'Jakarta Selatan',
                     'Pasar Minggu',
                     'Pejaten Timur',
-                    'Operasional',
-                    'Logistik',
-                    'Full Time',
+                    'Online',
                     'Karirhub',
-                    '2026-05-21',
-                    '2026-06-21',
                     'https://karirhub.kemnaker.go.id/lowongan/contoh',
+                    '',
+                    '',
                     'Prioritas domisili Jabodetabek',
                 ];
                 const ws = XLSX.utils.aoa_to_sheet([headers, sample]);
@@ -2373,7 +2381,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         const dataRows = rows.slice(1).filter((r) => r.some((c) => String(c).trim() !== ''));
                         const allowedTipe = ['Full Time', 'Part Time', 'Contract', 'Internship'];
-                        const allowedPeriode = ['Weekly', 'Monthly'];
+                        const allowedPeriode = ['Monthly'];
+                        const requiredImportHeaders = [
+                            'Unit Kode',
+                            'Periode Tipe',
+                            'Periode Anchor',
+                            'Jumlah ID Lowongan',
+                            'Jabatan',
+                            'Jumlah Kebutuhan',
+                            'Jenis Kelamin',
+                            'Kondisi Fisik',
+                            'Usia Min',
+                            'Usia Max',
+                            'Pendidikan Minimal',
+                            'Pengalaman Min (Tahun)',
+                            'Deskripsi Pekerjaan',
+                            'Keterampilan Utama',
+                            'Rentang Gaji',
+                            'Bidang Pekerjaan',
+                            'Industri / Sektor',
+                            'Status Pekerjaan',
+                            'Masa Berlaku Mulai',
+                            'Masa Berlaku Sampai',
+                            'Provinsi',
+                            'Kota',
+                            'Kecamatan',
+                            'Kelurahan',
+                            'Metode Publikasi Loker',
+                        ];
+                        const allowedMetodePublikasi = ['Online', 'Offline'];
                         let valid = 0;
                         const issues = [];
 
@@ -2381,7 +2417,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             const line = index + 2;
                             const map = {};
                             headers.forEach((h, i) => { map[h] = String(r[i] || '').trim(); });
-                            const missing = headers.filter((h) => map[h] === '');
+                            const missing = requiredImportHeaders.filter((h) => map[h] === '');
                             if (missing.length) {
                                 issues.push('Baris ' + line + ': kolom kosong -> ' + missing.join(', '));
                                 return;
@@ -2391,7 +2427,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 return;
                             }
                             if (!allowedPeriode.includes(map['Periode Tipe'])) {
-                                issues.push('Baris ' + line + ': Periode Tipe harus Weekly/Monthly.');
+                                issues.push('Baris ' + line + ': Periode Tipe harus Monthly.');
+                                return;
+                            }
+                            if (!allowedMetodePublikasi.includes(map['Metode Publikasi Loker'])) {
+                                issues.push('Baris ' + line + ': Metode Publikasi Loker harus Online/Offline.');
                                 return;
                             }
                             valid += 1;
