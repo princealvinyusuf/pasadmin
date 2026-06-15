@@ -629,9 +629,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkImportPelaporanModal">
                     <i class="bi bi-file-earmark-arrow-up me-1"></i>Bulk Import
                 </button>
-                <button type="button" class="btn btn-outline-primary btn-sm" id="btnBulkToFormMode">
-                    <i class="bi bi-ui-checks-grid me-1"></i>Buka Form Isian
-                </button>
             </div>
         </div>
     </div>
@@ -1173,7 +1170,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const formPelaporanSection = document.getElementById('formPelaporanSection');
         const btnLandingBulk = document.getElementById('btnLandingBulk');
         const btnLandingForm = document.getElementById('btnLandingForm');
-        const btnBulkToFormMode = document.getElementById('btnBulkToFormMode');
         const btnBulkToChooseMode = document.getElementById('btnBulkToChooseMode');
         const btnFormToChooseMode = document.getElementById('btnFormToChooseMode');
         const tabsNav = document.getElementById('lowonganTabsNav');
@@ -2242,11 +2238,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (btnLandingForm) {
             btnLandingForm.addEventListener('click', function () {
-                showLandingMode('form', { openWizard: true });
-            });
-        }
-        if (btnBulkToFormMode) {
-            btnBulkToFormMode.addEventListener('click', function () {
                 showLandingMode('form', { openWizard: true });
             });
         }
