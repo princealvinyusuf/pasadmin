@@ -464,15 +464,15 @@ foreach ($rows as $row) {
 </div>
 
 <?php if ($openTerisiRow !== null): ?>
-<div class="modal fade show" id="terisiPegawaiModal" tabindex="-1" aria-modal="true" role="dialog" style="display:block; background: rgba(0,0,0,0.35);">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+<div class="modal fade show" id="terisiPegawaiModal" tabindex="-1" aria-modal="true" role="dialog" style="display:block; background: rgba(0,0,0,0.35); overflow-y:auto; -webkit-overflow-scrolling:touch;">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" style="max-height: calc(100vh - 2rem);">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Lengkapi Data Pegawai yang ditempatkan</h5>
                 <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>" class="btn-close"></a>
             </div>
             <form method="POST">
-                <div class="modal-body">
+                <div class="modal-body" style="max-height: calc(100vh - 220px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
                     <div class="small text-muted mb-2">
                         No. Reg Bukti: <strong><?php echo h($openTerisiRow['no_reg_bukti']); ?></strong> &middot;
                         ID Lowongan: <strong><?php echo h($openTerisiRow['id_lowongan']); ?></strong> &middot;
