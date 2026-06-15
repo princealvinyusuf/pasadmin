@@ -1203,7 +1203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 setWizardStep(1);
                 wizardModal.show();
             }
-            if (mode === 'form') {
+            if (mode === 'choose') {
                 openTermsIfNeeded();
             }
         }
