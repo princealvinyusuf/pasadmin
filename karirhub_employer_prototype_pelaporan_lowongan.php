@@ -1025,7 +1025,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="d-flex justify-content-end gap-2">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-primary btn-sm" id="btnSetujuDanSubmit">Setuju &amp; Kirim Laporan</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnSetujuDanSubmit">Setuju</button>
                 </div>
             </div>
         </div>
@@ -1176,7 +1176,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const tabsNav = document.getElementById('lowonganTabsNav');
         const tabsContent = document.getElementById('lowonganTabsContent');
         const pelaporanForm = document.querySelector('form[method="POST"]');
-        let bypassTermsGuard = false;
         const initialLandingMode = document.body.getAttribute('data-initial-landing-mode') || '';
         let wizardStep = 1;
 
@@ -1203,6 +1202,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 const wizardModal = bootstrap.Modal.getOrCreateInstance(wizardModalEl);
                 setWizardStep(1);
                 wizardModal.show();
+            }
+            if (mode === 'form') {
+                openTermsIfNeeded();
+            }
+        }
+
+        function openTermsIfNeeded() {
+            const alreadyAgreed = setujuSyaratValue && setujuSyaratValue.value === '1';
+            if (alreadyAgreed) return;
+            if (wizardValidationSummary) {
+                wizardValidationSummary.style.display = 'none';
+                wizardValidationSummary.innerHTML = '';
+            }
+            if (syaratKetentuanModalEl && typeof bootstrap !== 'undefined') {
+                const termsModal = bootstrap.Modal.getOrCreateInstance(syaratKetentuanModalEl);
+                termsModal.show();
             }
         }
 
@@ -2109,16 +2124,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     evt.preventDefault();
                     return;
                 }
-                if (!bypassTermsGuard) {
+                if (!(setujuSyaratValue && setujuSyaratValue.value === '1')) {
                     evt.preventDefault();
-                    if (wizardValidationSummary) {
-                        wizardValidationSummary.style.display = 'none';
-                        wizardValidationSummary.innerHTML = '';
-                    }
-                    if (syaratKetentuanModalEl && typeof bootstrap !== 'undefined') {
-                        const termsModal = bootstrap.Modal.getOrCreateInstance(syaratKetentuanModalEl);
-                        termsModal.show();
-                    }
+                    openTermsIfNeeded();
                 }
             });
         }
@@ -2137,10 +2145,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (syaratKetentuanModalEl && typeof bootstrap !== 'undefined') {
                     const termsModal = bootstrap.Modal.getOrCreateInstance(syaratKetentuanModalEl);
                     termsModal.hide();
-                }
-                bypassTermsGuard = true;
-                if (pelaporanForm) {
-                    pelaporanForm.requestSubmit();
                 }
             });
         }
