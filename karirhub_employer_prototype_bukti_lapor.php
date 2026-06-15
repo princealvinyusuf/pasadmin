@@ -673,7 +673,6 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <div class="col-md-6"><strong>Bidang Pekerjaan:</strong><br><?php echo h((string)($actionRow['bidang_pekerjaan'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Industri / Sektor:</strong><br><?php echo h((string)($actionRow['industri_sektor'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Status Pernikahan:</strong><br><?php echo h((string)($actionRow['status_pernikahan'] ?? '-')); ?></div>
-                    <div class="col-md-6"><strong>Status Verifikasi:</strong><br><?php echo h($actionRow['status_verifikasi']); ?></div>
                     <div class="col-md-6"><strong>Status Keterisian:</strong><br><?php echo h($actionRow['status_keterisian']); ?></div>
                     <?php if (!empty($actionDetailRows)): ?>
                         <div class="col-12">
