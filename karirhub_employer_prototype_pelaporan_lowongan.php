@@ -1217,7 +1217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             media_publikasi_offline: 'Sebutkan media offline yang dipakai (contoh: koran, banner, job fair).',
             alasan_metode_offline: 'Jelaskan alasan lowongan dipublikasikan secara offline.',
             catatan: 'Catatan tambahan untuk internal pelaporan lowongan.',
-            wizardModalPeriodeTipe: 'Pilih jenis periode pelaporan (Weekly/Monthly) untuk pengelompokan laporan.',
+            wizardModalPeriodeTipe: 'Pilih jenis periode pelaporan (Monthly) untuk pengelompokan laporan.',
             wizardModalPeriodeAnchor: 'Tanggal acuan untuk menghitung awal dan akhir periode pelaporan.',
             wizardModalJumlahLowongan: 'Jumlah lowongan yang akan diisi (1-50). Setiap lowongan punya satu tab.'
         };
