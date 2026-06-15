@@ -90,27 +90,17 @@ function pdf_logo_jpeg_data(string $logoPath, array $backgroundRgb = [255, 255, 
 function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
 {
     $issuedAt = date('d-m-Y H:i:s');
-    $rows = [
+    $ringkasanRows = [
         ['No. Reg Bukti', (string)($row['no_reg_bukti'] ?? '-')],
         ['Tanggal Lapor', (string)($row['tanggal_lapor'] ?? '-')],
         ['Periode Pelaporan', strtoupper((string)($row['periode_tipe'] ?? '-')) . ' (' . (string)($row['periode_mulai'] ?? '-') . ' s.d. ' . (string)($row['periode_selesai'] ?? '-') . ')'],
         ['Total ID Lowongan', (string)($row['total_lowongan'] ?? 1)],
         ['Daftar ID Lowongan', (string)($row['daftar_id_lowongan'] ?? (string)($row['id_lowongan'] ?? '-'))],
-        ['Jabatan', (string)($row['daftar_jabatan'] ?? (string)($row['jabatan'] ?? '-'))],
-        ['Jumlah Kebutuhan', (string)($row['jumlah_kebutuhan'] ?? 0)],
-        ['Jumlah Penempatan', (string)($row['jumlah_penempatan'] ?? 0)],
-        ['Unit/Perusahaan', $unitName],
-        ['Masa Berlaku', (string)($row['masa_berlaku_mulai'] ?? '-') . ' s.d. ' . (string)($row['masa_berlaku_sampai'] ?? '-')],
-        ['Status Pekerjaan', (string)($row['tipe_kerja'] ?? '-')],
-        ['Kode KBJI', (string)($row['kode_kbji'] ?? '-')],
-        ['Provinsi', (string)($row['provinsi'] ?? '-')],
-        ['Kota', (string)($row['kota'] ?? '-')],
-        ['Kecamatan', (string)($row['kecamatan'] ?? '-')],
-        ['Kelurahan', (string)($row['kelurahan'] ?? '-')],
-        ['Bidang Pekerjaan', (string)($row['bidang_pekerjaan'] ?? '-')],
-        ['Industri / Sektor', (string)($row['industri_sektor'] ?? '-')],
-        ['Status Keterisian', (string)($row['status_keterisian'] ?? '-')],
     ];
+    $detailLowonganRows = $row['detail_lowongan_rows'] ?? [];
+    if (!is_array($detailLowonganRows) || empty($detailLowonganRows)) {
+        $detailLowonganRows = [$row];
+    }
 
     $streamParts = [];
     $left = 40;
@@ -162,7 +152,7 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $streamParts[] = '0.08 0.2 0.4 rg';
     $streamParts[] = 'BT /F2 12 Tf 148 752 Td (' . pdf_escape('BUKTI LAPOR LOWONGAN PEKERJAAN (WLLP)') . ') Tj ET';
 
-    // Section title.
+    // Section 1: Ringkasan Dokumen.
     $sectionTop = 712;
     $streamParts[] = '0.95 0.97 1 rg';
     $streamParts[] = $left . ' ' . $sectionTop . ' ' . $width . ' 24 re f';
@@ -172,13 +162,13 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $streamParts[] = '0.11 0.2 0.36 rg';
     $streamParts[] = 'BT /F2 10 Tf 48 ' . ($sectionTop + 8) . ' Td (' . pdf_escape('RINGKASAN DOKUMEN') . ') Tj ET';
 
-    // Key/value table.
+    // Ringkasan key/value table.
     $tableTopY = $sectionTop;
     $rowH = 18;
     $splitX = 190;
     $currentTop = $tableTopY;
     $rowIndex = 0;
-    foreach ($rows as $item) {
+    foreach ($ringkasanRows as $item) {
         $yBottom = $currentTop - $rowH;
         if ($rowIndex % 2 === 0) {
             $streamParts[] = '0.985 0.99 1 rg';
@@ -199,18 +189,85 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
         $rowIndex++;
     }
 
-    // Catatan panel.
-    $catatanTop = $currentTop - 8;
-    $catatanH = 48;
-    $streamParts[] = '0.94 0.97 1 rg';
-    $streamParts[] = $left . ' ' . ($catatanTop - $catatanH) . ' ' . $width . ' ' . $catatanH . ' re f';
-    $streamParts[] = '0.82 0.85 0.9 RG';
+    // Section 2: Informasi Jabatan.
+    $sectionTwoTop = $currentTop - 10;
+    $streamParts[] = '0.95 0.97 1 rg';
+    $streamParts[] = $left . ' ' . $sectionTwoTop . ' ' . $width . ' 24 re f';
+    $streamParts[] = '0.77 0.82 0.9 RG';
     $streamParts[] = '0.8 w';
-    $streamParts[] = $left . ' ' . ($catatanTop - $catatanH) . ' ' . $width . ' ' . $catatanH . ' re S';
+    $streamParts[] = $left . ' ' . $sectionTwoTop . ' ' . $width . ' 24 re S';
     $streamParts[] = '0.11 0.2 0.36 rg';
-    $streamParts[] = 'BT /F2 9 Tf 48 ' . ($catatanTop - 13) . ' Td (' . pdf_escape('CATATAN') . ') Tj ET';
-    $streamParts[] = '0.25 0.26 0.31 rg';
-    $streamParts[] = 'BT /F1 9 Tf 48 ' . ($catatanTop - 27) . ' Td (' . pdf_escape(pdf_fit((string)($row['catatan'] ?? '-'), 100)) . ') Tj ET';
+    $streamParts[] = 'BT /F2 10 Tf 48 ' . ($sectionTwoTop + 8) . ' Td (' . pdf_escape('INFORMASI JABATAN') . ') Tj ET';
+
+    $currentTop = $sectionTwoTop;
+    $lowonganIndex = 0;
+    foreach ($detailLowonganRows as $detailRow) {
+        $lowonganIndex++;
+        if ($currentTop - 18 < 110) {
+            break;
+        }
+        $idLowonganLabel = (string)($detailRow['id_lowongan'] ?? '-');
+        $subHeaderBottom = $currentTop - 18;
+        $streamParts[] = '0.92 0.95 1 rg';
+        $streamParts[] = $left . ' ' . $subHeaderBottom . ' ' . $width . ' 18 re f';
+        $streamParts[] = '0.82 0.85 0.9 RG';
+        $streamParts[] = '0.7 w';
+        $streamParts[] = $left . ' ' . $subHeaderBottom . ' ' . $width . ' 18 re S';
+        $streamParts[] = '0.11 0.2 0.36 rg';
+        $streamParts[] = 'BT /F2 9 Tf 48 ' . ($subHeaderBottom + 5) . ' Td (' . pdf_escape('Informasi Jabatan #' . $lowonganIndex . ' - ID Lowongan: ' . $idLowonganLabel) . ') Tj ET';
+        $currentTop = $subHeaderBottom;
+
+        $jabatanRows = [
+            ['Jabatan', (string)($detailRow['jabatan'] ?? '-')],
+            ['Jumlah Kebutuhan', (string)($detailRow['jumlah_kebutuhan'] ?? 0)],
+            ['Jumlah Penempatan', (string)($detailRow['jumlah_penempatan'] ?? 0)],
+            ['Unit/Perusahaan', $unitName],
+            ['Masa Berlaku', (string)($detailRow['masa_berlaku_mulai'] ?? '-') . ' s.d. ' . (string)($detailRow['masa_berlaku_sampai'] ?? '-')],
+            ['Status Pekerjaan', (string)($detailRow['tipe_kerja'] ?? '-')],
+            ['Bidang Pekerjaan', (string)($detailRow['bidang_pekerjaan'] ?? '-')],
+            ['Industri / Sektor', (string)($detailRow['industri_sektor'] ?? '-')],
+            ['Provinsi', (string)($detailRow['provinsi'] ?? '-')],
+            ['Kota', (string)($detailRow['kota'] ?? '-')],
+            ['Kecamatan', (string)($detailRow['kecamatan'] ?? '-')],
+            ['Kelurahan', (string)($detailRow['kelurahan'] ?? '-')],
+        ];
+        foreach ($jabatanRows as $jIndex => $item) {
+            if ($currentTop - $rowH < 96) {
+                break 2;
+            }
+            $yBottom = $currentTop - $rowH;
+            if ($jIndex % 2 === 0) {
+                $streamParts[] = '0.985 0.99 1 rg';
+            } else {
+                $streamParts[] = '1 1 1 rg';
+            }
+            $streamParts[] = $left . ' ' . $yBottom . ' ' . $width . ' ' . $rowH . ' re f';
+            $streamParts[] = '0.82 0.85 0.9 RG';
+            $streamParts[] = '0.7 w';
+            $streamParts[] = $left . ' ' . $yBottom . ' ' . $width . ' ' . $rowH . ' re S';
+            $streamParts[] = $splitX . ' ' . $yBottom . ' m ' . $splitX . ' ' . $currentTop . ' l S';
+            $streamParts[] = '0.22 0.24 0.28 rg';
+            $streamParts[] = 'BT /F2 9 Tf 48 ' . ($yBottom + 6) . ' Td (' . pdf_escape(pdf_fit((string)$item[0], 34)) . ') Tj ET';
+            $streamParts[] = 'BT /F1 9 Tf 198 ' . ($yBottom + 6) . ' Td (' . pdf_escape(pdf_fit((string)$item[1], 78)) . ') Tj ET';
+            $currentTop -= $rowH;
+        }
+        $currentTop -= 8;
+    }
+
+    // Catatan panel.
+    if ($currentTop - 58 > 80) {
+        $catatanTop = $currentTop - 8;
+        $catatanH = 48;
+        $streamParts[] = '0.94 0.97 1 rg';
+        $streamParts[] = $left . ' ' . ($catatanTop - $catatanH) . ' ' . $width . ' ' . $catatanH . ' re f';
+        $streamParts[] = '0.82 0.85 0.9 RG';
+        $streamParts[] = '0.8 w';
+        $streamParts[] = $left . ' ' . ($catatanTop - $catatanH) . ' ' . $width . ' ' . $catatanH . ' re S';
+        $streamParts[] = '0.11 0.2 0.36 rg';
+        $streamParts[] = 'BT /F2 9 Tf 48 ' . ($catatanTop - 13) . ' Td (' . pdf_escape('CATATAN') . ') Tj ET';
+        $streamParts[] = '0.25 0.26 0.31 rg';
+        $streamParts[] = 'BT /F1 9 Tf 48 ' . ($catatanTop - 27) . ' Td (' . pdf_escape(pdf_fit((string)($row['catatan'] ?? '-'), 100)) . ') Tj ET';
+    }
 
     // Footer.
     $footerY = 62;
@@ -485,12 +542,28 @@ $actionRow = ($actionNoReg !== '' && isset($rowMap[$actionNoReg])) ? $rowMap[$ac
 $actionDetailRows = [];
 if ($actionRow !== null) {
     $actionDetailRows = $detailByNoReg[$actionRow['no_reg_bukti']] ?? [];
+    $penempatanCountByLowongan = [];
+    $stmtPenempatanCount = $conn->prepare("
+        SELECT id_lowongan, COUNT(*) AS jumlah_penempatan
+        FROM karirhub_proto_wllp_penempatan
+        WHERE no_reg_bukti = ?
+        GROUP BY id_lowongan
+    ");
+    $stmtPenempatanCount->bind_param('s', $actionRow['no_reg_bukti']);
+    $stmtPenempatanCount->execute();
+    $resPenempatanCount = $stmtPenempatanCount->get_result();
+    while ($resPenempatanCount && ($countRow = $resPenempatanCount->fetch_assoc())) {
+        $penempatanCountByLowongan[(string)($countRow['id_lowongan'] ?? '')] = (int)($countRow['jumlah_penempatan'] ?? 0);
+    }
+    $stmtPenempatanCount->close();
+    foreach ($actionDetailRows as $idx => $item) {
+        $idLowongan = (string)($item['id_lowongan'] ?? '');
+        $actionDetailRows[$idx]['jumlah_penempatan'] = (int)($penempatanCountByLowongan[$idLowongan] ?? 0);
+    }
     $firstDetail = $actionDetailRows[0] ?? [];
     $jumlahPenempatan = 0;
     foreach ($actionDetailRows as $item) {
-        if (strtolower(trim((string)($item['status_keterisian'] ?? ''))) === 'terisi') {
-            $jumlahPenempatan++;
-        }
+        $jumlahPenempatan += (int)($item['jumlah_penempatan'] ?? 0);
     }
     $actionRow = array_merge($firstDetail, $actionRow, [
         'jumlah_kebutuhan' => (int)($actionRow['jumlah_kebutuhan_total'] ?? 0),
@@ -513,7 +586,9 @@ if ($action !== '' && $actionRow === null && $actionError === null) {
 
 if ($action === 'unduh' && $actionRow !== null) {
     $unitName = $unitOptions[$actionRow['unit_kode']] ?? ($actionRow['unit_nama'] ?? $actionRow['unit_kode']);
-    $pdfBinary = generate_official_bukti_lapor_pdf($actionRow, $unitName);
+    $pdfRow = $actionRow;
+    $pdfRow['detail_lowongan_rows'] = $actionDetailRows;
+    $pdfBinary = generate_official_bukti_lapor_pdf($pdfRow, $unitName);
     $filename = 'bukti-lapor-' . preg_replace('/[^A-Za-z0-9\-]/', '_', $actionRow['no_reg_bukti']) . '.pdf';
     header('Content-Type: application/pdf');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
