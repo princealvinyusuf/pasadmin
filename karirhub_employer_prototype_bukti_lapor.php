@@ -346,7 +346,7 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
 }
 
 $statusFilter = trim((string)($_GET['status'] ?? 'all'));
-$allowedStatuses = ['all', 'terverifikasi', 'perlu update'];
+$allowedStatuses = ['all', 'belum terisi', 'proses seleksi', 'terisi'];
 if (!in_array($statusFilter, $allowedStatuses, true)) {
     $statusFilter = 'all';
 }
@@ -437,9 +437,20 @@ if ($unitFilter !== 'all' && !isset($unitOptions[$unitFilter])) {
     $unitFilter = 'all';
 }
 
-$rows = array_values(array_filter($headerRows, static function (array $row) use ($statusFilter, $unitFilter, $query): bool {
-    if ($statusFilter !== 'all' && strtolower((string)$row['status_verifikasi']) !== $statusFilter) {
-        return false;
+$rows = array_values(array_filter($headerRows, static function (array $row) use ($statusFilter, $unitFilter, $query, $detailByNoReg): bool {
+    if ($statusFilter !== 'all') {
+        $noReg = (string)($row['no_reg_bukti'] ?? '');
+        $detailRows = $detailByNoReg[$noReg] ?? [];
+        $hasMatchingStatus = false;
+        foreach ($detailRows as $detailRow) {
+            if (strtolower(trim((string)($detailRow['status_keterisian'] ?? ''))) === $statusFilter) {
+                $hasMatchingStatus = true;
+                break;
+            }
+        }
+        if (!$hasMatchingStatus) {
+            return false;
+        }
     }
     if ($unitFilter !== 'all' && (string)$row['unit_kode'] !== $unitFilter) {
         return false;
@@ -560,8 +571,9 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <label for="status" class="form-label mb-1">Status Bukti</label>
                     <select id="status" name="status" class="form-select form-select-sm">
                         <option value="all"<?php echo $statusFilter === 'all' ? ' selected' : ''; ?>>Semua Status</option>
-                        <option value="terverifikasi"<?php echo $statusFilter === 'terverifikasi' ? ' selected' : ''; ?>>Terverifikasi</option>
-                        <option value="perlu update"<?php echo $statusFilter === 'perlu update' ? ' selected' : ''; ?>>Belum Terisi</option>
+                        <option value="belum terisi"<?php echo $statusFilter === 'belum terisi' ? ' selected' : ''; ?>>Belum Terisi</option>
+                        <option value="proses seleksi"<?php echo $statusFilter === 'proses seleksi' ? ' selected' : ''; ?>>Proses Seleksi</option>
+                        <option value="terisi"<?php echo $statusFilter === 'terisi' ? ' selected' : ''; ?>>Terisi</option>
                     </select>
                 </div>
                 <div class="col-12 col-md-4">
