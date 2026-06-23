@@ -84,52 +84,148 @@ if ($tableReady) {
     <title>Program Kemitraan Submission</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        body {
+            background:
+                radial-gradient(1200px 520px at -8% -10%, rgba(37, 99, 235, 0.11), transparent 55%),
+                radial-gradient(900px 500px at 110% -8%, rgba(16, 185, 129, 0.11), transparent 56%),
+                #f4f7fb;
+        }
+        .pk-admin-shell {
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 18px;
+            box-shadow: 0 22px 45px rgba(15, 23, 42, 0.09);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(6px);
+            overflow: hidden;
+        }
+        .pk-admin-header {
+            padding: 1.15rem 1.35rem;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(16, 185, 129, 0.10));
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        .pk-admin-title {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .pk-admin-subtitle {
+            margin: 0.15rem 0 0;
+            color: #475569;
+            font-size: 0.93rem;
+        }
+        .pk-admin-content {
+            padding: 1.2rem 1.25rem 1.3rem;
+        }
+        .card-counter {
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 14px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card-counter:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.10);
+        }
         .card-counter .display-6 { font-weight: 700; }
+        .table-responsive {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            overflow: auto;
+        }
+        .table {
+            margin-bottom: 0;
+        }
+        .table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: #f8fafc;
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #334155;
+            white-space: nowrap;
+        }
         .table td, .table th { vertical-align: middle; }
+        .table td {
+            font-size: 0.92rem;
+        }
         .actions form { display: inline-block; }
+        .badge-soft {
+            padding: 0.4rem 0.65rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+        .badge-soft.pending {
+            background: rgba(234, 179, 8, 0.18);
+            color: #92400e;
+        }
+        .badge-soft.approved {
+            background: rgba(34, 197, 94, 0.18);
+            color: #166534;
+        }
+        .badge-soft.rejected {
+            background: rgba(239, 68, 68, 0.16);
+            color: #991b1b;
+        }
+        .table td:nth-child(11) {
+            min-width: 280px;
+        }
     </style>
 </head>
-<body class="bg-light">
+<body>
 <?php include 'navbar.php'; ?>
 
 <div class="container mt-4 mb-5">
-    <h2 class="mb-3">Program Kemitraan Submission</h2>
-
-    <?php if (!$tableReady): ?>
-        <div class="alert alert-warning">
-            Tabel <code>program_kemitraan_submissions</code> belum tersedia. Jalankan migrasi Laravel terlebih dahulu.
+    <div class="pk-admin-shell">
+        <div class="pk-admin-header">
+            <h2 class="pk-admin-title">Program Kemitraan Submission</h2>
+            <p class="pk-admin-subtitle">Kelola data pengajuan, cek detail dokumen, dan update status dengan cepat.</p>
         </div>
-    <?php endif; ?>
+        <div class="pk-admin-content">
+            <?php if (isset($_SESSION['error'])): ?>
+                <div class="alert alert-danger py-2 mb-3"><?php echo htmlspecialchars((string) $_SESSION['error']); ?></div>
+            <?php unset($_SESSION['error']); endif; ?>
+            <?php if (isset($_SESSION['success'])): ?>
+                <div class="alert alert-success py-2 mb-3"><?php echo htmlspecialchars((string) $_SESSION['success']); ?></div>
+            <?php unset($_SESSION['success']); endif; ?>
 
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-md-4">
-            <div class="card card-counter shadow-sm border-0">
-                <div class="card-body text-center">
-                    <div class="text-warning">Pending</div>
-                    <div class="display-6 text-warning"><?php echo $pendingCount; ?></div>
+            <?php if (!$tableReady): ?>
+                <div class="alert alert-warning">
+                    Tabel <code>program_kemitraan_submissions</code> belum tersedia. Jalankan migrasi Laravel terlebih dahulu.
+                </div>
+            <?php endif; ?>
+
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-4">
+                    <div class="card card-counter shadow-sm border-0">
+                        <div class="card-body text-center">
+                            <div class="text-warning">Pending</div>
+                            <div class="display-6 text-warning"><?php echo $pendingCount; ?></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="card card-counter shadow-sm border-0">
+                        <div class="card-body text-center">
+                            <div class="text-success">Approved</div>
+                            <div class="display-6 text-success"><?php echo $approvedCount; ?></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="card card-counter shadow-sm border-0">
+                        <div class="card-body text-center">
+                            <div class="text-danger">Rejected</div>
+                            <div class="display-6 text-danger"><?php echo $rejectedCount; ?></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="col-12 col-md-4">
-            <div class="card card-counter shadow-sm border-0">
-                <div class="card-body text-center">
-                    <div class="text-success">Approved</div>
-                    <div class="display-6 text-success"><?php echo $approvedCount; ?></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-md-4">
-            <div class="card card-counter shadow-sm border-0">
-                <div class="card-body text-center">
-                    <div class="text-danger">Rejected</div>
-                    <div class="display-6 text-danger"><?php echo $rejectedCount; ?></div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped bg-white">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped bg-white">
             <thead>
                 <tr>
                     <th>Actions</th>
@@ -207,7 +303,7 @@ if ($tableReady) {
                                     <span class="text-muted">-</span>
                                 <?php endif; ?>
                             </td>
-                            <td><span class="badge text-bg-<?php echo $status === 'approved' ? 'success' : ($status === 'rejected' ? 'danger' : 'warning'); ?>"><?php echo htmlspecialchars(ucfirst($status)); ?></span></td>
+                            <td><span class="badge-soft <?php echo htmlspecialchars($status); ?>"><?php echo htmlspecialchars(ucfirst($status)); ?></span></td>
                             <td><?php echo htmlspecialchars((string) ($row['created_at'] ?? '')); ?></td>
                         </tr>
                     <?php endwhile; ?>
@@ -217,7 +313,9 @@ if ($tableReady) {
                     </tr>
                 <?php endif; ?>
             </tbody>
-        </table>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -301,14 +399,6 @@ if ($tableReady) {
         });
     })();
 </script>
-
-<?php if (isset($_SESSION['error'])): ?>
-<script>alert("<?= addslashes($_SESSION['error']) ?>");</script>
-<?php unset($_SESSION['error']); endif; ?>
-<?php if (isset($_SESSION['success'])): ?>
-<script>alert("<?= addslashes($_SESSION['success']) ?>");</script>
-<?php unset($_SESSION['success']); endif; ?>
-
 </body>
 </html>
 <?php $conn->close(); ?>
