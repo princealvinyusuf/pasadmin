@@ -197,6 +197,48 @@ if (!function_exists('kh_proto_generate_id_lowongan')) {
     }
 }
 
+if (!function_exists('kh_proto_generate_no_reg_penempatan_from_completion')) {
+    function kh_proto_generate_no_reg_penempatan_from_completion(
+        mysqli $conn,
+        string $completionDate,
+        string $employerKode = 'EMP-001',
+        string $employerNama = 'PT Contoh Nusantara',
+        string $msmeClassRaw = ''
+    ): string {
+        $completionTs = strtotime($completionDate);
+        if ($completionTs === false) {
+            $completionTs = time();
+        }
+        $identity = kh_proto_resolve_employer_no_reg_identity($conn, $employerKode, $employerNama, $msmeClassRaw);
+        $msmeClass = (string)($identity['msme_class'] ?? 'B');
+        $companyCode = (string)($identity['company_code'] ?? '01');
+        $prefix = 'WLLP.57.' . $msmeClass . '.' . $companyCode . '.' . date('y', $completionTs) . '.' . date('m', $completionTs) . '.';
+        $regex = '^' . preg_quote($prefix, '/') . '[0-9]{2,}/P$';
+
+        $stmt = $conn->prepare("
+            SELECT COALESCE(
+                MAX(
+                    CAST(
+                        SUBSTRING_INDEX(SUBSTRING_INDEX(no_reg_bukti_penempatan, '/', 1), '.', -1) AS UNSIGNED
+                    )
+                ),
+                0
+            ) AS max_seq
+            FROM karirhub_proto_wllp_laporan
+            WHERE no_reg_bukti_penempatan LIKE CONCAT(?, '%')
+              AND no_reg_bukti_penempatan REGEXP ?
+        ");
+        $stmt->bind_param('ss', $prefix, $regex);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $row = $res ? $res->fetch_assoc() : null;
+        $stmt->close();
+
+        $nextSeq = ((int)($row['max_seq'] ?? 0)) + 1;
+        return $prefix . str_pad((string)$nextSeq, 2, '0', STR_PAD_LEFT) . '/P';
+    }
+}
+
 if (!function_exists('kh_proto_ensure_multi_tables')) {
     function kh_proto_ensure_multi_tables(mysqli $conn): void
     {
@@ -260,6 +302,7 @@ if (!function_exists('kh_proto_ensure_multi_tables')) {
 
         $conn->query("ALTER TABLE karirhub_proto_wllp_laporan ADD COLUMN IF NOT EXISTS employer_kode VARCHAR(40) NOT NULL DEFAULT 'EMP-001' AFTER no_reg_bukti");
         $conn->query("ALTER TABLE karirhub_proto_wllp_laporan ADD COLUMN IF NOT EXISTS employer_nama VARCHAR(255) NOT NULL DEFAULT 'PT Contoh Nusantara' AFTER employer_kode");
+        $conn->query("ALTER TABLE karirhub_proto_wllp_laporan ADD COLUMN IF NOT EXISTS no_reg_bukti_penempatan VARCHAR(80) DEFAULT NULL AFTER no_reg_bukti");
         $conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS employer_kode VARCHAR(40) NOT NULL DEFAULT 'EMP-001' AFTER id_lowongan");
         $conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS employer_nama VARCHAR(255) NOT NULL DEFAULT 'PT Contoh Nusantara' AFTER employer_kode");
         $conn->query("ALTER TABLE karirhub_proto_wllp_pelaporan ADD COLUMN IF NOT EXISTS tipe_kerja VARCHAR(40) NOT NULL DEFAULT '' AFTER status_pernikahan");

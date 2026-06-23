@@ -92,6 +92,7 @@ function generate_official_bukti_lapor_pdf(array $row, string $unitName): string
     $issuedAt = date('d-m-Y H:i:s');
     $ringkasanRows = [
         ['No. Reg Bukti', (string)($row['no_reg_bukti'] ?? '-')],
+        ['No. Reg Bukti Penempatan', (string)($row['no_reg_bukti_penempatan'] ?? '-')],
         ['Tanggal Lapor', (string)($row['tanggal_lapor'] ?? '-')],
         ['Periode Pelaporan', strtoupper((string)($row['periode_tipe'] ?? '-')) . ' (' . (string)($row['periode_mulai'] ?? '-') . ' s.d. ' . (string)($row['periode_selesai'] ?? '-') . ')'],
         ['Total ID Lowongan', (string)($row['total_lowongan'] ?? 1)],
@@ -424,6 +425,9 @@ $detailByNoReg = [];
 $resHeaders = $conn->query("
     SELECT
         h.no_reg_bukti,
+        h.no_reg_bukti_penempatan,
+        h.employer_kode,
+        h.employer_nama,
         h.unit_kode,
         h.unit_nama,
         h.periode_tipe,
@@ -437,7 +441,7 @@ $resHeaders = $conn->query("
         GROUP_CONCAT(DISTINCT d.jabatan ORDER BY d.jabatan SEPARATOR ', ') AS daftar_jabatan
     FROM karirhub_proto_wllp_laporan h
     JOIN karirhub_proto_wllp_pelaporan d ON d.no_reg_bukti = h.no_reg_bukti
-    GROUP BY h.no_reg_bukti, h.unit_kode, h.unit_nama, h.periode_tipe, h.periode_mulai, h.periode_selesai, h.status_verifikasi, h.catatan
+    GROUP BY h.no_reg_bukti, h.no_reg_bukti_penempatan, h.employer_kode, h.employer_nama, h.unit_kode, h.unit_nama, h.periode_tipe, h.periode_mulai, h.periode_selesai, h.status_verifikasi, h.catatan
     ORDER BY h.created_at DESC, h.no_reg_bukti DESC
 ");
 if ($resHeaders) {
@@ -488,6 +492,78 @@ if ($resDetails) {
     }
 }
 
+$completionByNoReg = [];
+$resCompletion = $conn->query("
+    SELECT
+        d.no_reg_bukti,
+        COUNT(*) AS total_lowongan,
+        COALESCE(SUM(d.jumlah_kebutuhan), 0) AS total_kebutuhan,
+        COALESCE(SUM(pc.jumlah_penempatan), 0) AS total_penempatan,
+        SUM(CASE WHEN COALESCE(s.status_saat_ini, 'Belum Terisi') = 'Terisi' THEN 1 ELSE 0 END) AS total_status_terisi,
+        COALESCE(MAX(CAST(s.tanggal_terisi AS CHAR)), '') AS tanggal_terisi_terakhir
+    FROM karirhub_proto_wllp_pelaporan d
+    LEFT JOIN karirhub_proto_wllp_status s ON s.no_reg_bukti = d.no_reg_bukti AND s.id_lowongan = d.id_lowongan
+    LEFT JOIN (
+        SELECT no_reg_bukti, id_lowongan, COUNT(*) AS jumlah_penempatan
+        FROM karirhub_proto_wllp_penempatan
+        GROUP BY no_reg_bukti, id_lowongan
+    ) pc ON pc.no_reg_bukti = d.no_reg_bukti AND pc.id_lowongan = d.id_lowongan
+    GROUP BY d.no_reg_bukti
+");
+if ($resCompletion) {
+    while ($r = $resCompletion->fetch_assoc()) {
+        $completionByNoReg[(string)($r['no_reg_bukti'] ?? '')] = $r;
+    }
+}
+
+$stmtUpdateNoRegPenempatan = $conn->prepare("
+    UPDATE karirhub_proto_wllp_laporan
+    SET no_reg_bukti_penempatan = ?
+    WHERE no_reg_bukti = ?
+      AND (no_reg_bukti_penempatan IS NULL OR no_reg_bukti_penempatan = '')
+");
+foreach ($headerRows as $idx => $headerRow) {
+    $noReg = (string)($headerRow['no_reg_bukti'] ?? '');
+    if ($noReg === '' || trim((string)($headerRow['no_reg_bukti_penempatan'] ?? '')) !== '') {
+        continue;
+    }
+    $completion = $completionByNoReg[$noReg] ?? null;
+    if (!is_array($completion)) {
+        continue;
+    }
+    $totalLowongan = (int)($completion['total_lowongan'] ?? 0);
+    $totalStatusTerisi = (int)($completion['total_status_terisi'] ?? 0);
+    $totalKebutuhan = (int)($completion['total_kebutuhan'] ?? 0);
+    $totalPenempatan = (int)($completion['total_penempatan'] ?? 0);
+    $isFilledCompletely = $totalLowongan > 0
+        && $totalStatusTerisi === $totalLowongan
+        && $totalPenempatan >= $totalKebutuhan;
+    if (!$isFilledCompletely) {
+        continue;
+    }
+
+    $completionDate = trim((string)($completion['tanggal_terisi_terakhir'] ?? ''));
+    if ($completionDate === '' || strtotime($completionDate) === false) {
+        $completionDate = date('Y-m-d');
+    }
+    $unitCode = (string)($headerRow['unit_kode'] ?? '');
+    $msmeClass = (string)($units[$unitCode]['kelas_umkm'] ?? 'B');
+    $employerKode = (string)($headerRow['employer_kode'] ?? 'EMP-001');
+    $employerNama = (string)($headerRow['employer_nama'] ?? 'PT Contoh Nusantara');
+    $generatedNoRegPenempatan = kh_proto_generate_no_reg_penempatan_from_completion(
+        $conn,
+        $completionDate,
+        $employerKode,
+        $employerNama,
+        $msmeClass
+    );
+
+    $stmtUpdateNoRegPenempatan->bind_param('ss', $generatedNoRegPenempatan, $noReg);
+    $stmtUpdateNoRegPenempatan->execute();
+    $headerRows[$idx]['no_reg_bukti_penempatan'] = $generatedNoRegPenempatan;
+}
+$stmtUpdateNoRegPenempatan->close();
+
 if ($unitFilter !== 'all' && !isset($unitOptions[$unitFilter])) {
     $unitFilter = 'all';
 }
@@ -513,6 +589,7 @@ $rows = array_values(array_filter($headerRows, static function (array $row) use 
     if ($query !== '') {
         $haystack = strtolower(implode(' ', [
             (string)$row['no_reg_bukti'],
+            (string)$row['no_reg_bukti_penempatan'],
             (string)$row['daftar_id_lowongan'],
             (string)$row['daftar_jabatan'],
             (string)$row['catatan'],
@@ -702,7 +779,10 @@ if ($action === 'unduh' && $actionRow !== null) {
                                 $urlUnduh = '?' . build_query_url(array_merge($baseParams, ['action' => 'unduh', 'no_reg' => $row['no_reg_bukti']]));
                             ?>
                             <tr>
-                                <td class="fw-semibold"><?php echo h($row['no_reg_bukti']); ?></td>
+                                <td class="fw-semibold">
+                                    <div><?php echo h((string)$row['no_reg_bukti']); ?></div>
+                                    <div class="small text-muted">No. Reg Bukti Penempatan: <?php echo h((string)($row['no_reg_bukti_penempatan'] ?? '-')); ?></div>
+                                </td>
                                 <td class="small"><?php echo h(strtoupper((string)$row['periode_tipe']) . ' (' . (string)$row['periode_mulai'] . ' s.d. ' . (string)$row['periode_selesai'] . ')'); ?></td>
                                 <td><?php echo h((string)$row['total_lowongan']); ?></td>
                                 <td class="small"><?php echo h((string)$row['daftar_id_lowongan']); ?></td>
@@ -743,6 +823,8 @@ if ($action === 'unduh' && $actionRow !== null) {
                 <div class="row g-3">
                     <div class="col-md-6"><strong>Total ID Lowongan:</strong><br><?php echo h((string)($actionRow['total_lowongan'] ?? 0)); ?></div>
                     <div class="col-md-6"><strong>Daftar ID Lowongan:</strong><br><?php echo h((string)($actionRow['daftar_id_lowongan'] ?? '-')); ?></div>
+                    <div class="col-md-6"><strong>No. Reg Bukti:</strong><br><?php echo h((string)($actionRow['no_reg_bukti'] ?? '-')); ?></div>
+                    <div class="col-md-6"><strong>No. Reg Bukti Penempatan:</strong><br><?php echo h((string)($actionRow['no_reg_bukti_penempatan'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Jabatan:</strong><br><?php echo h((string)($actionRow['daftar_jabatan'] ?? $actionRow['jabatan'])); ?></div>
                     <div class="col-md-6"><strong>Tanggal Lapor:</strong><br><?php echo h($actionRow['tanggal_lapor']); ?></div>
                     <div class="col-md-6"><strong>Jumlah Kebutuhan:</strong><br><?php echo h((string)$actionRow['jumlah_kebutuhan']); ?></div>
@@ -821,6 +903,7 @@ if ($action === 'unduh' && $actionRow !== null) {
             <body>
                 <h2>Bukti Lapor WLLP (Prototype)</h2>
                 <div>No. Reg Bukti: <strong>${<?php echo json_encode($actionRow['no_reg_bukti']); ?>}</strong></div>
+                <div>No. Reg Bukti Penempatan: <strong>${<?php echo json_encode((string)($actionRow['no_reg_bukti_penempatan'] ?? '-')); ?>}</strong></div>
                 <div class="muted">Dokumen simulasi dari prototype Karirhub Employer.</div>
                 <table>
                     <tr><th>Total ID Lowongan</th><td>${<?php echo json_encode((string)($actionRow['total_lowongan'] ?? 0)); ?>}</td></tr>
