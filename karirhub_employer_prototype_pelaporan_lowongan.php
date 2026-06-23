@@ -17,9 +17,15 @@ function h(string $value): string
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
-function kh_proto_generate_no_reg_bukti(mysqli $conn, string $anchorDate): string
+function kh_proto_generate_no_reg_bukti(
+    mysqli $conn,
+    string $anchorDate,
+    string $employerKode,
+    string $employerNama,
+    string $msmeClass = ''
+): string
 {
-    return kh_proto_generate_no_reg_from_anchor($conn, $anchorDate);
+    return kh_proto_generate_no_reg_from_anchor($conn, $anchorDate, $employerKode, $employerNama, $msmeClass);
 }
 
 function kh_proto_parse_platform_kanal(string $raw): array
@@ -337,8 +343,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $unitNama = (string)($units[$form['unit_kode']]['nama'] ?? $form['unit_kode']);
         $employerKode = (string)($units[$form['unit_kode']]['employer_kode'] ?? 'EMP-001');
         $employerNama = (string)($units[$form['unit_kode']]['employer_nama'] ?? 'PT Contoh Nusantara');
+        $msmeClass = (string)($units[$form['unit_kode']]['kelas_umkm'] ?? 'B');
         $period = kh_proto_derive_period($form['periode_tipe'], $form['periode_anchor']);
-        $generatedNoReg = kh_proto_generate_no_reg_bukti($conn, $period['anchor']);
+        $generatedNoReg = kh_proto_generate_no_reg_bukti($conn, $period['anchor'], $employerKode, $employerNama, $msmeClass);
         $statusBelumTerisi = 'Belum Terisi';
         $generatedLowongan = [];
 

@@ -16,6 +16,7 @@ if (!function_exists('karirhub_proto_dataset')) {
                 'provinsi' => 'DKI Jakarta',
                 'employer_kode' => 'EMP-001',
                 'employer_nama' => 'PT Contoh Nusantara',
+                'kelas_umkm' => 'B',
             ],
             'UNIT-002' => [
                 'kode' => 'UNIT-002',
@@ -24,6 +25,7 @@ if (!function_exists('karirhub_proto_dataset')) {
                 'provinsi' => 'Jawa Barat',
                 'employer_kode' => 'EMP-002',
                 'employer_nama' => 'PT Maju Digital',
+                'kelas_umkm' => 'M',
             ],
             'UNIT-003' => [
                 'kode' => 'UNIT-003',
@@ -32,12 +34,13 @@ if (!function_exists('karirhub_proto_dataset')) {
                 'provinsi' => 'Jawa Timur',
                 'employer_kode' => 'EMP-003',
                 'employer_nama' => 'PT Sejahtera Logistik',
+                'kelas_umkm' => 'K',
             ],
         ];
         $employers = [
-            'EMP-001' => ['kode' => 'EMP-001', 'nama' => 'PT Contoh Nusantara'],
-            'EMP-002' => ['kode' => 'EMP-002', 'nama' => 'PT Maju Digital'],
-            'EMP-003' => ['kode' => 'EMP-003', 'nama' => 'PT Sejahtera Logistik'],
+            'EMP-001' => ['kode' => 'EMP-001', 'nama' => 'PT Contoh Nusantara', 'kelas_umkm' => 'B'],
+            'EMP-002' => ['kode' => 'EMP-002', 'nama' => 'PT Maju Digital', 'kelas_umkm' => 'M'],
+            'EMP-003' => ['kode' => 'EMP-003', 'nama' => 'PT Sejahtera Logistik', 'kelas_umkm' => 'K'],
         ];
 
         $vacancies = [

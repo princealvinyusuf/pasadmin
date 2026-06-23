@@ -31,17 +31,33 @@ if (!function_exists('kh_proto_derive_period')) {
 }
 
 if (!function_exists('kh_proto_generate_no_reg_from_anchor')) {
-    function kh_proto_generate_no_reg_from_anchor(mysqli $conn, string $anchorDate): string
+    function kh_proto_generate_no_reg_from_anchor(
+        mysqli $conn,
+        string $anchorDate,
+        string $employerKode = 'EMP-001',
+        string $employerNama = 'PT Contoh Nusantara',
+        string $msmeClassRaw = ''
+    ): string
     {
         $anchorTs = strtotime($anchorDate);
         if ($anchorTs === false) {
             $anchorTs = time();
         }
-        $prefix = 'WLLP-57' . date('ym', $anchorTs) . '-';
-        $regex = '^' . preg_quote($prefix, '/') . '[0-9]{8}$';
+        $identity = kh_proto_resolve_employer_no_reg_identity($conn, $employerKode, $employerNama, $msmeClassRaw);
+        $msmeClass = (string)($identity['msme_class'] ?? 'B');
+        $companyCode = (string)($identity['company_code'] ?? '01');
+        $prefix = 'WLLP.57.' . $msmeClass . '.' . $companyCode . '.' . date('y', $anchorTs) . '.' . date('m', $anchorTs) . '.';
+        $regex = '^' . preg_quote($prefix, '/') . '[0-9]{2,}/L$';
 
         $stmt = $conn->prepare("
-            SELECT COALESCE(MAX(CAST(RIGHT(no_reg_bukti, 8) AS UNSIGNED)), 0) AS max_seq
+            SELECT COALESCE(
+                MAX(
+                    CAST(
+                        SUBSTRING_INDEX(SUBSTRING_INDEX(no_reg_bukti, '/', 1), '.', -1) AS UNSIGNED
+                    )
+                ),
+                0
+            ) AS max_seq
             FROM karirhub_proto_wllp_laporan
             WHERE no_reg_bukti LIKE CONCAT(?, '%')
               AND no_reg_bukti REGEXP ?
@@ -53,7 +69,113 @@ if (!function_exists('kh_proto_generate_no_reg_from_anchor')) {
         $stmt->close();
 
         $nextSeq = ((int)($row['max_seq'] ?? 0)) + 1;
-        return $prefix . str_pad((string)$nextSeq, 8, '0', STR_PAD_LEFT);
+        return $prefix . str_pad((string)$nextSeq, 2, '0', STR_PAD_LEFT) . '/L';
+    }
+}
+
+if (!function_exists('kh_proto_normalize_msme_class_code')) {
+    function kh_proto_normalize_msme_class_code(string $rawClass): string
+    {
+        $normalized = strtolower(trim($rawClass));
+        if ($normalized === '') {
+            return 'B';
+        }
+        if (in_array($normalized, ['mi', 'micro', 'mikro'], true)) {
+            return 'Mi';
+        }
+        if (in_array($normalized, ['k', 'small', 'kecil'], true)) {
+            return 'K';
+        }
+        if (in_array($normalized, ['m', 'medium', 'menengah'], true)) {
+            return 'M';
+        }
+        if (in_array($normalized, ['b', 'large', 'besar'], true)) {
+            return 'B';
+        }
+        return 'B';
+    }
+}
+
+if (!function_exists('kh_proto_resolve_employer_no_reg_identity')) {
+    function kh_proto_resolve_employer_no_reg_identity(
+        mysqli $conn,
+        string $employerKode,
+        string $employerNama,
+        string $requestedClass
+    ): array {
+        $conn->query("
+            CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_employer_no_reg_map (
+                employer_kode VARCHAR(40) PRIMARY KEY,
+                employer_nama VARCHAR(255) NOT NULL,
+                company_code VARCHAR(2) NOT NULL UNIQUE,
+                msme_class VARCHAR(2) NOT NULL DEFAULT 'B',
+                created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+
+        $safeEmployerKode = trim($employerKode) !== '' ? trim($employerKode) : 'EMP-001';
+        $safeEmployerNama = trim($employerNama) !== '' ? trim($employerNama) : 'PT Contoh Nusantara';
+        $safeClassCode = kh_proto_normalize_msme_class_code($requestedClass);
+
+        $stmtFind = $conn->prepare("
+            SELECT company_code, msme_class
+            FROM karirhub_proto_wllp_employer_no_reg_map
+            WHERE employer_kode = ?
+            LIMIT 1
+        ");
+        $stmtFind->bind_param('s', $safeEmployerKode);
+        $stmtFind->execute();
+        $resFind = $stmtFind->get_result();
+        $existing = $resFind ? $resFind->fetch_assoc() : null;
+        $stmtFind->close();
+        if ($existing) {
+            return [
+                'company_code' => (string)$existing['company_code'],
+                'msme_class' => (string)$existing['msme_class'],
+            ];
+        }
+
+        $resMax = $conn->query("
+            SELECT COALESCE(MAX(CAST(company_code AS UNSIGNED)), 0) AS max_code
+            FROM karirhub_proto_wllp_employer_no_reg_map
+            WHERE company_code REGEXP '^[0-9]{2}$'
+        ");
+        $rowMax = $resMax ? $resMax->fetch_assoc() : null;
+        $nextCompanyCode = str_pad((string)(((int)($rowMax['max_code'] ?? 0)) + 1), 2, '0', STR_PAD_LEFT);
+
+        $stmtInsert = $conn->prepare("
+            INSERT INTO karirhub_proto_wllp_employer_no_reg_map (employer_kode, employer_nama, company_code, msme_class)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                employer_nama = VALUES(employer_nama)
+        ");
+        $stmtInsert->bind_param('ssss', $safeEmployerKode, $safeEmployerNama, $nextCompanyCode, $safeClassCode);
+        $stmtInsert->execute();
+        $stmtInsert->close();
+
+        $stmtVerify = $conn->prepare("
+            SELECT company_code, msme_class
+            FROM karirhub_proto_wllp_employer_no_reg_map
+            WHERE employer_kode = ?
+            LIMIT 1
+        ");
+        $stmtVerify->bind_param('s', $safeEmployerKode);
+        $stmtVerify->execute();
+        $resVerify = $stmtVerify->get_result();
+        $verified = $resVerify ? $resVerify->fetch_assoc() : null;
+        $stmtVerify->close();
+        if ($verified) {
+            return [
+                'company_code' => (string)$verified['company_code'],
+                'msme_class' => (string)$verified['msme_class'],
+            ];
+        }
+
+        return [
+            'company_code' => $nextCompanyCode,
+            'msme_class' => $safeClassCode,
+        ];
     }
 }
 
@@ -162,6 +284,16 @@ if (!function_exists('kh_proto_ensure_multi_tables')) {
 
         $conn->query("ALTER TABLE karirhub_proto_wllp_status ADD COLUMN IF NOT EXISTS employer_kode VARCHAR(40) NOT NULL DEFAULT 'EMP-001' AFTER id_lowongan");
         $conn->query("ALTER TABLE karirhub_proto_wllp_status ADD COLUMN IF NOT EXISTS employer_nama VARCHAR(255) NOT NULL DEFAULT 'PT Contoh Nusantara' AFTER employer_kode");
+        $conn->query("
+            CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_employer_no_reg_map (
+                employer_kode VARCHAR(40) PRIMARY KEY,
+                employer_nama VARCHAR(255) NOT NULL,
+                company_code VARCHAR(2) NOT NULL UNIQUE,
+                msme_class VARCHAR(2) NOT NULL DEFAULT 'B',
+                created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
 
         $unitEmployerMap = [];
         $resUnitMap = $conn->query("SELECT unit_kode, employer_kode, employer_nama FROM karirhub_proto_wllp_pelaporan");
@@ -189,6 +321,23 @@ if (!function_exists('kh_proto_ensure_multi_tables')) {
         $conn->query("UPDATE karirhub_proto_wllp_laporan SET employer_kode='EMP-001', employer_nama='PT Contoh Nusantara' WHERE employer_kode='' OR employer_nama=''");
         $conn->query("UPDATE karirhub_proto_wllp_pelaporan SET employer_kode='EMP-001', employer_nama='PT Contoh Nusantara' WHERE employer_kode='' OR employer_nama=''");
         $conn->query("UPDATE karirhub_proto_wllp_status SET employer_kode='EMP-001', employer_nama='PT Contoh Nusantara' WHERE employer_kode='' OR employer_nama=''");
+        $resEmployerSeed = $conn->query("
+            SELECT employer_kode, employer_nama
+            FROM karirhub_proto_wllp_laporan
+            WHERE employer_kode IS NOT NULL AND employer_kode <> ''
+            GROUP BY employer_kode, employer_nama
+            ORDER BY employer_kode ASC
+        ");
+        if ($resEmployerSeed) {
+            while ($empRow = $resEmployerSeed->fetch_assoc()) {
+                $seedKode = trim((string)($empRow['employer_kode'] ?? ''));
+                if ($seedKode === '') {
+                    continue;
+                }
+                $seedNama = trim((string)($empRow['employer_nama'] ?? ''));
+                kh_proto_resolve_employer_no_reg_identity($conn, $seedKode, $seedNama, 'B');
+            }
+        }
 
         $conn->query("
             CREATE TABLE IF NOT EXISTS karirhub_proto_wllp_penempatan (

@@ -114,6 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
         $unitNama = (string)($units[$unitKode]['nama'] ?? $unitKode);
         $employerKode = (string)($units[$unitKode]['employer_kode'] ?? 'EMP-001');
         $employerNama = (string)($units[$unitKode]['employer_nama'] ?? 'PT Contoh Nusantara');
+        $msmeClass = (string)($units[$unitKode]['kelas_umkm'] ?? 'B');
         $period = kh_proto_derive_period($addForm['periode_tipe'], $addForm['periode_anchor']);
         $generatedNoReg = '';
         $stmtFindHeader = $conn->prepare("
@@ -133,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
         if ($foundHeader && (string)($foundHeader['no_reg_bukti'] ?? '') !== '') {
             $generatedNoReg = (string)$foundHeader['no_reg_bukti'];
         } else {
-            $generatedNoReg = kh_proto_generate_no_reg_from_anchor($conn, $period['anchor']);
+            $generatedNoReg = kh_proto_generate_no_reg_from_anchor($conn, $period['anchor'], $employerKode, $employerNama, $msmeClass);
         }
         $generatedIdLowongan = kh_proto_generate_id_lowongan($conn);
 
