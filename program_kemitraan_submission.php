@@ -67,6 +67,31 @@ if ($tableReady && isset($_POST['set_status'], $_POST['submission_id'])) {
     exit();
 }
 
+if ($tableReady && isset($_POST['delete_submission_id'])) {
+    $submissionId = (int) $_POST['delete_submission_id'];
+
+    if ($submissionId > 0) {
+        $stmt = $conn->prepare("DELETE FROM program_kemitraan_submissions WHERE id = ?");
+        if ($stmt) {
+            $stmt->bind_param('i', $submissionId);
+            $stmt->execute();
+            if ($stmt->affected_rows > 0) {
+                $_SESSION['success'] = 'Data pengajuan berhasil dihapus.';
+            } else {
+                $_SESSION['error'] = 'Data tidak ditemukan atau sudah terhapus.';
+            }
+            $stmt->close();
+        } else {
+            $_SESSION['error'] = 'Gagal menghapus data: ' . $conn->error;
+        }
+    } else {
+        $_SESSION['error'] = 'ID pengajuan tidak valid.';
+    }
+
+    header('Location: program_kemitraan_submission');
+    exit();
+}
+
 $pendingCount = $tableReady ? safe_count($conn, 'pending') : 0;
 $approvedCount = $tableReady ? safe_count($conn, 'approved') : 0;
 $rejectedCount = $tableReady ? safe_count($conn, 'rejected') : 0;
@@ -282,6 +307,11 @@ if ($tableReady) {
                                         <button type="submit" class="btn btn-sm btn-secondary">Set Pending</button>
                                     </form>
                                 <?php endif; ?>
+
+                                <form method="post" class="mb-1" onsubmit="return confirm('Yakin ingin menghapus data pengajuan ini?');">
+                                    <input type="hidden" name="delete_submission_id" value="<?php echo (int) $row['id']; ?>">
+                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                </form>
                             </td>
                             <td><?php echo (int) $row['id']; ?></td>
                             <td>
