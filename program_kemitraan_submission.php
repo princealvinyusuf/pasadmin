@@ -259,6 +259,7 @@ if ($tableReady) {
                     <th>Email</th>
                     <th>WhatsApp</th>
                     <th>Kategori Instansi</th>
+                    <th>Jenis Mitra</th>
                     <th>Nama Instansi/Lembaga</th>
                     <th>Nama Instansi</th>
                     <th>Sektor Usaha</th>
@@ -321,6 +322,7 @@ if ($tableReady) {
                             <td><?php echo htmlspecialchars((string) ($row['pic_email'] ?? '')); ?></td>
                             <td><?php echo htmlspecialchars((string) ($row['pic_whatsapp'] ?? '')); ?></td>
                             <td><?php echo htmlspecialchars((string) ($row['institution_category'] ?? '')); ?></td>
+                            <td><?php echo htmlspecialchars((string) ($row['mitra_pembangunan_type'] ?? '-')); ?></td>
                             <td><?php echo htmlspecialchars((string) ($row['instansi_lembaga_name'] ?? '')); ?></td>
                             <td><?php echo htmlspecialchars((string) ($row['institution_name'] ?? '')); ?></td>
                             <td><?php echo htmlspecialchars((string) ($row['business_sector'] ?? '-')); ?></td>
@@ -339,7 +341,7 @@ if ($tableReady) {
                     <?php endwhile; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="14" class="text-center text-muted">Belum ada data Program Kemitraan.</td>
+                        <td colspan="15" class="text-center text-muted">Belum ada data Program Kemitraan.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -402,6 +404,7 @@ if ($tableReady) {
                     ['Email PIC', data.pic_email || '-'],
                     ['WhatsApp PIC', data.pic_whatsapp || '-'],
                     ['Kategori/Sektor Instansi', data.institution_category || '-'],
+                    ['Jenis Mitra Pembangunan', data.mitra_pembangunan_type || '-'],
                     ['Nama Instansi/Lembaga', data.instansi_lembaga_name || '-'],
                     ['Nama Instansi', data.institution_name || '-'],
                     ['Sektor Lapangan Usaha', data.business_sector || '-'],
