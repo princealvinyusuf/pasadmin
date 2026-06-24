@@ -314,8 +314,7 @@ if ($detailRow !== null) {
             rentang_gaji,
             keterampilan_utama,
             CAST(masa_berlaku_mulai AS CHAR) AS masa_berlaku_mulai,
-            CAST(masa_berlaku_sampai AS CHAR) AS masa_berlaku_sampai,
-            status_verifikasi
+            CAST(masa_berlaku_sampai AS CHAR) AS masa_berlaku_sampai
         FROM karirhub_proto_wllp_pelaporan
         WHERE no_reg_bukti = ? AND id_lowongan = ?
         LIMIT 1
@@ -597,7 +596,6 @@ foreach ($rows as $row) {
                                 <div class="col-12 col-md-4"><span class="text-muted">Unit</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['unit_nama']); ?></div></div>
                                 <div class="col-12 col-md-6"><span class="text-muted">Jabatan</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['jabatan']); ?></div></div>
                                 <div class="col-12 col-md-3"><span class="text-muted">Jumlah Kebutuhan</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['jumlah_kebutuhan']); ?></div></div>
-                                <div class="col-12 col-md-3"><span class="text-muted">Status Verifikasi</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['status_verifikasi']); ?></div></div>
                                 <div class="col-12 col-md-4"><span class="text-muted">Jenis Kelamin</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['jenis_kelamin']); ?></div></div>
                                 <div class="col-12 col-md-4"><span class="text-muted">Usia</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['usia_min'] . ' - ' . (string)$detailLowonganInfo['usia_max'] . ' tahun'); ?></div></div>
                                 <div class="col-12 col-md-4"><span class="text-muted">Pendidikan Minimal</span><div class="fw-semibold"><?php echo h((string)$detailLowonganInfo['pendidikan_minimal']); ?></div></div>
