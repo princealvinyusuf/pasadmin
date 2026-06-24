@@ -164,7 +164,7 @@
         || $canPartnerCompany
     );
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
-    $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan);
+    $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan || $canProgramKemitraan);
     $hasAsmen = ($canAsmenDashboard || $canAsmenAssets || $canAsmenServices || $canAsmenCalendar || $canAsmenQR);
     $hasExtensionsMenu = ($canExtensions || $canManageSettings || $canRegistrasiKehadiran || $canSplitScreen || $canPaskerDrive || $canOUI);
     // Naker Award flags
@@ -223,6 +223,7 @@
                     <ul class="dropdown-menu" aria-labelledby="jejaringDropdown">
                         <?php if ($canManageSettings || $canDatabaseContact): ?><li><a class="dropdown-item" href="<?php echo $jejaringUrl; ?>database_contact">Database Contact</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canJejaringTahapan): ?><li><a class="dropdown-item" href="<?php echo $jejaringUrl; ?>tahapan/index">Tahapan Kerjasama</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canProgramKemitraan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>program_kemitraan_submission">Program Kemitraan Submission</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -288,7 +289,6 @@
                     <ul class="dropdown-menu" aria-labelledby="layananDropdown">
                         <?php if ($canManageSettings || $canPartnershipType): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>partnership_type_settings">Partnership Type Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canMitraSubmission): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_submission">Mitra Kerja Submission</a></li><?php endif; ?>
-                        <?php if ($canManageSettings || $canProgramKemitraan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>program_kemitraan_submission">Program Kemitraan Submission</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canKemitraanBooked): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_booked">Kemitraan Booked</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canWalkinLocationSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_location_settings">Walk-in Location Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canPaskerRoom): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>pasker_room_settings">Pasker Room Settings</a></li><?php endif; ?>
