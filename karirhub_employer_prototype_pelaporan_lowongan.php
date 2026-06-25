@@ -584,6 +584,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="kh-proto-page" data-wizard-force-open="<?php echo $wizardForceOpen; ?>" data-initial-landing-mode="<?php echo h($initialLandingMode); ?>">
 <?php include 'navbar.php'; ?>
+<?php kh_proto_render_hero('Daftar Lowongan Kerja', 'Buat lowongan kerja melalui alur pelaporan WLLP prototipe.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_dashboard_wllp', false); ?>
 <div class="kh-content-wrap">
 <div class="container py-4">
     <div class="kh-proto-shell">

@@ -108,7 +108,8 @@ if (!function_exists('kh_proto_render_hero')) {
         string $primaryLabel = 'Lowongan Kerja',
         string $primaryHref = 'karirhub_employer_prototype_pelaporan_lowongan',
         string $secondaryLabel = 'Proyek',
-        string $secondaryHref = 'karirhub_employer_prototype_dashboard_wllp'
+        string $secondaryHref = 'karirhub_employer_prototype_dashboard_wllp',
+        bool $showHeroContent = true
     ): void {
         $canDashboardWllp = kh_proto_can_access('karirhub_employer_prototype_dashboard_wllp_view');
         $canDashboardWllpAdmin = kh_proto_can_access('karirhub_employer_prototype_dashboard_wllp_admin_view');
@@ -163,36 +164,38 @@ if (!function_exists('kh_proto_render_hero')) {
                         <button type="button" class="btn kh-nav-btn kh-nav-btn-light"><i class="bi bi-grid-3x3-gap-fill me-1"></i>Layanan</button>
                     </div>
                 </div>
-                <div class="kh-hero-title"><?php echo kh_proto_h($title); ?></div>
-                <div class="kh-hero-sub"><?php echo kh_proto_h($subtitle); ?></div>
-                <div class="kh-hero-tools">
-                    <div class="row g-2 align-items-center">
-                        <div class="col-12 col-lg-5">
-                            <input type="text" class="form-control kh-tool-input" placeholder="Cari berdasarkan judul lowongan atau nama perusahaan">
-                        </div>
-                        <div class="col-12 col-lg-3">
-                            <select class="form-select kh-tool-input">
-                                <option>Masukan Lokasi</option>
-                                <option>DKI Jakarta</option>
-                                <option>Jawa Barat</option>
-                                <option>Jawa Timur</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-lg-1 d-grid">
-                            <button class="btn kh-btn-primary" type="button"><i class="bi bi-search"></i></button>
-                        </div>
-                        <div class="col-6 col-lg-2 d-grid">
-                            <a class="btn kh-btn-primary" href="<?php echo kh_proto_h($primaryHref); ?>"><?php echo kh_proto_h($primaryLabel); ?></a>
-                        </div>
-                        <div class="col-6 col-lg-1 d-grid">
-                            <a class="btn kh-btn-dark" href="<?php echo kh_proto_h($secondaryHref); ?>"><?php echo kh_proto_h($secondaryLabel); ?></a>
+                <?php if ($showHeroContent): ?>
+                    <div class="kh-hero-title"><?php echo kh_proto_h($title); ?></div>
+                    <div class="kh-hero-sub"><?php echo kh_proto_h($subtitle); ?></div>
+                    <div class="kh-hero-tools">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-12 col-lg-5">
+                                <input type="text" class="form-control kh-tool-input" placeholder="Cari berdasarkan judul lowongan atau nama perusahaan">
+                            </div>
+                            <div class="col-12 col-lg-3">
+                                <select class="form-select kh-tool-input">
+                                    <option>Masukan Lokasi</option>
+                                    <option>DKI Jakarta</option>
+                                    <option>Jawa Barat</option>
+                                    <option>Jawa Timur</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-lg-1 d-grid">
+                                <button class="btn kh-btn-primary" type="button"><i class="bi bi-search"></i></button>
+                            </div>
+                            <div class="col-6 col-lg-2 d-grid">
+                                <a class="btn kh-btn-primary" href="<?php echo kh_proto_h($primaryHref); ?>"><?php echo kh_proto_h($primaryLabel); ?></a>
+                            </div>
+                            <div class="col-6 col-lg-1 d-grid">
+                                <a class="btn kh-btn-dark" href="<?php echo kh_proto_h($secondaryHref); ?>"><?php echo kh_proto_h($secondaryLabel); ?></a>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="kh-status-strip">
-                    <span class="kh-chip"><i class="bi bi-circle-fill" style="font-size:7px"></i>Status Lowongan: Aktif</span>
-                    <span class="kh-chip"><i class="bi bi-square"></i>Loker Terbatas</span>
-                </div>
+                    <div class="kh-status-strip">
+                        <span class="kh-chip"><i class="bi bi-circle-fill" style="font-size:7px"></i>Status Lowongan: Aktif</span>
+                        <span class="kh-chip"><i class="bi bi-square"></i>Loker Terbatas</span>
+                    </div>
+                <?php endif; ?>
             </div>
         </section>
         <?php
