@@ -789,7 +789,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                             </div>
                                                             <input type="hidden" class="wizard-lowongan-field" name="kondisi_fisik[]" value="<?php echo h((string)$tab['kondisi_fisik']); ?>" data-tab-index="<?php echo $index; ?>" data-field="kondisi_fisik" data-required="0">
                                                             <div class="wizard-disabilitas-only mt-2" style="<?php echo in_array('Disabilitas', $selectedKondisiFisik, true) ? '' : 'display:none;'; ?>">
-                                                                <label class="form-label mb-1">Pilih jenis disabilitas yang tidak diperbolehkan untuk melamar.</label>
+                                                                <label class="form-label mb-1">Mohon pilih jenis disabilitas yang sesuai dengan persyaratan lowongan</label>
                                                                 <div class="d-flex flex-wrap gap-3">
                                                                     <?php foreach (['Tuna daksa', 'Tuna grahita', 'Tuna wicara', 'Tuna netra', 'Tuna rungu', 'Tuna ganda'] as $jenisDisabilitas): ?>
                                                                         <?php $jenisDisabilitasKey = strtolower(str_replace(' ', '-', $jenisDisabilitas)); ?>
@@ -1221,7 +1221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             jumlah_kebutuhan: 'Jumlah orang yang dibutuhkan untuk jabatan ini (harus lebih dari 0).',
             jenis_kelamin: 'Pilih preferensi jenis kelamin pelamar. Gunakan "Semua" bila tidak dibatasi.',
             kondisi_fisik: 'Pilih kategori pelamar yang diperbolehkan (Disabilitas/Non Disabilitas).',
-            jenis_disabilitas_tidak_diperbolehkan: 'Isi hanya jika memilih Disabilitas. Centang jenis yang tidak sesuai kebutuhan kerja.',
+            jenis_disabilitas_tidak_diperbolehkan: 'Isi hanya jika memilih Disabilitas. Pilih jenis disabilitas yang sesuai dengan persyaratan lowongan.',
             usia_min: 'Batas usia terendah pelamar (minimal 17 tahun).',
             usia_max: 'Batas usia tertinggi pelamar (harus sama dengan atau lebih besar dari usia minimal).',
             pendidikan_minimal: 'Kualifikasi pendidikan minimal yang diterima (contoh: SMA/SMK, D3, S1).',
