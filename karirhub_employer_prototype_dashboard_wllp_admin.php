@@ -498,6 +498,20 @@ $baseFilterParams = [
     </div>
 
     <div class="row g-3 mb-3">
+        <div class="col-12 col-xl-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="card-title mb-0">Match NIK SIAPKerja</h5>
+                        <span class="text-muted small">Match vs Unmatch</span>
+                    </div>
+                    <div class="kh-admin-chart-wrap"><canvas id="nikMatchChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
         <div class="col-12 col-xl-6">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
@@ -685,6 +699,8 @@ $baseFilterParams = [
         const funnelData = <?php echo json_encode($funnelData); ?>;
         const geoLabels = <?php echo json_encode($geoLabels, JSON_UNESCAPED_UNICODE); ?>;
         const geoData = <?php echo json_encode($geoData); ?>;
+        const nikMatchLabels = ['Match', 'Unmatch'];
+        const nikMatchData = [80, 20];
 
         const trendCtx = document.getElementById('trendChart');
         if (trendCtx) {
@@ -748,6 +764,25 @@ $baseFilterParams = [
                         label: 'Total',
                         data: geoData,
                         backgroundColor: ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#fd7e14', '#198754', '#20c997', '#0dcaf0']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        const nikMatchCtx = document.getElementById('nikMatchChart');
+        if (nikMatchCtx) {
+            new Chart(nikMatchCtx, {
+                type: 'pie',
+                data: {
+                    labels: nikMatchLabels,
+                    datasets: [{
+                        data: nikMatchData,
+                        backgroundColor: ['#198754', '#dc3545']
                     }]
                 },
                 options: {
