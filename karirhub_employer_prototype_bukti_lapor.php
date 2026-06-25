@@ -406,6 +406,11 @@ $allowedStatuses = ['all', 'belum terisi', 'proses seleksi', 'terisi'];
 if (!in_array($statusFilter, $allowedStatuses, true)) {
     $statusFilter = 'all';
 }
+$sumberFilter = trim((string)($_GET['sumber'] ?? 'all'));
+$allowedSumber = ['all', 'karirhub', 'lainnya'];
+if (!in_array($sumberFilter, $allowedSumber, true)) {
+    $sumberFilter = 'all';
+}
 
 $unitFilter = trim((string)($_GET['unit'] ?? 'all'));
 $query = strtolower(trim((string)($_GET['q'] ?? '')));
@@ -568,7 +573,27 @@ if ($unitFilter !== 'all' && !isset($unitOptions[$unitFilter])) {
     $unitFilter = 'all';
 }
 
-$rows = array_values(array_filter($headerRows, static function (array $row) use ($statusFilter, $unitFilter, $query, $detailByNoReg): bool {
+foreach ($headerRows as $idx => $row) {
+    $noReg = (string)($row['no_reg_bukti'] ?? '');
+    $detailRows = $detailByNoReg[$noReg] ?? [];
+    $isKarirhub = false;
+    foreach ($detailRows as $detailRow) {
+        $catatanDetail = (string)($detailRow['catatan'] ?? '');
+        if (stripos($catatanDetail, 'Auto insert dari Job Posted') === 0) {
+            $isKarirhub = true;
+            break;
+        }
+    }
+    if (!$isKarirhub) {
+        $catatanHeader = (string)($row['catatan'] ?? '');
+        if (stripos($catatanHeader, 'Auto insert dari Job Posted') === 0) {
+            $isKarirhub = true;
+        }
+    }
+    $headerRows[$idx]['sumber'] = $isKarirhub ? 'Karirhub' : 'Lainnya';
+}
+
+$rows = array_values(array_filter($headerRows, static function (array $row) use ($statusFilter, $unitFilter, $sumberFilter, $query, $detailByNoReg): bool {
     if ($statusFilter !== 'all') {
         $noReg = (string)($row['no_reg_bukti'] ?? '');
         $detailRows = $detailByNoReg[$noReg] ?? [];
@@ -586,6 +611,9 @@ $rows = array_values(array_filter($headerRows, static function (array $row) use 
     if ($unitFilter !== 'all' && (string)$row['unit_kode'] !== $unitFilter) {
         return false;
     }
+    if ($sumberFilter !== 'all' && strtolower((string)($row['sumber'] ?? 'lainnya')) !== $sumberFilter) {
+        return false;
+    }
     if ($query !== '') {
         $haystack = strtolower(implode(' ', [
             (string)$row['no_reg_bukti'],
@@ -594,6 +622,7 @@ $rows = array_values(array_filter($headerRows, static function (array $row) use 
             (string)$row['daftar_jabatan'],
             (string)$row['catatan'],
             (string)$row['periode_tipe'],
+            (string)$row['sumber'],
         ]));
         if (strpos($haystack, $query) === false) {
             return false;
@@ -606,6 +635,7 @@ $filteredRows = $rows;
 $baseParams = [
     'status' => $statusFilter,
     'unit' => $unitFilter,
+    'sumber' => $sumberFilter,
     'q' => $query,
 ];
 $rowMap = [];
@@ -739,7 +769,15 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <label for="q" class="form-label mb-1">Cari</label>
                     <input id="q" name="q" class="form-control form-control-sm" value="<?php echo h($query); ?>" placeholder="No Reg, daftar ID Lowongan, Jabatan">
                 </div>
-                <div class="col-12 col-md-2 d-grid">
+                <div class="col-12 col-md-3">
+                    <label for="sumber" class="form-label mb-1">Sumber</label>
+                    <select id="sumber" name="sumber" class="form-select form-select-sm">
+                        <option value="all"<?php echo $sumberFilter === 'all' ? ' selected' : ''; ?>>Semua Sumber</option>
+                        <option value="karirhub"<?php echo $sumberFilter === 'karirhub' ? ' selected' : ''; ?>>Karirhub</option>
+                        <option value="lainnya"<?php echo $sumberFilter === 'lainnya' ? ' selected' : ''; ?>>Lainnya</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-1 d-grid">
                     <button type="submit" class="btn btn-primary btn-sm">
                         <i class="bi bi-funnel me-1"></i>Filter
                     </button>
@@ -761,6 +799,7 @@ if ($action === 'unduh' && $actionRow !== null) {
                             <th>Jabatan</th>
                             <th>Total Kebutuhan</th>
                             <th>Unit/Perusahaan</th>
+                            <th>Sumber</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
@@ -768,7 +807,7 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <tbody>
                     <?php if (empty($filteredRows)): ?>
                         <tr>
-                            <td colspan="9" class="text-center text-muted">Tidak ada data sesuai filter.</td>
+                            <td colspan="10" class="text-center text-muted">Tidak ada data sesuai filter.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($filteredRows as $row): ?>
@@ -789,6 +828,7 @@ if ($action === 'unduh' && $actionRow !== null) {
                                 <td><?php echo h((string)$row['daftar_jabatan']); ?></td>
                                 <td><?php echo h((string)$row['jumlah_kebutuhan_total']); ?></td>
                                 <td><?php echo h($unitOptions[$row['unit_kode']] ?? $row['unit_nama']); ?></td>
+                                <td><span class="badge text-bg-<?php echo strtolower((string)($row['sumber'] ?? 'lainnya')) === 'karirhub' ? 'info' : 'secondary'; ?>"><?php echo h((string)($row['sumber'] ?? 'Lainnya')); ?></span></td>
                                 <td><span class="badge text-bg-<?php echo h($badgeClass); ?>"><?php echo h($row['status_verifikasi']); ?></span></td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
