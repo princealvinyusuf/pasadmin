@@ -1006,32 +1006,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="modal-body small">
                 <h6>1. Ketentuan Umum</h6>
-                <p>Wajib Lapor Lowongan Pekerjaan adalah kewajiban pemberi kerja untuk menyampaikan informasi lowongan pekerjaan kepada Kementerian Ketenagakerjaan melalui sistem yang ditetapkan.</p>
-                <p>Pemberi kerja adalah perusahaan, instansi, lembaga, badan usaha, atau perseorangan yang membuka kesempatan kerja dan menyampaikan informasi lowongan pekerjaan melalui layanan Wajib Lapor Lowongan Pekerjaan.</p>
-                <p>Pemberi kerja wajib memiliki akun SIAPkerja melalui laman <a href="https://account.kemnaker.go.id" target="_blank" rel="noopener noreferrer">https://account.kemnaker.go.id</a> dan melengkapi seluruh data yang dipersyaratkan secara benar, lengkap, mutakhir, dan dapat dipertanggungjawabkan.</p>
+                <ul>
+                    <li>Wajib Lapor Lowongan Pekerjaan merupakan kewajiban setiap pemberi kerja yang membuka lowongan pekerjaan untuk melaporkan informasi lowongan pekerjaan dan informasi lowongan pekerjaan yang telah terisi kepada Menteri Ketenagakerjaan melalui Sistem Informasi Ketenagakerjaan (SIAPKerja) sesuai dengan Peraturan Presiden Nomor 57 Tahun 2023 tentang Wajib Lapor Lowongan Pekerjaan dan Peraturan Menteri Ketenagakerjaan Nomor 18 tahun 2024 tentang Penempatan Tenaga Kerja Dalam Negeri (PTKDN);</li>
+                    <li>Tujuan pelaporan lowongan pekerjaan dan lowongan yang telah terisi untuk meningkatkan pelayanan penempatan tenaga kerja guna menciptakan satu kesatuan pasar kerja nasional serta untuk bahan Penyusunan Analisis Pasar Kerja dan Menyusun Perencanaan Tenaga Kerja Makro;</li>
+                    <li>Manfaat pelaporan wajib lapor lowongan pekerjaan untuk mewujudkan pelaporan informasi lowongan pekerjaan dan lowongan pekerjaan yang telah terisi secara tertib, akurat, lengkap, dan tepat waktu kepada Menteri Ketenagakerjaan;</li>
+                    <li>Pemberi Kerja adalah orang perseorangan, pengusaha, badan hukum, atau badan-badan lainnya yang memperkerjakan tenaga kerja dengan membayar upah atau imbalan dalam bentuk lain;</li>
+                    <li>Informasi lowongan pekerjaan merupakan informasi mengenai kebutuhan Tenaga Kerja. (Permenaker nomor 18 tahun 2024 tentang Penempatan Tenaga Kerja Dalam Negeri);</li>
+                    <li>Informasi lowongan pekerjaan yang terisi atau Penempatan Tenaga Kerja Dalam Negeri yang selanjutnya disingkat PTKDN adalah proses penempatan yang diberikan kepada pencari kerja untuk mendapatkan pekerjaan dan pemenuhan kebutuhan tenaga kerja bagi pemberi kerja di wilayah Negara Kesatuan Republik Indonesia;</li>
+                    <li>Sistem Informasi dan Aplikasi Pelayanan Ketenagakerjaan yang selanjutnya disebut SIAPkerja adalah ekosistem digital ketenagakerjaan yang merupakan transformasi dari Sistem Informasi Ketenagakerjaan yang mengintegrasikan seluruh layanan bidang ketenagakerjaan secara nasional yang dikelola oleh kementerian yang menyelenggarakan urusan pemerintahan di bidang ketenagakerjaan.</li>
+                </ul>
 
                 <h6>2. Kewajiban Pemberi Kerja</h6>
-                <p>Pemberi kerja wajib memastikan bahwa seluruh data yang disampaikan dalam Wajib Lapor Lowongan Pekerjaan merupakan data yang valid, akurat, dan sesuai dengan kondisi sebenarnya.</p>
-                <p>Data yang wajib disampaikan sekurang-kurangnya meliputi identitas pemberi kerja, informasi jabatan, jumlah kebutuhan tenaga kerja, lokasi penempatan, kualifikasi jabatan, jenis hubungan kerja, rentang upah atau informasi pengupahan sesuai ketentuan yang berlaku, serta periode pembukaan lowongan.</p>
-                <p>Pemberi kerja wajib memastikan bahwa lowongan pekerjaan yang dilaporkan bukan lowongan fiktif, palsu, menyesatkan, diskriminatif, atau bertentangan dengan ketentuan peraturan perundang-undangan.</p>
-                <p>Pemberi kerja bertanggung jawab penuh atas kebenaran, keabsahan, dan legalitas seluruh data serta dokumen pendukung yang disampaikan.</p>
+                <ul>
+                    <li>
+                        <strong>Melaporkan melalui SIAPkerja</strong><br>
+                        Pemberi kerja wajib melaporkan setiap lowongan pekerjaan dan Informasi lowongan Pekerjaan yang terisi melalui SIAPKerja sesuai dengan ketentuan peraturan perundang-undangan yang berlaku.<br>
+                        Pemberi kerja wajib memiliki akun SIAPkerja melalui laman <a href="https://account.kemnaker.go.id" target="_blank" rel="noopener noreferrer">https://account.kemnaker.go.id</a> dan melengkapi seluruh data yang dipersyaratkan secara benar, lengkap, mutakhir, dan dapat dipertanggungjawabkan.
+                    </li>
+                    <li>
+                        <strong>Menyampaikan Informasi yang Benar</strong><br>
+                        Pemberi kerja wajib menyampaikan dan memastikan bahwa data informasi lowongan pekerjaan yang dilaporkan adalah benar, lengkap, akurat, mutakhir, sesuai dengan kondisi sebenarnya, dapat dipertanggungjawabkan, dan bukan informasi lowongan pekerjaan fiktif, palsu, menyesatkan, diskriminatif, atau bertentangan dengan ketentuan peraturan perundang-undangan.
+                    </li>
+                    <li>
+                        <strong>Melaporkan Data Informasi Lowongan Pekerjaan melalui SIAPkerja</strong><br>
+                        Data yang wajib disampaikan sekurang-kurangnya meliputi identitas pemberi kerja, informasi jabatan, jumlah kebutuhan tenaga kerja, lokasi penempatan, kualifikasi jabatan, jenis hubungan kerja, rentang upah atau informasi pengupahan sesuai ketentuan yang berlaku, serta periode pembukaan lowongan.
+                    </li>
+                    <li>
+                        <strong>Melaporkan Data Status Informasi Lowongan Pekerjaan yang terisi melalui SIAPkerja</strong><br>
+                        Pemberi kerja wajib melaporkan status pengisian lowongan pekerjaan melalui SIAPKerja setelah kebutuhan tenaga kerja terpenuhi, termasuk jumlah lowongan yang telah terisi dan tanggal pemenuhannya.
+                    </li>
+                    <li>
+                        <strong>Bertanggung Jawab atas keabsahan dan kebenaran informasi yang disampaikan</strong><br>
+                        Pemberi kerja bertanggung jawab penuh atas kebenaran, keabsahan, dan legalitas seluruh data serta informasi pendukung yang disampaikan.
+                    </li>
+                </ul>
 
                 <h6>3. Perlindungan Data</h6>
-                <p>Pemberi kerja wajib melindungi dan menjaga seluruh data pribadi yang dikelola dalam proses pelaporan lowongan pekerjaan, termasuk data perusahaan, pengelola akun, dan pencari kerja, sesuai dengan ketentuan peraturan perundang-undangan.</p>
-                <p>Pemberi kerja dilarang menyalahgunakan data pencari kerja untuk kepentingan di luar proses rekrutmen yang sah.</p>
+                <ul>
+                    <li>Kementerian Ketenagakerjaan melakukan pengelolaan dan perlindungan data sesuai dengan prinsip keamanan, kerahasiaan, integritas, dan ketersediaan data.</li>
+                    <li>Pemberi kerja wajib melindungi dan menjaga seluruh data pribadi yang dikelola dalam proses pelaporan informasi lowongan pekerjaan dan informasi lowongaan pekerjaan yang terisi, termasuk data perusahaan, pengelola akun, dan pencari kerja, sesuai dengan ketentuan peraturan perundang-undangan.</li>
+                    <li>Pemberi kerja dilarang menyalahgunakan data pencari kerja untuk kepentingan di luar proses rekrutmen yang sah.</li>
+                </ul>
 
                 <h6>4. Hak Kementerian Ketenagakerjaan</h6>
-                <p>Kementerian Ketenagakerjaan berhak melakukan pengelolaan, pengolahan, verifikasi, validasi, analisis, dan pelaporan atas data lowongan pekerjaan yang disampaikan oleh pemberi kerja.</p>
-                <p>Kementerian Ketenagakerjaan berhak meminta klarifikasi, perbaikan, atau dokumen pendukung apabila terdapat indikasi data tidak lengkap, tidak sesuai, tidak valid, atau diragukan kebenarannya.</p>
-                <p>Kementerian Ketenagakerjaan berhak menolak, menonaktifkan, menghapus, atau memblokir laporan lowongan pekerjaan dan/atau akun pemberi kerja apabila ditemukan indikasi lowongan palsu, penyalahgunaan layanan, pelanggaran hukum, atau ketidaksesuaian data.</p>
+                <ul>
+                    <li>Kementerian Ketenagakerjaan berhak melakukan pengelolaan, pengolahan, verifikasi, validasi, analisis, dan pelaporan atas data lowongan pekerjaan yang disampaikan oleh pemberi kerja.</li>
+                    <li>Kementerian Ketenagakerjaan berhak meminta klarifikasi, perbaikan, atau dokumen pendukung apabila terdapat indikasi data tidak lengkap, tidak sesuai, tidak valid, atau diragukan kebenarannya.</li>
+                    <li>Kementerian Ketenagakerjaan berhak menolak, menonaktifkan, menghapus, atau memblokir laporan lowongan pekerjaan dan/atau akun pemberi kerja apabila ditemukan indikasi lowongan palsu, penyalahgunaan layanan, pelanggaran hukum, atau ketidaksesuaian data.</li>
+                </ul>
 
-                <h6>5. Validasi dan Pernyataan Kebenaran Data</h6>
-                <p>Dengan menyampaikan Wajib Lapor Lowongan Pekerjaan, pemberi kerja menyatakan bahwa seluruh data yang disampaikan adalah benar, valid, mutakhir, dan dapat dipertanggungjawabkan.</p>
-                <p>Pemberi kerja bersedia menerima konsekuensi administratif sesuai ketentuan yang berlaku apabila di kemudian hari ditemukan data yang tidak benar, tidak valid, atau menyesatkan.</p>
+                <h6>5. Bukti Pemberi Kerja telah memenuhi Wajib Lapor Lowongan Pekerjaan</h6>
+                <ul>
+                    <li>Pemberi Kerja yang telah menyampaikan laporan lowongan pekerjaan melalui SIAPKerja akan memperoleh Bukti Wajib Lapor Lowongan Pekerjaan dalam bentuk elektronik.</li>
+                    <li>Bukti Wajib Lapor Lowongan Pekerjaan diterbitkan setelah laporan dinyatakan lengkap dan berhasil diterima oleh sistem yaitu pelaporan informasi lowongan pekerjaan dan informasi lowongan pekerjaan yang terisi.</li>
+                    <li>Bukti Wajib Lapor Informasi Lowongan Pekerjaan memuat paling sedikit identitas Pemberi Kerja, nomor bukti pelaporan, tanggal pelaporan, dan informasi lowongan pekerjaan yang dilaporkan.</li>
+                    <li>Bukti Wajib Lapor Lowongan Pekerjaan dapat diunduh, disimpan, dan dicetak oleh Pemberi Kerja melalui akun SIAPKerja.</li>
+                    <li>Bukti Wajib Lapor Lowongan Pekerjaan merupakan tanda bahwa Pemberi Kerja telah memenuhi kewajiban pelaporan sesuai dengan ketentuan yang berlaku, tanpa mengurangi kewajiban untuk memperbarui status lowongan apabila terdapat perubahan atau lowongan telah terpenuhi.</li>
+                    <li>Dalam hal terdapat perubahan terhadap data lowongan pekerjaan, Pemberi Kerja wajib memperbarui informasi melalui SIAPKerja sehingga bukti pelaporan mencerminkan kondisi terkini.</li>
+                </ul>
+
+                <h6>6. Validasi dan Pernyataan Kebenaran Data</h6>
+                <ul>
+                    <li>Dengan menyampaikan Wajib Lapor Lowongan Pekerjaan, pemberi kerja menyatakan bahwa seluruh data yang disampaikan adalah benar, akurat, valid, mutakhir, sesuai dengan kondisi sebenarnya, dan dapat dipertanggungjawabkan.</li>
+                    <li>Pemberi kerja bersedia menerima konsekuensi administratif sesuai ketentuan yang berlaku apabila di kemudian hari ditemukan data yang tidak benar, tidak akurat, dan tidak valid.</li>
+                </ul>
 
                 <h6>6. Perubahan Data dan Pengelola Akun</h6>
-                <p>Pemberi kerja wajib memperbarui data lowongan pekerjaan apabila terdapat perubahan informasi, termasuk perubahan jumlah kebutuhan tenaga kerja, lokasi penempatan, masa berlaku lowongan, atau status pemenuhan lowongan.</p>
-                <p>Apabila terdapat pergantian pengelola akun, pemberi kerja wajib melaporkan kepada Kementerian Ketenagakerjaan melalui kanal layanan resmi yang ditetapkan.</p>
+                <ul>
+                    <li>Pemberi kerja wajib memperbarui data lowongan pekerjaan apabila terdapat perubahan informasi, termasuk perubahan jumlah kebutuhan tenaga kerja, lokasi penempatan, masa berlaku lowongan, atau status pemenuhan lowongan.</li>
+                    <li>Apabila terdapat pergantian pengelola akun, pemberi kerja wajib melaporkan kepada Kementerian Ketenagakerjaan melalui kanal layanan resmi yang ditetapkan.</li>
+                </ul>
 
                 <h6>7. Larangan</h6>
                 <p>Pemberi kerja dilarang menyampaikan lowongan pekerjaan yang:</p>
@@ -1045,8 +1089,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </ol>
 
                 <h6>8. Penutup</h6>
-                <p>Syarat dan Ketentuan ini berlaku sejak pemberi kerja menggunakan layanan Wajib Lapor Lowongan Pekerjaan.</p>
-                <p>Dengan menggunakan layanan ini, pemberi kerja dianggap telah membaca, memahami, menyetujui, dan bersedia mematuhi seluruh ketentuan yang berlaku.</p>
+                <ul>
+                    <li>Syarat dan Ketentuan ini berlaku sejak pemberi kerja menggunakan layanan Wajib Lapor Lowongan Pekerjaan.</li>
+                    <li>Dengan menggunakan layanan ini, pemberi kerja dianggap telah membaca, memahami, menyetujui, dan bersedia mematuhi seluruh ketentuan yang berlaku.</li>
+                </ul>
             </div>
             <div class="modal-footer d-block">
                 <div class="form-check mb-2">
