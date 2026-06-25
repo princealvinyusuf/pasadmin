@@ -332,7 +332,7 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
 </head>
 <body class="kh-proto-page">
 <?php include 'navbar.php'; ?>
-<?php kh_proto_render_hero('Daftar Pekerjaan', 'Pantau lowongan yang sudah diposting ke Karirhub.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_job_posted_karirhub'); ?>
+<?php kh_proto_render_hero('Daftar Pekerjaan', 'Pantau lowongan yang sudah diposting ke Karirhub.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_job_posted_karirhub', false); ?>
 
 <div class="kh-content-wrap">
 <div class="container py-4">

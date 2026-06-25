@@ -45,7 +45,7 @@ $filteredSummary = array_values(array_filter($summaryRows, static function (arra
 </head>
 <body class="kh-proto-page">
 <?php include 'navbar.php'; ?>
-<?php kh_proto_render_hero('Daftar Lowongan Kerja', 'Monitoring kepatuhan pelaporan lowongan pada prototipe employer.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_dashboard_wllp'); ?>
+<?php kh_proto_render_hero('Daftar Lowongan Kerja', 'Monitoring kepatuhan pelaporan lowongan pada prototipe employer.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_dashboard_wllp', false); ?>
 
 <div class="kh-content-wrap">
 <div class="container py-4">

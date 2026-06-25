@@ -686,7 +686,7 @@ if ($action === 'unduh' && $actionRow !== null) {
 </head>
 <body class="kh-proto-page">
 <?php include 'navbar.php'; ?>
-<?php kh_proto_render_hero('Daftar Lowongan Kerja', 'Kelola bukti lapor dan dokumen WLLP dengan tampilan employer prototype.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_dashboard_wllp'); ?>
+<?php kh_proto_render_hero('Daftar Lowongan Kerja', 'Kelola bukti lapor dan dokumen WLLP dengan tampilan employer prototype.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_dashboard_wllp', false); ?>
 
 <div class="kh-content-wrap">
 <div class="container py-4">

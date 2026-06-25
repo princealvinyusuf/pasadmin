@@ -307,7 +307,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
 </head>
 <body class="kh-proto-page">
 <?php include 'navbar.php'; ?>
-<?php kh_proto_render_hero('Daftar Pekerjaan', 'Detail performa lowongan yang diposting ke Karirhub.', 'Lowongan Kerja', 'karirhub_employer_prototype_job_posted_karirhub', 'Proyek', 'karirhub_employer_prototype_job_posted_karirhub'); ?>
+<?php kh_proto_render_hero('Daftar Pekerjaan', 'Detail performa lowongan yang diposting ke Karirhub.', 'Lowongan Kerja', 'karirhub_employer_prototype_job_posted_karirhub', 'Proyek', 'karirhub_employer_prototype_job_posted_karirhub', false); ?>
 
 <div class="kh-content-wrap">
 <div class="container py-4">

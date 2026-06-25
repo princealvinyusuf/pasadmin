@@ -85,7 +85,7 @@ $filteredRows = array_values(array_filter($allRows, static function (array $row)
 </head>
 <body class="kh-proto-page">
 <?php include 'navbar.php'; ?>
-<?php kh_proto_render_hero('Daftar Lowongan Kerja', 'Pencarian nomor registrasi bukti pada prototipe employer.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_dashboard_wllp'); ?>
+<?php kh_proto_render_hero('Daftar Lowongan Kerja', 'Pencarian nomor registrasi bukti pada prototipe employer.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_dashboard_wllp', false); ?>
 
 <div class="kh-content-wrap">
 <div class="container py-4">

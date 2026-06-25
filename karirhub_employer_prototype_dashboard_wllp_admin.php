@@ -370,7 +370,7 @@ $baseFilterParams = [
 </head>
 <body class="kh-proto-page">
 <?php include 'navbar.php'; ?>
-<?php kh_proto_render_hero('Dashboard WLLP Admin', 'Analitik lintas employer untuk monitoring WLLP prototype.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Admin', 'karirhub_employer_prototype_dashboard_wllp_admin'); ?>
+<?php kh_proto_render_hero('Dashboard WLLP Admin', 'Analitik lintas employer untuk monitoring WLLP prototype.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Admin', 'karirhub_employer_prototype_dashboard_wllp_admin', false); ?>
 
 <div class="kh-content-wrap">
 <div class="container py-4">
