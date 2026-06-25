@@ -75,8 +75,23 @@ $jobTitles = array_keys($jobMap);
 if (!empty($jobTitles)) {
     $escapedTitles = array_map(static fn (string $v): string => "'" . $conn->real_escape_string($v) . "'", $jobTitles);
     $resAdded = $conn->query("
-        SELECT d.jabatan, d.no_reg_bukti, d.id_lowongan, d.created_at
+        SELECT
+            d.jabatan,
+            d.no_reg_bukti,
+            d.id_lowongan,
+            d.jumlah_kebutuhan,
+            d.created_at,
+            COALESCE(s.status_saat_ini, 'Belum Terisi') AS status_keterisian,
+            COALESCE(pc.jumlah_penempatan, 0) AS jumlah_penempatan
         FROM karirhub_proto_wllp_pelaporan d
+        LEFT JOIN karirhub_proto_wllp_status s
+            ON s.no_reg_bukti = d.no_reg_bukti AND s.id_lowongan = d.id_lowongan
+        LEFT JOIN (
+            SELECT no_reg_bukti, id_lowongan, COUNT(*) AS jumlah_penempatan
+            FROM karirhub_proto_wllp_penempatan
+            GROUP BY no_reg_bukti, id_lowongan
+        ) pc
+            ON pc.no_reg_bukti = d.no_reg_bukti AND pc.id_lowongan = d.id_lowongan
         WHERE d.jabatan IN (" . implode(',', $escapedTitles) . ")
           AND d.catatan LIKE 'Auto insert dari Job Posted%'
         ORDER BY d.created_at DESC
@@ -90,6 +105,9 @@ if (!empty($jobTitles)) {
             $wllpAddedByJob[$jabatanKey] = [
                 'no_reg_bukti' => (string)($r['no_reg_bukti'] ?? ''),
                 'id_lowongan' => (string)($r['id_lowongan'] ?? ''),
+                'status_keterisian' => (string)($r['status_keterisian'] ?? 'Belum Terisi'),
+                'jumlah_kebutuhan' => (int)($r['jumlah_kebutuhan'] ?? 0),
+                'jumlah_penempatan' => (int)($r['jumlah_penempatan'] ?? 0),
             ];
         }
     }
@@ -315,6 +333,7 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
         .job-posted-status.ditutup { background: #ea3f51; }
         .job-posted-status.aktif { background: #18a365; }
         .job-posted-status.wllp-added { background: #0d6efd; }
+        .job-posted-status.penempatan-incomplete { background: #fd7e14; }
         .job-posted-side-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
         .job-posted-wllp-added-wrap { display: inline-flex; align-items: center; gap: 6px; }
         .job-posted-tooltip-btn { border: 0; background: transparent; color: #6c7f95; padding: 0; line-height: 1; }
@@ -419,6 +438,15 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
                         <?php if ($addedInfo !== null): ?>
                             <span class="job-posted-wllp-added-wrap">
                                 <span class="job-posted-status wllp-added">Berhasil ditambahkan ke WLLP</span>
+                                <?php
+                                    $isPenempatanTidakLengkap = (
+                                        (string)($addedInfo['status_keterisian'] ?? '') === 'Terisi'
+                                        && (int)($addedInfo['jumlah_penempatan'] ?? 0) < (int)($addedInfo['jumlah_kebutuhan'] ?? 0)
+                                    );
+                                ?>
+                                <?php if ($isPenempatanTidakLengkap): ?>
+                                    <span class="job-posted-status penempatan-incomplete">Data Penempatan Tidak Lengkap</span>
+                                <?php endif; ?>
                                 <button
                                     type="button"
                                     class="job-posted-tooltip-btn"
