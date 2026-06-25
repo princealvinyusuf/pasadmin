@@ -31,6 +31,11 @@ $unitFilter = trim((string)($_REQUEST['unit'] ?? 'all'));
 if ($unitFilter !== 'all' && !isset($units[$unitFilter])) {
     $unitFilter = 'all';
 }
+$sumberFilter = trim((string)($_REQUEST['sumber'] ?? 'all'));
+$allowedSumber = ['all', 'karirhub', 'lainnya'];
+if (!in_array($sumberFilter, $allowedSumber, true)) {
+    $sumberFilter = 'all';
+}
 
 $simulatedNoReg = trim((string)($_GET['simulate_no_reg'] ?? ''));
 $simulatedIdLowongan = trim((string)($_GET['simulate_id_lowongan'] ?? ''));
@@ -49,6 +54,10 @@ $resRows = $conn->query("
         d.jumlah_kebutuhan,
         d.unit_kode,
         d.unit_nama,
+        CASE
+            WHEN d.catatan LIKE 'Auto insert dari Job Posted%' THEN 'Karirhub'
+            ELSE 'Lainnya'
+        END AS sumber,
         COALESCE(s.status_saat_ini, 'Belum Terisi') AS status_keterisian,
         COALESCE(CAST(s.tanggal_lapor AS CHAR), CAST(d.masa_berlaku_mulai AS CHAR), '') AS tanggal_lapor,
         COALESCE(CAST(s.tanggal_terisi AS CHAR), '') AS tanggal_terisi,
@@ -352,11 +361,14 @@ if ($detailRow !== null) {
 }
 $templateRows = $rows;
 
-$filteredRows = array_values(array_filter($rows, static function (array $row) use ($statusFilter, $unitFilter): bool {
+$filteredRows = array_values(array_filter($rows, static function (array $row) use ($statusFilter, $unitFilter, $sumberFilter): bool {
     if ($statusFilter !== 'all' && strtolower($row['status_keterisian']) !== $statusFilter) {
         return false;
     }
     if ($unitFilter !== 'all' && $row['unit_kode'] !== $unitFilter) {
+        return false;
+    }
+    if ($sumberFilter !== 'all' && strtolower((string)($row['sumber'] ?? 'lainnya')) !== $sumberFilter) {
         return false;
     }
     return true;
@@ -448,7 +460,15 @@ foreach ($rows as $row) {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-12 col-md-2 d-grid">
+                <div class="col-12 col-md-3">
+                    <label class="form-label mb-1">Sumber</label>
+                    <select name="sumber" class="form-select form-select-sm">
+                        <option value="all"<?php echo $sumberFilter === 'all' ? ' selected' : ''; ?>>Semua Sumber</option>
+                        <option value="karirhub"<?php echo $sumberFilter === 'karirhub' ? ' selected' : ''; ?>>Karirhub</option>
+                        <option value="lainnya"<?php echo $sumberFilter === 'lainnya' ? ' selected' : ''; ?>>Lainnya</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-1 d-grid">
                     <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-funnel me-1"></i>Filter</button>
                 </div>
             </div>
@@ -466,6 +486,7 @@ foreach ($rows as $row) {
                             <th>Periode</th>
                             <th>Jabatan</th>
                             <th>Unit</th>
+                            <th>Sumber</th>
                             <th>Jumlah Kebutuhan</th>
                             <th>Jumlah Penempatan</th>
                             <th>Status Saat Ini</th>
@@ -476,7 +497,7 @@ foreach ($rows as $row) {
                     </thead>
                     <tbody>
                     <?php if (empty($filteredRows)): ?>
-                        <tr><td colspan="11" class="text-center text-muted">Tidak ada data.</td></tr>
+                        <tr><td colspan="12" class="text-center text-muted">Tidak ada data.</td></tr>
                     <?php else: ?>
                         <?php foreach ($filteredRows as $row): ?>
                             <?php
@@ -492,12 +513,13 @@ foreach ($rows as $row) {
                             <tr>
                                 <td class="fw-semibold">
                                     <div><?php echo h($row['no_reg_bukti']); ?></div>
-                                    <a class="btn btn-outline-primary btn-sm mt-1" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&detail_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&detail_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>">Lihat Detail</a>
+                                    <a class="btn btn-outline-primary btn-sm mt-1" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>&detail_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&detail_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>">Lihat Detail</a>
                                 </td>
                                 <td><?php echo h($row['id_lowongan']); ?></td>
                                 <td class="small"><?php echo h(strtoupper((string)$row['periode_tipe']) . ' (' . (string)$row['periode_mulai'] . ' s.d. ' . (string)$row['periode_selesai'] . ')'); ?></td>
                                 <td><?php echo h($row['jabatan']); ?></td>
                                 <td><?php echo h($units[$row['unit_kode']]['nama'] ?? $row['unit_kode']); ?></td>
+                                <td><span class="badge text-bg-<?php echo strtolower((string)$row['sumber']) === 'karirhub' ? 'info' : 'secondary'; ?>"><?php echo h((string)$row['sumber']); ?></span></td>
                                 <td><?php echo h((string)($row['jumlah_kebutuhan'] ?? 0)); ?></td>
                                 <td><span class="badge text-bg-<?php echo h($progressClass); ?>"><?php echo h((string)$penempatan . ' / ' . (string)$kebutuhan); ?></span></td>
                                 <td><span class="badge text-bg-<?php echo h(karirhub_proto_status_badge_class($row['status_keterisian'])); ?>"><?php echo h($row['status_keterisian']); ?></span></td>
@@ -505,9 +527,9 @@ foreach ($rows as $row) {
                                 <td><?php echo h((string)($row['tanggal_terisi'] ?? '-')); ?></td>
                                 <td>
                                     <div class="btn-group btn-group-sm flex-wrap" role="group">
-                                        <a class="btn btn-outline-secondary" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>&simulate_status=Belum%20Terisi">Belum</a>
-                                        <a class="btn btn-outline-info" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>&simulate_status=Proses%20Seleksi">Seleksi</a>
-                                        <a class="btn btn-outline-success" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&open_terisi_for=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&open_terisi_id=<?php echo h(urlencode($row['id_lowongan'])); ?>">Terisi</a>
+                                        <a class="btn btn-outline-secondary" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>&simulate_status=Belum%20Terisi">Belum</a>
+                                        <a class="btn btn-outline-info" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>&simulate_status=Proses%20Seleksi">Seleksi</a>
+                                        <a class="btn btn-outline-success" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>&open_terisi_for=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&open_terisi_id=<?php echo h(urlencode($row['id_lowongan'])); ?>">Terisi</a>
                                     </div>
                                 </td>
                             </tr>
@@ -564,7 +586,7 @@ foreach ($rows as $row) {
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Detail WLLP</h5>
-                <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>" class="btn-close"></a>
+                <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>" class="btn-close"></a>
             </div>
             <div class="modal-body" style="max-height: calc(100vh - 220px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
                 <div class="alert alert-primary py-2 mb-3">
@@ -651,7 +673,7 @@ foreach ($rows as $row) {
                 </div>
             </div>
             <div class="modal-footer">
-                <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>" class="btn btn-outline-secondary btn-sm">Tutup</a>
+                <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>" class="btn btn-outline-secondary btn-sm">Tutup</a>
             </div>
         </div>
     </div>
@@ -664,7 +686,7 @@ foreach ($rows as $row) {
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Lengkapi Data Pegawai yang ditempatkan</h5>
-                <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>" class="btn-close"></a>
+                <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>" class="btn-close"></a>
             </div>
             <form method="POST">
                 <div class="modal-body" style="max-height: calc(100vh - 220px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
@@ -680,6 +702,7 @@ foreach ($rows as $row) {
                     <input type="hidden" name="jumlah_kebutuhan_target" value="<?php echo h((string)$openTerisiJumlahKebutuhan); ?>">
                     <input type="hidden" name="status" value="<?php echo h($statusFilter); ?>">
                     <input type="hidden" name="unit" value="<?php echo h($unitFilter); ?>">
+                    <input type="hidden" name="sumber" value="<?php echo h($sumberFilter); ?>">
                     <?php foreach ($pegawaiFormRows as $pegawaiIndex => $pegawaiForm): ?>
                     <div class="border rounded p-3 mb-3">
                         <div class="fw-semibold small mb-2">Data Pegawai <?php echo h((string)($pegawaiIndex + 1)); ?> dari <?php echo h((string)$openTerisiJumlahKebutuhan); ?></div>
@@ -725,7 +748,7 @@ foreach ($rows as $row) {
                     <?php endforeach; ?>
                 </div>
                 <div class="modal-footer">
-                    <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>" class="btn btn-outline-secondary btn-sm">Batal</a>
+                    <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>" class="btn btn-outline-secondary btn-sm">Batal</a>
                     <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check2-circle me-1"></i>Simpan Data & Set Terisi</button>
                 </div>
             </form>
