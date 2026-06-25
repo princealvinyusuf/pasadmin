@@ -145,7 +145,7 @@ if (!function_exists('kh_proto_render_hero')) {
                             <?php endif; ?>
                             <?php if ($hasAnyWllpMenu): ?>
                             <div class="dropdown">
-                                <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                                     WLLP
                                 </button>
                                 <ul class="dropdown-menu kh-wllp-menu">
@@ -315,16 +315,71 @@ if (!function_exists('kh_proto_render_sidebar_script')) {
                 const body = document.body;
                 const key = 'khProtoSidebarCollapsed';
                 const btn = document.getElementById('khSideToggleBtn');
-                if (!btn) return;
+                if (btn) {
+                    const saved = localStorage.getItem(key);
+                    if (saved === '1') {
+                        body.classList.add('kh-sidebar-collapsed');
+                    }
 
-                const saved = localStorage.getItem(key);
-                if (saved === '1') {
-                    body.classList.add('kh-sidebar-collapsed');
+                    btn.addEventListener('click', function () {
+                        body.classList.toggle('kh-sidebar-collapsed');
+                        localStorage.setItem(key, body.classList.contains('kh-sidebar-collapsed') ? '1' : '0');
+                    });
                 }
 
-                btn.addEventListener('click', function () {
-                    body.classList.toggle('kh-sidebar-collapsed');
-                    localStorage.setItem(key, body.classList.contains('kh-sidebar-collapsed') ? '1' : '0');
+                // Bootstrap does not reliably handle nested dropdown interactions
+                // in this menu, so we toggle the submenu manually.
+                const wllpMenus = document.querySelectorAll('.kh-wllp-menu');
+                wllpMenus.forEach(function (menu) {
+                    const submenuParents = menu.querySelectorAll('.dropend');
+                    submenuParents.forEach(function (parent) {
+                        const toggle = parent.querySelector('.kh-submenu-toggle');
+                        const submenu = parent.querySelector('.dropdown-menu');
+                        if (!toggle || !submenu) {
+                            return;
+                        }
+
+                        toggle.addEventListener('click', function (event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+
+                            const isOpen = parent.classList.contains('show');
+                            submenuParents.forEach(function (otherParent) {
+                                otherParent.classList.remove('show');
+                                const otherSubmenu = otherParent.querySelector('.dropdown-menu');
+                                const otherToggle = otherParent.querySelector('.kh-submenu-toggle');
+                                if (otherSubmenu) {
+                                    otherSubmenu.classList.remove('show');
+                                }
+                                if (otherToggle) {
+                                    otherToggle.setAttribute('aria-expanded', 'false');
+                                }
+                            });
+
+                            if (!isOpen) {
+                                parent.classList.add('show');
+                                submenu.classList.add('show');
+                                toggle.setAttribute('aria-expanded', 'true');
+                            }
+                        });
+                    });
+
+                    const rootDropdown = menu.closest('.dropdown');
+                    if (rootDropdown) {
+                        rootDropdown.addEventListener('hide.bs.dropdown', function () {
+                            submenuParents.forEach(function (parent) {
+                                parent.classList.remove('show');
+                                const submenu = parent.querySelector('.dropdown-menu');
+                                const toggle = parent.querySelector('.kh-submenu-toggle');
+                                if (submenu) {
+                                    submenu.classList.remove('show');
+                                }
+                                if (toggle) {
+                                    toggle.setAttribute('aria-expanded', 'false');
+                                }
+                            });
+                        });
+                    }
                 });
             })();
         </script>
