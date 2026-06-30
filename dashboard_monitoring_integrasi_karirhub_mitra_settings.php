@@ -646,12 +646,7 @@ while ($r = $resJoss->fetch_assoc()) {
                     </div>
                 </div>
             </form>
-        </div>
-    </div>
-
-    <div class="card mt-4">
-        <div class="card-body">
-            <h5 class="mb-3">Data Existing JOSS</h5>
+            <h5 class="mb-3 mt-4">Data Existing JOSS</h5>
             <div class="table-responsive">
                 <table class="table table-bordered table-sm mb-0">
                     <thead class="table-light">
