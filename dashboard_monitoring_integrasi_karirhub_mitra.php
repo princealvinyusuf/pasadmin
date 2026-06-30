@@ -342,6 +342,49 @@ foreach ($jossRows as &$jossRow) {
 unset($jossRow);
 $jossTotals['total'] = $jossTotals['closed'] + $jossTotals['expired'] + $jossTotals['open'];
 
+// Historical JOSS detail: from first available date until today.
+$jossHistoricalRows = [];
+$jossHistoricalTotals = ['jumlah_loker' => 0, 'closed' => 0, 'expired' => 0, 'open' => 0];
+$jossHistoricalStartDate = null;
+$jossHistoricalEndDate = null;
+
+$jossHistoricalStmt = $conn->prepare("SELECT
+        metric_date,
+        portal_name,
+        closed_count,
+        expired_count,
+        open_count
+    FROM karirhub_mitra_joss_metrics
+    WHERE metric_date <= ?
+    ORDER BY metric_date DESC, portal_name ASC");
+$jossHistoricalEndDateSql = $today->format('Y-m-d');
+$jossHistoricalStmt->bind_param('s', $jossHistoricalEndDateSql);
+$jossHistoricalStmt->execute();
+$jossHistoricalResult = $jossHistoricalStmt->get_result();
+while ($historical = $jossHistoricalResult->fetch_assoc()) {
+    $metricDate = (string) ($historical['metric_date'] ?? '');
+    $jumlahLoker = intval($historical['closed_count'] ?? 0) + intval($historical['expired_count'] ?? 0) + intval($historical['open_count'] ?? 0);
+    $jossHistoricalRows[] = [
+        'metric_date' => $metricDate,
+        'portal_name' => (string) ($historical['portal_name'] ?? ''),
+        'jumlah_loker' => $jumlahLoker,
+        'closed' => intval($historical['closed_count'] ?? 0),
+        'expired' => intval($historical['expired_count'] ?? 0),
+        'open' => intval($historical['open_count'] ?? 0),
+    ];
+    $jossHistoricalTotals['jumlah_loker'] += $jumlahLoker;
+    $jossHistoricalTotals['closed'] += intval($historical['closed_count'] ?? 0);
+    $jossHistoricalTotals['expired'] += intval($historical['expired_count'] ?? 0);
+    $jossHistoricalTotals['open'] += intval($historical['open_count'] ?? 0);
+}
+$jossHistoricalStmt->close();
+
+if (!empty($jossHistoricalRows)) {
+    $jossHistoricalEndDate = DateTimeImmutable::createFromFormat('Y-m-d', $jossHistoricalRows[0]['metric_date']) ?: null;
+    $jossHistoricalLastRow = $jossHistoricalRows[count($jossHistoricalRows) - 1];
+    $jossHistoricalStartDate = DateTimeImmutable::createFromFormat('Y-m-d', $jossHistoricalLastRow['metric_date']) ?: null;
+}
+
 if ($selectedPortal !== 'all' || $selectedStatus !== 'all') {
     $rows = array_values(array_filter($rows, static function (array $row) use ($selectedPortal, $selectedStatus): bool {
         if ($selectedPortal !== 'all' && ($row['portal_name'] ?? '') !== $selectedPortal) {
@@ -498,6 +541,66 @@ if ($userIsLoggedIn) {
                             <td class="text-end"><strong><?php echo number_format($jossTotals['expired']); ?></strong></td>
                             <td class="text-end"><strong><?php echo number_format($jossTotals['open']); ?></strong></td>
                             <td class="text-end"><strong><?php echo number_format($jossTotals['total']); ?></strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="card monitor-card mb-3">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <h5 class="mb-0">Total Data Integrasi Dari Awal - Sekarang</h5>
+                <span class="badge text-bg-light border">
+                    Periode:
+                    <?php if ($jossHistoricalStartDate instanceof DateTimeImmutable): ?>
+                        <?php echo h($jossHistoricalStartDate->format('d M Y')); ?>
+                    <?php else: ?>
+                        -
+                    <?php endif; ?>
+                    -
+                    <?php if ($jossHistoricalEndDate instanceof DateTimeImmutable): ?>
+                        <?php echo h($jossHistoricalEndDate->format('d M Y')); ?>
+                    <?php else: ?>
+                        -
+                    <?php endif; ?>
+                </span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered summary-table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Job Portal</th>
+                            <th class="text-end">Jumlah Loker</th>
+                            <th class="text-end">Closed</th>
+                            <th class="text-end">Expired</th>
+                            <th class="text-end">Open</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($jossHistoricalRows)): ?>
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">Belum ada data integrasi.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($jossHistoricalRows as $historicalRow): ?>
+                                <tr>
+                                    <td><?php echo h((new DateTimeImmutable($historicalRow['metric_date']))->format('d M Y')); ?></td>
+                                    <td><?php echo h($historicalRow['portal_name']); ?></td>
+                                    <td class="text-end"><strong><?php echo number_format(intval($historicalRow['jumlah_loker'])); ?></strong></td>
+                                    <td class="text-end"><?php echo number_format(intval($historicalRow['closed'])); ?></td>
+                                    <td class="text-end"><?php echo number_format(intval($historicalRow['expired'])); ?></td>
+                                    <td class="text-end"><?php echo number_format(intval($historicalRow['open'])); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        <tr class="table-info">
+                            <td colspan="2"><strong>Total</strong></td>
+                            <td class="text-end"><strong><?php echo number_format($jossHistoricalTotals['jumlah_loker']); ?></strong></td>
+                            <td class="text-end"><strong><?php echo number_format($jossHistoricalTotals['closed']); ?></strong></td>
+                            <td class="text-end"><strong><?php echo number_format($jossHistoricalTotals['expired']); ?></strong></td>
+                            <td class="text-end"><strong><?php echo number_format($jossHistoricalTotals['open']); ?></strong></td>
                         </tr>
                     </tbody>
                 </table>
