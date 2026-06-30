@@ -93,6 +93,18 @@ function ensure_karirhub_mitra_monitoring_tables(mysqli $conn): void {
         KEY idx_joss_metric_date (metric_date),
         KEY idx_joss_portal_name (portal_name)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $conn->query("CREATE TABLE IF NOT EXISTS karirhub_mitra_weekly_records (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        record_date DATE NOT NULL,
+        portal_name VARCHAR(120) NOT NULL,
+        total_loker INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_weekly_record_date_portal (record_date, portal_name),
+        KEY idx_weekly_record_date (record_date),
+        KEY idx_weekly_portal_name (portal_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
 function seed_karirhub_mitra_monitoring(mysqli $conn): void {
@@ -276,6 +288,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    if ($action === 'weekly_save') {
+        $id = intval($_POST['weekly_id'] ?? 0);
+        $recordDate = trim((string) ($_POST['weekly_record_date'] ?? ''));
+        $portalName = trim((string) ($_POST['portal_name_weekly'] ?? ''));
+        $totalLoker = max(0, intval($_POST['total_loker'] ?? 0));
+
+        if ($recordDate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $recordDate)) {
+            $_SESSION['error'] = 'Tanggal data Weekly wajib diisi dengan format yang valid.';
+            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+            exit;
+        }
+        if ($portalName === '') {
+            $_SESSION['error'] = 'Nama Job Portal Weekly wajib diisi.';
+            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+            exit;
+        }
+
+        if ($id > 0) {
+            $stmt = $conn->prepare("UPDATE karirhub_mitra_weekly_records
+                SET record_date=?, portal_name=?, total_loker=?
+                WHERE id=?");
+            $stmt->bind_param('ssii', $recordDate, $portalName, $totalLoker, $id);
+            $stmt->execute();
+            $stmt->close();
+            $_SESSION['success'] = 'Record Weekly berhasil diperbarui.';
+        } else {
+            $stmt = $conn->prepare("INSERT INTO karirhub_mitra_weekly_records
+                (record_date, portal_name, total_loker)
+                VALUES (?,?,?)
+                ON DUPLICATE KEY UPDATE
+                    total_loker=VALUES(total_loker)");
+            $stmt->bind_param('ssi', $recordDate, $portalName, $totalLoker);
+            $stmt->execute();
+            $stmt->close();
+            $_SESSION['success'] = 'Record Weekly berhasil disimpan.';
+        }
+
+        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+        exit;
+    }
+
+    if ($action === 'weekly_delete') {
+        $id = intval($_POST['weekly_id'] ?? 0);
+        if ($id > 0) {
+            $stmt = $conn->prepare('DELETE FROM karirhub_mitra_weekly_records WHERE id=?');
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $stmt->close();
+            $_SESSION['success'] = 'Record Weekly berhasil dihapus.';
+        }
+        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+        exit;
+    }
+
     if ($action === 'save') {
         $id = intval($_POST['id'] ?? 0);
         $portalCode = trim($_POST['portal_code'] ?? '');
@@ -427,6 +493,24 @@ $jossRows = [];
 $resJoss = $conn->query("SELECT * FROM karirhub_mitra_joss_metrics ORDER BY metric_date DESC, portal_name ASC");
 while ($r = $resJoss->fetch_assoc()) {
     $jossRows[] = $r;
+}
+
+$editWeeklyRow = null;
+if (isset($_GET['edit_weekly'])) {
+    $editWeeklyId = intval($_GET['edit_weekly']);
+    if ($editWeeklyId > 0) {
+        $stmt = $conn->prepare('SELECT * FROM karirhub_mitra_weekly_records WHERE id=? LIMIT 1');
+        $stmt->bind_param('i', $editWeeklyId);
+        $stmt->execute();
+        $editWeeklyRow = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+    }
+}
+
+$weeklyRows = [];
+$resWeekly = $conn->query("SELECT * FROM karirhub_mitra_weekly_records ORDER BY record_date DESC, portal_name ASC");
+while ($r = $resWeekly->fetch_assoc()) {
+    $weeklyRows[] = $r;
 }
 ?>
 <!DOCTYPE html>
@@ -680,6 +764,76 @@ while ($r = $resJoss->fetch_assoc()) {
                                         <form method="post" class="d-inline" onsubmit="return confirm('Delete this JOSS item?');">
                                             <input type="hidden" name="action" value="joss_delete">
                                             <input type="hidden" name="joss_id" value="<?php echo intval($jossRow['id']); ?>">
+                                            <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="mb-3"><?php echo $editWeeklyRow ? 'Edit Record List Weekly' : 'Tambah Record List Weekly'; ?></h5>
+            <form method="post">
+                <input type="hidden" name="action" value="weekly_save">
+                <input type="hidden" name="weekly_id" value="<?php echo intval($editWeeklyRow['id'] ?? 0); ?>">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Tanggal Data</label>
+                        <input type="date" class="form-control" name="weekly_record_date" required value="<?php echo htmlspecialchars($editWeeklyRow['record_date'] ?? date('Y-m-d')); ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Nama Job Portal</label>
+                        <input class="form-control" list="weekly_portal_list" name="portal_name_weekly" required value="<?php echo htmlspecialchars($editWeeklyRow['portal_name'] ?? ''); ?>" placeholder="contoh: Glints TapLoker">
+                        <datalist id="weekly_portal_list">
+                            <?php foreach ($jossPortalOptions as $portalOption): ?>
+                                <option value="<?php echo htmlspecialchars($portalOption); ?>"></option>
+                            <?php endforeach; ?>
+                        </datalist>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Total Loker</label>
+                        <input type="number" min="0" class="form-control" name="total_loker" required value="<?php echo intval($editWeeklyRow['total_loker'] ?? 0); ?>">
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-primary" type="submit"><i class="bi bi-save me-1"></i>Simpan Record Weekly</button>
+                        <a class="btn btn-secondary" href="dashboard_monitoring_integrasi_karirhub_mitra_settings">Reset</a>
+                    </div>
+                </div>
+            </form>
+
+            <h5 class="mb-3 mt-4">Record List</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Tanggal Data</th>
+                            <th>Nama Job Portal</th>
+                            <th class="text-end">Total Loker</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($weeklyRows)): ?>
+                            <tr><td colspan="5" class="text-center">No weekly records</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($weeklyRows as $weeklyRow): ?>
+                                <tr>
+                                    <td><?php echo intval($weeklyRow['id']); ?></td>
+                                    <td><?php echo htmlspecialchars($weeklyRow['record_date']); ?></td>
+                                    <td><?php echo htmlspecialchars($weeklyRow['portal_name']); ?></td>
+                                    <td class="text-end"><strong><?php echo number_format(intval($weeklyRow['total_loker'])); ?></strong></td>
+                                    <td>
+                                        <a class="btn btn-sm btn-outline-primary" href="?edit_weekly=<?php echo intval($weeklyRow['id']); ?>"><i class="bi bi-pencil-square"></i></a>
+                                        <form method="post" class="d-inline" onsubmit="return confirm('Delete this weekly item?');">
+                                            <input type="hidden" name="action" value="weekly_delete">
+                                            <input type="hidden" name="weekly_id" value="<?php echo intval($weeklyRow['id']); ?>">
                                             <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
                                         </form>
                                     </td>
