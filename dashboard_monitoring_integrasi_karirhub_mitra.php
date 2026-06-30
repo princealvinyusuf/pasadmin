@@ -551,9 +551,6 @@ if ($userIsLoggedIn) {
         <div class="card-body">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <h5 class="mb-0">Total Data Integrasi Dari Awal - Sekarang</h5>
-                <span class="badge text-bg-light border">
-                    Sumber data periode Awal Integrasi hingga <?php echo h($today->format('d M Y')); ?>
-                </span>
             </div>
             <div class="table-responsive">
                 <table class="table table-bordered summary-table mb-0">
