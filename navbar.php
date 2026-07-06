@@ -71,6 +71,7 @@
     $canStatistics = current_user_can('settings_statistics_manage');
     $canTestimonials = current_user_can('settings_testimonials_manage');
     $canTopList = current_user_can('settings_top_list_manage');
+    $canTopicData = current_user_can('settings_topic_data_manage');
     $canAgenda = current_user_can('settings_agenda_manage');
     $canJobFair = current_user_can('settings_job_fair_manage');
     $canVirtualKarir = current_user_can('settings_virtual_karir_service_manage');
@@ -109,7 +110,7 @@
     $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || $canDashBlk || $canDashIntegrasiKarirhubMitra || current_user_can('manage_settings'));
     $hasBlk = ($canDashBlk || $canManageSettings);
     
-    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canAuditTrails || $canMaintenanceMessage || $canHomePopup);
+    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canTopicData || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canAuditTrails || $canMaintenanceMessage || $canHomePopup);
     $hasApiKeys = ($canManageSettings || $canApiKeys || $canPaskerConnectApiManage);
     $canCareerBoostDay = current_user_can('career_boost_day_manage') || $canManageSettings;
     $canCareerBoostDayPic = current_user_can('career_boost_day_pic_manage') || $canManageSettings;
@@ -253,6 +254,7 @@
                         <?php if ($canManageSettings || $canStatistics): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>statistics_settings">Statistics Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canTestimonials): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>testimonials_settings">Testimonial Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canTopList): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>top_list_settings">Top List Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canTopicData): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>topic_data_settings">Topic Data Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings || $canAgenda): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>agenda_settings">Agenda Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canJobFair): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>job_fair_settings">Job Fair Settings</a></li><?php endif; ?>

@@ -65,6 +65,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		['settings_statistics_manage','Manage Statistics Settings','Settings'],
 		['settings_testimonials_manage','Manage Testimonial Settings','Settings'],
 		['settings_top_list_manage','Manage Top List Settings','Settings'],
+		['settings_topic_data_manage','Manage Topic Data Settings','Settings'],
 		['settings_agenda_manage','Manage Agenda Settings','Settings'],
 		['settings_job_fair_manage','Manage Job Fair Settings','Settings'],
 		['settings_virtual_karir_service_manage','Manage Virtual Karir Service Settings','Settings'],
