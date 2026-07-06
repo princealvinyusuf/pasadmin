@@ -47,9 +47,14 @@ function is_absolute_url($value) {
 }
 
 function ensure_dir($path) {
-    if (!is_dir($path)) {
-        mkdir($path, 0777, true);
+    if (is_dir($path)) {
+        return true;
     }
+    if (!@mkdir($path, 0777, true) && !is_dir($path)) {
+        return false;
+    }
+    @chmod($path, 0777);
+    return true;
 }
 
 function unique_filename($dir, $originalName) {
@@ -74,10 +79,51 @@ function uploaded_ok($key) {
     return isset($_FILES[$key]) && isset($_FILES[$key]['error']) && $_FILES[$key]['error'] === UPLOAD_ERR_OK;
 }
 
-$documentsDir = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . DIRECTORY_SEPARATOR . 'documents';
-$imageDir = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'topic_data';
-ensure_dir($documentsDir);
-ensure_dir($imageDir);
+function resolve_public_root() {
+    $candidates = [];
+    $docRoot = trim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''));
+    if ($docRoot !== '') {
+        $candidates[] = $docRoot;
+    }
+
+    // Fallback for this repo layout: /paskerid/pasadmin and /paskerid/public
+    $repoPublic = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'public';
+    $candidates[] = $repoPublic;
+
+    foreach ($candidates as $candidate) {
+        $normalized = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $candidate), DIRECTORY_SEPARATOR);
+        if ($normalized === '') {
+            continue;
+        }
+        if (is_dir($normalized)) {
+            return $normalized;
+        }
+    }
+
+    // Last resort: use the first candidate even if it must be created later.
+    return rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ($candidates[0] ?? $repoPublic)), DIRECTORY_SEPARATOR);
+}
+
+function try_move_upload($tmpName, $targetPath, &$errorMessage) {
+    if (!is_uploaded_file($tmpName)) {
+        $errorMessage = 'Temporary upload file is not recognized by PHP.';
+        return false;
+    }
+
+    if (@move_uploaded_file($tmpName, $targetPath)) {
+        return true;
+    }
+
+    $lastError = error_get_last();
+    $errorMessage = $lastError && isset($lastError['message']) ? $lastError['message'] : 'Unknown upload move error.';
+    return false;
+}
+
+$publicRoot = resolve_public_root();
+$documentsDir = $publicRoot . DIRECTORY_SEPARATOR . 'documents';
+$imageDir = $publicRoot . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'topic_data';
+$documentsDirReady = ensure_dir($documentsDir);
+$imageDirReady = ensure_dir($imageDir);
 
 $appBaseUrl = app_base_url();
 $selfPath = $appBaseUrl . 'topic_data_settings';
@@ -124,11 +170,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Invalid document type. Allowed: ' . implode(', ', $allowedExtensions);
         } elseif (($upload['size'] ?? 0) > (20 * 1024 * 1024)) {
             $errors[] = 'Document is too large (max 20MB).';
+        } elseif (!$documentsDirReady || !is_dir($documentsDir) || !is_writable($documentsDir)) {
+            $errors[] = 'Documents directory is not writable: ' . $documentsDir;
         } else {
             $newName = unique_filename($documentsDir, $upload['name']);
             $target = $documentsDir . DIRECTORY_SEPARATOR . $newName;
-            if (!move_uploaded_file($upload['tmp_name'], $target)) {
-                $errors[] = 'Failed to upload document file.';
+            $uploadError = '';
+            if (!try_move_upload($upload['tmp_name'], $target, $uploadError)) {
+                $errors[] = 'Failed to upload document file. Target: ' . $target . ' | Temp: ' . ($upload['tmp_name'] ?? '-') . ' | Error: ' . $uploadError;
             } else {
                 $resolvedFileUrl = $newName;
             }
@@ -143,11 +192,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Invalid image type. Allowed: ' . implode(', ', $allowedImageExtensions);
         } elseif (($upload['size'] ?? 0) > (5 * 1024 * 1024)) {
             $errors[] = 'Image is too large (max 5MB).';
+        } elseif (!$imageDirReady || !is_dir($imageDir) || !is_writable($imageDir)) {
+            $errors[] = 'Image directory is not writable: ' . $imageDir;
         } else {
             $newName = unique_filename($imageDir, $upload['name']);
             $target = $imageDir . DIRECTORY_SEPARATOR . $newName;
-            if (!move_uploaded_file($upload['tmp_name'], $target)) {
-                $errors[] = 'Failed to upload image file.';
+            $uploadError = '';
+            if (!try_move_upload($upload['tmp_name'], $target, $uploadError)) {
+                $errors[] = 'Failed to upload image file. Target: ' . $target . ' | Temp: ' . ($upload['tmp_name'] ?? '-') . ' | Error: ' . $uploadError;
             } else {
                 $resolvedImageUrl = 'images/topic_data/' . $newName;
             }
