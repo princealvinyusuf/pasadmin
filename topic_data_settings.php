@@ -119,11 +119,76 @@ function try_move_upload($tmpName, $targetPath, &$errorMessage) {
     return false;
 }
 
+function resolve_local_asset_path($storedPath, $publicRoot) {
+    $storedPath = trim((string)$storedPath);
+    if ($storedPath === '' || is_absolute_url($storedPath)) {
+        return null;
+    }
+
+    $normalized = ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $storedPath), DIRECTORY_SEPARATOR);
+    $repoRoot = dirname(__DIR__);
+    $pasadminRoot = __DIR__;
+
+    $candidates = [
+        $publicRoot . DIRECTORY_SEPARATOR . $normalized,
+        $repoRoot . DIRECTORY_SEPARATOR . $normalized,
+    ];
+
+    if (stripos($normalized, 'pasadmin' . DIRECTORY_SEPARATOR) === 0) {
+        $relativeToPasadmin = substr($normalized, strlen('pasadmin' . DIRECTORY_SEPARATOR));
+        $candidates[] = $pasadminRoot . DIRECTORY_SEPARATOR . $relativeToPasadmin;
+    }
+
+    foreach ($candidates as $candidate) {
+        if (file_exists($candidate)) {
+            return $candidate;
+        }
+    }
+
+    // Fallback to the first candidate for diagnostics.
+    return $candidates[0];
+}
+
+function resolve_image_storage($publicRoot) {
+    $candidates = [
+        [
+            'dir' => $publicRoot . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'topic_data',
+            'url_prefix' => 'images/topic_data',
+            'label' => 'public',
+        ],
+        [
+            'dir' => __DIR__ . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'topic_data',
+            'url_prefix' => 'pasadmin/images/topic_data',
+            'label' => 'pasadmin',
+        ],
+    ];
+
+    foreach ($candidates as $candidate) {
+        $ready = ensure_dir($candidate['dir']);
+        if ($ready && is_writable($candidate['dir'])) {
+            return [
+                'dir' => $candidate['dir'],
+                'url_prefix' => $candidate['url_prefix'],
+                'label' => $candidate['label'],
+                'ready' => true,
+            ];
+        }
+    }
+
+    return [
+        'dir' => $candidates[0]['dir'],
+        'url_prefix' => $candidates[0]['url_prefix'],
+        'label' => $candidates[0]['label'],
+        'ready' => false,
+    ];
+}
+
 $publicRoot = resolve_public_root();
 $documentsDir = $publicRoot . DIRECTORY_SEPARATOR . 'documents';
-$imageDir = $publicRoot . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'topic_data';
 $documentsDirReady = ensure_dir($documentsDir);
-$imageDirReady = ensure_dir($imageDir);
+$imageStorage = resolve_image_storage($publicRoot);
+$imageDir = $imageStorage['dir'];
+$imageDirReady = (bool)$imageStorage['ready'];
 
 $appBaseUrl = app_base_url();
 $selfPath = $appBaseUrl . 'topic_data_settings';
@@ -193,7 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (($upload['size'] ?? 0) > (5 * 1024 * 1024)) {
             $errors[] = 'Image is too large (max 5MB).';
         } elseif (!$imageDirReady || !is_dir($imageDir) || !is_writable($imageDir)) {
-            $errors[] = 'Image directory is not writable: ' . $imageDir;
+            $errors[] = 'Image directory is not writable: ' . $imageDir . ' (storage=' . ($imageStorage['label'] ?? 'unknown') . ')';
         } else {
             $newName = unique_filename($imageDir, $upload['name']);
             $target = $imageDir . DIRECTORY_SEPARATOR . $newName;
@@ -201,7 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!try_move_upload($upload['tmp_name'], $target, $uploadError)) {
                 $errors[] = 'Failed to upload image file. Target: ' . $target . ' | Temp: ' . ($upload['tmp_name'] ?? '-') . ' | Error: ' . $uploadError;
             } else {
-                $resolvedImageUrl = 'images/topic_data/' . $newName;
+                $resolvedImageUrl = rtrim($imageStorage['url_prefix'] ?? 'images/topic_data', '/\\') . '/' . $newName;
             }
         }
     }
@@ -251,7 +316,7 @@ if (isset($_GET['delete'])) {
 
             $existingImage = trim($row['image_url'] ?? '');
             if ($existingImage !== '' && !is_absolute_url($existingImage)) {
-                $imagePath = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . DIRECTORY_SEPARATOR . ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $existingImage), DIRECTORY_SEPARATOR);
+                $imagePath = resolve_local_asset_path($existingImage, $publicRoot);
                 if (file_exists($imagePath)) {
                     unlink($imagePath);
                 }
