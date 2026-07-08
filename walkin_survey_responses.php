@@ -356,6 +356,7 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
                             <i class="bi bi-trash3 me-1"></i>Remove Duplicate Response
                         </a>
                         <button class="btn btn-success" type="button" id="btnDownloadExcel"><i class="bi bi-file-earmark-excel me-1"></i>Download To Excel</button>
+                        <button class="btn btn-warning" type="button" id="btnDownloadConvert"><i class="bi bi-arrow-repeat me-1"></i>Download &amp; Convert</button>
                     </div>
                 </div>
             </form>
@@ -500,7 +501,8 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var btn = document.getElementById('btnDownloadExcel');
-    if (!btn || typeof XLSX === 'undefined') return;
+    var btnConvert = document.getElementById('btnDownloadConvert');
+    if ((!btn && !btnConvert) || typeof XLSX === 'undefined') return;
     var exportRows = <?php echo json_encode($exportRows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
     function toExcelCellValue(v) {
@@ -536,13 +538,20 @@ document.addEventListener('DOMContentLoaded', function () {
         return str;
     }
 
-    btn.addEventListener('click', function () {
-        if (!Array.isArray(exportRows) || exportRows.length === 0) {
-            alert('Tidak ada data untuk diexport.');
-            return;
-        }
+    function convertLegacyScoreToRegulation(value) {
+        var n = Number(value);
+        if (!Number.isFinite(n)) return value;
+        n = Math.round(n);
+        if (n === 1) return 1; // Sangat Buruk
+        if (n === 2) return 2; // Buruk
+        if (n === 3) return 3; // Legacy "Cukup" shifted to new scale
+        if (n === 4) return 3; // Legacy "Baik" -> new "Baik"
+        if (n === 5) return 4; // Legacy "Sangat Baik" -> new "Sangat Baik"
+        return value;
+    }
 
-        var preferredColumns = [
+    function buildPreferredColumns(withConvertedScale) {
+        return [
             { key: 'id', label: 'ID' },
             { key: 'company_name_snapshot', label: 'Perusahaan apa yang anda lamar?' },
             { key: 'walkin_initiator_snapshot', label: 'Walk In Initiator' },
@@ -564,21 +573,21 @@ document.addEventListener('DOMContentLoaded', function () {
             { key: 'missing_infos', label: 'Menurut Anda, informasi apa saja yang kurang/belum ada di Karirhub terkait pencarian kerja?' },
             { key: 'missing_info_other', label: 'Menurut Anda, informasi apa saja yang kurang/belum ada di Karirhub terkait pencarian kerja? (Other)' },
             { key: 'general_feedback', label: 'Berikan masukan Anda agar Karirhub dapat meningkatkan manfaat bagi pencari kerja' },
-            { key: 'rating_info', label: 'Kelengkapan Informasi Sebelum Acara (1-5)' },
+            { key: 'rating_info', label: withConvertedScale ? 'Kelengkapan Informasi Sebelum Acara (Konversi 1-4)' : 'Kelengkapan Informasi Sebelum Acara (1-5)' },
             { key: 'feedback_info', label: 'Kritik dan Saran Jawaban Kelengkapan Informasi Sebelum Acara' },
-            { key: 'rating_facility', label: 'Fasilitas dan Infrastruktur Acara (1-5)' },
+            { key: 'rating_facility', label: withConvertedScale ? 'Fasilitas dan Infrastruktur Acara (Konversi 1-4)' : 'Fasilitas dan Infrastruktur Acara (1-5)' },
             { key: 'feedback_facility', label: 'Kritik dan Saran Jawaban Fasilitas dan Infrastruktur' },
-            { key: 'rating_registration', label: 'Proses Registrasi dan Pendaftaran Pengunjung (1-5)' },
+            { key: 'rating_registration', label: withConvertedScale ? 'Proses Registrasi dan Pendaftaran Pengunjung (Konversi 1-4)' : 'Proses Registrasi dan Pendaftaran Pengunjung (1-5)' },
             { key: 'feedback_registration', label: 'Kritik dan Saran Jawaban Proses Registrasi' },
-            { key: 'rating_quality_quantity', label: 'Kualitas dan Kuantitas Perusahaan/Jabatan (1-5)' },
+            { key: 'rating_quality_quantity', label: withConvertedScale ? 'Kualitas dan Kuantitas Perusahaan/Jabatan (Konversi 1-4)' : 'Kualitas dan Kuantitas Perusahaan/Jabatan (1-5)' },
             { key: 'feedback_quality_quantity', label: 'Kritik dan Saran Jawaban Kualitas dan Kuantitas Perusahaan/Jabatan' },
-            { key: 'rating_committee_help', label: 'Keramahan dan Bantuan Panitia (1-5)' },
+            { key: 'rating_committee_help', label: withConvertedScale ? 'Keramahan dan Bantuan Panitia (Konversi 1-4)' : 'Keramahan dan Bantuan Panitia (1-5)' },
             { key: 'feedback_committee_help', label: 'Kritik dan Saran Jawaban Keramahan dan Bantuan Panitia' },
-            { key: 'rating_access_info', label: 'Kemudahan akses informasi syarat pendaftaran akun KarirHub/Job Fair Virtual (1-5)' },
+            { key: 'rating_access_info', label: withConvertedScale ? 'Kemudahan akses informasi syarat pendaftaran akun KarirHub/Job Fair Virtual (Konversi 1-4)' : 'Kemudahan akses informasi syarat pendaftaran akun KarirHub/Job Fair Virtual (1-5)' },
             { key: 'feedback_access_info', label: 'Kritik dan Saran Jawaban Kemudahan Akses Informasi Syarat Pendaftaran' },
-            { key: 'rating_information_clarity', label: 'Kejelasan Informasi - Apakah informasi yang diberikan mudah dipahami? (1-5)' },
+            { key: 'rating_information_clarity', label: withConvertedScale ? 'Kejelasan Informasi - Apakah informasi yang diberikan mudah dipahami? (Konversi 1-4)' : 'Kejelasan Informasi - Apakah informasi yang diberikan mudah dipahami? (1-5)' },
             { key: 'rating_service_integrity', label: 'Integritas Layanan - Selama proses, apakah Anda menemukan indikasi pungutan liar / praktik tidak wajar? (Ya/Tidak)' },
-            { key: 'rating_satisfaction', label: 'Seberapa Puas Anda Terhadap Penyelenggaraan Walk in Interview (1-5)' },
+            { key: 'rating_satisfaction', label: withConvertedScale ? 'Seberapa Puas Anda Terhadap Penyelenggaraan Walk in Interview (Konversi 1-4)' : 'Seberapa Puas Anda Terhadap Penyelenggaraan Walk in Interview (1-5)' },
             { key: 'improvement_aspects', label: 'Aspek apa yang harus kami perbaiki untuk meningkatkan kepuasan anda? (Boleh lebih dari satu jawaban)' },
             { key: 'feedback_improvement_aspects', label: 'Kritik dan Saran Jawaban di Atas' },
             { key: 'walkin_benefit', label: 'Apakah kegiatan walk in interview ini memberikan manfaat bagi Anda?' },
@@ -586,6 +595,27 @@ document.addEventListener('DOMContentLoaded', function () {
             { key: 'created_at', label: 'Submitted At' },
             { key: 'updated_at', label: 'Updated At' }
         ];
+    }
+
+    function downloadExcel(options) {
+        var withConvertedScale = !!(options && options.withConvertedScale);
+
+        if (!Array.isArray(exportRows) || exportRows.length === 0) {
+            alert('Tidak ada data untuk diexport.');
+            return;
+        }
+
+        var preferredColumns = buildPreferredColumns(withConvertedScale);
+        var ratingKeysForConversion = {
+            rating_info: true,
+            rating_facility: true,
+            rating_registration: true,
+            rating_quality_quantity: true,
+            rating_committee_help: true,
+            rating_access_info: true,
+            rating_information_clarity: true,
+            rating_satisfaction: true
+        };
 
         var allKeysMap = {};
         exportRows.forEach(function (rowObj) {
@@ -616,6 +646,9 @@ document.addEventListener('DOMContentLoaded', function () {
             var row = [];
             columns.forEach(function (col) {
                 var v = rowObj && Object.prototype.hasOwnProperty.call(rowObj, col.key) ? rowObj[col.key] : '';
+                if (withConvertedScale && Object.prototype.hasOwnProperty.call(ratingKeysForConversion, col.key)) {
+                    v = convertLegacyScoreToRegulation(v);
+                }
                 row.push(toExcelCellValue(v));
             });
             data.push(row);
@@ -631,7 +664,22 @@ document.addEventListener('DOMContentLoaded', function () {
         if (from || to) {
             suffix = '_' + (from || 'all') + '_to_' + (to || 'all');
         }
-        XLSX.writeFile(wb, 'walkin_survey_responses_full_' + fileDate + suffix + '.xlsx');
+        var baseName = withConvertedScale
+            ? 'walkin_survey_responses_converted_1-4_'
+            : 'walkin_survey_responses_full_';
+        XLSX.writeFile(wb, baseName + fileDate + suffix + '.xlsx');
+    }
+
+    if (btn) {
+        btn.addEventListener('click', function () {
+            downloadExcel({ withConvertedScale: false });
+        });
+    }
+
+    if (btnConvert) {
+        btnConvert.addEventListener('click', function () {
+            downloadExcel({ withConvertedScale: true });
+        });
     });
 });
 </script>
