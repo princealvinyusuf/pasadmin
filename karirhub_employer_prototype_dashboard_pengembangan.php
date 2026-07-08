@@ -1,13 +1,6 @@
 <?php
-require_once __DIR__ . '/auth_guard.php';
 require_once __DIR__ . '/access_helper.php';
 require_once __DIR__ . '/karirhub_employer_prototype_ui.php';
-
-if (!kh_proto_can_access('karirhub_employer_prototype_dashboard_pengembangan_view')) {
-    http_response_code(403);
-    echo 'Forbidden';
-    exit;
-}
 
 function h(string $value): string
 {
