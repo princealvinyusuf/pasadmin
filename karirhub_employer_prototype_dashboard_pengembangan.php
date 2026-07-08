@@ -143,7 +143,6 @@ $averageProgress = $totalModule > 0 ? (int)round($totalProgress / $totalModule) 
 </head>
 <body class="kh-proto-page">
 <?php include 'navbar.php'; ?>
-<?php kh_proto_render_hero('Daftar Lowongan Kerja', 'Monitoring progress pengembangan ekosistem aplikasi Karirhub.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_dashboard_wllp', false); ?>
 
 <div class="kh-content-wrap">
 <div class="container py-4">
