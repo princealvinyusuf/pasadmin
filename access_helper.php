@@ -91,6 +91,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		// Karirhub Employer Prototype permissions
 		['karirhub_employer_prototype_view','Karirhub Employer Prototype: Global Access','Karirhub Employer Prototype'],
 		['karirhub_employer_prototype_dashboard_wllp_view','Karirhub Employer Prototype: View Dashboard WLLP','Karirhub Employer Prototype'],
+		['karirhub_employer_prototype_dashboard_pengembangan_view','Karirhub Employer Prototype: View Dashboard Pengembangan Ekosistem','Karirhub Employer Prototype'],
 		['karirhub_employer_prototype_dashboard_wllp_admin_view','Karirhub Employer Prototype: View Dashboard WLLP Admin','Karirhub Employer Prototype'],
 		['karirhub_employer_prototype_job_posted_view','Karirhub Employer Prototype: View Job Posted Karirhub','Karirhub Employer Prototype'],
 		['karirhub_employer_prototype_bukti_lapor_view','Karirhub Employer Prototype: View Bukti Lapor','Karirhub Employer Prototype'],

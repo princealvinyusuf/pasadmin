@@ -94,6 +94,9 @@ $summaryCards = [
             <div class="text-muted small">Karirhub Employer Prototype (reference only)</div>
         </div>
         <div class="d-flex gap-2">
+            <a class="btn btn-outline-dark btn-sm" href="karirhub_employer_prototype_dashboard_pengembangan">
+                <i class="bi bi-kanban me-1"></i>Dashboard Pengembangan
+            </a>
             <a class="btn btn-outline-primary btn-sm" href="karirhub_employer_prototype_bukti_lapor">
                 <i class="bi bi-file-earmark-check me-1"></i>Bukti Lapor
             </a>

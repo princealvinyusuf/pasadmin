@@ -127,6 +127,7 @@
     $canPaskerDrive = current_user_can('pasker_drive_manage') || $canManageSettings;
     $canKhProtoGlobal = current_user_can('karirhub_employer_prototype_view') || $canManageSettings;
     $canKhProtoDashboardWllp = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_dashboard_wllp_view');
+    $canKhProtoDashboardPengembangan = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_dashboard_pengembangan_view');
     $canKhProtoDashboardWllpAdmin = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_dashboard_wllp_admin_view');
     $canKhProtoJobPosted = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_job_posted_view');
     $canKhProtoBuktiLapor = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_bukti_lapor_view');
@@ -135,6 +136,7 @@
     $canKhProtoPaskerConnect = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_pasker_connect_view');
     $canKarirhubEmployerPrototype = (
         $canKhProtoDashboardWllp
+        || $canKhProtoDashboardPengembangan
         || $canKhProtoDashboardWllpAdmin
         || $canKhProtoJobPosted
         || $canKhProtoBuktiLapor
@@ -327,6 +329,7 @@
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="karirhubEmployerPrototypeDropdown">
                         <?php if ($canKhProtoDashboardWllp): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_dashboard_wllp"><i class="bi bi-speedometer2 me-1"></i>Dashboard WLLP</a></li><?php endif; ?>
+                        <?php if ($canKhProtoDashboardPengembangan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_dashboard_pengembangan"><i class="bi bi-kanban me-1"></i>Dashboard Pengembangan Ekosistem</a></li><?php endif; ?>
                         <?php if ($canKhProtoDashboardWllpAdmin): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_dashboard_wllp_admin"><i class="bi bi-bar-chart-line me-1"></i>Dashboard WLLP Admin</a></li><?php endif; ?>
                         <?php if ($canKhProtoJobPosted): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_job_posted_karirhub"><i class="bi bi-briefcase me-1"></i>Job Posted Karirhub</a></li><?php endif; ?>
                         <?php if ($canKhProtoBuktiLapor): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_bukti_lapor"><i class="bi bi-file-earmark-check me-1"></i>Bukti Lapor</a></li><?php endif; ?>

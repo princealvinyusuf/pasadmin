@@ -75,6 +75,12 @@ register_menu_permission(
 );
 register_menu_permission(
 	$conn,
+	'karirhub_employer_prototype_dashboard_pengembangan_view',
+	'Karirhub Employer Prototype: View Dashboard Pengembangan Ekosistem',
+	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
 	'karirhub_employer_prototype_dashboard_wllp_admin_view',
 	'Karirhub Employer Prototype: View Dashboard WLLP Admin',
 	'Karirhub Employer Prototype'
