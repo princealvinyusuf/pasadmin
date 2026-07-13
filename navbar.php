@@ -62,6 +62,7 @@
     $canDashPersediaan = current_user_can('view_dashboard_persediaan_tk');
     $canDashBlk = current_user_can('view_dashboard_blk');
     $canDashIntegrasiKarirhubMitra = current_user_can('view_dashboard_integrasi_karirhub_mitra');
+    $canDashIntegrasiKarirhubPemda = current_user_can('view_dashboard_integrasi_karirhub_pemda');
     $canDashPengembanganEkosistem = current_user_can('karirhub_employer_prototype_dashboard_pengembangan_view');
     $canManageSettings = current_user_can('manage_settings');
     $canChart = current_user_can('settings_chart_manage');
@@ -78,6 +79,7 @@
     $canVirtualKarir = current_user_can('settings_virtual_karir_service_manage');
     $canMitraKerja = current_user_can('settings_mitra_kerja_manage');
     $canIntegrasiKarirhubMitraSettings = current_user_can('settings_integrasi_karirhub_mitra_manage');
+    $canIntegrasiKarirhubPemdaSettings = current_user_can('settings_integrasi_karirhub_pemda_manage');
     $canPartnershipType = current_user_can('settings_partnership_type_manage');
     $canMitraSubmission = current_user_can('settings_mitra_submission_manage');
     $canProgramKemitraan = current_user_can('program_kemitraan_manage');
@@ -108,10 +110,10 @@
     $canAsmenQR = current_user_can('asmen_use_qr') || $canAsmenAssets;
 
     // Show Dashboard if user can view any dashboard or manage settings
-    $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || $canDashBlk || $canDashIntegrasiKarirhubMitra || $canDashPengembanganEkosistem || current_user_can('manage_settings'));
+    $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || $canDashBlk || $canDashIntegrasiKarirhubMitra || $canDashIntegrasiKarirhubPemda || $canDashPengembanganEkosistem || current_user_can('manage_settings'));
     $hasBlk = ($canDashBlk || $canManageSettings);
     
-    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canTopicData || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canAuditTrails || $canMaintenanceMessage || $canHomePopup);
+    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canTopicData || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canIntegrasiKarirhubPemdaSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canAuditTrails || $canMaintenanceMessage || $canHomePopup);
     $hasApiKeys = ($canManageSettings || $canApiKeys || $canPaskerConnectApiManage);
     $canCareerBoostDay = current_user_can('career_boost_day_manage') || $canManageSettings;
     $canCareerBoostDayPic = current_user_can('career_boost_day_pic_manage') || $canManageSettings;
@@ -203,6 +205,7 @@
                             <?php if ($canDashPersediaan || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_persediaan_tenaga_kerja">Dashboard Persediaan Tenaga Kerja</a></li><?php endif; ?>
                             <?php if ($canDashBlk || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_blk">Dashboard BLK</a></li><?php endif; ?>
                             <?php if ($canDashIntegrasiKarirhubMitra || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_monitoring_integrasi_karirhub_mitra">Dashboard Monitoring Integrasi Karirhub x Mitra</a></li><?php endif; ?>
+                            <?php if ($canDashIntegrasiKarirhubPemda || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_monitoring_integrasi_karirhub_pemda">Dashboard Monitoring Integrasi Karirhub x Pemda</a></li><?php endif; ?>
                             <?php if ($canDashIntegrasiKarirhubMitra || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_monitoring_admin_dinas_karirhub">Dashboard Monitoring Admin Dinas Karirhub</a></li><?php endif; ?>
                             <?php if ($canDashPengembanganEkosistem || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>karirhub_employer_prototype_dashboard_pengembangan">Dashboard Pengembangan Ekosistem</a></li><?php endif; ?>
                     </ul>
@@ -266,6 +269,7 @@
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings || $canMitraKerja): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>mitra_kerja_settings">Mitra Kerja Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canIntegrasiKarirhubMitraSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_monitoring_integrasi_karirhub_mitra_settings">Monitoring Integrasi Karirhub x Mitra Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canIntegrasiKarirhubPemdaSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_monitoring_integrasi_karirhub_pemda_settings">Monitoring Integrasi Karirhub x Pemda Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings || $canAccessControl): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>access_control">Access Control</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canAuditTrails): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>audit_trails">Audit Trails</a></li><?php endif; ?>

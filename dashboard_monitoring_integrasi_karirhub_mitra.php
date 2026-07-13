@@ -477,11 +477,18 @@ if ($userIsLoggedIn) {
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0">Dashboard Monitoring Integrasi Karirhub x Mitra</h3>
-        <?php if (current_user_can('settings_integrasi_karirhub_mitra_manage') || current_user_can('manage_settings')): ?>
-            <a class="btn btn-outline-primary btn-sm" href="dashboard_monitoring_integrasi_karirhub_mitra_settings">
-                <i class="bi bi-gear me-1"></i>Kelola Data
-            </a>
-        <?php endif; ?>
+        <div class="d-flex align-items-center gap-2">
+            <?php if (current_user_can('view_dashboard_integrasi_karirhub_pemda') || current_user_can('manage_settings')): ?>
+                <a class="btn btn-outline-secondary btn-sm" href="dashboard_monitoring_integrasi_karirhub_pemda">
+                    <i class="bi bi-diagram-3 me-1"></i>Dashboard Integrasi Pemda
+                </a>
+            <?php endif; ?>
+            <?php if (current_user_can('settings_integrasi_karirhub_mitra_manage') || current_user_can('manage_settings')): ?>
+                <a class="btn btn-outline-primary btn-sm" href="dashboard_monitoring_integrasi_karirhub_mitra_settings">
+                    <i class="bi bi-gear me-1"></i>Kelola Data
+                </a>
+            <?php endif; ?>
+        </div>
     </div>
     <div class="card monitor-card mb-3">
         <div class="card-body">
