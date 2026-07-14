@@ -99,6 +99,7 @@
     $canBroadcast = current_user_can('use_broadcast');
     $canEmailNotification = current_user_can('use_email_notification');
     $canExtensions = current_user_can('view_extensions');
+    $canUpdatePackage = current_user_can('update_package_view') || $canManageSettings;
     $canApiKeys = current_user_can('manage_api_keys');
     $canPaskerConnectApiManage = current_user_can('pasker_connect_api_manage') || $canManageSettings;
     $canMaintenanceMessage = current_user_can('settings_maintenance_message_manage');
@@ -113,7 +114,7 @@
     $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || $canDashBlk || $canDashIntegrasiKarirhubMitra || $canDashIntegrasiKarirhubPemda || $canDashPengembanganEkosistem || current_user_can('manage_settings'));
     $hasBlk = ($canDashBlk || $canManageSettings);
     
-    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canTopicData || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canIntegrasiKarirhubPemdaSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canAuditTrails || $canMaintenanceMessage || $canHomePopup);
+    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canTopicData || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canIntegrasiKarirhubPemdaSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canAuditTrails || $canMaintenanceMessage || $canHomePopup || $canUpdatePackage);
     $hasApiKeys = ($canManageSettings || $canApiKeys || $canPaskerConnectApiManage);
     $canCareerBoostDay = current_user_can('career_boost_day_manage') || $canManageSettings;
     $canCareerBoostDayPic = current_user_can('career_boost_day_pic_manage') || $canManageSettings;
@@ -284,6 +285,7 @@
                         <?php if ($canManageSettings || $canHomePopup): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>home_popup_settings">Home Popup Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>cron_settings">Other Settings</a></li><?php endif; ?>
+                        <?php if ($canUpdatePackage): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>update_package">Update Package</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if (current_user_is_super_admin()): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>backup/">Backup</a></li><?php endif; ?>
                     </ul>

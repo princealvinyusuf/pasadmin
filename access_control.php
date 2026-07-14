@@ -60,6 +60,13 @@ register_menu_permission(
 	'Layanan'
 );
 
+register_menu_permission(
+	$conn,
+	'update_package_view',
+	'View Update Package Menu',
+	'Tools'
+);
+
 // Karirhub Employer Prototype permissions
 register_menu_permission(
 	$conn,
