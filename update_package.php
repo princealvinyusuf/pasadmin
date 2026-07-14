@@ -106,8 +106,65 @@ function dependency_status(?string $installed, ?string $latest): string {
     return 'Check manually';
 }
 
+function detect_project_root(): array {
+    $candidates = [];
+    $pasadminDir = __DIR__;
+    $oneUp = dirname($pasadminDir);
+    $twoUp = dirname($oneUp);
+
+    $candidates[] = $oneUp;
+    $candidates[] = $twoUp;
+
+    $docRoot = isset($_SERVER['DOCUMENT_ROOT']) ? rtrim((string)$_SERVER['DOCUMENT_ROOT'], DIRECTORY_SEPARATOR) : '';
+    if ($docRoot !== '') {
+        $candidates[] = $docRoot;
+        $candidates[] = dirname($docRoot);
+    }
+
+    $seen = [];
+    $ordered = [];
+    foreach ($candidates as $candidate) {
+        $real = realpath($candidate);
+        $path = is_string($real) ? $real : $candidate;
+        if ($path === '' || isset($seen[$path])) {
+            continue;
+        }
+        $seen[$path] = true;
+        $ordered[] = $path;
+    }
+
+    $bestPath = $oneUp;
+    $bestScore = -1;
+    foreach ($ordered as $path) {
+        $score = 0;
+        if (is_file($path . DIRECTORY_SEPARATOR . 'composer.json')) {
+            $score += 2;
+        }
+        if (is_file($path . DIRECTORY_SEPARATOR . 'package.json')) {
+            $score += 2;
+        }
+        if (is_dir($path . DIRECTORY_SEPARATOR . 'app')) {
+            $score += 1;
+        }
+        if (is_file($path . DIRECTORY_SEPARATOR . 'artisan')) {
+            $score += 1;
+        }
+        if ($score > $bestScore) {
+            $bestScore = $score;
+            $bestPath = $path;
+        }
+    }
+
+    return [
+        'path' => $bestPath,
+        'score' => $bestScore,
+        'candidates' => $ordered,
+    ];
+}
+
 $scan = isset($_GET['scan']) && $_GET['scan'] === '1';
-$rootPath = dirname(__DIR__);
+$rootDetect = detect_project_root();
+$rootPath = (string)$rootDetect['path'];
 
 $composerJsonPath = $rootPath . DIRECTORY_SEPARATOR . 'composer.json';
 $composerLockPath = $rootPath . DIRECTORY_SEPARATOR . 'composer.lock';
@@ -124,6 +181,10 @@ $npmRows = [];
 $composerUpdateCount = 0;
 $npmUpdateCount = 0;
 $warnings = [];
+
+if (!is_file($composerJsonPath) && !is_file($packageJsonPath)) {
+    $warnings[] = 'Could not detect Laravel root automatically. Configure web root to project root or place pasadmin under the same root.';
+}
 
 if ($scan) {
     if ($composerJson === null) {
@@ -336,7 +397,7 @@ if ($scan) {
         <div class="card-header">Recommended Commands (XAMPP Linux Laravel Server)</div>
         <div class="card-body">
             <p class="text-muted mb-2">Run from your Laravel project root (example: <code>/opt/lampp/htdocs/paskerid</code>).</p>
-            <pre class="cmd bg-dark text-light p-3 rounded mb-2">cd /opt/lampp/htdocs/paskerid
+            <pre class="cmd bg-dark text-light p-3 rounded mb-2">cd <?php echo htmlspecialchars($rootPath); ?>
 composer outdated
 npm outdated</pre>
             <pre class="cmd bg-dark text-light p-3 rounded mb-2"># update all Composer dependencies
