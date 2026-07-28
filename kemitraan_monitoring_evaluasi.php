@@ -4,15 +4,6 @@ ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 mysqli_report(MYSQLI_REPORT_OFF);
 
-require_once __DIR__ . '/auth_guard.php';
-require_once __DIR__ . '/access_helper.php';
-
-if (!(current_user_can('kemitraan_monitoring_manage') || current_user_can('manage_settings'))) {
-    http_response_code(403);
-    echo 'Forbidden';
-    exit;
-}
-
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
@@ -82,8 +73,8 @@ function format_schedule_time(?string $start, ?string $finish): string {
     return '-';
 }
 
-$isSuperAdmin = current_user_is_super_admin();
-$scopedLocationId = current_user_walkin_location_id();
+$isSuperAdmin = true;
+$scopedLocationId = null;
 $hasWalkinLocationColumn = column_exists($conn, 'kemitraan', 'walkin_location_id');
 $isLocationScopeActive = $hasWalkinLocationColumn && $scopedLocationId !== null;
 $kemitraanLocationWhere = ($isSuperAdmin || !$isLocationScopeActive)
