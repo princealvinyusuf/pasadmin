@@ -288,6 +288,15 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
 
     <div class="card shadow-sm">
         <div class="card-body">
+            <div class="mb-3">
+                <div class="btn-group" role="group" aria-label="Subsection Tim Monitoring">
+                    <button type="button" class="btn btn-outline-primary btn-team-subsection active" data-team="tim_layanan">Tim Layanan</button>
+                    <button type="button" class="btn btn-outline-primary btn-team-subsection" data-team="tim_pusaka">Tim Pusaka</button>
+                    <button type="button" class="btn btn-outline-primary btn-team-subsection" data-team="tim_sipk">Tim SIPK</button>
+                </div>
+                <div class="small text-muted mt-2" id="teamSubsectionHint">Menampilkan data untuk: Tim Layanan</div>
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-bordered align-middle" style="min-width: 1400px;">
                     <thead class="table-light">
@@ -485,6 +494,8 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
 document.addEventListener('DOMContentLoaded', function() {
     const modalElement = document.getElementById('monitoringModal');
     const modal = new bootstrap.Modal(modalElement);
+    const teamButtons = document.querySelectorAll('.btn-team-subsection');
+    const teamHint = document.getElementById('teamSubsectionHint');
     const form = modalElement.querySelector('form');
     const titleEl = document.getElementById('monitoringModalLabel');
     const fieldLabelEl = document.getElementById('monitoring_field_label');
@@ -501,6 +512,25 @@ document.addEventListener('DOMContentLoaded', function() {
         tindak_lanjut: { label: 'Tindak Lanjut', type: 'textarea' },
         dokumentasi_link: { label: 'Dokumentasi (Input Source Link)', type: 'text' }
     };
+    const teamLabels = {
+        tim_layanan: 'Tim Layanan',
+        tim_pusaka: 'Tim Pusaka',
+        tim_sipk: 'Tim SIPK'
+    };
+
+    teamButtons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const teamKey = btn.getAttribute('data-team') || 'tim_layanan';
+            teamButtons.forEach(function(otherBtn) {
+                otherBtn.classList.remove('active');
+            });
+            btn.classList.add('active');
+            if (teamHint) {
+                const label = teamLabels[teamKey] || 'Tim Layanan';
+                teamHint.textContent = 'Menampilkan data untuk: ' + label;
+            }
+        });
+    });
 
     form.addEventListener('submit', function() {
         if (fieldInputEl.classList.contains('d-none')) {
