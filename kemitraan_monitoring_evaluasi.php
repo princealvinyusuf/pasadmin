@@ -16,6 +16,10 @@ $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
+$connAdmin = new mysqli($host, $user, $pass, 'job_admin_prod');
+if ($connAdmin->connect_error) {
+    $connAdmin = null;
+}
 
 function table_exists(mysqli $conn, string $table): bool {
     $t = $conn->real_escape_string($table);
@@ -28,6 +32,14 @@ function column_exists(mysqli $conn, string $table, string $column): bool {
     $t = $conn->real_escape_string($table);
     $c = $conn->real_escape_string($column);
     $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='$t' AND COLUMN_NAME='$c' LIMIT 1";
+    $res = $conn->query($sql);
+    return $res && $res->num_rows > 0;
+}
+
+function table_exists_in_schema(mysqli $conn, string $schema, string $table): bool {
+    $s = $conn->real_escape_string($schema);
+    $t = $conn->real_escape_string($table);
+    $sql = "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA='$s' AND TABLE_NAME='$t' LIMIT 1";
     $res = $conn->query($sql);
     return $res && $res->num_rows > 0;
 }
@@ -82,6 +94,10 @@ $kemitraanLocationWhere = ($isSuperAdmin || !$isLocationScopeActive)
     : ('k.walkin_location_id=' . intval($scopedLocationId));
 
 $monitoringTableExists = table_exists($conn, 'kemitraan_monitoring_evaluasi');
+$timPusakaTableExists = table_exists($conn, 'tim_pusaka_monitoring');
+$jossMetricsTableExists = $connAdmin instanceof mysqli
+    ? table_exists_in_schema($connAdmin, 'job_admin_prod', 'karirhub_mitra_joss_metrics')
+    : false;
 $allowedTeams = [
     'tim_layanan' => 'Tim Layanan',
     'tim_pusaka' => 'Tim Pusaka',
@@ -91,6 +107,7 @@ $selectedTeam = trim((string)($_GET['team'] ?? 'tim_layanan'));
 if (!isset($allowedTeams[$selectedTeam])) {
     $selectedTeam = 'tim_layanan';
 }
+$isTimPusaka = $selectedTeam === 'tim_pusaka';
 $monitoringHasTeamCategory = $monitoringTableExists && column_exists($conn, 'kemitraan_monitoring_evaluasi', 'team_category');
 
 if (isset($_POST['apply_bulk_section'])) {
@@ -100,6 +117,7 @@ if (isset($_POST['apply_bulk_section'])) {
     $applyOnlyEmpty = isset($_POST['bulk_apply_only_empty']) && $_POST['bulk_apply_only_empty'] === '1';
     $bulkTimKerja = trim((string)($_POST['bulk_tim_kerja_pelaksana'] ?? ''));
     $bulkPicPusat = trim((string)($_POST['bulk_pic_pusat_pasar_kerja'] ?? ''));
+    $bulkPicMitra = trim((string)($_POST['bulk_pic_mitra'] ?? ''));
     $bulkMasalah = trim((string)($_POST['bulk_masalah_hambatan'] ?? ''));
     $bulkTindak = trim((string)($_POST['bulk_tindak_lanjut'] ?? ''));
     $bulkDokumentasi = trim((string)($_POST['bulk_dokumentasi_link'] ?? ''));
@@ -109,172 +127,297 @@ if (isset($_POST['apply_bulk_section'])) {
         header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
         exit;
     }
-    if (!$monitoringTableExists) {
-        $_SESSION['error'] = 'Tabel monitoring belum tersedia. Jalankan migration terlebih dahulu.';
-        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
-        exit;
-    }
     if (!isset($allowedTeams[$teamKey])) {
         $_SESSION['error'] = 'Subsection tim tidak valid.';
         header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
         exit;
     }
 
-    $ids = [];
-    $idRes = $conn->query("SELECT k.id FROM kemitraan k WHERE k.status='approved' AND {$kemitraanLocationWhere}");
-    if ($idRes) {
-        while ($idRow = $idRes->fetch_assoc()) {
-            $ids[] = intval($idRow['id']);
-        }
-        $idRes->free();
-    }
-
-    if (empty($ids)) {
-        $_SESSION['error'] = 'Tidak ada data approved untuk diterapkan bulk.';
-        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
-        exit;
-    }
-
     $appliedCount = 0;
-    if ($applyOnlyEmpty) {
-        if ($monitoringHasTeamCategory) {
-            $selectStmt = $conn->prepare("SELECT tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link FROM kemitraan_monitoring_evaluasi WHERE kemitraan_id=? AND team_category=? LIMIT 1");
-            $insertStmt = $conn->prepare("INSERT INTO kemitraan_monitoring_evaluasi (kemitraan_id, team_category, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
-            $updateStmt = $conn->prepare("UPDATE kemitraan_monitoring_evaluasi SET tim_kerja_pelaksana=?, pic_pusat_pasar_kerja=?, masalah_hambatan=?, tindak_lanjut=?, dokumentasi_link=?, updated_at=NOW() WHERE kemitraan_id=? AND team_category=?");
-        } else {
-            $selectStmt = $conn->prepare("SELECT tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link FROM kemitraan_monitoring_evaluasi WHERE kemitraan_id=? LIMIT 1");
-            $insertStmt = $conn->prepare("INSERT INTO kemitraan_monitoring_evaluasi (kemitraan_id, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())");
-            $updateStmt = $conn->prepare("UPDATE kemitraan_monitoring_evaluasi SET tim_kerja_pelaksana=?, pic_pusat_pasar_kerja=?, masalah_hambatan=?, tindak_lanjut=?, dokumentasi_link=?, updated_at=NOW() WHERE kemitraan_id=?");
-        }
-        if (!$selectStmt || !$insertStmt || !$updateStmt) {
-            $_SESSION['error'] = 'Gagal menyiapkan query bulk empty-only: ' . $conn->error;
+    if ($teamKey === 'tim_pusaka') {
+        if (!$timPusakaTableExists || !$jossMetricsTableExists || !($connAdmin instanceof mysqli)) {
+            $_SESSION['error'] = 'Sumber data Tim Pusaka belum tersedia.';
             header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
             exit;
         }
 
-        foreach ($ids as $kid) {
-            $curTim = null; $curPic = null; $curMasalah = null; $curTindak = null; $curDok = null;
-            $hasRow = false;
-            if ($monitoringHasTeamCategory) {
-                $selectStmt->bind_param('is', $kid, $teamKey);
-            } else {
-                $selectStmt->bind_param('i', $kid);
+        $keys = [];
+        $today = date('Y-m-d');
+        $metricStmt = $connAdmin->prepare(
+            "SELECT metric_date, portal_name
+             FROM karirhub_mitra_joss_metrics
+             WHERE metric_date <= ?
+             ORDER BY metric_date DESC, portal_name ASC"
+        );
+        if ($metricStmt) {
+            $metricStmt->bind_param('s', $today);
+            $metricStmt->execute();
+            $metricStmt->bind_result($metricDateRes, $portalNameRes);
+            while ($metricStmt->fetch()) {
+                $keys[] = [
+                    'metric_date' => (string)$metricDateRes,
+                    'portal_name' => trim((string)$portalNameRes),
+                ];
             }
-            if ($selectStmt->execute()) {
-                $selectStmt->bind_result($curTim, $curPic, $curMasalah, $curTindak, $curDok);
-                if ($selectStmt->fetch()) {
-                    $hasRow = true;
-                }
-                $selectStmt->free_result();
-            }
-
-            $newTim = ($hasRow && trim((string)$curTim) !== '') ? (string)$curTim : $bulkTimKerja;
-            $newPic = ($hasRow && trim((string)$curPic) !== '') ? (string)$curPic : $bulkPicPusat;
-            $newMasalah = ($hasRow && trim((string)$curMasalah) !== '') ? (string)$curMasalah : $bulkMasalah;
-            $newTindak = ($hasRow && trim((string)$curTindak) !== '') ? (string)$curTindak : $bulkTindak;
-            $newDok = ($hasRow && trim((string)$curDok) !== '') ? (string)$curDok : $bulkDokumentasi;
-
-            if ($hasRow) {
-                if ($monitoringHasTeamCategory) {
-                    $updateStmt->bind_param('sssssis', $newTim, $newPic, $newMasalah, $newTindak, $newDok, $kid, $teamKey);
-                } else {
-                    $updateStmt->bind_param('sssssi', $newTim, $newPic, $newMasalah, $newTindak, $newDok, $kid);
-                }
-                if ($updateStmt->execute()) {
-                    $appliedCount++;
-                }
-            } else {
-                if ($monitoringHasTeamCategory) {
-                    $insertStmt->bind_param('issssss', $kid, $teamKey, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
-                } else {
-                    $insertStmt->bind_param('isssss', $kid, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
-                }
-                if ($insertStmt->execute()) {
-                    $appliedCount++;
-                }
-            }
+            $metricStmt->close();
         }
-        $selectStmt->close();
-        $insertStmt->close();
-        $updateStmt->close();
+
+        if (empty($keys)) {
+            $_SESSION['error'] = 'Tidak ada data metrik integrasi untuk Tim Pusaka.';
+            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+            exit;
+        }
+
+        if ($applyOnlyEmpty) {
+            $selectStmt = $conn->prepare(
+                "SELECT tim_kerja_pelaksana, pic_pusat_pasar_kerja, pic_mitra, permasalahan_hambatan, tindak_lanjut, dokumentasi_link
+                 FROM tim_pusaka_monitoring
+                 WHERE metric_date=? AND portal_name=?
+                 LIMIT 1"
+            );
+            $insertStmt = $conn->prepare(
+                "INSERT INTO tim_pusaka_monitoring
+                 (metric_date, portal_name, tim_kerja_pelaksana, pic_pusat_pasar_kerja, pic_mitra, permasalahan_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())"
+            );
+            $updateStmt = $conn->prepare(
+                "UPDATE tim_pusaka_monitoring
+                 SET tim_kerja_pelaksana=?, pic_pusat_pasar_kerja=?, pic_mitra=?, permasalahan_hambatan=?, tindak_lanjut=?, dokumentasi_link=?, updated_at=NOW()
+                 WHERE metric_date=? AND portal_name=?"
+            );
+            if (!$selectStmt || !$insertStmt || !$updateStmt) {
+                $_SESSION['error'] = 'Gagal menyiapkan query bulk Tim Pusaka.';
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+
+            foreach ($keys as $key) {
+                $metricDate = $key['metric_date'];
+                $portalName = $key['portal_name'];
+                if ($metricDate === '' || $portalName === '') {
+                    continue;
+                }
+
+                $curTim = null; $curPic = null; $curPicMitra = null; $curMasalah = null; $curTindak = null; $curDok = null;
+                $hasRow = false;
+                $selectStmt->bind_param('ss', $metricDate, $portalName);
+                if ($selectStmt->execute()) {
+                    $selectStmt->bind_result($curTim, $curPic, $curPicMitra, $curMasalah, $curTindak, $curDok);
+                    if ($selectStmt->fetch()) {
+                        $hasRow = true;
+                    }
+                    $selectStmt->free_result();
+                }
+
+                if ($hasRow) {
+                    $newTim = trim((string)$curTim) !== '' ? (string)$curTim : $bulkTimKerja;
+                    $newPic = trim((string)$curPic) !== '' ? (string)$curPic : $bulkPicPusat;
+                    $newPicMitra = trim((string)$curPicMitra) !== '' ? (string)$curPicMitra : $bulkPicMitra;
+                    $newMasalah = trim((string)$curMasalah) !== '' ? (string)$curMasalah : $bulkMasalah;
+                    $newTindak = trim((string)$curTindak) !== '' ? (string)$curTindak : $bulkTindak;
+                    $newDok = trim((string)$curDok) !== '' ? (string)$curDok : $bulkDokumentasi;
+                    $updateStmt->bind_param('ssssssss', $newTim, $newPic, $newPicMitra, $newMasalah, $newTindak, $newDok, $metricDate, $portalName);
+                    if ($updateStmt->execute()) {
+                        $appliedCount++;
+                    }
+                } else {
+                    $insertStmt->bind_param('ssssssss', $metricDate, $portalName, $bulkTimKerja, $bulkPicPusat, $bulkPicMitra, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+                    if ($insertStmt->execute()) {
+                        $appliedCount++;
+                    }
+                }
+            }
+            $selectStmt->close();
+            $insertStmt->close();
+            $updateStmt->close();
+        } else {
+            $stmt = $conn->prepare(
+                "INSERT INTO tim_pusaka_monitoring
+                 (metric_date, portal_name, tim_kerja_pelaksana, pic_pusat_pasar_kerja, pic_mitra, permasalahan_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                 ON DUPLICATE KEY UPDATE
+                    tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
+                    pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
+                    pic_mitra = VALUES(pic_mitra),
+                    permasalahan_hambatan = VALUES(permasalahan_hambatan),
+                    tindak_lanjut = VALUES(tindak_lanjut),
+                    dokumentasi_link = VALUES(dokumentasi_link),
+                    updated_at = NOW()"
+            );
+            if (!$stmt) {
+                $_SESSION['error'] = 'Gagal menyiapkan query bulk Tim Pusaka.';
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+            foreach ($keys as $key) {
+                $metricDate = $key['metric_date'];
+                $portalName = $key['portal_name'];
+                if ($metricDate === '' || $portalName === '') {
+                    continue;
+                }
+                $stmt->bind_param('ssssssss', $metricDate, $portalName, $bulkTimKerja, $bulkPicPusat, $bulkPicMitra, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+                if ($stmt->execute()) {
+                    $appliedCount++;
+                }
+            }
+            $stmt->close();
+        }
+
+        $_SESSION['success'] = 'Bulk section Tim Pusaka berhasil diterapkan ke ' . $appliedCount . ' data.';
     } else {
-        if ($monitoringHasTeamCategory) {
-            $stmt = $conn->prepare(
-                "INSERT INTO kemitraan_monitoring_evaluasi
-                (kemitraan_id, team_category, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-                ON DUPLICATE KEY UPDATE
-                    tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
-                    pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
-                    masalah_hambatan = VALUES(masalah_hambatan),
-                    tindak_lanjut = VALUES(tindak_lanjut),
-                    dokumentasi_link = VALUES(dokumentasi_link),
-                    updated_at = NOW()"
-            );
-        } else {
-            $stmt = $conn->prepare(
-                "INSERT INTO kemitraan_monitoring_evaluasi
-                (kemitraan_id, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
-                ON DUPLICATE KEY UPDATE
-                    tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
-                    pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
-                    masalah_hambatan = VALUES(masalah_hambatan),
-                    tindak_lanjut = VALUES(tindak_lanjut),
-                    dokumentasi_link = VALUES(dokumentasi_link),
-                    updated_at = NOW()"
-            );
-        }
-        if (!$stmt) {
-            $_SESSION['error'] = 'Gagal menyiapkan query bulk section: ' . $conn->error;
+        if (!$monitoringTableExists) {
+            $_SESSION['error'] = 'Tabel monitoring belum tersedia. Jalankan migration terlebih dahulu.';
             header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
             exit;
         }
-        foreach ($ids as $kid) {
-            if ($monitoringHasTeamCategory) {
-                $stmt->bind_param('issssss', $kid, $teamKey, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
-            } else {
-                $stmt->bind_param('isssss', $kid, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+
+        $ids = [];
+        $idRes = $conn->query("SELECT k.id FROM kemitraan k WHERE k.status='approved' AND {$kemitraanLocationWhere}");
+        if ($idRes) {
+            while ($idRow = $idRes->fetch_assoc()) {
+                $ids[] = intval($idRow['id']);
             }
-            if ($stmt->execute()) {
-                $appliedCount++;
-            }
+            $idRes->free();
         }
-        $stmt->close();
+        if (empty($ids)) {
+            $_SESSION['error'] = 'Tidak ada data approved untuk diterapkan bulk.';
+            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+            exit;
+        }
+
+        if ($applyOnlyEmpty) {
+            if ($monitoringHasTeamCategory) {
+                $selectStmt = $conn->prepare("SELECT tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link FROM kemitraan_monitoring_evaluasi WHERE kemitraan_id=? AND team_category=? LIMIT 1");
+                $insertStmt = $conn->prepare("INSERT INTO kemitraan_monitoring_evaluasi (kemitraan_id, team_category, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
+                $updateStmt = $conn->prepare("UPDATE kemitraan_monitoring_evaluasi SET tim_kerja_pelaksana=?, pic_pusat_pasar_kerja=?, masalah_hambatan=?, tindak_lanjut=?, dokumentasi_link=?, updated_at=NOW() WHERE kemitraan_id=? AND team_category=?");
+            } else {
+                $selectStmt = $conn->prepare("SELECT tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link FROM kemitraan_monitoring_evaluasi WHERE kemitraan_id=? LIMIT 1");
+                $insertStmt = $conn->prepare("INSERT INTO kemitraan_monitoring_evaluasi (kemitraan_id, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())");
+                $updateStmt = $conn->prepare("UPDATE kemitraan_monitoring_evaluasi SET tim_kerja_pelaksana=?, pic_pusat_pasar_kerja=?, masalah_hambatan=?, tindak_lanjut=?, dokumentasi_link=?, updated_at=NOW() WHERE kemitraan_id=?");
+            }
+            if (!$selectStmt || !$insertStmt || !$updateStmt) {
+                $_SESSION['error'] = 'Gagal menyiapkan query bulk empty-only: ' . $conn->error;
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+
+            foreach ($ids as $kid) {
+                $curTim = null; $curPic = null; $curMasalah = null; $curTindak = null; $curDok = null;
+                $hasRow = false;
+                if ($monitoringHasTeamCategory) {
+                    $selectStmt->bind_param('is', $kid, $teamKey);
+                } else {
+                    $selectStmt->bind_param('i', $kid);
+                }
+                if ($selectStmt->execute()) {
+                    $selectStmt->bind_result($curTim, $curPic, $curMasalah, $curTindak, $curDok);
+                    if ($selectStmt->fetch()) {
+                        $hasRow = true;
+                    }
+                    $selectStmt->free_result();
+                }
+
+                $newTim = ($hasRow && trim((string)$curTim) !== '') ? (string)$curTim : $bulkTimKerja;
+                $newPic = ($hasRow && trim((string)$curPic) !== '') ? (string)$curPic : $bulkPicPusat;
+                $newMasalah = ($hasRow && trim((string)$curMasalah) !== '') ? (string)$curMasalah : $bulkMasalah;
+                $newTindak = ($hasRow && trim((string)$curTindak) !== '') ? (string)$curTindak : $bulkTindak;
+                $newDok = ($hasRow && trim((string)$curDok) !== '') ? (string)$curDok : $bulkDokumentasi;
+
+                if ($hasRow) {
+                    if ($monitoringHasTeamCategory) {
+                        $updateStmt->bind_param('sssssis', $newTim, $newPic, $newMasalah, $newTindak, $newDok, $kid, $teamKey);
+                    } else {
+                        $updateStmt->bind_param('sssssi', $newTim, $newPic, $newMasalah, $newTindak, $newDok, $kid);
+                    }
+                    if ($updateStmt->execute()) {
+                        $appliedCount++;
+                    }
+                } else {
+                    if ($monitoringHasTeamCategory) {
+                        $insertStmt->bind_param('issssss', $kid, $teamKey, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+                    } else {
+                        $insertStmt->bind_param('isssss', $kid, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+                    }
+                    if ($insertStmt->execute()) {
+                        $appliedCount++;
+                    }
+                }
+            }
+            $selectStmt->close();
+            $insertStmt->close();
+            $updateStmt->close();
+        } else {
+            if ($monitoringHasTeamCategory) {
+                $stmt = $conn->prepare(
+                    "INSERT INTO kemitraan_monitoring_evaluasi
+                    (kemitraan_id, team_category, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    ON DUPLICATE KEY UPDATE
+                        tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
+                        pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
+                        masalah_hambatan = VALUES(masalah_hambatan),
+                        tindak_lanjut = VALUES(tindak_lanjut),
+                        dokumentasi_link = VALUES(dokumentasi_link),
+                        updated_at = NOW()"
+                );
+            } else {
+                $stmt = $conn->prepare(
+                    "INSERT INTO kemitraan_monitoring_evaluasi
+                    (kemitraan_id, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    ON DUPLICATE KEY UPDATE
+                        tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
+                        pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
+                        masalah_hambatan = VALUES(masalah_hambatan),
+                        tindak_lanjut = VALUES(tindak_lanjut),
+                        dokumentasi_link = VALUES(dokumentasi_link),
+                        updated_at = NOW()"
+                );
+            }
+            if (!$stmt) {
+                $_SESSION['error'] = 'Gagal menyiapkan query bulk section: ' . $conn->error;
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+            foreach ($ids as $kid) {
+                if ($monitoringHasTeamCategory) {
+                    $stmt->bind_param('issssss', $kid, $teamKey, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+                } else {
+                    $stmt->bind_param('isssss', $kid, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+                }
+                if ($stmt->execute()) {
+                    $appliedCount++;
+                }
+            }
+            $stmt->close();
+        }
+
+        $_SESSION['success'] = 'Bulk section berhasil diterapkan ke ' . $appliedCount . ' data.';
     }
 
-    $_SESSION['success'] = 'Bulk section berhasil diterapkan ke ' . $appliedCount . ' data.';
     header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
     exit;
 }
 
 if (isset($_POST['save_monitoring'])) {
-    $kemitraanId = intval($_POST['kemitraan_id'] ?? 0);
     $passwordInput = trim($_POST['monitoring_password'] ?? '');
     $editMode = trim((string)($_POST['edit_mode'] ?? 'single'));
     $fieldKey = trim($_POST['field_key'] ?? '');
     $fieldValue = trim($_POST['field_value'] ?? '');
     $teamKey = trim((string)($_POST['team_key'] ?? $selectedTeam));
+    $kemitraanId = intval($_POST['kemitraan_id'] ?? 0);
+    $metricDate = trim((string)($_POST['metric_date'] ?? ''));
+    $portalName = trim((string)($_POST['portal_name'] ?? ''));
     $requiredPassword = 'Pusatpasarkerj4';
     $allowedFields = [
         'tim_kerja_pelaksana' => 'tim_kerja_pelaksana',
         'pic_pusat_pasar_kerja' => 'pic_pusat_pasar_kerja',
+        'pic_mitra' => 'pic_mitra',
         'masalah_hambatan' => 'masalah_hambatan',
+        'permasalahan_hambatan' => 'permasalahan_hambatan',
         'tindak_lanjut' => 'tindak_lanjut',
         'dokumentasi_link' => 'dokumentasi_link',
     ];
-
-    if ($kemitraanId <= 0) {
-        $_SESSION['error'] = 'Data kemitraan tidak valid.';
-        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
-        exit;
-    }
-
-    if (!can_access_kemitraan_record($conn, $kemitraanId, $isSuperAdmin, $scopedLocationId, $hasWalkinLocationColumn)) {
-        $_SESSION['error'] = 'Anda tidak memiliki akses ke data kemitraan ini.';
-        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
-        exit;
-    }
 
     if ($passwordInput !== $requiredPassword) {
         $_SESSION['error'] = 'Password salah. Monitoring tidak disimpan.';
@@ -288,188 +431,348 @@ if (isset($_POST['save_monitoring'])) {
         exit;
     }
 
-    if (!$monitoringTableExists) {
-        $_SESSION['error'] = 'Tabel monitoring belum tersedia. Jalankan migration terlebih dahulu.';
-        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
-        exit;
-    }
-
-    $targetTeam = $monitoringHasTeamCategory ? $teamKey : 'tim_layanan';
-    if ($editMode === 'bulk') {
-        $bulkTimKerja = trim((string)($_POST['bulk_tim_kerja_pelaksana'] ?? ''));
-        $bulkPicPusat = trim((string)($_POST['bulk_pic_pusat_pasar_kerja'] ?? ''));
-        $bulkMasalah = trim((string)($_POST['bulk_masalah_hambatan'] ?? ''));
-        $bulkTindak = trim((string)($_POST['bulk_tindak_lanjut'] ?? ''));
-        $bulkDokumentasi = trim((string)($_POST['bulk_dokumentasi_link'] ?? ''));
-
-        if ($monitoringHasTeamCategory) {
-            $stmt = $conn->prepare(
-                "INSERT INTO kemitraan_monitoring_evaluasi
-                (kemitraan_id, team_category, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-                ON DUPLICATE KEY UPDATE
-                    tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
-                    pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
-                    masalah_hambatan = VALUES(masalah_hambatan),
-                    tindak_lanjut = VALUES(tindak_lanjut),
-                    dokumentasi_link = VALUES(dokumentasi_link),
-                    updated_at = NOW()"
-            );
-        } else {
-            $stmt = $conn->prepare(
-                "INSERT INTO kemitraan_monitoring_evaluasi
-                (kemitraan_id, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
-                ON DUPLICATE KEY UPDATE
-                    tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
-                    pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
-                    masalah_hambatan = VALUES(masalah_hambatan),
-                    tindak_lanjut = VALUES(tindak_lanjut),
-                    dokumentasi_link = VALUES(dokumentasi_link),
-                    updated_at = NOW()"
-            );
+    if ($teamKey === 'tim_pusaka') {
+        if (!$timPusakaTableExists) {
+            $_SESSION['error'] = 'Tabel Tim Pusaka belum tersedia. Jalankan migration terlebih dahulu.';
+            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+            exit;
         }
-
-        if (!$stmt) {
-            $_SESSION['error'] = 'Gagal menyiapkan query bulk monitoring: ' . $conn->error;
+        if ($metricDate === '' || $portalName === '') {
+            $_SESSION['error'] = 'Kunci data Tim Pusaka tidak valid (Tanggal/Job Portal).';
             header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
             exit;
         }
 
-        if ($monitoringHasTeamCategory) {
-            $stmt->bind_param('issssss', $kemitraanId, $targetTeam, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
-        } else {
-            $stmt->bind_param('isssss', $kemitraanId, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
-        }
+        if ($editMode === 'bulk') {
+            $bulkTimKerja = trim((string)($_POST['bulk_tim_kerja_pelaksana'] ?? ''));
+            $bulkPicPusat = trim((string)($_POST['bulk_pic_pusat_pasar_kerja'] ?? ''));
+            $bulkPicMitra = trim((string)($_POST['bulk_pic_mitra'] ?? ''));
+            $bulkMasalah = trim((string)($_POST['bulk_permasalahan_hambatan'] ?? $_POST['bulk_masalah_hambatan'] ?? ''));
+            $bulkTindak = trim((string)($_POST['bulk_tindak_lanjut'] ?? ''));
+            $bulkDokumentasi = trim((string)($_POST['bulk_dokumentasi_link'] ?? ''));
 
-        if ($stmt->execute()) {
-            $_SESSION['success'] = 'Data monitoring bulk berhasil disimpan.';
-        } else {
-            $_SESSION['error'] = 'Gagal menyimpan monitoring bulk: ' . $stmt->error;
-        }
-        $stmt->close();
-    } else {
-        if (!isset($allowedFields[$fieldKey])) {
-            $_SESSION['error'] = 'Field monitoring tidak valid.';
-            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
-            exit;
-        }
-
-        $columnName = $allowedFields[$fieldKey];
-        if ($monitoringHasTeamCategory) {
             $stmt = $conn->prepare(
-                "INSERT INTO kemitraan_monitoring_evaluasi
-                (kemitraan_id, team_category, {$columnName}, created_at, updated_at)
+                "INSERT INTO tim_pusaka_monitoring
+                (metric_date, portal_name, tim_kerja_pelaksana, pic_pusat_pasar_kerja, pic_mitra, permasalahan_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE
+                    tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
+                    pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
+                    pic_mitra = VALUES(pic_mitra),
+                    permasalahan_hambatan = VALUES(permasalahan_hambatan),
+                    tindak_lanjut = VALUES(tindak_lanjut),
+                    dokumentasi_link = VALUES(dokumentasi_link),
+                    updated_at = NOW()"
+            );
+            if (!$stmt) {
+                $_SESSION['error'] = 'Gagal menyiapkan query Tim Pusaka bulk: ' . $conn->error;
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+            $stmt->bind_param('ssssssss', $metricDate, $portalName, $bulkTimKerja, $bulkPicPusat, $bulkPicMitra, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+            if ($stmt->execute()) {
+                $_SESSION['success'] = 'Data monitoring Tim Pusaka berhasil disimpan.';
+            } else {
+                $_SESSION['error'] = 'Gagal menyimpan monitoring Tim Pusaka: ' . $stmt->error;
+            }
+            $stmt->close();
+        } else {
+            if (!isset($allowedFields[$fieldKey])) {
+                $_SESSION['error'] = 'Field monitoring Tim Pusaka tidak valid.';
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+            $columnName = $allowedFields[$fieldKey];
+            if ($columnName === 'masalah_hambatan') {
+                $columnName = 'permasalahan_hambatan';
+            }
+            if (!in_array($columnName, ['tim_kerja_pelaksana', 'pic_pusat_pasar_kerja', 'pic_mitra', 'permasalahan_hambatan', 'tindak_lanjut', 'dokumentasi_link'], true)) {
+                $_SESSION['error'] = 'Field monitoring Tim Pusaka tidak diizinkan.';
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+
+            $stmt = $conn->prepare(
+                "INSERT INTO tim_pusaka_monitoring
+                (metric_date, portal_name, {$columnName}, created_at, updated_at)
                 VALUES (?, ?, ?, NOW(), NOW())
                 ON DUPLICATE KEY UPDATE
                     {$columnName} = VALUES({$columnName}),
                     updated_at = NOW()"
             );
-        } else {
-            $stmt = $conn->prepare(
-                "INSERT INTO kemitraan_monitoring_evaluasi
-                (kemitraan_id, {$columnName}, created_at, updated_at)
-                VALUES (?, ?, NOW(), NOW())
-                ON DUPLICATE KEY UPDATE
-                    {$columnName} = VALUES({$columnName}),
-                    updated_at = NOW()"
-            );
+            if (!$stmt) {
+                $_SESSION['error'] = 'Gagal menyiapkan query Tim Pusaka: ' . $conn->error;
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+            $stmt->bind_param('sss', $metricDate, $portalName, $fieldValue);
+            if ($stmt->execute()) {
+                $_SESSION['success'] = 'Data monitoring Tim Pusaka berhasil disimpan.';
+            } else {
+                $_SESSION['error'] = 'Gagal menyimpan monitoring Tim Pusaka: ' . $stmt->error;
+            }
+            $stmt->close();
         }
-
-        if (!$stmt) {
-            $_SESSION['error'] = 'Gagal menyiapkan query monitoring: ' . $conn->error;
+    } else {
+        if ($kemitraanId <= 0) {
+            $_SESSION['error'] = 'Data kemitraan tidak valid.';
+            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+            exit;
+        }
+        if (!can_access_kemitraan_record($conn, $kemitraanId, $isSuperAdmin, $scopedLocationId, $hasWalkinLocationColumn)) {
+            $_SESSION['error'] = 'Anda tidak memiliki akses ke data kemitraan ini.';
+            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+            exit;
+        }
+        if (!$monitoringTableExists) {
+            $_SESSION['error'] = 'Tabel monitoring belum tersedia. Jalankan migration terlebih dahulu.';
             header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
             exit;
         }
 
-        if ($monitoringHasTeamCategory) {
-            $stmt->bind_param('iss', $kemitraanId, $targetTeam, $fieldValue);
-        } else {
-            $stmt->bind_param('is', $kemitraanId, $fieldValue);
-        }
+        $targetTeam = $monitoringHasTeamCategory ? $teamKey : 'tim_layanan';
+        if ($editMode === 'bulk') {
+            $bulkTimKerja = trim((string)($_POST['bulk_tim_kerja_pelaksana'] ?? ''));
+            $bulkPicPusat = trim((string)($_POST['bulk_pic_pusat_pasar_kerja'] ?? ''));
+            $bulkMasalah = trim((string)($_POST['bulk_masalah_hambatan'] ?? ''));
+            $bulkTindak = trim((string)($_POST['bulk_tindak_lanjut'] ?? ''));
+            $bulkDokumentasi = trim((string)($_POST['bulk_dokumentasi_link'] ?? ''));
 
-        if ($stmt->execute()) {
-            $_SESSION['success'] = 'Data monitoring berhasil disimpan.';
+            if ($monitoringHasTeamCategory) {
+                $stmt = $conn->prepare(
+                    "INSERT INTO kemitraan_monitoring_evaluasi
+                    (kemitraan_id, team_category, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    ON DUPLICATE KEY UPDATE
+                        tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
+                        pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
+                        masalah_hambatan = VALUES(masalah_hambatan),
+                        tindak_lanjut = VALUES(tindak_lanjut),
+                        dokumentasi_link = VALUES(dokumentasi_link),
+                        updated_at = NOW()"
+                );
+            } else {
+                $stmt = $conn->prepare(
+                    "INSERT INTO kemitraan_monitoring_evaluasi
+                    (kemitraan_id, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    ON DUPLICATE KEY UPDATE
+                        tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
+                        pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
+                        masalah_hambatan = VALUES(masalah_hambatan),
+                        tindak_lanjut = VALUES(tindak_lanjut),
+                        dokumentasi_link = VALUES(dokumentasi_link),
+                        updated_at = NOW()"
+                );
+            }
+
+            if (!$stmt) {
+                $_SESSION['error'] = 'Gagal menyiapkan query bulk monitoring: ' . $conn->error;
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+
+            if ($monitoringHasTeamCategory) {
+                $stmt->bind_param('issssss', $kemitraanId, $targetTeam, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+            } else {
+                $stmt->bind_param('isssss', $kemitraanId, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+            }
+
+            if ($stmt->execute()) {
+                $_SESSION['success'] = 'Data monitoring bulk berhasil disimpan.';
+            } else {
+                $_SESSION['error'] = 'Gagal menyimpan monitoring bulk: ' . $stmt->error;
+            }
+            $stmt->close();
         } else {
-            $_SESSION['error'] = 'Gagal menyimpan monitoring: ' . $stmt->error;
+            if (!isset($allowedFields[$fieldKey])) {
+                $_SESSION['error'] = 'Field monitoring tidak valid.';
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+
+            $columnName = $allowedFields[$fieldKey];
+            if ($columnName === 'permasalahan_hambatan') {
+                $columnName = 'masalah_hambatan';
+            }
+            if ($columnName === 'pic_mitra') {
+                $_SESSION['error'] = 'Field PIC Mitra hanya tersedia untuk Tim Pusaka.';
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+            $stmt = $conn->prepare(
+                $monitoringHasTeamCategory
+                    ? "INSERT INTO kemitraan_monitoring_evaluasi (kemitraan_id, team_category, {$columnName}, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE {$columnName}=VALUES({$columnName}), updated_at=NOW()"
+                    : "INSERT INTO kemitraan_monitoring_evaluasi (kemitraan_id, {$columnName}, created_at, updated_at) VALUES (?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE {$columnName}=VALUES({$columnName}), updated_at=NOW()"
+            );
+            if (!$stmt) {
+                $_SESSION['error'] = 'Gagal menyiapkan query monitoring: ' . $conn->error;
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+            if ($monitoringHasTeamCategory) {
+                $stmt->bind_param('iss', $kemitraanId, $targetTeam, $fieldValue);
+            } else {
+                $stmt->bind_param('is', $kemitraanId, $fieldValue);
+            }
+            if ($stmt->execute()) {
+                $_SESSION['success'] = 'Data monitoring berhasil disimpan.';
+            } else {
+                $_SESSION['error'] = 'Gagal menyimpan monitoring: ' . $stmt->error;
+            }
+            $stmt->close();
         }
-        $stmt->close();
     }
 
     header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
     exit;
 }
 
-$monitoringSelect = $monitoringTableExists
-    ? "kme.tim_kerja_pelaksana, kme.pic_pusat_pasar_kerja, kme.masalah_hambatan, kme.tindak_lanjut, kme.dokumentasi_link"
-    : "'' AS tim_kerja_pelaksana, '' AS pic_pusat_pasar_kerja, '' AS masalah_hambatan, '' AS tindak_lanjut, '' AS dokumentasi_link";
-$monitoringJoin = "";
-if ($monitoringTableExists) {
-    if ($monitoringHasTeamCategory) {
-        $teamSql = $conn->real_escape_string($selectedTeam);
-        $monitoringJoin = "LEFT JOIN kemitraan_monitoring_evaluasi kme ON kme.kemitraan_id = k.id AND kme.team_category='{$teamSql}'";
-    } else {
-        $monitoringJoin = "LEFT JOIN kemitraan_monitoring_evaluasi kme ON kme.kemitraan_id = k.id";
-    }
-}
-
 $approvedRows = [];
-$approvedQuery = $conn->query(
-    "SELECT
-        k.id,
-        k.institution_name,
-        k.pic_name,
-        k.schedule,
-        k.scheduletimestart,
-        k.scheduletimefinish,
-        top.name AS partnership_type_name,
-        {$monitoringSelect}
-    FROM kemitraan k
-    LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id
-    {$monitoringJoin}
-    WHERE k.status='approved' AND {$kemitraanLocationWhere}
-    ORDER BY k.id DESC"
-);
-
-if ($approvedQuery) {
-    while ($row = $approvedQuery->fetch_assoc()) {
-        $approvedRows[] = $row;
-    }
-    $approvedQuery->free();
-}
-
-$approvedIds = [];
-foreach ($approvedRows as $row) {
-    $approvedIds[] = intval($row['id']);
-}
-
 $lowonganByKemitraan = [];
-if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
-    $hasJumlahPenempatan = column_exists($conn, 'kemitraan_detail_lowongan', 'jumlah_penempatan');
-    $jumlahPenempatanSelect = $hasJumlahPenempatan ? ", jumlah_penempatan" : "";
-    $idList = implode(',', array_map('intval', $approvedIds));
-
-    $lowonganRes = $conn->query(
-        "SELECT kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan{$jumlahPenempatanSelect}
-        FROM kemitraan_detail_lowongan
-        WHERE kemitraan_id IN ({$idList})
-        ORDER BY kemitraan_id ASC, id ASC"
-    );
-
-    if ($lowonganRes) {
-        while ($lowongan = $lowonganRes->fetch_assoc()) {
-            $kemitraanId = intval($lowongan['kemitraan_id']);
-            if (!isset($lowonganByKemitraan[$kemitraanId])) {
-                $lowonganByKemitraan[$kemitraanId] = [];
+if ($isTimPusaka) {
+    if ($connAdmin instanceof mysqli && $jossMetricsTableExists) {
+        $today = date('Y-m-d');
+        $pusakaMap = [];
+        $jossStmt = $connAdmin->prepare(
+            "SELECT metric_date, portal_name, closed_count, expired_count, open_count
+             FROM karirhub_mitra_joss_metrics
+             WHERE metric_date <= ?
+             ORDER BY metric_date DESC, portal_name ASC"
+        );
+        if ($jossStmt) {
+            $jossStmt->bind_param('s', $today);
+            $jossStmt->execute();
+            $jossStmt->bind_result($metricDateRes, $portalNameRes, $closedRes, $expiredRes, $openRes);
+            while ($jossStmt->fetch()) {
+                $portalName = trim((string)$portalNameRes);
+                $metricDate = (string)$metricDateRes;
+                if ($portalName === '' || $metricDate === '') {
+                    continue;
+                }
+                $rowKey = $metricDate . '|' . $portalName;
+                if (!isset($pusakaMap[$rowKey])) {
+                    $pusakaMap[$rowKey] = [
+                        'metric_date' => $metricDate,
+                        'portal_name' => $portalName,
+                        'closed_count' => intval($closedRes ?? 0),
+                        'expired_count' => intval($expiredRes ?? 0),
+                        'open_count' => intval($openRes ?? 0),
+                    ];
+                }
             }
+            $jossStmt->close();
+        }
 
-            $lowonganByKemitraan[$kemitraanId][] = [
-                'jabatan_yang_dibuka' => trim((string)($lowongan['jabatan_yang_dibuka'] ?? '')),
-                'jumlah_kebutuhan' => trim((string)($lowongan['jumlah_kebutuhan'] ?? '')),
-                'jumlah_penempatan' => $hasJumlahPenempatan ? trim((string)($lowongan['jumlah_penempatan'] ?? '')) : '',
+        $monitoringByKey = [];
+        if ($timPusakaTableExists && !empty($pusakaMap)) {
+            $monitoringRes = $conn->query(
+                "SELECT metric_date, portal_name, tim_kerja_pelaksana, pic_pusat_pasar_kerja, pic_mitra, permasalahan_hambatan, tindak_lanjut, dokumentasi_link
+                 FROM tim_pusaka_monitoring"
+            );
+            if ($monitoringRes) {
+                while ($m = $monitoringRes->fetch_assoc()) {
+                    $mk = trim((string)($m['metric_date'] ?? '')) . '|' . trim((string)($m['portal_name'] ?? ''));
+                    $monitoringByKey[$mk] = $m;
+                }
+                $monitoringRes->free();
+            }
+        }
+
+        foreach ($pusakaMap as $rowKey => $base) {
+            $monitoring = $monitoringByKey[$rowKey] ?? [];
+            $jumlahLoker = intval($base['closed_count']) + intval($base['expired_count']) + intval($base['open_count']);
+            $approvedRows[] = [
+                'id' => 0,
+                'row_key' => $rowKey,
+                'institution_name' => $base['portal_name'],
+                'pic_name' => trim((string)($monitoring['pic_mitra'] ?? '')),
+                'schedule' => $base['metric_date'],
+                'scheduletimestart' => null,
+                'scheduletimefinish' => null,
+                'partnership_type_name' => 'Integrasi Data Lowongan Kerja Job Portal',
+                'tim_kerja_pelaksana' => trim((string)($monitoring['tim_kerja_pelaksana'] ?? '')),
+                'pic_pusat_pasar_kerja' => trim((string)($monitoring['pic_pusat_pasar_kerja'] ?? '')),
+                'masalah_hambatan' => trim((string)($monitoring['permasalahan_hambatan'] ?? '')),
+                'tindak_lanjut' => trim((string)($monitoring['tindak_lanjut'] ?? '')),
+                'dokumentasi_link' => trim((string)($monitoring['dokumentasi_link'] ?? '')),
+                'metric_date' => $base['metric_date'],
+                'portal_name' => $base['portal_name'],
+                'jumlah_loker' => $jumlahLoker,
+                'expired_count' => intval($base['expired_count']),
+                'open_count' => intval($base['open_count']),
+                'is_pusaka' => 1,
             ];
         }
-        $lowonganRes->free();
+    }
+} else {
+    $monitoringSelect = $monitoringTableExists
+        ? "kme.tim_kerja_pelaksana, kme.pic_pusat_pasar_kerja, kme.masalah_hambatan, kme.tindak_lanjut, kme.dokumentasi_link"
+        : "'' AS tim_kerja_pelaksana, '' AS pic_pusat_pasar_kerja, '' AS masalah_hambatan, '' AS tindak_lanjut, '' AS dokumentasi_link";
+    $monitoringJoin = "";
+    if ($monitoringTableExists) {
+        if ($monitoringHasTeamCategory) {
+            $teamSql = $conn->real_escape_string($selectedTeam);
+            $monitoringJoin = "LEFT JOIN kemitraan_monitoring_evaluasi kme ON kme.kemitraan_id = k.id AND kme.team_category='{$teamSql}'";
+        } else {
+            $monitoringJoin = "LEFT JOIN kemitraan_monitoring_evaluasi kme ON kme.kemitraan_id = k.id";
+        }
+    }
+
+    $approvedQuery = $conn->query(
+        "SELECT
+            k.id,
+            k.institution_name,
+            k.pic_name,
+            k.schedule,
+            k.scheduletimestart,
+            k.scheduletimefinish,
+            top.name AS partnership_type_name,
+            {$monitoringSelect}
+        FROM kemitraan k
+        LEFT JOIN type_of_partnership top ON top.id = k.type_of_partnership_id
+        {$monitoringJoin}
+        WHERE k.status='approved' AND {$kemitraanLocationWhere}
+        ORDER BY k.id DESC"
+    );
+
+    if ($approvedQuery) {
+        while ($row = $approvedQuery->fetch_assoc()) {
+            $approvedRows[] = $row;
+        }
+        $approvedQuery->free();
+    }
+
+    $approvedIds = [];
+    foreach ($approvedRows as $row) {
+        $approvedIds[] = intval($row['id']);
+    }
+    if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
+        $hasJumlahPenempatan = column_exists($conn, 'kemitraan_detail_lowongan', 'jumlah_penempatan');
+        $jumlahPenempatanSelect = $hasJumlahPenempatan ? ", jumlah_penempatan" : "";
+        $idList = implode(',', array_map('intval', $approvedIds));
+
+        $lowonganRes = $conn->query(
+            "SELECT kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan{$jumlahPenempatanSelect}
+            FROM kemitraan_detail_lowongan
+            WHERE kemitraan_id IN ({$idList})
+            ORDER BY kemitraan_id ASC, id ASC"
+        );
+
+        if ($lowonganRes) {
+            while ($lowongan = $lowonganRes->fetch_assoc()) {
+                $kemitraanId = intval($lowongan['kemitraan_id']);
+                if (!isset($lowonganByKemitraan[$kemitraanId])) {
+                    $lowonganByKemitraan[$kemitraanId] = [];
+                }
+                $lowonganByKemitraan[$kemitraanId][] = [
+                    'jabatan_yang_dibuka' => trim((string)($lowongan['jabatan_yang_dibuka'] ?? '')),
+                    'jumlah_kebutuhan' => trim((string)($lowongan['jumlah_kebutuhan'] ?? '')),
+                    'jumlah_penempatan' => $hasJumlahPenempatan ? trim((string)($lowongan['jumlah_penempatan'] ?? '')) : '',
+                ];
+            }
+            $lowonganRes->free();
+        }
     }
 }
 ?>
@@ -549,7 +852,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
         <div class="alert alert-success"><?php echo htmlspecialchars($_SESSION['success']); ?></div>
     <?php unset($_SESSION['success']); endif; ?>
 
-    <?php if (!$monitoringTableExists): ?>
+    <?php if ((!$isTimPusaka && !$monitoringTableExists) || ($isTimPusaka && !$timPusakaTableExists)): ?>
         <div class="alert alert-warning">
             Tabel monitoring belum tersedia di database. Jalankan migration terlebih dahulu agar input monitoring bisa disimpan.
         </div>
@@ -583,8 +886,14 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                             <label class="form-label">PIC Pusat Pasar Kerja</label>
                             <textarea name="bulk_pic_pusat_pasar_kerja" class="form-control" rows="2"></textarea>
                         </div>
+                        <?php if ($isTimPusaka): ?>
                         <div class="col-md-6">
-                            <label class="form-label">Masalah / Hambatan</label>
+                            <label class="form-label">PIC Mitra</label>
+                            <textarea name="bulk_pic_mitra" class="form-control" rows="2"></textarea>
+                        </div>
+                        <?php endif; ?>
+                        <div class="col-md-6">
+                            <label class="form-label"><?php echo $isTimPusaka ? 'Permasalahan / Hambatan' : 'Masalah / Hambatan'; ?></label>
                             <textarea name="bulk_masalah_hambatan" class="form-control" rows="3"></textarea>
                         </div>
                         <div class="col-md-6">
@@ -623,7 +932,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                             <th>Kegiatan</th>
                             <th>Waktu Pelaksanaan</th>
                             <th>Realisasi / Output</th>
-                            <th>Masalah / Hambatan</th>
+                            <th><?php echo $isTimPusaka ? 'Permasalahan / Hambatan' : 'Masalah / Hambatan'; ?></th>
                             <th>Tindak Lanjut</th>
                             <th>Dokumentasi</th>
                         </tr>
@@ -631,7 +940,9 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                     <tbody>
                         <?php if (empty($approvedRows)): ?>
                             <tr>
-                                <td colspan="7" class="text-center text-muted">Belum ada data kemitraan approved.</td>
+                                <td colspan="7" class="text-center text-muted">
+                                    <?php echo $isTimPusaka ? 'Belum ada data integrasi untuk Tim Pusaka.' : 'Belum ada data kemitraan approved.'; ?>
+                                </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($approvedRows as $row): ?>
@@ -639,12 +950,17 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                     $kemitraanId = intval($row['id']);
                                     $timKerjaValue = trim((string)($row['tim_kerja_pelaksana'] ?? ''));
                                     $picPusatValue = trim((string)($row['pic_pusat_pasar_kerja'] ?? ''));
+                                    $picMitraValue = trim((string)($row['pic_name'] ?? ''));
                                     $masalahValue = trim((string)($row['masalah_hambatan'] ?? ''));
                                     $tindakLanjutValue = trim((string)($row['tindak_lanjut'] ?? ''));
                                     $dokumentasiRawValue = trim((string)($row['dokumentasi_link'] ?? ''));
+                                    $metricDateValue = trim((string)($row['metric_date'] ?? ''));
+                                    $portalNameValue = trim((string)($row['portal_name'] ?? ''));
+                                    $isPusakaRow = intval($row['is_pusaka'] ?? 0) === 1;
                                     $monitoringPayload = [
                                         'tim_kerja_pelaksana' => $timKerjaValue,
                                         'pic_pusat_pasar_kerja' => $picPusatValue,
+                                        'pic_mitra' => $picMitraValue,
                                         'masalah_hambatan' => $masalahValue,
                                         'tindak_lanjut' => $tindakLanjutValue,
                                         'dokumentasi_link' => $dokumentasiRawValue,
@@ -653,6 +969,9 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                     $timeLabel = format_schedule_time($row['scheduletimestart'] ?? null, $row['scheduletimefinish'] ?? null);
                                     $institutionNameAttr = htmlspecialchars((string)($row['institution_name'] ?? ''), ENT_QUOTES);
                                     $monitoringDataAttr = htmlspecialchars(json_encode($monitoringPayload, JSON_UNESCAPED_UNICODE), ENT_QUOTES);
+                                    $metricDateAttr = htmlspecialchars($metricDateValue, ENT_QUOTES);
+                                    $portalNameAttr = htmlspecialchars($portalNameValue, ENT_QUOTES);
+                                    $isEditEnabled = $isTimPusaka ? $timPusakaTableExists : $monitoringTableExists;
                                 ?>
                                 <tr>
                                     <td>
@@ -668,9 +987,11 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 data-id="<?php echo $kemitraanId; ?>"
                                                 data-field-key="tim_kerja_pelaksana"
                                                 data-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
+                                                data-metric-date="<?php echo $metricDateAttr; ?>"
+                                                data-portal-name="<?php echo $portalNameAttr; ?>"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
-                                                <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
+                                                <?php echo $isEditEnabled ? '' : 'disabled'; ?>
                                             >
                                                 Isi / Edit
                                             </button>
@@ -686,21 +1007,63 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 data-id="<?php echo $kemitraanId; ?>"
                                                 data-field-key="pic_pusat_pasar_kerja"
                                                 data-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
+                                                data-metric-date="<?php echo $metricDateAttr; ?>"
+                                                data-portal-name="<?php echo $portalNameAttr; ?>"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
-                                                <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
+                                                <?php echo $isEditEnabled ? '' : 'disabled'; ?>
                                             >
                                                 Isi / Edit
                                             </button>
                                         </span>
-                                        <span class="cell-line"><span class="label-muted">PIC Mitra:</span> <?php echo htmlspecialchars((string)($row['pic_name'] ?? '-')); ?></span>
+                                        <span class="cell-line">
+                                            <span class="label-muted">PIC Mitra:</span>
+                                            <span class="<?php echo $picMitraValue === '' ? 'missing-field' : ''; ?>">
+                                                <?php echo htmlspecialchars($picMitraValue !== '' ? $picMitraValue : '-'); ?>
+                                            </span>
+                                            <?php if ($isTimPusaka): ?>
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
+                                                data-id="<?php echo $kemitraanId; ?>"
+                                                data-field-key="pic_mitra"
+                                                data-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
+                                                data-metric-date="<?php echo $metricDateAttr; ?>"
+                                                data-portal-name="<?php echo $portalNameAttr; ?>"
+                                                data-institution="<?php echo $institutionNameAttr; ?>"
+                                                data-monitoring="<?php echo $monitoringDataAttr; ?>"
+                                                <?php echo $isEditEnabled ? '' : 'disabled'; ?>
+                                            >
+                                                Isi / Edit
+                                            </button>
+                                            <?php endif; ?>
+                                        </span>
                                     </td>
                                     <td><?php echo htmlspecialchars((string)($row['partnership_type_name'] ?? '-')); ?></td>
                                     <td>
                                         <span class="cell-line"><?php echo htmlspecialchars($scheduleLabel !== '' ? $scheduleLabel : '-'); ?></span>
+                                        <?php if (!$isTimPusaka): ?>
                                         <span class="label-muted">Jam: <?php echo htmlspecialchars($timeLabel); ?></span>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
+                                        <?php if ($isTimPusaka): ?>
+                                            <?php
+                                                $jumlahLokerVal = intval($row['jumlah_loker'] ?? 0);
+                                                $expiredVal = intval($row['expired_count'] ?? 0);
+                                                $openVal = intval($row['open_count'] ?? 0);
+                                            ?>
+                                            <div class="realisasi-box">
+                                                <span class="cell-line">Jumlah Loker: <?php echo number_format($jumlahLokerVal); ?></span>
+                                                <span class="cell-line">Loker Expired: <?php echo number_format($expiredVal); ?></span>
+                                                <span class="cell-line">
+                                                    Open:
+                                                    <span class="<?php echo $openVal <= 0 ? 'missing-field' : ''; ?>">
+                                                        <?php echo number_format($openVal); ?>
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        <?php else: ?>
                                         <?php $realisasiRows = $lowonganByKemitraan[$kemitraanId] ?? []; ?>
                                         <?php if (empty($realisasiRows)): ?>
                                             <span class="text-muted">-</span>
@@ -724,6 +1087,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 </div>
                                             <?php endforeach; ?>
                                         <?php endif; ?>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
                                         <span class="<?php echo $masalahValue === '' ? 'missing-field' : ''; ?>">
@@ -734,11 +1098,13 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 type="button"
                                                 class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
                                                 data-id="<?php echo $kemitraanId; ?>"
-                                                data-field-key="masalah_hambatan"
+                                                data-field-key="<?php echo $isTimPusaka ? 'permasalahan_hambatan' : 'masalah_hambatan'; ?>"
                                                 data-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
+                                                data-metric-date="<?php echo $metricDateAttr; ?>"
+                                                data-portal-name="<?php echo $portalNameAttr; ?>"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
-                                                <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
+                                                <?php echo $isEditEnabled ? '' : 'disabled'; ?>
                                             >
                                                 Isi / Edit
                                             </button>
@@ -755,9 +1121,11 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 data-id="<?php echo $kemitraanId; ?>"
                                                 data-field-key="tindak_lanjut"
                                                 data-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
+                                                data-metric-date="<?php echo $metricDateAttr; ?>"
+                                                data-portal-name="<?php echo $portalNameAttr; ?>"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
-                                                <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
+                                                <?php echo $isEditEnabled ? '' : 'disabled'; ?>
                                             >
                                                 Isi / Edit
                                             </button>
@@ -782,9 +1150,11 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 data-id="<?php echo $kemitraanId; ?>"
                                                 data-field-key="dokumentasi_link"
                                                 data-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
+                                                data-metric-date="<?php echo $metricDateAttr; ?>"
+                                                data-portal-name="<?php echo $portalNameAttr; ?>"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
-                                                <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
+                                                <?php echo $isEditEnabled ? '' : 'disabled'; ?>
                                             >
                                                 Isi / Edit
                                             </button>
@@ -814,6 +1184,8 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                     <input type="hidden" name="team_key" id="monitoring_team_key">
                     <input type="hidden" name="edit_mode" id="monitoring_edit_mode" value="single">
                     <input type="hidden" name="field_key" id="monitoring_field_key">
+                    <input type="hidden" name="metric_date" id="monitoring_metric_date">
+                    <input type="hidden" name="portal_name" id="monitoring_portal_name">
 
                     <div class="mb-2">
                         <label class="form-label">Nama Mitra</label>
@@ -874,6 +1246,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const editModeEl = document.getElementById('monitoring_edit_mode');
     const fieldLabelEl = document.getElementById('monitoring_field_label');
     const fieldKeyEl = document.getElementById('monitoring_field_key');
+    const metricDateEl = document.getElementById('monitoring_metric_date');
+    const portalNameEl = document.getElementById('monitoring_portal_name');
     const fieldTextareaEl = document.getElementById('monitoring_field_value_textarea');
     const fieldInputEl = document.getElementById('monitoring_field_value_input');
     const fieldHiddenEl = document.getElementById('monitoring_field_value_hidden');
@@ -889,7 +1263,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const fieldConfig = {
         tim_kerja_pelaksana: { label: 'Tim Kerja Pelaksana', type: 'textarea' },
         pic_pusat_pasar_kerja: { label: 'PIC Pusat Pasar Kerja', type: 'textarea' },
+        pic_mitra: { label: 'PIC Mitra', type: 'textarea' },
         masalah_hambatan: { label: 'Masalah / Hambatan', type: 'textarea' },
+        permasalahan_hambatan: { label: 'Permasalahan / Hambatan', type: 'textarea' },
         tindak_lanjut: { label: 'Tindak Lanjut', type: 'textarea' },
         dokumentasi_link: { label: 'Dokumentasi (Input Source Link)', type: 'text' }
     };
@@ -911,6 +1287,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const kemitraanId = btn.getAttribute('data-id') || '';
             const teamKey = btn.getAttribute('data-team') || 'tim_layanan';
             const fieldKey = btn.getAttribute('data-field-key') || '';
+            const metricDate = btn.getAttribute('data-metric-date') || '';
+            const portalName = btn.getAttribute('data-portal-name') || '';
             const institutionName = btn.getAttribute('data-institution') || '';
             const monitoringRaw = btn.getAttribute('data-monitoring') || '{}';
 
@@ -929,6 +1307,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const currentValue = monitoring[fieldKey] || '';
             document.getElementById('monitoring_kemitraan_id').value = kemitraanId;
             teamKeyEl.value = teamKey;
+            metricDateEl.value = metricDate;
+            portalNameEl.value = portalName;
             editModeEl.value = 'single';
             fieldKeyEl.value = fieldKey;
             document.getElementById('monitoring_institution_name').value = institutionName;
