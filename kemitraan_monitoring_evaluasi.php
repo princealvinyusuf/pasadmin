@@ -355,6 +355,26 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
         .inline-edit-btn {
             margin-top: 6px;
         }
+        .monitoring-row-selectable {
+            cursor: pointer;
+        }
+        .monitoring-row-selected {
+            outline: 2px solid #fd7e14;
+            outline-offset: -2px;
+            background-color: #fff8f0 !important;
+        }
+        .bulk-section-box {
+            border: 1px solid #fd7e14;
+            background-color: #fff3e6;
+        }
+        .bulk-section-title {
+            color: #b45309;
+            font-weight: 600;
+        }
+        .bulk-section-desc {
+            color: #9a3412;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -382,6 +402,12 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
 
     <div class="card shadow-sm">
         <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                <button type="button" class="btn btn-warning" id="btnBulkTop" disabled>
+                    Bulk Edit (Pilih Data Dulu)
+                </button>
+                <div class="small text-muted" id="bulkSelectedInfo">Belum ada data dipilih.</div>
+            </div>
             <div class="mb-3">
                 <div class="btn-group" role="group" aria-label="Subsection Tim Monitoring">
                     <?php foreach ($allowedTeams as $teamKey => $teamLabel): ?>
@@ -428,7 +454,13 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                     $institutionNameAttr = htmlspecialchars((string)($row['institution_name'] ?? ''), ENT_QUOTES);
                                     $monitoringDataAttr = htmlspecialchars(json_encode($monitoringPayload, JSON_UNESCAPED_UNICODE), ENT_QUOTES);
                                 ?>
-                                <tr>
+                                <tr
+                                    class="monitoring-row-selectable"
+                                    data-row-kemitraan-id="<?php echo $kemitraanId; ?>"
+                                    data-row-institution="<?php echo $institutionNameAttr; ?>"
+                                    data-row-monitoring="<?php echo $monitoringDataAttr; ?>"
+                                    data-row-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
+                                >
                                     <td>
                                         <span class="cell-line"><span class="label-muted">Nama Mitra:</span> <?php echo htmlspecialchars((string)($row['institution_name'] ?? '-')); ?></span>
                                         <span class="cell-line">
@@ -444,17 +476,6 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
                                             >
                                                 Isi / Edit
-                                            </button>
-                                            <button
-                                                type="button"
-                                                class="btn btn-outline-secondary btn-sm inline-edit-btn btn-open-monitoring-bulk"
-                                                data-id="<?php echo $kemitraanId; ?>"
-                                                data-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
-                                                data-institution="<?php echo $institutionNameAttr; ?>"
-                                                data-monitoring="<?php echo $monitoringDataAttr; ?>"
-                                                <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
-                                            >
-                                                Bulk
                                             </button>
                                         </span>
                                         <span class="cell-line">
@@ -590,8 +611,9 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                         <input type="text" id="monitoring_field_value_input" class="form-control d-none" placeholder="Masukkan nilai">
                         <input type="hidden" name="field_value" id="monitoring_field_value_hidden">
                     </div>
-                    <div class="border rounded p-3 mb-2 d-none" id="bulkFieldSection">
-                        <div class="fw-semibold mb-2">Bulk</div>
+                    <div class="bulk-section-box rounded p-3 mb-2 d-none" id="bulkFieldSection">
+                        <div class="bulk-section-title mb-1">Bulk</div>
+                        <div class="bulk-section-desc mb-3">Isi semua field sekaligus untuk data kemitraan yang dipilih, lalu klik Simpan Monitoring.</div>
                         <div class="mb-2">
                             <label class="form-label">Tim Kerja Pelaksana</label>
                             <textarea name="bulk_tim_kerja_pelaksana" id="bulk_tim_kerja_pelaksana" class="form-control" rows="2"></textarea>
@@ -632,6 +654,9 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
 document.addEventListener('DOMContentLoaded', function() {
     const modalElement = document.getElementById('monitoringModal');
     const modal = new bootstrap.Modal(modalElement);
+    const btnBulkTop = document.getElementById('btnBulkTop');
+    const bulkSelectedInfo = document.getElementById('bulkSelectedInfo');
+    const tableRows = document.querySelectorAll('.monitoring-row-selectable');
     const form = modalElement.querySelector('form');
     const titleEl = document.getElementById('monitoringModalLabel');
     const teamKeyEl = document.getElementById('monitoring_team_key');
@@ -649,6 +674,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const bulkMasalahEl = document.getElementById('bulk_masalah_hambatan');
     const bulkTindakEl = document.getElementById('bulk_tindak_lanjut');
     const bulkDokumentasiEl = document.getElementById('bulk_dokumentasi_link');
+    let selectedRowPayload = null;
 
     const fieldConfig = {
         tim_kerja_pelaksana: { label: 'Tim Kerja Pelaksana', type: 'textarea' },
@@ -668,6 +694,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 fieldHiddenEl.value = fieldInputEl.value;
             }
         }
+    });
+
+    function selectMonitoringRow(rowEl) {
+        if (!rowEl) return;
+        tableRows.forEach(function(row) {
+            row.classList.remove('monitoring-row-selected');
+        });
+        rowEl.classList.add('monitoring-row-selected');
+
+        selectedRowPayload = {
+            kemitraanId: rowEl.getAttribute('data-row-kemitraan-id') || '',
+            teamKey: rowEl.getAttribute('data-row-team') || 'tim_layanan',
+            institutionName: rowEl.getAttribute('data-row-institution') || '',
+            monitoringRaw: rowEl.getAttribute('data-row-monitoring') || '{}'
+        };
+
+        if (btnBulkTop) {
+            btnBulkTop.disabled = false;
+            btnBulkTop.textContent = 'Bulk Edit Data Terpilih';
+        }
+        if (bulkSelectedInfo) {
+            bulkSelectedInfo.textContent = 'Data terpilih: ' + (selectedRowPayload.institutionName || '-');
+        }
+    }
+
+    tableRows.forEach(function(row) {
+        row.addEventListener('click', function(event) {
+            const target = event.target;
+            if (target && target.closest('button, a, input, textarea, select, label')) {
+                return;
+            }
+            selectMonitoringRow(row);
+        });
     });
 
     document.querySelectorAll('.btn-open-monitoring').forEach(function(btn) {
@@ -718,12 +777,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    document.querySelectorAll('.btn-open-monitoring-bulk').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            const kemitraanId = btn.getAttribute('data-id') || '';
-            const teamKey = btn.getAttribute('data-team') || 'tim_layanan';
-            const institutionName = btn.getAttribute('data-institution') || '';
-            const monitoringRaw = btn.getAttribute('data-monitoring') || '{}';
+    if (btnBulkTop) {
+        btnBulkTop.addEventListener('click', function() {
+            if (!selectedRowPayload) {
+                return;
+            }
+            const kemitraanId = selectedRowPayload.kemitraanId;
+            const teamKey = selectedRowPayload.teamKey;
+            const institutionName = selectedRowPayload.institutionName;
+            const monitoringRaw = selectedRowPayload.monitoringRaw;
 
             let monitoring = {};
             try {
@@ -752,7 +814,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             modal.show();
         });
-    });
+    }
 });
 </script>
 </body>
