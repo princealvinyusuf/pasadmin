@@ -93,6 +93,161 @@ if (!isset($allowedTeams[$selectedTeam])) {
 }
 $monitoringHasTeamCategory = $monitoringTableExists && column_exists($conn, 'kemitraan_monitoring_evaluasi', 'team_category');
 
+if (isset($_POST['apply_bulk_section'])) {
+    $passwordInput = trim((string)($_POST['bulk_section_password'] ?? ''));
+    $requiredPassword = 'Pusatpasarkerj4';
+    $teamKey = trim((string)($_POST['team_key'] ?? $selectedTeam));
+    $applyOnlyEmpty = isset($_POST['bulk_apply_only_empty']) && $_POST['bulk_apply_only_empty'] === '1';
+    $bulkTimKerja = trim((string)($_POST['bulk_tim_kerja_pelaksana'] ?? ''));
+    $bulkPicPusat = trim((string)($_POST['bulk_pic_pusat_pasar_kerja'] ?? ''));
+    $bulkMasalah = trim((string)($_POST['bulk_masalah_hambatan'] ?? ''));
+    $bulkTindak = trim((string)($_POST['bulk_tindak_lanjut'] ?? ''));
+    $bulkDokumentasi = trim((string)($_POST['bulk_dokumentasi_link'] ?? ''));
+
+    if ($passwordInput !== $requiredPassword) {
+        $_SESSION['error'] = 'Password salah. Bulk tidak disimpan.';
+        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+        exit;
+    }
+    if (!$monitoringTableExists) {
+        $_SESSION['error'] = 'Tabel monitoring belum tersedia. Jalankan migration terlebih dahulu.';
+        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+        exit;
+    }
+    if (!isset($allowedTeams[$teamKey])) {
+        $_SESSION['error'] = 'Subsection tim tidak valid.';
+        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+        exit;
+    }
+
+    $ids = [];
+    $idRes = $conn->query("SELECT k.id FROM kemitraan k WHERE k.status='approved' AND {$kemitraanLocationWhere}");
+    if ($idRes) {
+        while ($idRow = $idRes->fetch_assoc()) {
+            $ids[] = intval($idRow['id']);
+        }
+        $idRes->free();
+    }
+
+    if (empty($ids)) {
+        $_SESSION['error'] = 'Tidak ada data approved untuk diterapkan bulk.';
+        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+        exit;
+    }
+
+    $appliedCount = 0;
+    if ($applyOnlyEmpty) {
+        if ($monitoringHasTeamCategory) {
+            $selectStmt = $conn->prepare("SELECT tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link FROM kemitraan_monitoring_evaluasi WHERE kemitraan_id=? AND team_category=? LIMIT 1");
+            $insertStmt = $conn->prepare("INSERT INTO kemitraan_monitoring_evaluasi (kemitraan_id, team_category, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
+            $updateStmt = $conn->prepare("UPDATE kemitraan_monitoring_evaluasi SET tim_kerja_pelaksana=?, pic_pusat_pasar_kerja=?, masalah_hambatan=?, tindak_lanjut=?, dokumentasi_link=?, updated_at=NOW() WHERE kemitraan_id=? AND team_category=?");
+        } else {
+            $selectStmt = $conn->prepare("SELECT tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link FROM kemitraan_monitoring_evaluasi WHERE kemitraan_id=? LIMIT 1");
+            $insertStmt = $conn->prepare("INSERT INTO kemitraan_monitoring_evaluasi (kemitraan_id, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())");
+            $updateStmt = $conn->prepare("UPDATE kemitraan_monitoring_evaluasi SET tim_kerja_pelaksana=?, pic_pusat_pasar_kerja=?, masalah_hambatan=?, tindak_lanjut=?, dokumentasi_link=?, updated_at=NOW() WHERE kemitraan_id=?");
+        }
+        if (!$selectStmt || !$insertStmt || !$updateStmt) {
+            $_SESSION['error'] = 'Gagal menyiapkan query bulk empty-only: ' . $conn->error;
+            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+            exit;
+        }
+
+        foreach ($ids as $kid) {
+            $curTim = null; $curPic = null; $curMasalah = null; $curTindak = null; $curDok = null;
+            $hasRow = false;
+            if ($monitoringHasTeamCategory) {
+                $selectStmt->bind_param('is', $kid, $teamKey);
+            } else {
+                $selectStmt->bind_param('i', $kid);
+            }
+            if ($selectStmt->execute()) {
+                $selectStmt->bind_result($curTim, $curPic, $curMasalah, $curTindak, $curDok);
+                if ($selectStmt->fetch()) {
+                    $hasRow = true;
+                }
+                $selectStmt->free_result();
+            }
+
+            $newTim = ($hasRow && trim((string)$curTim) !== '') ? (string)$curTim : $bulkTimKerja;
+            $newPic = ($hasRow && trim((string)$curPic) !== '') ? (string)$curPic : $bulkPicPusat;
+            $newMasalah = ($hasRow && trim((string)$curMasalah) !== '') ? (string)$curMasalah : $bulkMasalah;
+            $newTindak = ($hasRow && trim((string)$curTindak) !== '') ? (string)$curTindak : $bulkTindak;
+            $newDok = ($hasRow && trim((string)$curDok) !== '') ? (string)$curDok : $bulkDokumentasi;
+
+            if ($hasRow) {
+                if ($monitoringHasTeamCategory) {
+                    $updateStmt->bind_param('sssssis', $newTim, $newPic, $newMasalah, $newTindak, $newDok, $kid, $teamKey);
+                } else {
+                    $updateStmt->bind_param('sssssi', $newTim, $newPic, $newMasalah, $newTindak, $newDok, $kid);
+                }
+                if ($updateStmt->execute()) {
+                    $appliedCount++;
+                }
+            } else {
+                if ($monitoringHasTeamCategory) {
+                    $insertStmt->bind_param('issssss', $kid, $teamKey, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+                } else {
+                    $insertStmt->bind_param('isssss', $kid, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+                }
+                if ($insertStmt->execute()) {
+                    $appliedCount++;
+                }
+            }
+        }
+        $selectStmt->close();
+        $insertStmt->close();
+        $updateStmt->close();
+    } else {
+        if ($monitoringHasTeamCategory) {
+            $stmt = $conn->prepare(
+                "INSERT INTO kemitraan_monitoring_evaluasi
+                (kemitraan_id, team_category, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE
+                    tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
+                    pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
+                    masalah_hambatan = VALUES(masalah_hambatan),
+                    tindak_lanjut = VALUES(tindak_lanjut),
+                    dokumentasi_link = VALUES(dokumentasi_link),
+                    updated_at = NOW()"
+            );
+        } else {
+            $stmt = $conn->prepare(
+                "INSERT INTO kemitraan_monitoring_evaluasi
+                (kemitraan_id, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE
+                    tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
+                    pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
+                    masalah_hambatan = VALUES(masalah_hambatan),
+                    tindak_lanjut = VALUES(tindak_lanjut),
+                    dokumentasi_link = VALUES(dokumentasi_link),
+                    updated_at = NOW()"
+            );
+        }
+        if (!$stmt) {
+            $_SESSION['error'] = 'Gagal menyiapkan query bulk section: ' . $conn->error;
+            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+            exit;
+        }
+        foreach ($ids as $kid) {
+            if ($monitoringHasTeamCategory) {
+                $stmt->bind_param('issssss', $kid, $teamKey, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+            } else {
+                $stmt->bind_param('isssss', $kid, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+            }
+            if ($stmt->execute()) {
+                $appliedCount++;
+            }
+        }
+        $stmt->close();
+    }
+
+    $_SESSION['success'] = 'Bulk section berhasil diterapkan ke ' . $appliedCount . ' data.';
+    header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+    exit;
+}
+
 if (isset($_POST['save_monitoring'])) {
     $kemitraanId = intval($_POST['kemitraan_id'] ?? 0);
     $passwordInput = trim($_POST['monitoring_password'] ?? '');
@@ -355,24 +510,16 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
         .inline-edit-btn {
             margin-top: 6px;
         }
-        .monitoring-row-selectable {
-            cursor: pointer;
+        .bulk-config-box {
+            border: 1px solid #93c5fd;
+            background-color: #eff6ff;
         }
-        .monitoring-row-selected {
-            outline: 2px solid #fd7e14;
-            outline-offset: -2px;
-            background-color: #fff8f0 !important;
-        }
-        .bulk-section-box {
-            border: 1px solid #fd7e14;
-            background-color: #fff3e6;
-        }
-        .bulk-section-title {
-            color: #b45309;
+        .bulk-config-title {
+            color: #1d4ed8;
             font-weight: 600;
         }
-        .bulk-section-desc {
-            color: #9a3412;
+        .bulk-config-desc {
+            color: #1e3a8a;
             font-size: 0.9rem;
         }
     </style>
@@ -402,11 +549,51 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
 
     <div class="card shadow-sm">
         <div class="card-body">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                <button type="button" class="btn btn-warning" id="btnBulkTop" disabled>
-                    Bulk Edit (Pilih Data Dulu)
-                </button>
-                <div class="small text-muted" id="bulkSelectedInfo">Belum ada data dipilih.</div>
+            <div class="bulk-config-box rounded p-3 mb-3">
+                <div class="bulk-config-title mb-1">Bulk</div>
+                <div class="bulk-config-desc mb-3">Isi field berikut untuk menerapkan nilai yang sama ke semua data pada tabel di bawah (sesuai tim aktif).</div>
+                <form method="post">
+                    <input type="hidden" name="apply_bulk_section" value="1">
+                    <input type="hidden" name="team_key" value="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Tim Kerja Pelaksana</label>
+                            <textarea name="bulk_tim_kerja_pelaksana" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">PIC Pusat Pasar Kerja</label>
+                            <textarea name="bulk_pic_pusat_pasar_kerja" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Masalah / Hambatan</label>
+                            <textarea name="bulk_masalah_hambatan" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tindak Lanjut</label>
+                            <textarea name="bulk_tindak_lanjut" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Dokumentasi</label>
+                            <input type="text" name="bulk_dokumentasi_link" class="form-control" placeholder="https://...">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Password Validasi</label>
+                            <input type="password" name="bulk_section_password" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="bulk_apply_only_empty" value="1" id="bulkApplyOnlyEmpty">
+                                <label class="form-check-label" for="bulkApplyOnlyEmpty">
+                                    Terapkan hanya ke field yang masih kosong
+                                </label>
+                            </div>
+                            <div class="small text-muted">Jika dicentang, data yang sudah terisi tidak akan ditimpa.</div>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">Terapkan ke Tabel</button>
+                        </div>
+                    </div>
+                </form>
             </div>
             <div class="mb-3">
                 <div class="btn-group" role="group" aria-label="Subsection Tim Monitoring">
@@ -454,13 +641,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                     $institutionNameAttr = htmlspecialchars((string)($row['institution_name'] ?? ''), ENT_QUOTES);
                                     $monitoringDataAttr = htmlspecialchars(json_encode($monitoringPayload, JSON_UNESCAPED_UNICODE), ENT_QUOTES);
                                 ?>
-                                <tr
-                                    class="monitoring-row-selectable"
-                                    data-row-kemitraan-id="<?php echo $kemitraanId; ?>"
-                                    data-row-institution="<?php echo $institutionNameAttr; ?>"
-                                    data-row-monitoring="<?php echo $monitoringDataAttr; ?>"
-                                    data-row-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
-                                >
+                                <tr>
                                     <td>
                                         <span class="cell-line"><span class="label-muted">Nama Mitra:</span> <?php echo htmlspecialchars((string)($row['institution_name'] ?? '-')); ?></span>
                                         <span class="cell-line">
@@ -654,9 +835,6 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
 document.addEventListener('DOMContentLoaded', function() {
     const modalElement = document.getElementById('monitoringModal');
     const modal = new bootstrap.Modal(modalElement);
-    const btnBulkTop = document.getElementById('btnBulkTop');
-    const bulkSelectedInfo = document.getElementById('bulkSelectedInfo');
-    const tableRows = document.querySelectorAll('.monitoring-row-selectable');
     const form = modalElement.querySelector('form');
     const titleEl = document.getElementById('monitoringModalLabel');
     const teamKeyEl = document.getElementById('monitoring_team_key');
@@ -674,7 +852,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const bulkMasalahEl = document.getElementById('bulk_masalah_hambatan');
     const bulkTindakEl = document.getElementById('bulk_tindak_lanjut');
     const bulkDokumentasiEl = document.getElementById('bulk_dokumentasi_link');
-    let selectedRowPayload = null;
 
     const fieldConfig = {
         tim_kerja_pelaksana: { label: 'Tim Kerja Pelaksana', type: 'textarea' },
@@ -694,39 +871,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 fieldHiddenEl.value = fieldInputEl.value;
             }
         }
-    });
-
-    function selectMonitoringRow(rowEl) {
-        if (!rowEl) return;
-        tableRows.forEach(function(row) {
-            row.classList.remove('monitoring-row-selected');
-        });
-        rowEl.classList.add('monitoring-row-selected');
-
-        selectedRowPayload = {
-            kemitraanId: rowEl.getAttribute('data-row-kemitraan-id') || '',
-            teamKey: rowEl.getAttribute('data-row-team') || 'tim_layanan',
-            institutionName: rowEl.getAttribute('data-row-institution') || '',
-            monitoringRaw: rowEl.getAttribute('data-row-monitoring') || '{}'
-        };
-
-        if (btnBulkTop) {
-            btnBulkTop.disabled = false;
-            btnBulkTop.textContent = 'Bulk Edit Data Terpilih';
-        }
-        if (bulkSelectedInfo) {
-            bulkSelectedInfo.textContent = 'Data terpilih: ' + (selectedRowPayload.institutionName || '-');
-        }
-    }
-
-    tableRows.forEach(function(row) {
-        row.addEventListener('click', function(event) {
-            const target = event.target;
-            if (target && target.closest('button, a, input, textarea, select, label')) {
-                return;
-            }
-            selectMonitoringRow(row);
-        });
     });
 
     document.querySelectorAll('.btn-open-monitoring').forEach(function(btn) {
@@ -777,44 +921,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    if (btnBulkTop) {
-        btnBulkTop.addEventListener('click', function() {
-            if (!selectedRowPayload) {
-                return;
-            }
-            const kemitraanId = selectedRowPayload.kemitraanId;
-            const teamKey = selectedRowPayload.teamKey;
-            const institutionName = selectedRowPayload.institutionName;
-            const monitoringRaw = selectedRowPayload.monitoringRaw;
-
-            let monitoring = {};
-            try {
-                monitoring = JSON.parse(monitoringRaw);
-            } catch (err) {
-                monitoring = {};
-            }
-
-            document.getElementById('monitoring_kemitraan_id').value = kemitraanId;
-            teamKeyEl.value = teamKey;
-            editModeEl.value = 'bulk';
-            fieldKeyEl.value = '';
-            document.getElementById('monitoring_institution_name').value = institutionName;
-
-            titleEl.textContent = 'Bulk Edit Monitoring';
-            singleFieldSectionEl.classList.add('d-none');
-            bulkFieldSectionEl.classList.remove('d-none');
-            fieldHiddenEl.value = '';
-            passwordEl.value = '';
-
-            bulkTimKerjaEl.value = monitoring.tim_kerja_pelaksana || '';
-            bulkPicPusatEl.value = monitoring.pic_pusat_pasar_kerja || '';
-            bulkMasalahEl.value = monitoring.masalah_hambatan || '';
-            bulkTindakEl.value = monitoring.tindak_lanjut || '';
-            bulkDokumentasiEl.value = monitoring.dokumentasi_link || '';
-
-            modal.show();
-        });
-    }
+    // Keep optional bulk section in modal callable from future triggers.
 });
 </script>
 </body>
