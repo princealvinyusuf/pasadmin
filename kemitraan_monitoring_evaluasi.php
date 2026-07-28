@@ -463,12 +463,11 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                 $lowonganByKemitraan[$kemitraanId] = [];
             }
 
-            $realisasiItems = [
-                'Jabatan Yang Dibuka: ' . trim((string)($lowongan['jabatan_yang_dibuka'] ?? '-')),
-                'Jumlah Kebutuhan: ' . trim((string)($lowongan['jumlah_kebutuhan'] ?? '-')),
-                'Jumlah Penempatan: ' . ($hasJumlahPenempatan ? trim((string)($lowongan['jumlah_penempatan'] ?? '-')) : '-'),
+            $lowonganByKemitraan[$kemitraanId][] = [
+                'jabatan_yang_dibuka' => trim((string)($lowongan['jabatan_yang_dibuka'] ?? '')),
+                'jumlah_kebutuhan' => trim((string)($lowongan['jumlah_kebutuhan'] ?? '')),
+                'jumlah_penempatan' => $hasJumlahPenempatan ? trim((string)($lowongan['jumlah_penempatan'] ?? '')) : '',
             ];
-            $lowonganByKemitraan[$kemitraanId][] = $realisasiItems;
         }
         $lowonganRes->free();
     }
@@ -521,6 +520,10 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
         .bulk-config-desc {
             color: #1e3a8a;
             font-size: 0.9rem;
+        }
+        .missing-field {
+            color: #dc3545;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -629,12 +632,17 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                             <?php foreach ($approvedRows as $row): ?>
                                 <?php
                                     $kemitraanId = intval($row['id']);
+                                    $timKerjaValue = trim((string)($row['tim_kerja_pelaksana'] ?? ''));
+                                    $picPusatValue = trim((string)($row['pic_pusat_pasar_kerja'] ?? ''));
+                                    $masalahValue = trim((string)($row['masalah_hambatan'] ?? ''));
+                                    $tindakLanjutValue = trim((string)($row['tindak_lanjut'] ?? ''));
+                                    $dokumentasiRawValue = trim((string)($row['dokumentasi_link'] ?? ''));
                                     $monitoringPayload = [
-                                        'tim_kerja_pelaksana' => $row['tim_kerja_pelaksana'] ?? '',
-                                        'pic_pusat_pasar_kerja' => $row['pic_pusat_pasar_kerja'] ?? '',
-                                        'masalah_hambatan' => $row['masalah_hambatan'] ?? '',
-                                        'tindak_lanjut' => $row['tindak_lanjut'] ?? '',
-                                        'dokumentasi_link' => $row['dokumentasi_link'] ?? '',
+                                        'tim_kerja_pelaksana' => $timKerjaValue,
+                                        'pic_pusat_pasar_kerja' => $picPusatValue,
+                                        'masalah_hambatan' => $masalahValue,
+                                        'tindak_lanjut' => $tindakLanjutValue,
+                                        'dokumentasi_link' => $dokumentasiRawValue,
                                     ];
                                     $scheduleLabel = trim((string)($row['schedule'] ?? ''));
                                     $timeLabel = format_schedule_time($row['scheduletimestart'] ?? null, $row['scheduletimefinish'] ?? null);
@@ -645,7 +653,10 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                     <td>
                                         <span class="cell-line"><span class="label-muted">Nama Mitra:</span> <?php echo htmlspecialchars((string)($row['institution_name'] ?? '-')); ?></span>
                                         <span class="cell-line">
-                                            <span class="label-muted">Tim Kerja Pelaksana:</span> <?php echo htmlspecialchars((string)($row['tim_kerja_pelaksana'] ?? '-')); ?>
+                                            <span class="label-muted">Tim Kerja Pelaksana:</span>
+                                            <span class="<?php echo $timKerjaValue === '' ? 'missing-field' : ''; ?>">
+                                                <?php echo htmlspecialchars($timKerjaValue !== '' ? $timKerjaValue : '-'); ?>
+                                            </span>
                                             <button
                                                 type="button"
                                                 class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
@@ -660,7 +671,10 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                             </button>
                                         </span>
                                         <span class="cell-line">
-                                            <span class="label-muted">PIC Pusat Pasar Kerja:</span> <?php echo htmlspecialchars((string)($row['pic_pusat_pasar_kerja'] ?? '-')); ?>
+                                            <span class="label-muted">PIC Pusat Pasar Kerja:</span>
+                                            <span class="<?php echo $picPusatValue === '' ? 'missing-field' : ''; ?>">
+                                                <?php echo htmlspecialchars($picPusatValue !== '' ? $picPusatValue : '-'); ?>
+                                            </span>
                                             <button
                                                 type="button"
                                                 class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
@@ -689,15 +703,27 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                             <?php foreach ($realisasiRows as $idx => $realisasi): ?>
                                                 <div class="realisasi-box">
                                                     <div class="fw-semibold mb-1">Lowongan <?php echo $idx + 1; ?></div>
-                                                    <?php foreach ($realisasi as $item): ?>
-                                                        <span class="cell-line"><?php echo htmlspecialchars($item); ?></span>
-                                                    <?php endforeach; ?>
+                                                    <?php
+                                                        $jabatanVal = trim((string)($realisasi['jabatan_yang_dibuka'] ?? ''));
+                                                        $kebutuhanVal = trim((string)($realisasi['jumlah_kebutuhan'] ?? ''));
+                                                        $penempatanVal = trim((string)($realisasi['jumlah_penempatan'] ?? ''));
+                                                    ?>
+                                                    <span class="cell-line">Jabatan Yang Dibuka: <?php echo htmlspecialchars($jabatanVal !== '' ? $jabatanVal : '-'); ?></span>
+                                                    <span class="cell-line">Jumlah Kebutuhan: <?php echo htmlspecialchars($kebutuhanVal !== '' ? $kebutuhanVal : '-'); ?></span>
+                                                    <span class="cell-line">
+                                                        Jumlah Penempatan:
+                                                        <span class="<?php echo $penempatanVal === '' ? 'missing-field' : ''; ?>">
+                                                            <?php echo htmlspecialchars($penempatanVal !== '' ? $penempatanVal : '-'); ?>
+                                                        </span>
+                                                    </span>
                                                 </div>
                                             <?php endforeach; ?>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php echo nl2br(htmlspecialchars((string)($row['masalah_hambatan'] ?? '-'))); ?>
+                                        <span class="<?php echo $masalahValue === '' ? 'missing-field' : ''; ?>">
+                                            <?php echo nl2br(htmlspecialchars($masalahValue !== '' ? $masalahValue : '-')); ?>
+                                        </span>
                                         <div>
                                             <button
                                                 type="button"
@@ -714,7 +740,9 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                         </div>
                                     </td>
                                     <td>
-                                        <?php echo nl2br(htmlspecialchars((string)($row['tindak_lanjut'] ?? '-'))); ?>
+                                        <span class="<?php echo $tindakLanjutValue === '' ? 'missing-field' : ''; ?>">
+                                            <?php echo nl2br(htmlspecialchars($tindakLanjutValue !== '' ? $tindakLanjutValue : '-')); ?>
+                                        </span>
                                         <div>
                                             <button
                                                 type="button"
@@ -732,7 +760,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                     </td>
                                     <td>
                                         <?php
-                                            $dokumentasiLink = trim((string)($row['dokumentasi_link'] ?? ''));
+                                            $dokumentasiLink = $dokumentasiRawValue;
                                             $isValidUrl = $dokumentasiLink !== '' && filter_var($dokumentasiLink, FILTER_VALIDATE_URL);
                                         ?>
                                         <?php if ($isValidUrl): ?>
@@ -740,7 +768,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                         <?php elseif ($dokumentasiLink !== ''): ?>
                                             <?php echo htmlspecialchars($dokumentasiLink); ?>
                                         <?php else: ?>
-                                            <span class="text-muted">-</span>
+                                            <span class="missing-field">-</span>
                                         <?php endif; ?>
                                         <div>
                                             <button
