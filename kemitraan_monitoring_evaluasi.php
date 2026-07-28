@@ -95,7 +95,16 @@ $monitoringTableExists = table_exists($conn, 'kemitraan_monitoring_evaluasi');
 if (isset($_POST['save_monitoring'])) {
     $kemitraanId = intval($_POST['kemitraan_id'] ?? 0);
     $passwordInput = trim($_POST['monitoring_password'] ?? '');
+    $fieldKey = trim($_POST['field_key'] ?? '');
+    $fieldValue = trim($_POST['field_value'] ?? '');
     $requiredPassword = 'Pusatpasarkerj4';
+    $allowedFields = [
+        'tim_kerja_pelaksana' => 'tim_kerja_pelaksana',
+        'pic_pusat_pasar_kerja' => 'pic_pusat_pasar_kerja',
+        'masalah_hambatan' => 'masalah_hambatan',
+        'tindak_lanjut' => 'tindak_lanjut',
+        'dokumentasi_link' => 'dokumentasi_link',
+    ];
 
     if ($kemitraanId <= 0) {
         $_SESSION['error'] = 'Data kemitraan tidak valid.';
@@ -115,28 +124,26 @@ if (isset($_POST['save_monitoring'])) {
         exit;
     }
 
+    if (!isset($allowedFields[$fieldKey])) {
+        $_SESSION['error'] = 'Field monitoring tidak valid.';
+        header('Location: kemitraan_monitoring_evaluasi');
+        exit;
+    }
+
     if (!$monitoringTableExists) {
         $_SESSION['error'] = 'Tabel monitoring belum tersedia. Jalankan migration terlebih dahulu.';
         header('Location: kemitraan_monitoring_evaluasi');
         exit;
     }
 
-    $timKerjaPelaksana = trim($_POST['tim_kerja_pelaksana'] ?? '');
-    $picPusatPasarKerja = trim($_POST['pic_pusat_pasar_kerja'] ?? '');
-    $masalahHambatan = trim($_POST['masalah_hambatan'] ?? '');
-    $tindakLanjut = trim($_POST['tindak_lanjut'] ?? '');
-    $dokumentasiLink = trim($_POST['dokumentasi_link'] ?? '');
+    $columnName = $allowedFields[$fieldKey];
 
     $stmt = $conn->prepare(
         "INSERT INTO kemitraan_monitoring_evaluasi
-        (kemitraan_id, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+        (kemitraan_id, {$columnName}, created_at, updated_at)
+        VALUES (?, ?, NOW(), NOW())
         ON DUPLICATE KEY UPDATE
-            tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
-            pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
-            masalah_hambatan = VALUES(masalah_hambatan),
-            tindak_lanjut = VALUES(tindak_lanjut),
-            dokumentasi_link = VALUES(dokumentasi_link),
+            {$columnName} = VALUES({$columnName}),
             updated_at = NOW()"
     );
 
@@ -146,15 +153,7 @@ if (isset($_POST['save_monitoring'])) {
         exit;
     }
 
-    $stmt->bind_param(
-        'isssss',
-        $kemitraanId,
-        $timKerjaPelaksana,
-        $picPusatPasarKerja,
-        $masalahHambatan,
-        $tindakLanjut,
-        $dokumentasiLink
-    );
+    $stmt->bind_param('is', $kemitraanId, $fieldValue);
 
     if ($stmt->execute()) {
         $_SESSION['success'] = 'Data monitoring berhasil disimpan.';
@@ -341,6 +340,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 type="button"
                                                 class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
                                                 data-id="<?php echo $kemitraanId; ?>"
+                                                data-field-key="tim_kerja_pelaksana"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
                                                 <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
@@ -354,6 +354,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 type="button"
                                                 class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
                                                 data-id="<?php echo $kemitraanId; ?>"
+                                                data-field-key="pic_pusat_pasar_kerja"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
                                                 <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
@@ -390,6 +391,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 type="button"
                                                 class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
                                                 data-id="<?php echo $kemitraanId; ?>"
+                                                data-field-key="masalah_hambatan"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
                                                 <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
@@ -405,6 +407,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 type="button"
                                                 class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
                                                 data-id="<?php echo $kemitraanId; ?>"
+                                                data-field-key="tindak_lanjut"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
                                                 <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
@@ -430,6 +433,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 type="button"
                                                 class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
                                                 data-id="<?php echo $kemitraanId; ?>"
+                                                data-field-key="dokumentasi_link"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
                                                 <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
@@ -452,41 +456,28 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="monitoringModalLabel">Input Monitoring & Evaluasi</h5>
+                <h5 class="modal-title" id="monitoringModalLabel">Isi / Edit Field Monitoring</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="post">
                 <div class="modal-body">
                     <input type="hidden" name="save_monitoring" value="1">
                     <input type="hidden" name="kemitraan_id" id="monitoring_kemitraan_id">
+                    <input type="hidden" name="field_key" id="monitoring_field_key">
 
                     <div class="mb-2">
                         <label class="form-label">Nama Mitra</label>
                         <input type="text" id="monitoring_institution_name" class="form-control" readonly>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label">Tim Kerja Pelaksana</label>
-                        <textarea name="tim_kerja_pelaksana" id="monitoring_tim_kerja_pelaksana" class="form-control" rows="2"></textarea>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">PIC Pusat Pasar Kerja</label>
-                        <textarea name="pic_pusat_pasar_kerja" id="monitoring_pic_pusat_pasar_kerja" class="form-control" rows="2"></textarea>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">Masalah / Hambatan</label>
-                        <textarea name="masalah_hambatan" id="monitoring_masalah_hambatan" class="form-control" rows="3"></textarea>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">Tindak Lanjut</label>
-                        <textarea name="tindak_lanjut" id="monitoring_tindak_lanjut" class="form-control" rows="3"></textarea>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">Dokumentasi (Input Source Link)</label>
-                        <input type="text" name="dokumentasi_link" id="monitoring_dokumentasi_link" class="form-control" placeholder="https://...">
+                        <label class="form-label" id="monitoring_field_label">Field</label>
+                        <textarea id="monitoring_field_value_textarea" class="form-control" rows="4"></textarea>
+                        <input type="text" id="monitoring_field_value_input" class="form-control d-none" placeholder="Masukkan nilai">
+                        <input type="hidden" name="field_value" id="monitoring_field_value_hidden">
                     </div>
                     <div class="mt-3">
                         <label class="form-label">Password Validasi (wajib setiap simpan)</label>
-                        <input type="password" name="monitoring_password" class="form-control" required>
+                        <input type="password" name="monitoring_password" id="monitoring_password" class="form-control" required>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -503,10 +494,35 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
 document.addEventListener('DOMContentLoaded', function() {
     const modalElement = document.getElementById('monitoringModal');
     const modal = new bootstrap.Modal(modalElement);
+    const form = modalElement.querySelector('form');
+    const titleEl = document.getElementById('monitoringModalLabel');
+    const fieldLabelEl = document.getElementById('monitoring_field_label');
+    const fieldKeyEl = document.getElementById('monitoring_field_key');
+    const fieldTextareaEl = document.getElementById('monitoring_field_value_textarea');
+    const fieldInputEl = document.getElementById('monitoring_field_value_input');
+    const fieldHiddenEl = document.getElementById('monitoring_field_value_hidden');
+    const passwordEl = document.getElementById('monitoring_password');
+
+    const fieldConfig = {
+        tim_kerja_pelaksana: { label: 'Tim Kerja Pelaksana', type: 'textarea' },
+        pic_pusat_pasar_kerja: { label: 'PIC Pusat Pasar Kerja', type: 'textarea' },
+        masalah_hambatan: { label: 'Masalah / Hambatan', type: 'textarea' },
+        tindak_lanjut: { label: 'Tindak Lanjut', type: 'textarea' },
+        dokumentasi_link: { label: 'Dokumentasi (Input Source Link)', type: 'text' }
+    };
+
+    form.addEventListener('submit', function() {
+        if (fieldInputEl.classList.contains('d-none')) {
+            fieldHiddenEl.value = fieldTextareaEl.value;
+        } else {
+            fieldHiddenEl.value = fieldInputEl.value;
+        }
+    });
 
     document.querySelectorAll('.btn-open-monitoring').forEach(function(btn) {
         btn.addEventListener('click', function() {
             const kemitraanId = btn.getAttribute('data-id') || '';
+            const fieldKey = btn.getAttribute('data-field-key') || '';
             const institutionName = btn.getAttribute('data-institution') || '';
             const monitoringRaw = btn.getAttribute('data-monitoring') || '{}';
 
@@ -517,13 +533,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 monitoring = {};
             }
 
+            const config = fieldConfig[fieldKey];
+            if (!config) {
+                return;
+            }
+
+            const currentValue = monitoring[fieldKey] || '';
             document.getElementById('monitoring_kemitraan_id').value = kemitraanId;
+            fieldKeyEl.value = fieldKey;
             document.getElementById('monitoring_institution_name').value = institutionName;
-            document.getElementById('monitoring_tim_kerja_pelaksana').value = monitoring.tim_kerja_pelaksana || '';
-            document.getElementById('monitoring_pic_pusat_pasar_kerja').value = monitoring.pic_pusat_pasar_kerja || '';
-            document.getElementById('monitoring_masalah_hambatan').value = monitoring.masalah_hambatan || '';
-            document.getElementById('monitoring_tindak_lanjut').value = monitoring.tindak_lanjut || '';
-            document.getElementById('monitoring_dokumentasi_link').value = monitoring.dokumentasi_link || '';
+
+            titleEl.textContent = 'Isi / Edit ' + config.label;
+            fieldLabelEl.textContent = config.label;
+            fieldHiddenEl.value = '';
+            passwordEl.value = '';
+
+            if (config.type === 'text') {
+                fieldTextareaEl.classList.add('d-none');
+                fieldInputEl.classList.remove('d-none');
+                fieldInputEl.value = currentValue;
+            } else {
+                fieldInputEl.classList.add('d-none');
+                fieldTextareaEl.classList.remove('d-none');
+                fieldTextareaEl.value = currentValue;
+            }
 
             modal.show();
         });
