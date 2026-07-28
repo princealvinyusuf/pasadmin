@@ -524,6 +524,11 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
         .missing-field {
             color: #dc3545;
             font-weight: 600;
+            background-color: #ffe8ec;
+            border: 1px solid #f5c2c7;
+            border-radius: 4px;
+            display: inline-block;
+            padding: 1px 6px;
         }
     </style>
 </head>
