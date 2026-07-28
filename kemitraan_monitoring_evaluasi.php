@@ -260,6 +260,9 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
         .realisasi-box:last-child {
             margin-bottom: 0;
         }
+        .inline-edit-btn {
+            margin-top: 6px;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -291,7 +294,6 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                 <table class="table table-bordered align-middle" style="min-width: 1400px;">
                     <thead class="table-light">
                         <tr>
-                            <th style="width:90px;">Actions</th>
                             <th>Identitas Kemitraan</th>
                             <th>Kegiatan</th>
                             <th>Waktu Pelaksanaan</th>
@@ -304,7 +306,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                     <tbody>
                         <?php if (empty($approvedRows)): ?>
                             <tr>
-                                <td colspan="8" class="text-center text-muted">Belum ada data kemitraan approved.</td>
+                                <td colspan="7" class="text-center text-muted">Belum ada data kemitraan approved.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($approvedRows as $row): ?>
@@ -319,24 +321,38 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                     ];
                                     $scheduleLabel = trim((string)($row['schedule'] ?? ''));
                                     $timeLabel = format_schedule_time($row['scheduletimestart'] ?? null, $row['scheduletimefinish'] ?? null);
+                                    $institutionNameAttr = htmlspecialchars((string)($row['institution_name'] ?? ''), ENT_QUOTES);
+                                    $monitoringDataAttr = htmlspecialchars(json_encode($monitoringPayload, JSON_UNESCAPED_UNICODE), ENT_QUOTES);
                                 ?>
                                 <tr>
                                     <td>
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm btn-primary btn-open-monitoring"
-                                            data-id="<?php echo $kemitraanId; ?>"
-                                            data-institution="<?php echo htmlspecialchars((string)($row['institution_name'] ?? ''), ENT_QUOTES); ?>"
-                                            data-monitoring="<?php echo htmlspecialchars(json_encode($monitoringPayload, JSON_UNESCAPED_UNICODE), ENT_QUOTES); ?>"
-                                            <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
-                                        >
-                                            Isi / Edit
-                                        </button>
-                                    </td>
-                                    <td>
                                         <span class="cell-line"><span class="label-muted">Nama Mitra:</span> <?php echo htmlspecialchars((string)($row['institution_name'] ?? '-')); ?></span>
-                                        <span class="cell-line"><span class="label-muted">Tim Kerja Pelaksana:</span> <?php echo htmlspecialchars((string)($row['tim_kerja_pelaksana'] ?? '-')); ?></span>
-                                        <span class="cell-line"><span class="label-muted">PIC Pusat Pasar Kerja:</span> <?php echo htmlspecialchars((string)($row['pic_pusat_pasar_kerja'] ?? '-')); ?></span>
+                                        <span class="cell-line">
+                                            <span class="label-muted">Tim Kerja Pelaksana:</span> <?php echo htmlspecialchars((string)($row['tim_kerja_pelaksana'] ?? '-')); ?>
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
+                                                data-id="<?php echo $kemitraanId; ?>"
+                                                data-institution="<?php echo $institutionNameAttr; ?>"
+                                                data-monitoring="<?php echo $monitoringDataAttr; ?>"
+                                                <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
+                                            >
+                                                Isi / Edit
+                                            </button>
+                                        </span>
+                                        <span class="cell-line">
+                                            <span class="label-muted">PIC Pusat Pasar Kerja:</span> <?php echo htmlspecialchars((string)($row['pic_pusat_pasar_kerja'] ?? '-')); ?>
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
+                                                data-id="<?php echo $kemitraanId; ?>"
+                                                data-institution="<?php echo $institutionNameAttr; ?>"
+                                                data-monitoring="<?php echo $monitoringDataAttr; ?>"
+                                                <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
+                                            >
+                                                Isi / Edit
+                                            </button>
+                                        </span>
                                         <span class="cell-line"><span class="label-muted">PIC Mitra:</span> <?php echo htmlspecialchars((string)($row['pic_name'] ?? '-')); ?></span>
                                     </td>
                                     <td><?php echo htmlspecialchars((string)($row['partnership_type_name'] ?? '-')); ?></td>
@@ -359,8 +375,36 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                             <?php endforeach; ?>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?php echo nl2br(htmlspecialchars((string)($row['masalah_hambatan'] ?? '-'))); ?></td>
-                                    <td><?php echo nl2br(htmlspecialchars((string)($row['tindak_lanjut'] ?? '-'))); ?></td>
+                                    <td>
+                                        <?php echo nl2br(htmlspecialchars((string)($row['masalah_hambatan'] ?? '-'))); ?>
+                                        <div>
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
+                                                data-id="<?php echo $kemitraanId; ?>"
+                                                data-institution="<?php echo $institutionNameAttr; ?>"
+                                                data-monitoring="<?php echo $monitoringDataAttr; ?>"
+                                                <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
+                                            >
+                                                Isi / Edit
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <?php echo nl2br(htmlspecialchars((string)($row['tindak_lanjut'] ?? '-'))); ?>
+                                        <div>
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
+                                                data-id="<?php echo $kemitraanId; ?>"
+                                                data-institution="<?php echo $institutionNameAttr; ?>"
+                                                data-monitoring="<?php echo $monitoringDataAttr; ?>"
+                                                <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
+                                            >
+                                                Isi / Edit
+                                            </button>
+                                        </div>
+                                    </td>
                                     <td>
                                         <?php
                                             $dokumentasiLink = trim((string)($row['dokumentasi_link'] ?? ''));
@@ -373,6 +417,18 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                         <?php else: ?>
                                             <span class="text-muted">-</span>
                                         <?php endif; ?>
+                                        <div>
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
+                                                data-id="<?php echo $kemitraanId; ?>"
+                                                data-institution="<?php echo $institutionNameAttr; ?>"
+                                                data-monitoring="<?php echo $monitoringDataAttr; ?>"
+                                                <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
+                                            >
+                                                Isi / Edit
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
