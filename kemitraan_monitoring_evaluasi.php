@@ -549,6 +549,17 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
 
     <div class="card shadow-sm">
         <div class="card-body">
+            <div class="mb-3">
+                <div class="btn-group" role="group" aria-label="Subsection Tim Monitoring">
+                    <?php foreach ($allowedTeams as $teamKey => $teamLabel): ?>
+                        <a
+                            href="kemitraan_monitoring_evaluasi?team=<?php echo urlencode($teamKey); ?>"
+                            class="btn <?php echo $selectedTeam === $teamKey ? 'btn-primary' : 'btn-outline-primary'; ?>"
+                        ><?php echo htmlspecialchars($teamLabel); ?></a>
+                    <?php endforeach; ?>
+                </div>
+                <div class="small text-muted mt-2">Menampilkan data untuk: <?php echo htmlspecialchars($allowedTeams[$selectedTeam]); ?></div>
+            </div>
             <div class="bulk-config-box rounded p-3 mb-3">
                 <div class="bulk-config-title mb-1">Bulk</div>
                 <div class="bulk-config-desc mb-3">Isi field berikut untuk menerapkan nilai yang sama ke semua data pada tabel di bawah (sesuai tim aktif).</div>
@@ -594,17 +605,6 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                         </div>
                     </div>
                 </form>
-            </div>
-            <div class="mb-3">
-                <div class="btn-group" role="group" aria-label="Subsection Tim Monitoring">
-                    <?php foreach ($allowedTeams as $teamKey => $teamLabel): ?>
-                        <a
-                            href="kemitraan_monitoring_evaluasi?team=<?php echo urlencode($teamKey); ?>"
-                            class="btn <?php echo $selectedTeam === $teamKey ? 'btn-primary' : 'btn-outline-primary'; ?>"
-                        ><?php echo htmlspecialchars($teamLabel); ?></a>
-                    <?php endforeach; ?>
-                </div>
-                <div class="small text-muted mt-2">Menampilkan data untuk: <?php echo htmlspecialchars($allowedTeams[$selectedTeam]); ?></div>
             </div>
 
             <div class="table-responsive">
