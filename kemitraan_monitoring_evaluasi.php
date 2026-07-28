@@ -96,6 +96,7 @@ $monitoringHasTeamCategory = $monitoringTableExists && column_exists($conn, 'kem
 if (isset($_POST['save_monitoring'])) {
     $kemitraanId = intval($_POST['kemitraan_id'] ?? 0);
     $passwordInput = trim($_POST['monitoring_password'] ?? '');
+    $editMode = trim((string)($_POST['edit_mode'] ?? 'single'));
     $fieldKey = trim($_POST['field_key'] ?? '');
     $fieldValue = trim($_POST['field_value'] ?? '');
     $teamKey = trim((string)($_POST['team_key'] ?? $selectedTeam));
@@ -126,12 +127,6 @@ if (isset($_POST['save_monitoring'])) {
         exit;
     }
 
-    if (!isset($allowedFields[$fieldKey])) {
-        $_SESSION['error'] = 'Field monitoring tidak valid.';
-        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
-        exit;
-    }
-
     if (!isset($allowedTeams[$teamKey])) {
         $_SESSION['error'] = 'Subsection tim tidak valid.';
         header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
@@ -144,47 +139,107 @@ if (isset($_POST['save_monitoring'])) {
         exit;
     }
 
-    $columnName = $allowedFields[$fieldKey];
     $targetTeam = $monitoringHasTeamCategory ? $teamKey : 'tim_layanan';
+    if ($editMode === 'bulk') {
+        $bulkTimKerja = trim((string)($_POST['bulk_tim_kerja_pelaksana'] ?? ''));
+        $bulkPicPusat = trim((string)($_POST['bulk_pic_pusat_pasar_kerja'] ?? ''));
+        $bulkMasalah = trim((string)($_POST['bulk_masalah_hambatan'] ?? ''));
+        $bulkTindak = trim((string)($_POST['bulk_tindak_lanjut'] ?? ''));
+        $bulkDokumentasi = trim((string)($_POST['bulk_dokumentasi_link'] ?? ''));
 
-    if ($monitoringHasTeamCategory) {
-        $stmt = $conn->prepare(
-            "INSERT INTO kemitraan_monitoring_evaluasi
-            (kemitraan_id, team_category, {$columnName}, created_at, updated_at)
-            VALUES (?, ?, ?, NOW(), NOW())
-            ON DUPLICATE KEY UPDATE
-                {$columnName} = VALUES({$columnName}),
-                updated_at = NOW()"
-        );
+        if ($monitoringHasTeamCategory) {
+            $stmt = $conn->prepare(
+                "INSERT INTO kemitraan_monitoring_evaluasi
+                (kemitraan_id, team_category, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE
+                    tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
+                    pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
+                    masalah_hambatan = VALUES(masalah_hambatan),
+                    tindak_lanjut = VALUES(tindak_lanjut),
+                    dokumentasi_link = VALUES(dokumentasi_link),
+                    updated_at = NOW()"
+            );
+        } else {
+            $stmt = $conn->prepare(
+                "INSERT INTO kemitraan_monitoring_evaluasi
+                (kemitraan_id, tim_kerja_pelaksana, pic_pusat_pasar_kerja, masalah_hambatan, tindak_lanjut, dokumentasi_link, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE
+                    tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
+                    pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
+                    masalah_hambatan = VALUES(masalah_hambatan),
+                    tindak_lanjut = VALUES(tindak_lanjut),
+                    dokumentasi_link = VALUES(dokumentasi_link),
+                    updated_at = NOW()"
+            );
+        }
+
+        if (!$stmt) {
+            $_SESSION['error'] = 'Gagal menyiapkan query bulk monitoring: ' . $conn->error;
+            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+            exit;
+        }
+
+        if ($monitoringHasTeamCategory) {
+            $stmt->bind_param('issssss', $kemitraanId, $targetTeam, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+        } else {
+            $stmt->bind_param('isssss', $kemitraanId, $bulkTimKerja, $bulkPicPusat, $bulkMasalah, $bulkTindak, $bulkDokumentasi);
+        }
+
+        if ($stmt->execute()) {
+            $_SESSION['success'] = 'Data monitoring bulk berhasil disimpan.';
+        } else {
+            $_SESSION['error'] = 'Gagal menyimpan monitoring bulk: ' . $stmt->error;
+        }
+        $stmt->close();
     } else {
-        $stmt = $conn->prepare(
-            "INSERT INTO kemitraan_monitoring_evaluasi
-            (kemitraan_id, {$columnName}, created_at, updated_at)
-            VALUES (?, ?, NOW(), NOW())
-            ON DUPLICATE KEY UPDATE
-                {$columnName} = VALUES({$columnName}),
-                updated_at = NOW()"
-        );
-    }
+        if (!isset($allowedFields[$fieldKey])) {
+            $_SESSION['error'] = 'Field monitoring tidak valid.';
+            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+            exit;
+        }
 
-    if (!$stmt) {
-        $_SESSION['error'] = 'Gagal menyiapkan query monitoring: ' . $conn->error;
-        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
-        exit;
-    }
+        $columnName = $allowedFields[$fieldKey];
+        if ($monitoringHasTeamCategory) {
+            $stmt = $conn->prepare(
+                "INSERT INTO kemitraan_monitoring_evaluasi
+                (kemitraan_id, team_category, {$columnName}, created_at, updated_at)
+                VALUES (?, ?, ?, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE
+                    {$columnName} = VALUES({$columnName}),
+                    updated_at = NOW()"
+            );
+        } else {
+            $stmt = $conn->prepare(
+                "INSERT INTO kemitraan_monitoring_evaluasi
+                (kemitraan_id, {$columnName}, created_at, updated_at)
+                VALUES (?, ?, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE
+                    {$columnName} = VALUES({$columnName}),
+                    updated_at = NOW()"
+            );
+        }
 
-    if ($monitoringHasTeamCategory) {
-        $stmt->bind_param('iss', $kemitraanId, $targetTeam, $fieldValue);
-    } else {
-        $stmt->bind_param('is', $kemitraanId, $fieldValue);
-    }
+        if (!$stmt) {
+            $_SESSION['error'] = 'Gagal menyiapkan query monitoring: ' . $conn->error;
+            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+            exit;
+        }
 
-    if ($stmt->execute()) {
-        $_SESSION['success'] = 'Data monitoring berhasil disimpan.';
-    } else {
-        $_SESSION['error'] = 'Gagal menyimpan monitoring: ' . $stmt->error;
+        if ($monitoringHasTeamCategory) {
+            $stmt->bind_param('iss', $kemitraanId, $targetTeam, $fieldValue);
+        } else {
+            $stmt->bind_param('is', $kemitraanId, $fieldValue);
+        }
+
+        if ($stmt->execute()) {
+            $_SESSION['success'] = 'Data monitoring berhasil disimpan.';
+        } else {
+            $_SESSION['error'] = 'Gagal menyimpan monitoring: ' . $stmt->error;
+        }
+        $stmt->close();
     }
-    $stmt->close();
 
     header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
     exit;
@@ -390,6 +445,17 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                             >
                                                 Isi / Edit
                                             </button>
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-secondary btn-sm inline-edit-btn btn-open-monitoring-bulk"
+                                                data-id="<?php echo $kemitraanId; ?>"
+                                                data-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
+                                                data-institution="<?php echo $institutionNameAttr; ?>"
+                                                data-monitoring="<?php echo $monitoringDataAttr; ?>"
+                                                <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
+                                            >
+                                                Bulk
+                                            </button>
                                         </span>
                                         <span class="cell-line">
                                             <span class="label-muted">PIC Pusat Pasar Kerja:</span> <?php echo htmlspecialchars((string)($row['pic_pusat_pasar_kerja'] ?? '-')); ?>
@@ -511,17 +577,41 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                     <input type="hidden" name="save_monitoring" value="1">
                     <input type="hidden" name="kemitraan_id" id="monitoring_kemitraan_id">
                     <input type="hidden" name="team_key" id="monitoring_team_key">
+                    <input type="hidden" name="edit_mode" id="monitoring_edit_mode" value="single">
                     <input type="hidden" name="field_key" id="monitoring_field_key">
 
                     <div class="mb-2">
                         <label class="form-label">Nama Mitra</label>
                         <input type="text" id="monitoring_institution_name" class="form-control" readonly>
                     </div>
-                    <div class="mb-2">
+                    <div class="mb-2" id="singleFieldSection">
                         <label class="form-label" id="monitoring_field_label">Field</label>
                         <textarea id="monitoring_field_value_textarea" class="form-control" rows="4"></textarea>
                         <input type="text" id="monitoring_field_value_input" class="form-control d-none" placeholder="Masukkan nilai">
                         <input type="hidden" name="field_value" id="monitoring_field_value_hidden">
+                    </div>
+                    <div class="border rounded p-3 mb-2 d-none" id="bulkFieldSection">
+                        <div class="fw-semibold mb-2">Bulk</div>
+                        <div class="mb-2">
+                            <label class="form-label">Tim Kerja Pelaksana</label>
+                            <textarea name="bulk_tim_kerja_pelaksana" id="bulk_tim_kerja_pelaksana" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">PIC Pusat Pasar Kerja</label>
+                            <textarea name="bulk_pic_pusat_pasar_kerja" id="bulk_pic_pusat_pasar_kerja" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Masalah / Hambatan</label>
+                            <textarea name="bulk_masalah_hambatan" id="bulk_masalah_hambatan" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Tindak Lanjut</label>
+                            <textarea name="bulk_tindak_lanjut" id="bulk_tindak_lanjut" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label">Dokumentasi</label>
+                            <input type="text" name="bulk_dokumentasi_link" id="bulk_dokumentasi_link" class="form-control" placeholder="https://...">
+                        </div>
                     </div>
                     <div class="mt-3">
                         <label class="form-label">Password Validasi (wajib setiap simpan)</label>
@@ -545,12 +635,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = modalElement.querySelector('form');
     const titleEl = document.getElementById('monitoringModalLabel');
     const teamKeyEl = document.getElementById('monitoring_team_key');
+    const editModeEl = document.getElementById('monitoring_edit_mode');
     const fieldLabelEl = document.getElementById('monitoring_field_label');
     const fieldKeyEl = document.getElementById('monitoring_field_key');
     const fieldTextareaEl = document.getElementById('monitoring_field_value_textarea');
     const fieldInputEl = document.getElementById('monitoring_field_value_input');
     const fieldHiddenEl = document.getElementById('monitoring_field_value_hidden');
     const passwordEl = document.getElementById('monitoring_password');
+    const singleFieldSectionEl = document.getElementById('singleFieldSection');
+    const bulkFieldSectionEl = document.getElementById('bulkFieldSection');
+    const bulkTimKerjaEl = document.getElementById('bulk_tim_kerja_pelaksana');
+    const bulkPicPusatEl = document.getElementById('bulk_pic_pusat_pasar_kerja');
+    const bulkMasalahEl = document.getElementById('bulk_masalah_hambatan');
+    const bulkTindakEl = document.getElementById('bulk_tindak_lanjut');
+    const bulkDokumentasiEl = document.getElementById('bulk_dokumentasi_link');
 
     const fieldConfig = {
         tim_kerja_pelaksana: { label: 'Tim Kerja Pelaksana', type: 'textarea' },
@@ -561,10 +659,14 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     form.addEventListener('submit', function() {
-        if (fieldInputEl.classList.contains('d-none')) {
-            fieldHiddenEl.value = fieldTextareaEl.value;
+        if (editModeEl.value === 'bulk') {
+            fieldHiddenEl.value = '';
         } else {
-            fieldHiddenEl.value = fieldInputEl.value;
+            if (fieldInputEl.classList.contains('d-none')) {
+                fieldHiddenEl.value = fieldTextareaEl.value;
+            } else {
+                fieldHiddenEl.value = fieldInputEl.value;
+            }
         }
     });
 
@@ -591,10 +693,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const currentValue = monitoring[fieldKey] || '';
             document.getElementById('monitoring_kemitraan_id').value = kemitraanId;
             teamKeyEl.value = teamKey;
+            editModeEl.value = 'single';
             fieldKeyEl.value = fieldKey;
             document.getElementById('monitoring_institution_name').value = institutionName;
 
             titleEl.textContent = 'Isi / Edit ' + config.label;
+            singleFieldSectionEl.classList.remove('d-none');
+            bulkFieldSectionEl.classList.add('d-none');
             fieldLabelEl.textContent = config.label;
             fieldHiddenEl.value = '';
             passwordEl.value = '';
@@ -608,6 +713,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 fieldTextareaEl.classList.remove('d-none');
                 fieldTextareaEl.value = currentValue;
             }
+
+            modal.show();
+        });
+    });
+
+    document.querySelectorAll('.btn-open-monitoring-bulk').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const kemitraanId = btn.getAttribute('data-id') || '';
+            const teamKey = btn.getAttribute('data-team') || 'tim_layanan';
+            const institutionName = btn.getAttribute('data-institution') || '';
+            const monitoringRaw = btn.getAttribute('data-monitoring') || '{}';
+
+            let monitoring = {};
+            try {
+                monitoring = JSON.parse(monitoringRaw);
+            } catch (err) {
+                monitoring = {};
+            }
+
+            document.getElementById('monitoring_kemitraan_id').value = kemitraanId;
+            teamKeyEl.value = teamKey;
+            editModeEl.value = 'bulk';
+            fieldKeyEl.value = '';
+            document.getElementById('monitoring_institution_name').value = institutionName;
+
+            titleEl.textContent = 'Bulk Edit Monitoring';
+            singleFieldSectionEl.classList.add('d-none');
+            bulkFieldSectionEl.classList.remove('d-none');
+            fieldHiddenEl.value = '';
+            passwordEl.value = '';
+
+            bulkTimKerjaEl.value = monitoring.tim_kerja_pelaksana || '';
+            bulkPicPusatEl.value = monitoring.pic_pusat_pasar_kerja || '';
+            bulkMasalahEl.value = monitoring.masalah_hambatan || '';
+            bulkTindakEl.value = monitoring.tindak_lanjut || '';
+            bulkDokumentasiEl.value = monitoring.dokumentasi_link || '';
 
             modal.show();
         });
