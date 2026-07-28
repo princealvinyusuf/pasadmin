@@ -109,6 +109,7 @@
     $canAsmenServices = current_user_can('asmen_view_services');
     $canAsmenCalendar = current_user_can('asmen_view_calendar');
     $canAsmenQR = current_user_can('asmen_use_qr') || $canAsmenAssets;
+    $canKemitraanMonitoring = current_user_can('kemitraan_monitoring_manage') || $canManageSettings;
 
     // Show Dashboard if user can view any dashboard or manage settings
     $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || $canDashBlk || $canDashIntegrasiKarirhubMitra || $canDashIntegrasiKarirhubPemda || $canDashPengembanganEkosistem || $canKemitraanMonitoring || current_user_can('manage_settings'));
@@ -127,7 +128,6 @@
     $canCareerBoostDaySlot = $canCareerBoostDay; // same permission
     $canWalkinSurvey = current_user_can('walkin_survey_manage') || $canManageSettings;
     $canLaporLoker = current_user_can('lapor_loker_manage') || $canManageSettings;
-    $canKemitraanMonitoring = current_user_can('kemitraan_monitoring_manage') || $canManageSettings;
     $canGrabEmail = current_user_can('grab_email_manage') || $canManageSettings;
     $canPaskerDrive = current_user_can('pasker_drive_manage') || $canManageSettings;
     $canKhProtoGlobal = current_user_can('karirhub_employer_prototype_view') || $canManageSettings;
