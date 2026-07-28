@@ -95,8 +95,15 @@ $kemitraanLocationWhere = ($isSuperAdmin || !$isLocationScopeActive)
 
 $monitoringTableExists = table_exists($conn, 'kemitraan_monitoring_evaluasi');
 $timPusakaTableExists = table_exists($conn, 'tim_pusaka_monitoring');
+$timSipkTableExists = table_exists($conn, 'tim_sipk_monitoring');
 $jossMetricsTableExists = $connAdmin instanceof mysqli
     ? table_exists_in_schema($connAdmin, 'job_admin_prod', 'karirhub_mitra_joss_metrics')
+    : false;
+$sipkMonitoringSourceExists = $connAdmin instanceof mysqli
+    ? table_exists_in_schema($connAdmin, 'job_admin_prod', 'karirhub_mitra_monitoring')
+    : false;
+$sipkMonitoringItemsSourceExists = $connAdmin instanceof mysqli
+    ? table_exists_in_schema($connAdmin, 'job_admin_prod', 'karirhub_mitra_monitoring_items')
     : false;
 $allowedTeams = [
     'tim_layanan' => 'Tim Layanan',
@@ -108,6 +115,7 @@ if (!isset($allowedTeams[$selectedTeam])) {
     $selectedTeam = 'tim_layanan';
 }
 $isTimPusaka = $selectedTeam === 'tim_pusaka';
+$isTimSipk = $selectedTeam === 'tim_sipk';
 $monitoringHasTeamCategory = $monitoringTableExists && column_exists($conn, 'kemitraan_monitoring_evaluasi', 'team_category');
 
 if (isset($_POST['apply_bulk_section'])) {
@@ -264,6 +272,136 @@ if (isset($_POST['apply_bulk_section'])) {
         }
 
         $_SESSION['success'] = 'Bulk section Tim Pusaka berhasil diterapkan ke ' . $appliedCount . ' data.';
+    } elseif ($teamKey === 'tim_sipk') {
+        if (!$timSipkTableExists || !($connAdmin instanceof mysqli) || !$sipkMonitoringSourceExists) {
+            $_SESSION['error'] = 'Sumber data Tim SIPK belum tersedia.';
+            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+            exit;
+        }
+
+        $bulkPicMitra = trim((string)($_POST['bulk_pic_mitra'] ?? ''));
+        $keys = [];
+        $monitoringRes = $connAdmin->query(
+            "SELECT portal_name
+             FROM karirhub_mitra_monitoring
+             WHERE is_active = 1
+             ORDER BY display_order ASC, id ASC"
+        );
+        if ($monitoringRes) {
+            while ($mr = $monitoringRes->fetch_assoc()) {
+                $portalName = trim((string)($mr['portal_name'] ?? ''));
+                if ($portalName === '') {
+                    continue;
+                }
+                $metricDate = date('Y-m-d');
+                if ($jossMetricsTableExists) {
+                    $metricStmt = $connAdmin->prepare("SELECT MAX(metric_date) FROM karirhub_mitra_joss_metrics WHERE portal_name = ?");
+                    if ($metricStmt) {
+                        $metricStmt->bind_param('s', $portalName);
+                        $metricStmt->execute();
+                        $metricStmt->bind_result($metricDateRes);
+                        if ($metricStmt->fetch() && $metricDateRes) {
+                            $metricDate = (string)$metricDateRes;
+                        }
+                        $metricStmt->close();
+                    }
+                }
+                $keys[] = ['metric_date' => $metricDate, 'portal_name' => $portalName];
+            }
+            $monitoringRes->free();
+        }
+
+        if (empty($keys)) {
+            $_SESSION['error'] = 'Tidak ada data integrasi Tim SIPK.';
+            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+            exit;
+        }
+
+        if ($applyOnlyEmpty) {
+            $selectStmt = $conn->prepare(
+                "SELECT tim_kerja_pelaksana, pic_pusat_pasar_kerja, pic_mitra, dokumentasi_link
+                 FROM tim_sipk_monitoring
+                 WHERE metric_date=? AND portal_name=?
+                 LIMIT 1"
+            );
+            $insertStmt = $conn->prepare(
+                "INSERT INTO tim_sipk_monitoring
+                 (metric_date, portal_name, tim_kerja_pelaksana, pic_pusat_pasar_kerja, pic_mitra, dokumentasi_link, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())"
+            );
+            $updateStmt = $conn->prepare(
+                "UPDATE tim_sipk_monitoring
+                 SET tim_kerja_pelaksana=?, pic_pusat_pasar_kerja=?, pic_mitra=?, dokumentasi_link=?, updated_at=NOW()
+                 WHERE metric_date=? AND portal_name=?"
+            );
+            if (!$selectStmt || !$insertStmt || !$updateStmt) {
+                $_SESSION['error'] = 'Gagal menyiapkan query bulk Tim SIPK.';
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+
+            foreach ($keys as $key) {
+                $metricDate = $key['metric_date'];
+                $portalName = $key['portal_name'];
+                $hasRow = false;
+                $curTim = null; $curPic = null; $curPicMitra = null; $curDok = null;
+                $selectStmt->bind_param('ss', $metricDate, $portalName);
+                if ($selectStmt->execute()) {
+                    $selectStmt->bind_result($curTim, $curPic, $curPicMitra, $curDok);
+                    if ($selectStmt->fetch()) {
+                        $hasRow = true;
+                    }
+                    $selectStmt->free_result();
+                }
+
+                if ($hasRow) {
+                    $newTim = trim((string)$curTim) !== '' ? (string)$curTim : $bulkTimKerja;
+                    $newPic = trim((string)$curPic) !== '' ? (string)$curPic : $bulkPicPusat;
+                    $newPicMitra = trim((string)$curPicMitra) !== '' ? (string)$curPicMitra : $bulkPicMitra;
+                    $newDok = trim((string)$curDok) !== '' ? (string)$curDok : $bulkDokumentasi;
+                    $updateStmt->bind_param('ssssss', $newTim, $newPic, $newPicMitra, $newDok, $metricDate, $portalName);
+                    if ($updateStmt->execute()) {
+                        $appliedCount++;
+                    }
+                } else {
+                    $insertStmt->bind_param('ssssss', $metricDate, $portalName, $bulkTimKerja, $bulkPicPusat, $bulkPicMitra, $bulkDokumentasi);
+                    if ($insertStmt->execute()) {
+                        $appliedCount++;
+                    }
+                }
+            }
+            $selectStmt->close();
+            $insertStmt->close();
+            $updateStmt->close();
+        } else {
+            $stmt = $conn->prepare(
+                "INSERT INTO tim_sipk_monitoring
+                 (metric_date, portal_name, tim_kerja_pelaksana, pic_pusat_pasar_kerja, pic_mitra, dokumentasi_link, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                 ON DUPLICATE KEY UPDATE
+                    tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
+                    pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
+                    pic_mitra = VALUES(pic_mitra),
+                    dokumentasi_link = VALUES(dokumentasi_link),
+                    updated_at = NOW()"
+            );
+            if (!$stmt) {
+                $_SESSION['error'] = 'Gagal menyiapkan query bulk Tim SIPK.';
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+            foreach ($keys as $key) {
+                $metricDate = $key['metric_date'];
+                $portalName = $key['portal_name'];
+                $stmt->bind_param('ssssss', $metricDate, $portalName, $bulkTimKerja, $bulkPicPusat, $bulkPicMitra, $bulkDokumentasi);
+                if ($stmt->execute()) {
+                    $appliedCount++;
+                }
+            }
+            $stmt->close();
+        }
+
+        $_SESSION['success'] = 'Bulk section Tim SIPK berhasil diterapkan ke ' . $appliedCount . ' data.';
     } else {
         if (!$monitoringTableExists) {
             $_SESSION['error'] = 'Tabel monitoring belum tersedia. Jalankan migration terlebih dahulu.';
@@ -513,6 +651,85 @@ if (isset($_POST['save_monitoring'])) {
             }
             $stmt->close();
         }
+    } elseif ($teamKey === 'tim_sipk') {
+        if (!$timSipkTableExists) {
+            $_SESSION['error'] = 'Tabel Tim SIPK belum tersedia. Jalankan migration terlebih dahulu.';
+            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+            exit;
+        }
+        if ($metricDate === '' || $portalName === '') {
+            $_SESSION['error'] = 'Kunci data Tim SIPK tidak valid (Tanggal/Job Portal).';
+            header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+            exit;
+        }
+
+        if ($editMode === 'bulk') {
+            $bulkTimKerja = trim((string)($_POST['bulk_tim_kerja_pelaksana'] ?? ''));
+            $bulkPicPusat = trim((string)($_POST['bulk_pic_pusat_pasar_kerja'] ?? ''));
+            $bulkPicMitra = trim((string)($_POST['bulk_pic_mitra'] ?? ''));
+            $bulkDokumentasi = trim((string)($_POST['bulk_dokumentasi_link'] ?? ''));
+
+            $stmt = $conn->prepare(
+                "INSERT INTO tim_sipk_monitoring
+                (metric_date, portal_name, tim_kerja_pelaksana, pic_pusat_pasar_kerja, pic_mitra, dokumentasi_link, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE
+                    tim_kerja_pelaksana = VALUES(tim_kerja_pelaksana),
+                    pic_pusat_pasar_kerja = VALUES(pic_pusat_pasar_kerja),
+                    pic_mitra = VALUES(pic_mitra),
+                    dokumentasi_link = VALUES(dokumentasi_link),
+                    updated_at = NOW()"
+            );
+            if (!$stmt) {
+                $_SESSION['error'] = 'Gagal menyiapkan query Tim SIPK bulk: ' . $conn->error;
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+            $stmt->bind_param('ssssss', $metricDate, $portalName, $bulkTimKerja, $bulkPicPusat, $bulkPicMitra, $bulkDokumentasi);
+            if ($stmt->execute()) {
+                $_SESSION['success'] = 'Data monitoring Tim SIPK berhasil disimpan.';
+            } else {
+                $_SESSION['error'] = 'Gagal menyimpan monitoring Tim SIPK: ' . $stmt->error;
+            }
+            $stmt->close();
+        } else {
+            if (!isset($allowedFields[$fieldKey])) {
+                $_SESSION['error'] = 'Field monitoring Tim SIPK tidak valid.';
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+            $columnName = $allowedFields[$fieldKey];
+            if ($columnName === 'masalah_hambatan' || $columnName === 'permasalahan_hambatan' || $columnName === 'tindak_lanjut') {
+                $_SESSION['error'] = 'Field ini pada Tim SIPK mengikuti sumber integrasi dan tidak dapat diedit.';
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+            if (!in_array($columnName, ['tim_kerja_pelaksana', 'pic_pusat_pasar_kerja', 'pic_mitra', 'dokumentasi_link'], true)) {
+                $_SESSION['error'] = 'Field monitoring Tim SIPK tidak diizinkan.';
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+            $stmt = $conn->prepare(
+                "INSERT INTO tim_sipk_monitoring
+                (metric_date, portal_name, {$columnName}, created_at, updated_at)
+                VALUES (?, ?, ?, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE
+                    {$columnName} = VALUES({$columnName}),
+                    updated_at = NOW()"
+            );
+            if (!$stmt) {
+                $_SESSION['error'] = 'Gagal menyiapkan query Tim SIPK: ' . $conn->error;
+                header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+                exit;
+            }
+            $stmt->bind_param('sss', $metricDate, $portalName, $fieldValue);
+            if ($stmt->execute()) {
+                $_SESSION['success'] = 'Data monitoring Tim SIPK berhasil disimpan.';
+            } else {
+                $_SESSION['error'] = 'Gagal menyimpan monitoring Tim SIPK: ' . $stmt->error;
+            }
+            $stmt->close();
+        }
     } else {
         if ($kemitraanId <= 0) {
             $_SESSION['error'] = 'Data kemitraan tidak valid.';
@@ -705,6 +922,107 @@ if ($isTimPusaka) {
             ];
         }
     }
+} elseif ($isTimSipk) {
+    if ($connAdmin instanceof mysqli && $sipkMonitoringSourceExists) {
+        $latestDateByPortal = [];
+        if ($jossMetricsTableExists) {
+            $latestDateRes = $connAdmin->query(
+                "SELECT portal_name, MAX(metric_date) AS latest_metric_date
+                 FROM karirhub_mitra_joss_metrics
+                 GROUP BY portal_name"
+            );
+            if ($latestDateRes) {
+                while ($dr = $latestDateRes->fetch_assoc()) {
+                    $pname = trim((string)($dr['portal_name'] ?? ''));
+                    $ldate = trim((string)($dr['latest_metric_date'] ?? ''));
+                    if ($pname !== '' && $ldate !== '') {
+                        $latestDateByPortal[$pname] = $ldate;
+                    }
+                }
+                $latestDateRes->free();
+            }
+        }
+
+        $monitoringItemsMap = [];
+        if ($sipkMonitoringItemsSourceExists) {
+            $itemsRes = $connAdmin->query(
+                "SELECT monitoring_id, integration_scope, status_progress, latest_progress_detail
+                 FROM karirhub_mitra_monitoring_items
+                 ORDER BY display_order ASC, id ASC"
+            );
+            if ($itemsRes) {
+                while ($it = $itemsRes->fetch_assoc()) {
+                    $mid = intval($it['monitoring_id'] ?? 0);
+                    if ($mid <= 0) {
+                        continue;
+                    }
+                    if (!isset($monitoringItemsMap[$mid])) {
+                        $monitoringItemsMap[$mid] = [];
+                    }
+                    $monitoringItemsMap[$mid][] = [
+                        'integration_scope' => trim((string)($it['integration_scope'] ?? '')),
+                        'status_progress' => trim((string)($it['status_progress'] ?? '')),
+                        'latest_progress_detail' => trim((string)($it['latest_progress_detail'] ?? '')),
+                    ];
+                }
+                $itemsRes->free();
+            }
+        }
+
+        $sipkByKey = [];
+        if ($timSipkTableExists) {
+            $sipkRes = $conn->query(
+                "SELECT metric_date, portal_name, tim_kerja_pelaksana, pic_pusat_pasar_kerja, pic_mitra, dokumentasi_link
+                 FROM tim_sipk_monitoring"
+            );
+            if ($sipkRes) {
+                while ($sr = $sipkRes->fetch_assoc()) {
+                    $skey = trim((string)($sr['metric_date'] ?? '')) . '|' . trim((string)($sr['portal_name'] ?? ''));
+                    $sipkByKey[$skey] = $sr;
+                }
+                $sipkRes->free();
+            }
+        }
+
+        $monitoringRes = $connAdmin->query(
+            "SELECT id, portal_name, cooperation_types, progress_summary, issue_notes
+             FROM karirhub_mitra_monitoring
+             WHERE is_active = 1
+             ORDER BY display_order ASC, id ASC"
+        );
+        if ($monitoringRes) {
+            while ($mr = $monitoringRes->fetch_assoc()) {
+                $monitoringId = intval($mr['id'] ?? 0);
+                $portalName = trim((string)($mr['portal_name'] ?? ''));
+                if ($portalName === '') {
+                    continue;
+                }
+                $metricDate = $latestDateByPortal[$portalName] ?? date('Y-m-d');
+                $rowKey = $metricDate . '|' . $portalName;
+                $sipkRow = $sipkByKey[$rowKey] ?? [];
+                $approvedRows[] = [
+                    'id' => 0,
+                    'row_key' => $rowKey,
+                    'institution_name' => $portalName,
+                    'pic_name' => trim((string)($sipkRow['pic_mitra'] ?? '')),
+                    'schedule' => $metricDate,
+                    'scheduletimestart' => null,
+                    'scheduletimefinish' => null,
+                    'partnership_type_name' => "Integrasi Sistem API JOSS\n" . trim((string)($mr['cooperation_types'] ?? '')),
+                    'tim_kerja_pelaksana' => trim((string)($sipkRow['tim_kerja_pelaksana'] ?? '')),
+                    'pic_pusat_pasar_kerja' => trim((string)($sipkRow['pic_pusat_pasar_kerja'] ?? '')),
+                    'masalah_hambatan' => trim((string)($mr['issue_notes'] ?? '')),
+                    'tindak_lanjut' => trim((string)($mr['progress_summary'] ?? '')),
+                    'dokumentasi_link' => trim((string)($sipkRow['dokumentasi_link'] ?? '')),
+                    'metric_date' => $metricDate,
+                    'portal_name' => $portalName,
+                    'is_sipk' => 1,
+                ];
+                $lowonganByKemitraan[$rowKey] = $monitoringItemsMap[$monitoringId] ?? [];
+            }
+            $monitoringRes->free();
+        }
+    }
 } else {
     $monitoringSelect = $monitoringTableExists
         ? "kme.tim_kerja_pelaksana, kme.pic_pusat_pasar_kerja, kme.masalah_hambatan, kme.tindak_lanjut, kme.dokumentasi_link"
@@ -852,7 +1170,7 @@ if ($isTimPusaka) {
         <div class="alert alert-success"><?php echo htmlspecialchars($_SESSION['success']); ?></div>
     <?php unset($_SESSION['success']); endif; ?>
 
-    <?php if ((!$isTimPusaka && !$monitoringTableExists) || ($isTimPusaka && !$timPusakaTableExists)): ?>
+    <?php if ((!$isTimPusaka && !$isTimSipk && !$monitoringTableExists) || ($isTimPusaka && !$timPusakaTableExists) || ($isTimSipk && !$timSipkTableExists)): ?>
         <div class="alert alert-warning">
             Tabel monitoring belum tersedia di database. Jalankan migration terlebih dahulu agar input monitoring bisa disimpan.
         </div>
@@ -886,20 +1204,22 @@ if ($isTimPusaka) {
                             <label class="form-label">PIC Pusat Pasar Kerja</label>
                             <textarea name="bulk_pic_pusat_pasar_kerja" class="form-control" rows="2"></textarea>
                         </div>
-                        <?php if ($isTimPusaka): ?>
+                        <?php if ($isTimPusaka || $isTimSipk): ?>
                         <div class="col-md-6">
                             <label class="form-label">PIC Mitra</label>
                             <textarea name="bulk_pic_mitra" class="form-control" rows="2"></textarea>
                         </div>
                         <?php endif; ?>
+                        <?php if (!$isTimSipk): ?>
                         <div class="col-md-6">
-                            <label class="form-label"><?php echo $isTimPusaka ? 'Permasalahan / Hambatan' : 'Masalah / Hambatan'; ?></label>
+                            <label class="form-label"><?php echo ($isTimPusaka || $isTimSipk) ? 'Permasalahan / Hambatan' : 'Masalah / Hambatan'; ?></label>
                             <textarea name="bulk_masalah_hambatan" class="form-control" rows="3"></textarea>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Tindak Lanjut</label>
                             <textarea name="bulk_tindak_lanjut" class="form-control" rows="3"></textarea>
                         </div>
+                        <?php endif; ?>
                         <div class="col-md-8">
                             <label class="form-label">Dokumentasi</label>
                             <input type="text" name="bulk_dokumentasi_link" class="form-control" placeholder="https://...">
@@ -932,7 +1252,7 @@ if ($isTimPusaka) {
                             <th>Kegiatan</th>
                             <th>Waktu Pelaksanaan</th>
                             <th>Realisasi / Output</th>
-                            <th><?php echo $isTimPusaka ? 'Permasalahan / Hambatan' : 'Masalah / Hambatan'; ?></th>
+                            <th><?php echo ($isTimPusaka || $isTimSipk) ? 'Permasalahan / Hambatan' : 'Masalah / Hambatan'; ?></th>
                             <th>Tindak Lanjut</th>
                             <th>Dokumentasi</th>
                         </tr>
@@ -941,7 +1261,15 @@ if ($isTimPusaka) {
                         <?php if (empty($approvedRows)): ?>
                             <tr>
                                 <td colspan="7" class="text-center text-muted">
-                                    <?php echo $isTimPusaka ? 'Belum ada data integrasi untuk Tim Pusaka.' : 'Belum ada data kemitraan approved.'; ?>
+                                    <?php
+                                        if ($isTimPusaka) {
+                                            echo 'Belum ada data integrasi untuk Tim Pusaka.';
+                                        } elseif ($isTimSipk) {
+                                            echo 'Belum ada data integrasi untuk Tim SIPK.';
+                                        } else {
+                                            echo 'Belum ada data kemitraan approved.';
+                                        }
+                                    ?>
                                 </td>
                             </tr>
                         <?php else: ?>
@@ -971,7 +1299,9 @@ if ($isTimPusaka) {
                                     $monitoringDataAttr = htmlspecialchars(json_encode($monitoringPayload, JSON_UNESCAPED_UNICODE), ENT_QUOTES);
                                     $metricDateAttr = htmlspecialchars($metricDateValue, ENT_QUOTES);
                                     $portalNameAttr = htmlspecialchars($portalNameValue, ENT_QUOTES);
-                                    $isEditEnabled = $isTimPusaka ? $timPusakaTableExists : $monitoringTableExists;
+                                    $isEditEnabled = $isTimPusaka
+                                        ? $timPusakaTableExists
+                                        : ($isTimSipk ? $timSipkTableExists : $monitoringTableExists);
                                 ?>
                                 <tr>
                                     <td>
@@ -1021,7 +1351,7 @@ if ($isTimPusaka) {
                                             <span class="<?php echo $picMitraValue === '' ? 'missing-field' : ''; ?>">
                                                 <?php echo htmlspecialchars($picMitraValue !== '' ? $picMitraValue : '-'); ?>
                                             </span>
-                                            <?php if ($isTimPusaka): ?>
+                                            <?php if ($isTimPusaka || $isTimSipk): ?>
                                             <button
                                                 type="button"
                                                 class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
@@ -1039,10 +1369,10 @@ if ($isTimPusaka) {
                                             <?php endif; ?>
                                         </span>
                                     </td>
-                                    <td><?php echo htmlspecialchars((string)($row['partnership_type_name'] ?? '-')); ?></td>
+                                    <td><?php echo nl2br(htmlspecialchars((string)($row['partnership_type_name'] ?? '-'))); ?></td>
                                     <td>
                                         <span class="cell-line"><?php echo htmlspecialchars($scheduleLabel !== '' ? $scheduleLabel : '-'); ?></span>
-                                        <?php if (!$isTimPusaka): ?>
+                                        <?php if (!$isTimPusaka && !$isTimSipk): ?>
                                         <span class="label-muted">Jam: <?php echo htmlspecialchars($timeLabel); ?></span>
                                         <?php endif; ?>
                                     </td>
@@ -1063,6 +1393,25 @@ if ($isTimPusaka) {
                                                     </span>
                                                 </span>
                                             </div>
+                                        <?php elseif ($isTimSipk): ?>
+                                            <?php $sipkItems = $lowonganByKemitraan[$row['row_key'] ?? ''] ?? []; ?>
+                                            <?php if (empty($sipkItems)): ?>
+                                                <span class="text-muted">-</span>
+                                            <?php else: ?>
+                                                <?php foreach ($sipkItems as $idx => $sipkItem): ?>
+                                                    <?php
+                                                        $scopeVal = trim((string)($sipkItem['integration_scope'] ?? ''));
+                                                        $statusVal = trim((string)($sipkItem['status_progress'] ?? ''));
+                                                        $detailVal = trim((string)($sipkItem['latest_progress_detail'] ?? ''));
+                                                    ?>
+                                                    <div class="realisasi-box">
+                                                        <div class="fw-semibold mb-1">Integrasi <?php echo $idx + 1; ?></div>
+                                                        <span class="cell-line">Ruang Lingkup Integrasi: <?php echo htmlspecialchars($scopeVal !== '' ? $scopeVal : '-'); ?></span>
+                                                        <span class="cell-line">Status Progress: <?php echo htmlspecialchars($statusVal !== '' ? $statusVal : '-'); ?></span>
+                                                        <span class="cell-line">Detail Progress Terakhir: <?php echo htmlspecialchars($detailVal !== '' ? $detailVal : '-'); ?></span>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
                                         <?php else: ?>
                                         <?php $realisasiRows = $lowonganByKemitraan[$kemitraanId] ?? []; ?>
                                         <?php if (empty($realisasiRows)): ?>
@@ -1093,6 +1442,7 @@ if ($isTimPusaka) {
                                         <span class="<?php echo $masalahValue === '' ? 'missing-field' : ''; ?>">
                                             <?php echo nl2br(htmlspecialchars($masalahValue !== '' ? $masalahValue : '-')); ?>
                                         </span>
+                                        <?php if (!$isTimSipk): ?>
                                         <div>
                                             <button
                                                 type="button"
@@ -1109,11 +1459,13 @@ if ($isTimPusaka) {
                                                 Isi / Edit
                                             </button>
                                         </div>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
                                         <span class="<?php echo $tindakLanjutValue === '' ? 'missing-field' : ''; ?>">
                                             <?php echo nl2br(htmlspecialchars($tindakLanjutValue !== '' ? $tindakLanjutValue : '-')); ?>
                                         </span>
+                                        <?php if (!$isTimSipk): ?>
                                         <div>
                                             <button
                                                 type="button"
@@ -1130,6 +1482,7 @@ if ($isTimPusaka) {
                                                 Isi / Edit
                                             </button>
                                         </div>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
                                         <?php
