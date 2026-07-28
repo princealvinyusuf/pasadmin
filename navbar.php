@@ -111,7 +111,7 @@
     $canAsmenQR = current_user_can('asmen_use_qr') || $canAsmenAssets;
 
     // Show Dashboard if user can view any dashboard or manage settings
-    $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || $canDashBlk || $canDashIntegrasiKarirhubMitra || $canDashIntegrasiKarirhubPemda || $canDashPengembanganEkosistem || current_user_can('manage_settings'));
+    $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || $canDashBlk || $canDashIntegrasiKarirhubMitra || $canDashIntegrasiKarirhubPemda || $canDashPengembanganEkosistem || $canKemitraanMonitoring || current_user_can('manage_settings'));
     $hasBlk = ($canDashBlk || $canManageSettings);
     
     $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canTopicData || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canIntegrasiKarirhubPemdaSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canAuditTrails || $canMaintenanceMessage || $canHomePopup || $canUpdatePackage);
@@ -165,7 +165,6 @@
         $canFormHasilKonseling ||
         $canMiniJobi
         || $canLaporLoker
-        || $canKemitraanMonitoring
         || $canWalkinSurvey
         || $canGrabEmail
         || $canPartnerCompany
@@ -211,6 +210,7 @@
                             <?php if ($canDashIntegrasiKarirhubPemda || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_monitoring_integrasi_karirhub_pemda">Dashboard Monitoring Integrasi Karirhub x Pemda</a></li><?php endif; ?>
                             <?php if ($canDashIntegrasiKarirhubMitra || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>dashboard_monitoring_admin_dinas_karirhub">Dashboard Monitoring Admin Dinas Karirhub</a></li><?php endif; ?>
                             <?php if ($canDashPengembanganEkosistem || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>karirhub_employer_prototype_dashboard_pengembangan">Dashboard Pengembangan Ekosistem</a></li><?php endif; ?>
+                            <?php if ($canKemitraanMonitoring): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_monitoring_evaluasi">Dashboard Monitoring &amp; Evaluasi Kemitraan Pusat Pasar Kerja</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -322,7 +322,6 @@
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_statistics">Walk-in Survey Statistik</a></li><?php endif; ?>
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_access_settings">Walk-in Survey Access</a></li><?php endif; ?>
                         <?php if ($canLaporLoker): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>lapor_loker_reports"><i class="bi bi-flag me-1"></i>Lapor Loker Reports</a></li><?php endif; ?>
-                        <?php if ($canKemitraanMonitoring): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_monitoring_evaluasi"><i class="bi bi-clipboard-data me-1"></i>Dashboard Monitoring &amp; Evaluasi Kemitraan Pusat Pasar Kerja</a></li><?php endif; ?>
                         <?php if ($canGrabEmail): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>grab_email"><i class="bi bi-envelope-paper me-1"></i>Grab Email</a></li><?php endif; ?>
                         <?php if ($canMitraSubmission || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_form_access_settings">Walk-in Form Access</a></li><?php endif; ?>
                         <?php if ($canWalkinGallery || $canPartnerCompany): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
