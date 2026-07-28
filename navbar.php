@@ -127,6 +127,7 @@
     $canCareerBoostDaySlot = $canCareerBoostDay; // same permission
     $canWalkinSurvey = current_user_can('walkin_survey_manage') || $canManageSettings;
     $canLaporLoker = current_user_can('lapor_loker_manage') || $canManageSettings;
+    $canKemitraanMonitoring = current_user_can('kemitraan_monitoring_manage') || $canManageSettings;
     $canGrabEmail = current_user_can('grab_email_manage') || $canManageSettings;
     $canPaskerDrive = current_user_can('pasker_drive_manage') || $canManageSettings;
     $canKhProtoGlobal = current_user_can('karirhub_employer_prototype_view') || $canManageSettings;
@@ -164,6 +165,7 @@
         $canFormHasilKonseling ||
         $canMiniJobi
         || $canLaporLoker
+        || $canKemitraanMonitoring
         || $canWalkinSurvey
         || $canGrabEmail
         || $canPartnerCompany
@@ -320,6 +322,7 @@
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_statistics">Walk-in Survey Statistik</a></li><?php endif; ?>
                         <?php if ($canWalkinSurvey): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_survey_access_settings">Walk-in Survey Access</a></li><?php endif; ?>
                         <?php if ($canLaporLoker): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>lapor_loker_reports"><i class="bi bi-flag me-1"></i>Lapor Loker Reports</a></li><?php endif; ?>
+                        <?php if ($canKemitraanMonitoring): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>kemitraan_monitoring_evaluasi"><i class="bi bi-clipboard-data me-1"></i>Dashboard Monitoring &amp; Evaluasi Kemitraan Pusat Pasar Kerja</a></li><?php endif; ?>
                         <?php if ($canGrabEmail): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>grab_email"><i class="bi bi-envelope-paper me-1"></i>Grab Email</a></li><?php endif; ?>
                         <?php if ($canMitraSubmission || $canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_form_access_settings">Walk-in Form Access</a></li><?php endif; ?>
                         <?php if ($canWalkinGallery || $canPartnerCompany): ?><li><hr class="dropdown-divider"></li><?php endif; ?>

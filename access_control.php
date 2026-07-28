@@ -62,6 +62,13 @@ register_menu_permission(
 
 register_menu_permission(
 	$conn,
+	'kemitraan_monitoring_manage',
+	'Manage Dashboard Monitoring & Evaluasi Kemitraan Menu',
+	'Layanan'
+);
+
+register_menu_permission(
+	$conn,
 	'update_package_view',
 	'View Update Package Menu',
 	'Tools'
