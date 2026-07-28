@@ -82,12 +82,23 @@ $kemitraanLocationWhere = ($isSuperAdmin || !$isLocationScopeActive)
     : ('k.walkin_location_id=' . intval($scopedLocationId));
 
 $monitoringTableExists = table_exists($conn, 'kemitraan_monitoring_evaluasi');
+$allowedTeams = [
+    'tim_layanan' => 'Tim Layanan',
+    'tim_pusaka' => 'Tim Pusaka',
+    'tim_sipk' => 'Tim SIPK',
+];
+$selectedTeam = trim((string)($_GET['team'] ?? 'tim_layanan'));
+if (!isset($allowedTeams[$selectedTeam])) {
+    $selectedTeam = 'tim_layanan';
+}
+$monitoringHasTeamCategory = $monitoringTableExists && column_exists($conn, 'kemitraan_monitoring_evaluasi', 'team_category');
 
 if (isset($_POST['save_monitoring'])) {
     $kemitraanId = intval($_POST['kemitraan_id'] ?? 0);
     $passwordInput = trim($_POST['monitoring_password'] ?? '');
     $fieldKey = trim($_POST['field_key'] ?? '');
     $fieldValue = trim($_POST['field_value'] ?? '');
+    $teamKey = trim((string)($_POST['team_key'] ?? $selectedTeam));
     $requiredPassword = 'Pusatpasarkerj4';
     $allowedFields = [
         'tim_kerja_pelaksana' => 'tim_kerja_pelaksana',
@@ -99,52 +110,74 @@ if (isset($_POST['save_monitoring'])) {
 
     if ($kemitraanId <= 0) {
         $_SESSION['error'] = 'Data kemitraan tidak valid.';
-        header('Location: kemitraan_monitoring_evaluasi');
+        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
         exit;
     }
 
     if (!can_access_kemitraan_record($conn, $kemitraanId, $isSuperAdmin, $scopedLocationId, $hasWalkinLocationColumn)) {
         $_SESSION['error'] = 'Anda tidak memiliki akses ke data kemitraan ini.';
-        header('Location: kemitraan_monitoring_evaluasi');
+        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
         exit;
     }
 
     if ($passwordInput !== $requiredPassword) {
         $_SESSION['error'] = 'Password salah. Monitoring tidak disimpan.';
-        header('Location: kemitraan_monitoring_evaluasi');
+        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
         exit;
     }
 
     if (!isset($allowedFields[$fieldKey])) {
         $_SESSION['error'] = 'Field monitoring tidak valid.';
-        header('Location: kemitraan_monitoring_evaluasi');
+        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
+        exit;
+    }
+
+    if (!isset($allowedTeams[$teamKey])) {
+        $_SESSION['error'] = 'Subsection tim tidak valid.';
+        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
         exit;
     }
 
     if (!$monitoringTableExists) {
         $_SESSION['error'] = 'Tabel monitoring belum tersedia. Jalankan migration terlebih dahulu.';
-        header('Location: kemitraan_monitoring_evaluasi');
+        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
         exit;
     }
 
     $columnName = $allowedFields[$fieldKey];
+    $targetTeam = $monitoringHasTeamCategory ? $teamKey : 'tim_layanan';
 
-    $stmt = $conn->prepare(
-        "INSERT INTO kemitraan_monitoring_evaluasi
-        (kemitraan_id, {$columnName}, created_at, updated_at)
-        VALUES (?, ?, NOW(), NOW())
-        ON DUPLICATE KEY UPDATE
-            {$columnName} = VALUES({$columnName}),
-            updated_at = NOW()"
-    );
+    if ($monitoringHasTeamCategory) {
+        $stmt = $conn->prepare(
+            "INSERT INTO kemitraan_monitoring_evaluasi
+            (kemitraan_id, team_category, {$columnName}, created_at, updated_at)
+            VALUES (?, ?, ?, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+                {$columnName} = VALUES({$columnName}),
+                updated_at = NOW()"
+        );
+    } else {
+        $stmt = $conn->prepare(
+            "INSERT INTO kemitraan_monitoring_evaluasi
+            (kemitraan_id, {$columnName}, created_at, updated_at)
+            VALUES (?, ?, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+                {$columnName} = VALUES({$columnName}),
+                updated_at = NOW()"
+        );
+    }
 
     if (!$stmt) {
         $_SESSION['error'] = 'Gagal menyiapkan query monitoring: ' . $conn->error;
-        header('Location: kemitraan_monitoring_evaluasi');
+        header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
         exit;
     }
 
-    $stmt->bind_param('is', $kemitraanId, $fieldValue);
+    if ($monitoringHasTeamCategory) {
+        $stmt->bind_param('iss', $kemitraanId, $targetTeam, $fieldValue);
+    } else {
+        $stmt->bind_param('is', $kemitraanId, $fieldValue);
+    }
 
     if ($stmt->execute()) {
         $_SESSION['success'] = 'Data monitoring berhasil disimpan.';
@@ -153,16 +186,22 @@ if (isset($_POST['save_monitoring'])) {
     }
     $stmt->close();
 
-    header('Location: kemitraan_monitoring_evaluasi');
+    header('Location: kemitraan_monitoring_evaluasi?team=' . urlencode($selectedTeam));
     exit;
 }
 
 $monitoringSelect = $monitoringTableExists
     ? "kme.tim_kerja_pelaksana, kme.pic_pusat_pasar_kerja, kme.masalah_hambatan, kme.tindak_lanjut, kme.dokumentasi_link"
     : "'' AS tim_kerja_pelaksana, '' AS pic_pusat_pasar_kerja, '' AS masalah_hambatan, '' AS tindak_lanjut, '' AS dokumentasi_link";
-$monitoringJoin = $monitoringTableExists
-    ? "LEFT JOIN kemitraan_monitoring_evaluasi kme ON kme.kemitraan_id = k.id"
-    : "";
+$monitoringJoin = "";
+if ($monitoringTableExists) {
+    if ($monitoringHasTeamCategory) {
+        $teamSql = $conn->real_escape_string($selectedTeam);
+        $monitoringJoin = "LEFT JOIN kemitraan_monitoring_evaluasi kme ON kme.kemitraan_id = k.id AND kme.team_category='{$teamSql}'";
+    } else {
+        $monitoringJoin = "LEFT JOIN kemitraan_monitoring_evaluasi kme ON kme.kemitraan_id = k.id";
+    }
+}
 
 $approvedRows = [];
 $approvedQuery = $conn->query(
@@ -269,7 +308,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
 <div class="container mt-4 mb-5">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Dashboard Monitoring & Evaluasi Kemitraan Pusat Pasar Kerja</h2>
-        <span class="badge bg-success">Approved Data</span>
+        <span class="badge bg-success"><?php echo htmlspecialchars($allowedTeams[$selectedTeam]); ?></span>
     </div>
 
     <?php if (isset($_SESSION['error'])): ?>
@@ -290,11 +329,14 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
         <div class="card-body">
             <div class="mb-3">
                 <div class="btn-group" role="group" aria-label="Subsection Tim Monitoring">
-                    <button type="button" class="btn btn-outline-primary btn-team-subsection active" data-team="tim_layanan">Tim Layanan</button>
-                    <button type="button" class="btn btn-outline-primary btn-team-subsection" data-team="tim_pusaka">Tim Pusaka</button>
-                    <button type="button" class="btn btn-outline-primary btn-team-subsection" data-team="tim_sipk">Tim SIPK</button>
+                    <?php foreach ($allowedTeams as $teamKey => $teamLabel): ?>
+                        <a
+                            href="kemitraan_monitoring_evaluasi?team=<?php echo urlencode($teamKey); ?>"
+                            class="btn <?php echo $selectedTeam === $teamKey ? 'btn-primary' : 'btn-outline-primary'; ?>"
+                        ><?php echo htmlspecialchars($teamLabel); ?></a>
+                    <?php endforeach; ?>
                 </div>
-                <div class="small text-muted mt-2" id="teamSubsectionHint">Menampilkan data untuk: Tim Layanan</div>
+                <div class="small text-muted mt-2">Menampilkan data untuk: <?php echo htmlspecialchars($allowedTeams[$selectedTeam]); ?></div>
             </div>
 
             <div class="table-responsive">
@@ -341,6 +383,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
                                                 data-id="<?php echo $kemitraanId; ?>"
                                                 data-field-key="tim_kerja_pelaksana"
+                                                data-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
                                                 <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
@@ -355,6 +398,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
                                                 data-id="<?php echo $kemitraanId; ?>"
                                                 data-field-key="pic_pusat_pasar_kerja"
+                                                data-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
                                                 <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
@@ -392,6 +436,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
                                                 data-id="<?php echo $kemitraanId; ?>"
                                                 data-field-key="masalah_hambatan"
+                                                data-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
                                                 <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
@@ -408,6 +453,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
                                                 data-id="<?php echo $kemitraanId; ?>"
                                                 data-field-key="tindak_lanjut"
+                                                data-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
                                                 <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
@@ -434,6 +480,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                                                 class="btn btn-outline-primary btn-sm inline-edit-btn btn-open-monitoring"
                                                 data-id="<?php echo $kemitraanId; ?>"
                                                 data-field-key="dokumentasi_link"
+                                                data-team="<?php echo htmlspecialchars($selectedTeam, ENT_QUOTES); ?>"
                                                 data-institution="<?php echo $institutionNameAttr; ?>"
                                                 data-monitoring="<?php echo $monitoringDataAttr; ?>"
                                                 <?php echo $monitoringTableExists ? '' : 'disabled'; ?>
@@ -463,6 +510,7 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
                 <div class="modal-body">
                     <input type="hidden" name="save_monitoring" value="1">
                     <input type="hidden" name="kemitraan_id" id="monitoring_kemitraan_id">
+                    <input type="hidden" name="team_key" id="monitoring_team_key">
                     <input type="hidden" name="field_key" id="monitoring_field_key">
 
                     <div class="mb-2">
@@ -494,10 +542,9 @@ if (!empty($approvedIds) && table_exists($conn, 'kemitraan_detail_lowongan')) {
 document.addEventListener('DOMContentLoaded', function() {
     const modalElement = document.getElementById('monitoringModal');
     const modal = new bootstrap.Modal(modalElement);
-    const teamButtons = document.querySelectorAll('.btn-team-subsection');
-    const teamHint = document.getElementById('teamSubsectionHint');
     const form = modalElement.querySelector('form');
     const titleEl = document.getElementById('monitoringModalLabel');
+    const teamKeyEl = document.getElementById('monitoring_team_key');
     const fieldLabelEl = document.getElementById('monitoring_field_label');
     const fieldKeyEl = document.getElementById('monitoring_field_key');
     const fieldTextareaEl = document.getElementById('monitoring_field_value_textarea');
@@ -512,25 +559,6 @@ document.addEventListener('DOMContentLoaded', function() {
         tindak_lanjut: { label: 'Tindak Lanjut', type: 'textarea' },
         dokumentasi_link: { label: 'Dokumentasi (Input Source Link)', type: 'text' }
     };
-    const teamLabels = {
-        tim_layanan: 'Tim Layanan',
-        tim_pusaka: 'Tim Pusaka',
-        tim_sipk: 'Tim SIPK'
-    };
-
-    teamButtons.forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            const teamKey = btn.getAttribute('data-team') || 'tim_layanan';
-            teamButtons.forEach(function(otherBtn) {
-                otherBtn.classList.remove('active');
-            });
-            btn.classList.add('active');
-            if (teamHint) {
-                const label = teamLabels[teamKey] || 'Tim Layanan';
-                teamHint.textContent = 'Menampilkan data untuk: ' + label;
-            }
-        });
-    });
 
     form.addEventListener('submit', function() {
         if (fieldInputEl.classList.contains('d-none')) {
@@ -543,6 +571,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.btn-open-monitoring').forEach(function(btn) {
         btn.addEventListener('click', function() {
             const kemitraanId = btn.getAttribute('data-id') || '';
+            const teamKey = btn.getAttribute('data-team') || 'tim_layanan';
             const fieldKey = btn.getAttribute('data-field-key') || '';
             const institutionName = btn.getAttribute('data-institution') || '';
             const monitoringRaw = btn.getAttribute('data-monitoring') || '{}';
@@ -561,6 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const currentValue = monitoring[fieldKey] || '';
             document.getElementById('monitoring_kemitraan_id').value = kemitraanId;
+            teamKeyEl.value = teamKey;
             fieldKeyEl.value = fieldKey;
             document.getElementById('monitoring_institution_name').value = institutionName;
 
