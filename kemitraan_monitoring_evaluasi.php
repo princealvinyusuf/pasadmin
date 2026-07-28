@@ -41,15 +41,19 @@ function column_exists(mysqli $conn, string $table, string $column): bool {
     return $res && $res->num_rows > 0;
 }
 
-function can_access_kemitraan_record(mysqli $conn, int $kemitraanId, bool $isSuperAdmin, ?int $scopedLocationId): bool {
+function can_access_kemitraan_record(
+    mysqli $conn,
+    int $kemitraanId,
+    bool $isSuperAdmin,
+    ?int $scopedLocationId,
+    bool $hasWalkinLocationColumn
+): bool {
     if ($isSuperAdmin) {
         return true;
     }
-    if ($scopedLocationId === null) {
-        return false;
-    }
-    if (!column_exists($conn, 'kemitraan', 'walkin_location_id')) {
-        return false;
+    // Fallback: if location scope is not configured, allow access by permission.
+    if (!$hasWalkinLocationColumn || $scopedLocationId === null) {
+        return true;
     }
     $stmt = $conn->prepare("SELECT 1 FROM kemitraan WHERE id=? AND walkin_location_id=? LIMIT 1");
     if (!$stmt) {
@@ -80,7 +84,11 @@ function format_schedule_time(?string $start, ?string $finish): string {
 
 $isSuperAdmin = current_user_is_super_admin();
 $scopedLocationId = current_user_walkin_location_id();
-$kemitraanLocationWhere = $isSuperAdmin ? '1=1' : ($scopedLocationId !== null ? ('k.walkin_location_id=' . intval($scopedLocationId)) : '1=0');
+$hasWalkinLocationColumn = column_exists($conn, 'kemitraan', 'walkin_location_id');
+$isLocationScopeActive = $hasWalkinLocationColumn && $scopedLocationId !== null;
+$kemitraanLocationWhere = ($isSuperAdmin || !$isLocationScopeActive)
+    ? '1=1'
+    : ('k.walkin_location_id=' . intval($scopedLocationId));
 
 $monitoringTableExists = table_exists($conn, 'kemitraan_monitoring_evaluasi');
 
@@ -95,7 +103,7 @@ if (isset($_POST['save_monitoring'])) {
         exit;
     }
 
-    if (!can_access_kemitraan_record($conn, $kemitraanId, $isSuperAdmin, $scopedLocationId)) {
+    if (!can_access_kemitraan_record($conn, $kemitraanId, $isSuperAdmin, $scopedLocationId, $hasWalkinLocationColumn)) {
         $_SESSION['error'] = 'Anda tidak memiliki akses ke data kemitraan ini.';
         header('Location: kemitraan_monitoring_evaluasi');
         exit;
