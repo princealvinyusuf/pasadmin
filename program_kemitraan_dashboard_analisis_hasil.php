@@ -171,7 +171,7 @@ if ($activityTableReady && $evaluationTableReady) {
                                 <tr>
                                     <td>
                                         <a href="program_kemitraan_dashboard_analisis_hasil_detail?activity_master_id=<?php echo $aid; ?>" class="btn btn-sm btn-primary">
-                                            Kelola Form C &amp; V
+                                            Kelola Form
                                         </a>
                                     </td>
                                     <td>

@@ -533,7 +533,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') =
                         </tbody>
                     </table>
                 </div>
-                <button type="submit" class="btn btn-primary">Simpan Formulir C</button>
+                <button type="submit" class="btn btn-primary">Simpan Formulir</button>
             </form>
 
             <h6 class="fw-bold mb-2" id="form-v-admin">Rencana Tindak Lanjut Hasil Evaluasi</h6>
@@ -616,7 +616,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') =
                     <div class="col-md-6"><label class="form-label fw-semibold">Dokumen bukti</label><textarea class="form-control" name="evidence_documents" rows="2"><?php echo e($evidenceDocumentsValue); ?></textarea></div>
                     <div class="col-md-6"><label class="form-label fw-semibold">Catatan pimpinan/arahan tambahan</label><textarea class="form-control" name="leader_notes" rows="2"><?php echo e($leaderNotesValue); ?></textarea></div>
                 </div>
-                <button type="submit" class="btn btn-primary">Simpan Formulir V</button>
+                <button type="submit" class="btn btn-primary">Simpan Formulir</button>
             </form>
         </div>
     </div>
