@@ -266,11 +266,7 @@ if ($headerTableReady) {
                         <?php foreach ($rows as $row): ?>
                             <tr>
                                 <td>
-                                    <div class="d-flex flex-wrap gap-1">
-                                        <a href="program_kemitraan_evaluasi_detail?id=<?php echo (int) ($row['id'] ?? 0); ?>" class="btn btn-sm btn-outline-primary">Detail</a>
-                                        <a href="program_kemitraan_evaluasi_detail?id=<?php echo (int) ($row['id'] ?? 0); ?>#form-c-admin" class="btn btn-sm btn-outline-success">Edit Form C</a>
-                                        <a href="program_kemitraan_evaluasi_detail?id=<?php echo (int) ($row['id'] ?? 0); ?>#form-v-admin" class="btn btn-sm btn-outline-secondary">Edit Form V</a>
-                                    </div>
+                                    <a href="program_kemitraan_evaluasi_detail?id=<?php echo (int) ($row['id'] ?? 0); ?>" class="btn btn-sm btn-outline-primary">Detail</a>
                                 </td>
                                 <td><?php echo (int) ($row['id'] ?? 0); ?></td>
                                 <td>
