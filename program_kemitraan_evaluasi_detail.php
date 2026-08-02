@@ -381,7 +381,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') =
                 </table>
             </div>
 
-            <h6 class="fw-bold mb-2">IV Formulir C - Rekapitulasi dan Analisis Hasil (Admin)</h6>
+            <h6 class="fw-bold mb-2" id="form-c-admin">IV Formulir C - Rekapitulasi dan Analisis Hasil (Admin)</h6>
             <form method="POST" class="mb-4">
                 <input type="hidden" name="action" value="save_form_c">
 
