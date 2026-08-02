@@ -568,7 +568,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') =
                 </table>
             </div>
 
-            <h6 class="fw-bold mb-2" id="form-c-admin">IV Formulir C - Rekapitulasi dan Analisis Hasil (Admin)</h6>
+            <h6 class="fw-bold mb-2" id="form-c-admin">Formulir Rekapitulasi dan Analisis Hasil</h6>
             <form method="POST" class="mb-4">
                 <input type="hidden" name="action" value="save_form_c">
 
@@ -706,7 +706,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') =
                 <button type="submit" class="btn btn-primary">Simpan Formulir C</button>
             </form>
 
-            <h6 class="fw-bold mb-2" id="form-v-admin">V Rencana Tindak Lanjut Hasil Evaluasi (Admin)</h6>
+            <h6 class="fw-bold mb-2" id="form-v-admin">Rencana Tindak Lanjut Hasil Evaluasi</h6>
             <form method="POST" class="mb-2">
                 <input type="hidden" name="action" value="save_form_v">
                 <?php

@@ -461,7 +461,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') =
             <?php if ($formVSuccess): ?><div class="alert alert-success">Formulir V berhasil disimpan.</div><?php endif; ?>
             <?php if ($formVError !== ''): ?><div class="alert alert-danger"><?php echo e($formVError); ?></div><?php endif; ?>
 
-            <h6 class="fw-bold mb-2" id="form-c-admin">IV Formulir C - Rekapitulasi dan Analisis Hasil (Admin)</h6>
+            <h6 class="fw-bold mb-2" id="form-c-admin">Formulir Rekapitulasi dan Analisis Hasil</h6>
             <form method="POST" class="mb-4">
                 <input type="hidden" name="action" value="save_form_c">
                 <?php
@@ -536,7 +536,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') =
                 <button type="submit" class="btn btn-primary">Simpan Formulir C</button>
             </form>
 
-            <h6 class="fw-bold mb-2" id="form-v-admin">V Rencana Tindak Lanjut Hasil Evaluasi (Admin)</h6>
+            <h6 class="fw-bold mb-2" id="form-v-admin">Rencana Tindak Lanjut Hasil Evaluasi</h6>
             <form method="POST">
                 <input type="hidden" name="action" value="save_form_v">
                 <?php
