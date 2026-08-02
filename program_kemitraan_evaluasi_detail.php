@@ -99,7 +99,6 @@ if ($rtlStmt) {
 
 $preferredChannels = decode_json_field($evaluation['preferred_channels'] ?? '');
 $monitoringMedia = decode_json_field($evaluation['monitoring_media'] ?? '');
-$qualitativeFeedback = decode_json_field($evaluation['qualitative_feedback'] ?? '');
 $indicatorAchievements = decode_json_field($evaluation['indicator_achievements'] ?? '');
 ?>
 <!DOCTYPE html>
@@ -216,34 +215,6 @@ $indicatorAchievements = decode_json_field($evaluation['indicator_achievements']
                 </table>
             </div>
 
-            <h6 class="fw-bold mb-2">Form C - Analisis Kualitatif</h6>
-            <div class="table-responsive mb-3">
-                <table class="table table-bordered table-sm mb-0">
-                    <thead>
-                        <tr>
-                            <th>No.</th>
-                            <th>Tema</th>
-                            <th>Ringkasan</th>
-                            <th>Frekuensi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($qualitativeFeedback)): ?>
-                            <tr><td colspan="4" class="text-center text-muted">Tidak ada data.</td></tr>
-                        <?php else: ?>
-                            <?php foreach ($qualitativeFeedback as $idx => $feedback): ?>
-                                <tr>
-                                    <td><?php echo (int) $idx + 1; ?></td>
-                                    <td><?php echo e((string) ($feedback['theme'] ?? '-')); ?></td>
-                                    <td><?php echo e((string) ($feedback['summary'] ?? '-')); ?></td>
-                                    <td><?php echo e((string) ($feedback['frequency'] ?? '-')); ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-
             <h6 class="fw-bold mb-2">Form C - Pencapaian Indikator</h6>
             <div class="table-responsive mb-4">
                 <table class="table table-bordered table-sm mb-0">
@@ -308,17 +279,16 @@ $indicatorAchievements = decode_json_field($evaluation['indicator_achievements']
                 </table>
             </div>
 
-            <h6 class="fw-bold mb-2">Pengesahan dan Pengendalian Dokumen</h6>
+            <h6 class="fw-bold mb-2">Pemantauan Lanjutan</h6>
             <div class="table-responsive">
                 <table class="table table-bordered table-sm data-table mb-0">
                     <tbody>
-                        <tr><th>Status pelaksanaan</th><td><?php echo e((string) ($evaluation['execution_status'] ?? '-')); ?></td></tr>
-                        <tr><th>Rekomendasi status</th><td><?php echo e((string) ($evaluation['recommendation_status'] ?? '-')); ?></td></tr>
-                        <tr><th>Rekomendasi utama</th><td><?php echo e((string) ($evaluation['recommendation_1'] ?? '-')); ?><br><?php echo e((string) ($evaluation['recommendation_2'] ?? '-')); ?><br><?php echo e((string) ($evaluation['recommendation_3'] ?? '-')); ?></td></tr>
                         <tr><th>Media pemantauan</th><td><?php echo e(implode(', ', array_map('strval', $monitoringMedia))); ?> <?php echo e((string) ($evaluation['monitoring_media_other'] ?? '')); ?></td></tr>
-                        <tr><th>Kode / Versi Dokumen</th><td><?php echo e((string) ($evaluation['document_code'] ?? '-')); ?> / <?php echo e((string) ($evaluation['document_version'] ?? '-')); ?></td></tr>
-                        <tr><th>Status dokumen</th><td><?php echo e((string) ($evaluation['document_status'] ?? '-')); ?></td></tr>
-                        <tr><th>Lokasi / Akses / Penanggung jawab</th><td><?php echo e((string) ($evaluation['document_storage_location'] ?? '-')); ?> / <?php echo e((string) ($evaluation['document_access_level'] ?? '-')); ?> / <?php echo e((string) ($evaluation['document_owner'] ?? '-')); ?></td></tr>
+                        <tr><th>Frekuensi pemantauan</th><td><?php echo e((string) ($evaluation['monitoring_frequency'] ?? '-')); ?></td></tr>
+                        <tr><th>Koordinator pemantauan</th><td><?php echo e((string) ($evaluation['monitoring_coordinator'] ?? '-')); ?></td></tr>
+                        <tr><th>Tanggal reviu pertama</th><td><?php echo e((string) ($evaluation['first_review_date'] ?? '-')); ?></td></tr>
+                        <tr><th>Dokumen bukti</th><td><?php echo e((string) ($evaluation['evidence_documents'] ?? '-')); ?></td></tr>
+                        <tr><th>Catatan pimpinan</th><td><?php echo e((string) ($evaluation['leader_notes'] ?? '-')); ?></td></tr>
                     </tbody>
                 </table>
             </div>

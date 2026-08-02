@@ -234,6 +234,7 @@
                         <?php if ($canManageSettings || $canJejaringTahapan): ?><li><a class="dropdown-item" href="<?php echo $jejaringUrl; ?>tahapan/index">Tahapan Kerjasama</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canProgramKemitraan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>program_kemitraan_submission">Program Kemitraan Submission</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canProgramKemitraan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>program_kemitraan_evaluasi">Program Kemitraan Form Evaluasi</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canProgramKemitraan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>program_kemitraan_evaluation_activity_settings">Program Kemitraan Master Nama Kegiatan</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
