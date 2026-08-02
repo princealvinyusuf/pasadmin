@@ -51,6 +51,16 @@ function number_or_null(string $value): ?float
     return (float) $trimmed;
 }
 
+function date_or_null(string $value): ?string
+{
+    $trimmed = trim($value);
+    if ($trimmed === '') {
+        return null;
+    }
+    $timestamp = strtotime($trimmed);
+    return $timestamp ? date('Y-m-d', $timestamp) : null;
+}
+
 $recapResultCategories = ['Sangat baik', 'Baik', 'Cukup', 'Perlu perbaikan'];
 $recapAchievementStatuses = ['Melebihi target', 'Mencapai target', 'Belum mencapai target'];
 $defaultIndicatorLabels = [
@@ -61,6 +71,14 @@ $defaultIndicatorLabels = [
     'Jangkauan atau interaksi promosi',
     'Persentase tindak lanjut tepat waktu',
 ];
+$priorityOptions = [
+    'Prioritas 1 - Mendesak dan berdampak besar',
+    'Prioritas 2 - Penting dan perlu dijadwalkan',
+    'Prioritas 3 - Penyempurnaan bertahap',
+    'Dapat dipantau tanpa tindakan segera',
+];
+$monitoringFrequencies = ['Mingguan', 'Dua mingguan', 'Bulanan', 'Sesuai tenggat'];
+$monitoringMediaOptions = ['Rapat', 'Lembar kendali', 'Sistem/aplikasi', 'Lainnya'];
 
 $id = (int) ($_GET['id'] ?? 0);
 if ($id <= 0) {
@@ -129,6 +147,8 @@ $indicatorAchievements = decode_json_field($evaluation['indicator_achievements']
 
 $formCSuccess = isset($_GET['form_c_saved']) && $_GET['form_c_saved'] === '1';
 $formCError = '';
+$formVSuccess = isset($_GET['form_v_saved']) && $_GET['form_v_saved'] === '1';
+$formVError = '';
 
 $scoreTotal = 0.0;
 $scoreCount = 0;
@@ -156,6 +176,14 @@ foreach ($defaultIndicatorLabels as $idx => $label) {
 foreach ($indicatorAchievements as $idx => $row) {
     if (isset($row['indicator']) && trim((string) $row['indicator']) !== '') {
         $indicatorLabelMap[$idx] = trim((string) $row['indicator']);
+    }
+}
+
+$rtlByOrder = [];
+foreach ($rtlItems as $rtlItemRow) {
+    $rowOrder = (int) ($rtlItemRow['row_order'] ?? 0);
+    if ($rowOrder > 0) {
+        $rtlByOrder[$rowOrder] = $rtlItemRow;
     }
 }
 
@@ -259,6 +287,159 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') =
         exit;
     }
 }
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') === 'save_form_v') {
+    $priorityLevel = value_or_null((string) ($_POST['priority_level'] ?? ''));
+    $monitoringCoordinator = value_or_null((string) ($_POST['monitoring_coordinator'] ?? ''));
+    $monitoringFrequency = value_or_null((string) ($_POST['monitoring_frequency'] ?? ''));
+    $monitoringMediaOther = value_or_null((string) ($_POST['monitoring_media_other'] ?? ''));
+    $firstReviewDate = date_or_null((string) ($_POST['first_review_date'] ?? ''));
+    $evidenceDocuments = value_or_null((string) ($_POST['evidence_documents'] ?? ''));
+    $leaderNotes = value_or_null((string) ($_POST['leader_notes'] ?? ''));
+
+    if ($priorityLevel !== null && !in_array($priorityLevel, $priorityOptions, true)) {
+        $priorityLevel = null;
+    }
+    if ($monitoringFrequency !== null && !in_array($monitoringFrequency, $monitoringFrequencies, true)) {
+        $monitoringFrequency = null;
+    }
+
+    $monitoringMediaPosted = $_POST['monitoring_media'] ?? [];
+    $monitoringMediaSanitized = [];
+    if (is_array($monitoringMediaPosted)) {
+        foreach ($monitoringMediaPosted as $mediaItem) {
+            $mediaValue = (string) $mediaItem;
+            if (in_array($mediaValue, $monitoringMediaOptions, true)) {
+                $monitoringMediaSanitized[] = $mediaValue;
+            }
+        }
+    }
+    $monitoringMediaSanitized = array_values(array_unique($monitoringMediaSanitized));
+    if (in_array('Lainnya', $monitoringMediaSanitized, true) && $monitoringMediaOther === null) {
+        $formVError = 'Kolom media lainnya wajib diisi jika opsi "Lainnya" dipilih.';
+    }
+
+    $rtlPosted = $_POST['rtl_items'] ?? [];
+    $rtlRowsToSave = [];
+    if (is_array($rtlPosted)) {
+        foreach ($rtlPosted as $idx => $rtlPostedRow) {
+            if (!is_array($rtlPostedRow)) {
+                continue;
+            }
+            $rowOrder = (int) $idx + 1;
+            $issue = value_or_null((string) ($rtlPostedRow['issue'] ?? ''));
+            $followUp = value_or_null((string) ($rtlPostedRow['follow_up'] ?? ''));
+            $responsiblePerson = value_or_null((string) ($rtlPostedRow['responsible_person'] ?? ''));
+            $targetDate = date_or_null((string) ($rtlPostedRow['target_date'] ?? ''));
+            $completionIndicator = value_or_null((string) ($rtlPostedRow['completion_indicator'] ?? ''));
+            $status = value_or_null((string) ($rtlPostedRow['status'] ?? ''));
+
+            if ($issue === null && $followUp === null && $responsiblePerson === null && $targetDate === null && $completionIndicator === null && $status === null) {
+                continue;
+            }
+
+            $rtlRowsToSave[] = [
+                'row_order' => $rowOrder,
+                'issue' => $issue,
+                'follow_up' => $followUp,
+                'responsible_person' => $responsiblePerson,
+                'target_date' => $targetDate,
+                'completion_indicator' => $completionIndicator,
+                'status' => $status,
+            ];
+        }
+    }
+
+    if ($formVError === '') {
+        $monitoringMediaJson = json_encode($monitoringMediaSanitized, JSON_UNESCAPED_UNICODE);
+        if ($monitoringMediaJson === false) {
+            $formVError = 'Gagal memproses media pemantauan.';
+        } else {
+            $conn->begin_transaction();
+            try {
+                $updateStmt = $conn->prepare("
+                    UPDATE program_kemitraan_evaluations
+                    SET
+                        priority_level = ?,
+                        monitoring_coordinator = ?,
+                        monitoring_frequency = ?,
+                        monitoring_media = ?,
+                        monitoring_media_other = ?,
+                        first_review_date = ?,
+                        evidence_documents = ?,
+                        leader_notes = ?
+                    WHERE id = ?
+                    LIMIT 1
+                ");
+                if (!$updateStmt) {
+                    throw new RuntimeException('Gagal menyiapkan update Form V: ' . $conn->error);
+                }
+                $updateStmt->bind_param(
+                    'ssssssssi',
+                    $priorityLevel,
+                    $monitoringCoordinator,
+                    $monitoringFrequency,
+                    $monitoringMediaJson,
+                    $monitoringMediaOther,
+                    $firstReviewDate,
+                    $evidenceDocuments,
+                    $leaderNotes,
+                    $id
+                );
+                if (!$updateStmt->execute()) {
+                    throw new RuntimeException('Gagal menyimpan data Form V: ' . $updateStmt->error);
+                }
+                $updateStmt->close();
+
+                $deleteStmt = $conn->prepare("DELETE FROM program_kemitraan_evaluation_rtl_items WHERE evaluation_id = ?");
+                if (!$deleteStmt) {
+                    throw new RuntimeException('Gagal menyiapkan reset RTL: ' . $conn->error);
+                }
+                $deleteStmt->bind_param('i', $id);
+                if (!$deleteStmt->execute()) {
+                    throw new RuntimeException('Gagal menghapus RTL lama: ' . $deleteStmt->error);
+                }
+                $deleteStmt->close();
+
+                if (!empty($rtlRowsToSave)) {
+                    $insertStmt = $conn->prepare("
+                        INSERT INTO program_kemitraan_evaluation_rtl_items
+                            (evaluation_id, row_order, issue, follow_up, responsible_person, target_date, completion_indicator, status, created_at, updated_at)
+                        VALUES
+                            (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    ");
+                    if (!$insertStmt) {
+                        throw new RuntimeException('Gagal menyiapkan simpan RTL: ' . $conn->error);
+                    }
+                    foreach ($rtlRowsToSave as $rtlRow) {
+                        $insertStmt->bind_param(
+                            'iissssss',
+                            $id,
+                            $rtlRow['row_order'],
+                            $rtlRow['issue'],
+                            $rtlRow['follow_up'],
+                            $rtlRow['responsible_person'],
+                            $rtlRow['target_date'],
+                            $rtlRow['completion_indicator'],
+                            $rtlRow['status']
+                        );
+                        if (!$insertStmt->execute()) {
+                            throw new RuntimeException('Gagal menyimpan baris RTL: ' . $insertStmt->error);
+                        }
+                    }
+                    $insertStmt->close();
+                }
+
+                $conn->commit();
+                header('Location: program_kemitraan_evaluasi_detail?id=' . $id . '&form_v_saved=1#form-v-admin');
+                exit;
+            } catch (Throwable $e) {
+                $conn->rollback();
+                $formVError = $e->getMessage();
+            }
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -319,6 +500,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') =
             <?php endif; ?>
             <?php if ($formCError !== ''): ?>
                 <div class="alert alert-danger"><?php echo e($formCError); ?></div>
+            <?php endif; ?>
+            <?php if ($formVSuccess): ?>
+                <div class="alert alert-success">Formulir V berhasil disimpan.</div>
+            <?php endif; ?>
+            <?php if ($formVError !== ''): ?>
+                <div class="alert alert-danger"><?php echo e($formVError); ?></div>
             <?php endif; ?>
 
             <h6 class="fw-bold mb-2">Identitas Kegiatan</h6>
@@ -519,53 +706,119 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') =
                 <button type="submit" class="btn btn-primary">Simpan Formulir C</button>
             </form>
 
-            <h6 class="fw-bold mb-2">Rencana Tindak Lanjut (RTL)</h6>
-            <div class="table-responsive mb-4">
-                <table class="table table-bordered table-sm mb-0">
-                    <thead>
-                        <tr>
-                            <th>No.</th>
-                            <th>Temuan/Isu</th>
-                            <th>Tindak Lanjut</th>
-                            <th>PJ</th>
-                            <th>Target</th>
-                            <th>Indikator Selesai</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($rtlItems)): ?>
-                            <tr><td colspan="7" class="text-center text-muted">Tidak ada data RTL.</td></tr>
-                        <?php else: ?>
-                            <?php foreach ($rtlItems as $rtl): ?>
-                                <tr>
-                                    <td><?php echo e((string) ($rtl['row_order'] ?? '-')); ?></td>
-                                    <td><?php echo e((string) ($rtl['issue'] ?? '-')); ?></td>
-                                    <td><?php echo e((string) ($rtl['follow_up'] ?? '-')); ?></td>
-                                    <td><?php echo e((string) ($rtl['responsible_person'] ?? '-')); ?></td>
-                                    <td><?php echo e((string) ($rtl['target_date'] ?? '-')); ?></td>
-                                    <td><?php echo e((string) ($rtl['completion_indicator'] ?? '-')); ?></td>
-                                    <td><?php echo e((string) ($rtl['status'] ?? '-')); ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
+            <h6 class="fw-bold mb-2" id="form-v-admin">V Rencana Tindak Lanjut Hasil Evaluasi (Admin)</h6>
+            <form method="POST" class="mb-2">
+                <input type="hidden" name="action" value="save_form_v">
+                <?php
+                $priorityLevelValue = (string) ($_POST['priority_level'] ?? ($evaluation['priority_level'] ?? ''));
+                $monitoringCoordinatorValue = (string) ($_POST['monitoring_coordinator'] ?? ($evaluation['monitoring_coordinator'] ?? ''));
+                $monitoringFrequencyValue = (string) ($_POST['monitoring_frequency'] ?? ($evaluation['monitoring_frequency'] ?? ''));
+                $monitoringMediaOtherValue = (string) ($_POST['monitoring_media_other'] ?? ($evaluation['monitoring_media_other'] ?? ''));
+                $firstReviewDateValue = (string) ($_POST['first_review_date'] ?? ($evaluation['first_review_date'] ?? ''));
+                $evidenceDocumentsValue = (string) ($_POST['evidence_documents'] ?? ($evaluation['evidence_documents'] ?? ''));
+                $leaderNotesValue = (string) ($_POST['leader_notes'] ?? ($evaluation['leader_notes'] ?? ''));
+                $selectedMonitoringMedia = $_POST['monitoring_media'] ?? $monitoringMedia;
+                if (!is_array($selectedMonitoringMedia)) {
+                    $selectedMonitoringMedia = [];
+                }
+                ?>
 
-            <h6 class="fw-bold mb-2">Pemantauan Lanjutan</h6>
-            <div class="table-responsive">
-                <table class="table table-bordered table-sm data-table mb-0">
-                    <tbody>
-                        <tr><th>Media pemantauan</th><td><?php echo e(implode(', ', array_map('strval', $monitoringMedia))); ?> <?php echo e((string) ($evaluation['monitoring_media_other'] ?? '')); ?></td></tr>
-                        <tr><th>Frekuensi pemantauan</th><td><?php echo e((string) ($evaluation['monitoring_frequency'] ?? '-')); ?></td></tr>
-                        <tr><th>Koordinator pemantauan</th><td><?php echo e((string) ($evaluation['monitoring_coordinator'] ?? '-')); ?></td></tr>
-                        <tr><th>Tanggal reviu pertama</th><td><?php echo e((string) ($evaluation['first_review_date'] ?? '-')); ?></td></tr>
-                        <tr><th>Dokumen bukti</th><td><?php echo e((string) ($evaluation['evidence_documents'] ?? '-')); ?></td></tr>
-                        <tr><th>Catatan pimpinan</th><td><?php echo e((string) ($evaluation['leader_notes'] ?? '-')); ?></td></tr>
-                    </tbody>
-                </table>
-            </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Penetapan prioritas</label>
+                        <select class="form-select" name="priority_level">
+                            <option value="">-- Pilih prioritas --</option>
+                            <?php foreach ($priorityOptions as $priority): ?>
+                                <option value="<?php echo e($priority); ?>" <?php echo $priorityLevelValue === $priority ? 'selected' : ''; ?>><?php echo e($priority); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:56px;">No.</th>
+                                <th>Temuan/Isu</th>
+                                <th>Tindak Lanjut</th>
+                                <th>Penanggung Jawab</th>
+                                <th>Target Waktu</th>
+                                <th>Indikator Selesai</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php for ($i = 1; $i <= 7; $i++): ?>
+                                <?php
+                                $postedRtl = isset($_POST['rtl_items'][$i - 1]) && is_array($_POST['rtl_items'][$i - 1]) ? $_POST['rtl_items'][$i - 1] : [];
+                                $existingRtl = $rtlByOrder[$i] ?? [];
+                                $issueValue = (string) ($postedRtl['issue'] ?? ($existingRtl['issue'] ?? ''));
+                                $followUpValue = (string) ($postedRtl['follow_up'] ?? ($existingRtl['follow_up'] ?? ''));
+                                $responsiblePersonValue = (string) ($postedRtl['responsible_person'] ?? ($existingRtl['responsible_person'] ?? ''));
+                                $targetDateValue = (string) ($postedRtl['target_date'] ?? ($existingRtl['target_date'] ?? ''));
+                                $completionIndicatorValue = (string) ($postedRtl['completion_indicator'] ?? ($existingRtl['completion_indicator'] ?? ''));
+                                $statusValue = (string) ($postedRtl['status'] ?? ($existingRtl['status'] ?? ''));
+                                ?>
+                                <tr>
+                                    <td><?php echo $i; ?></td>
+                                    <td><textarea class="form-control" name="rtl_items[<?php echo $i - 1; ?>][issue]" rows="2"><?php echo e($issueValue); ?></textarea></td>
+                                    <td><textarea class="form-control" name="rtl_items[<?php echo $i - 1; ?>][follow_up]" rows="2"><?php echo e($followUpValue); ?></textarea></td>
+                                    <td><input type="text" class="form-control" name="rtl_items[<?php echo $i - 1; ?>][responsible_person]" value="<?php echo e($responsiblePersonValue); ?>"></td>
+                                    <td><input type="date" class="form-control" name="rtl_items[<?php echo $i - 1; ?>][target_date]" value="<?php echo e($targetDateValue); ?>"></td>
+                                    <td><textarea class="form-control" name="rtl_items[<?php echo $i - 1; ?>][completion_indicator]" rows="2"><?php echo e($completionIndicatorValue); ?></textarea></td>
+                                    <td><input type="text" class="form-control" name="rtl_items[<?php echo $i - 1; ?>][status]" value="<?php echo e($statusValue); ?>"></td>
+                                </tr>
+                            <?php endfor; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Koordinator pemantauan</label>
+                        <input type="text" class="form-control" name="monitoring_coordinator" value="<?php echo e($monitoringCoordinatorValue); ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Frekuensi pemantauan</label>
+                        <select class="form-select" name="monitoring_frequency">
+                            <option value="">-- Pilih frekuensi --</option>
+                            <?php foreach ($monitoringFrequencies as $frequency): ?>
+                                <option value="<?php echo e($frequency); ?>" <?php echo $monitoringFrequencyValue === $frequency ? 'selected' : ''; ?>><?php echo e($frequency); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Media lainnya</label>
+                        <input type="text" class="form-control" name="monitoring_media_other" value="<?php echo e($monitoringMediaOtherValue); ?>">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Media pemantauan</label>
+                        <div class="d-flex flex-wrap gap-3 mt-1">
+                            <?php foreach ($monitoringMediaOptions as $mediaOption): ?>
+                                <label class="form-check-label">
+                                    <input class="form-check-input me-1" type="checkbox" name="monitoring_media[]" value="<?php echo e($mediaOption); ?>" <?php echo in_array($mediaOption, $selectedMonitoringMedia, true) ? 'checked' : ''; ?>>
+                                    <?php echo e($mediaOption); ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Tanggal reviu pertama</label>
+                        <input type="date" class="form-control" name="first_review_date" value="<?php echo e($firstReviewDateValue); ?>">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Dokumen bukti</label>
+                        <textarea class="form-control" name="evidence_documents" rows="2"><?php echo e($evidenceDocumentsValue); ?></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Catatan pimpinan/arahan tambahan</label>
+                        <textarea class="form-control" name="leader_notes" rows="2"><?php echo e($leaderNotesValue); ?></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Simpan Formulir V</button>
+            </form>
         </div>
     </div>
 </div>
