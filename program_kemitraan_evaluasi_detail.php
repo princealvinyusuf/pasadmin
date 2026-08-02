@@ -61,6 +61,29 @@ function date_or_null(string $value): ?string
     return $timestamp ? date('Y-m-d', $timestamp) : null;
 }
 
+/**
+ * @return array<string, string>
+ */
+function section_title_map(): array
+{
+    return [
+        'a_relevansi_tujuan' => 'B. Relevansi dan Kejelasan Tujuan Kegiatan',
+        'a_kualitas_materi' => 'C. Kualitas Materi dan Edukasi',
+        'a_narasumber' => 'D. Narasumber/Fasilitator',
+        'a_layanan_peserta' => 'E. Penyelenggaraan dan Layanan Peserta',
+        'a_promosi_komunikasi' => 'F. Efektivitas Promosi dan Komunikasi Publik',
+        'a_manfaat_dampak' => 'G. Manfaat, Dampak, dan Potensi Kemitraan',
+        'a_penilaian_keseluruhan' => 'H. Penilaian Keseluruhan',
+        'b_perencanaan' => 'B. Perencanaan dan Kesiapan Kegiatan',
+        'b_pelaksanaan' => 'C. Pelaksanaan dan Pengendalian Kegiatan',
+        'b_kinerja_kemitraan' => 'D. Kinerja Kemitraan',
+        'b_kinerja_edukasi' => 'E. Kinerja Edukasi',
+        'b_kinerja_promosi' => 'F. Kinerja Promosi',
+        'b_keluaran_dampak' => 'G. Keluaran, Dampak, dan Keberlanjutan',
+        'b_kepatuhan' => 'H. Kepatuhan dan Tata Kelola',
+    ];
+}
+
 $recapResultCategories = ['Sangat baik', 'Baik', 'Cukup', 'Perlu perbaikan'];
 $recapAchievementStatuses = ['Melebihi target', 'Mencapai target', 'Belum mencapai target'];
 $defaultIndicatorLabels = [
@@ -79,6 +102,7 @@ $priorityOptions = [
 ];
 $monitoringFrequencies = ['Mingguan', 'Dua mingguan', 'Bulanan', 'Sesuai tenggat'];
 $monitoringMediaOptions = ['Rapat', 'Lembar kendali', 'Sistem/aplikasi', 'Lainnya'];
+$sectionTitleMap = section_title_map();
 
 $id = (int) ($_GET['id'] ?? 0);
 if ($id <= 0) {
@@ -145,19 +169,100 @@ $preferredChannels = decode_json_field($evaluation['preferred_channels'] ?? '');
 $monitoringMedia = decode_json_field($evaluation['monitoring_media'] ?? '');
 $indicatorAchievements = decode_json_field($evaluation['indicator_achievements'] ?? '');
 
+$derivedEvaluationIds = [$id];
+$collectionDateCandidates = [];
+if (!empty($evaluation['activity_master_id'])) {
+    $activityMasterId = (int) $evaluation['activity_master_id'];
+    if ($activityMasterId > 0) {
+        $siblingEvalRes = $conn->query("
+            SELECT id, evaluation_date, created_at
+            FROM program_kemitraan_evaluations
+            WHERE activity_master_id = {$activityMasterId}
+            ORDER BY id DESC
+        ");
+        if ($siblingEvalRes) {
+            $derivedEvaluationIds = [];
+            while ($sibling = $siblingEvalRes->fetch_assoc()) {
+                $siblingId = (int) ($sibling['id'] ?? 0);
+                if ($siblingId > 0) {
+                    $derivedEvaluationIds[] = $siblingId;
+                }
+                $dateCandidate = trim((string) ($sibling['evaluation_date'] ?? ''));
+                if ($dateCandidate === '') {
+                    $dateCandidate = trim((string) ($sibling['created_at'] ?? ''));
+                }
+                $dateStamp = strtotime($dateCandidate);
+                if ($dateStamp) {
+                    $collectionDateCandidates[] = date('Y-m-d', $dateStamp);
+                }
+            }
+            $siblingEvalRes->free();
+        }
+    }
+}
+if (empty($collectionDateCandidates)) {
+    $fallbackDate = trim((string) ($evaluation['evaluation_date'] ?? ''));
+    if ($fallbackDate === '') {
+        $fallbackDate = trim((string) ($evaluation['created_at'] ?? ''));
+    }
+    $fallbackStamp = strtotime($fallbackDate);
+    if ($fallbackStamp) {
+        $collectionDateCandidates[] = date('Y-m-d', $fallbackStamp);
+    }
+}
+
+$derivedCollectionPeriod = null;
+if (!empty($collectionDateCandidates)) {
+    sort($collectionDateCandidates);
+    $firstDate = $collectionDateCandidates[0];
+    $lastDate = $collectionDateCandidates[count($collectionDateCandidates) - 1];
+    if ($firstDate === $lastDate) {
+        $derivedCollectionPeriod = date('d/m/Y', strtotime($firstDate));
+    } else {
+        $derivedCollectionPeriod = date('d/m/Y', strtotime($firstDate)) . ' - ' . date('d/m/Y', strtotime($lastDate));
+    }
+}
+
 $formCSuccess = isset($_GET['form_c_saved']) && $_GET['form_c_saved'] === '1';
 $formCError = '';
 $formVSuccess = isset($_GET['form_v_saved']) && $_GET['form_v_saved'] === '1';
 $formVError = '';
 
+$derivedAnswers = $answers;
+if (!empty($derivedEvaluationIds)) {
+    $derivedIdList = implode(',', array_map('intval', $derivedEvaluationIds));
+    $derivedAnswerRes = $conn->query("
+        SELECT section_key, score, is_not_applicable
+        FROM program_kemitraan_evaluation_answers
+        WHERE evaluation_id IN ({$derivedIdList})
+    ");
+    if ($derivedAnswerRes) {
+        $derivedAnswers = [];
+        while ($row = $derivedAnswerRes->fetch_assoc()) {
+            $derivedAnswers[] = $row;
+        }
+        $derivedAnswerRes->free();
+    }
+}
+
 $scoreTotal = 0.0;
 $scoreCount = 0;
-foreach ($answers as $answerRow) {
+$sectionScoreBuckets = [];
+foreach ($derivedAnswers as $answerRow) {
     if (!isset($answerRow['score']) || $answerRow['score'] === null || (int) ($answerRow['is_not_applicable'] ?? 0) === 1) {
         continue;
     }
     $scoreTotal += (float) $answerRow['score'];
     $scoreCount++;
+
+    $sectionKey = trim((string) ($answerRow['section_key'] ?? ''));
+    if ($sectionKey !== '') {
+        if (!isset($sectionScoreBuckets[$sectionKey])) {
+            $sectionScoreBuckets[$sectionKey] = ['total' => 0.0, 'count' => 0];
+        }
+        $sectionScoreBuckets[$sectionKey]['total'] += (float) $answerRow['score'];
+        $sectionScoreBuckets[$sectionKey]['count']++;
+    }
 }
 $derivedOverallScore = $scoreCount > 0 ? round(($scoreTotal / $scoreCount) * 20, 2) : null;
 $derivedParticipantsPresent = isset($evaluation['participants_attended']) ? (int) $evaluation['participants_attended'] : null;
@@ -167,6 +272,27 @@ $derivedFormsValid = $derivedFormsReceived;
 $derivedResponseRate = null;
 if ($derivedFormsDistributed !== null && $derivedFormsDistributed > 0 && $derivedFormsReceived !== null) {
     $derivedResponseRate = round(($derivedFormsReceived / $derivedFormsDistributed) * 100, 2);
+}
+
+$derivedHighestAspect = null;
+$derivedHighestValue = null;
+$derivedLowestAspect = null;
+$derivedLowestValue = null;
+foreach ($sectionScoreBuckets as $sectionKey => $bucket) {
+    $itemCount = (int) ($bucket['count'] ?? 0);
+    if ($itemCount <= 0) {
+        continue;
+    }
+    $sectionScore = round((((float) ($bucket['total'] ?? 0)) / $itemCount) * 20, 2);
+    $sectionLabel = $sectionTitleMap[$sectionKey] ?? $sectionKey;
+    if ($derivedHighestValue === null || $sectionScore > $derivedHighestValue) {
+        $derivedHighestValue = $sectionScore;
+        $derivedHighestAspect = $sectionLabel;
+    }
+    if ($derivedLowestValue === null || $sectionScore < $derivedLowestValue) {
+        $derivedLowestValue = $sectionScore;
+        $derivedLowestAspect = $sectionLabel;
+    }
 }
 
 $indicatorLabelMap = [];
@@ -188,11 +314,11 @@ foreach ($rtlItems as $rtlItemRow) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') === 'save_form_c') {
-    $collectionPeriod = value_or_null((string) ($_POST['recap_collection_period'] ?? ''));
-    $highestAspect = value_or_null((string) ($_POST['recap_highest_aspect'] ?? ''));
-    $highestValue = number_or_null((string) ($_POST['recap_highest_value'] ?? ''));
-    $lowestAspect = value_or_null((string) ($_POST['recap_lowest_aspect'] ?? ''));
-    $lowestValue = number_or_null((string) ($_POST['recap_lowest_value'] ?? ''));
+    $collectionPeriod = value_or_null((string) $derivedCollectionPeriod);
+    $highestAspect = value_or_null((string) ($derivedHighestAspect ?? ''));
+    $highestValue = $derivedHighestValue;
+    $lowestAspect = value_or_null((string) ($derivedLowestAspect ?? ''));
+    $lowestValue = $derivedLowestValue;
     $resultCategory = value_or_null((string) ($_POST['recap_result_category'] ?? ''));
     $internalTarget = number_or_null((string) ($_POST['recap_internal_target'] ?? ''));
     $achievementStatus = value_or_null((string) ($_POST['recap_achievement_status'] ?? ''));
@@ -573,11 +699,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') =
                 <input type="hidden" name="action" value="save_form_c">
 
                 <?php
-                $collectionPeriodValue = (string) ($_POST['recap_collection_period'] ?? ($evaluation['recap_collection_period'] ?? ''));
-                $highestAspectValue = (string) ($_POST['recap_highest_aspect'] ?? ($evaluation['recap_highest_aspect'] ?? ''));
-                $highestValueValue = (string) ($_POST['recap_highest_value'] ?? ($evaluation['recap_highest_value'] ?? ''));
-                $lowestAspectValue = (string) ($_POST['recap_lowest_aspect'] ?? ($evaluation['recap_lowest_aspect'] ?? ''));
-                $lowestValueValue = (string) ($_POST['recap_lowest_value'] ?? ($evaluation['recap_lowest_value'] ?? ''));
+                $collectionPeriodValue = (string) ($derivedCollectionPeriod ?? ($evaluation['recap_collection_period'] ?? ''));
+                $highestAspectValue = (string) ($derivedHighestAspect ?? ($evaluation['recap_highest_aspect'] ?? ''));
+                $highestValueValue = $derivedHighestValue !== null
+                    ? number_format($derivedHighestValue, 2, '.', '')
+                    : (string) ($evaluation['recap_highest_value'] ?? '');
+                $lowestAspectValue = (string) ($derivedLowestAspect ?? ($evaluation['recap_lowest_aspect'] ?? ''));
+                $lowestValueValue = $derivedLowestValue !== null
+                    ? number_format($derivedLowestValue, 2, '.', '')
+                    : (string) ($evaluation['recap_lowest_value'] ?? '');
                 $resultCategoryValue = (string) ($_POST['recap_result_category'] ?? ($evaluation['recap_result_category'] ?? ''));
                 $internalTargetValue = (string) ($_POST['recap_internal_target'] ?? ($evaluation['recap_internal_target'] ?? ''));
                 $achievementStatusValue = (string) ($_POST['recap_achievement_status'] ?? ($evaluation['recap_achievement_status'] ?? ''));
@@ -620,23 +750,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') =
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Periode pengumpulan</label>
-                        <input type="text" class="form-control" name="recap_collection_period" value="<?php echo e($collectionPeriodValue); ?>">
+                        <input type="text" class="form-control" value="<?php echo e($collectionPeriodValue); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Nilai tertinggi (aspek)</label>
-                        <input type="text" class="form-control" name="recap_highest_aspect" value="<?php echo e($highestAspectValue); ?>">
+                        <input type="text" class="form-control" value="<?php echo e($highestAspectValue); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Nilai tertinggi (angka)</label>
-                        <input type="number" min="0" max="100" step="0.01" class="form-control" name="recap_highest_value" value="<?php echo e($highestValueValue); ?>">
+                        <input type="text" class="form-control" value="<?php echo e($highestValueValue); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Nilai terendah (aspek)</label>
-                        <input type="text" class="form-control" name="recap_lowest_aspect" value="<?php echo e($lowestAspectValue); ?>">
+                        <input type="text" class="form-control" value="<?php echo e($lowestAspectValue); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Nilai terendah (angka)</label>
-                        <input type="number" min="0" max="100" step="0.01" class="form-control" name="recap_lowest_value" value="<?php echo e($lowestValueValue); ?>">
+                        <input type="text" class="form-control" value="<?php echo e($lowestValueValue); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Kategori hasil</label>
