@@ -52,7 +52,6 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $activityOrganizer = trim((string) ($_POST['activity_organizer'] ?? ''));
     $participantsInvited = ($_POST['participants_invited'] ?? '') !== '' ? max(0, (int) $_POST['participants_invited']) : null;
     $participantsAttended = ($_POST['participants_attended'] ?? '') !== '' ? max(0, (int) $_POST['participants_attended']) : null;
-    $respondentCount = ($_POST['respondent_count'] ?? '') !== '' ? max(0, (int) $_POST['respondent_count']) : null;
     $isActive = isset($_POST['is_active']) ? 1 : 0;
 
     if (
@@ -75,12 +74,12 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
             UPDATE program_kemitraan_evaluation_activities
             SET activity_name = ?, activity_theme = ?, activity_date = ?, activity_start_time = ?, activity_end_time = ?,
                 activity_timezone = ?, activity_location = ?, activity_organizer = ?, participants_invited = ?,
-                participants_attended = ?, respondent_count = ?, is_active = ?, updated_at = NOW()
+                participants_attended = ?, is_active = ?, updated_at = NOW()
             WHERE id = ?
         ");
         if ($stmt) {
             $stmt->bind_param(
-                'ssssssssiiiii',
+                'ssssssssiiii',
                 $activityName,
                 $activityTheme,
                 $activityDate,
@@ -91,7 +90,6 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $activityOrganizer,
                 $participantsInvited,
                 $participantsAttended,
-                $respondentCount,
                 $isActive,
                 $id
             );
@@ -107,12 +105,12 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $stmt = $conn->prepare("
             INSERT INTO program_kemitraan_evaluation_activities
-            (activity_name, activity_theme, activity_date, activity_start_time, activity_end_time, activity_timezone, activity_location, activity_organizer, participants_invited, participants_attended, respondent_count, is_active, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            (activity_name, activity_theme, activity_date, activity_start_time, activity_end_time, activity_timezone, activity_location, activity_organizer, participants_invited, participants_attended, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
         if ($stmt) {
             $stmt->bind_param(
-                'ssssssssiiii',
+                'ssssssssiii',
                 $activityName,
                 $activityTheme,
                 $activityDate,
@@ -123,7 +121,6 @@ if ($tableReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $activityOrganizer,
                 $participantsInvited,
                 $participantsAttended,
-                $respondentCount,
                 $isActive
             );
             if ($stmt->execute()) {
@@ -252,7 +249,8 @@ if ($tableReady) {
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Jumlah Responden</label>
-                    <input type="number" min="0" class="form-control" name="respondent_count" id="form_respondent_count">
+                    <input type="number" min="0" class="form-control" id="form_respondent_count" readonly>
+                    <div class="form-text">Otomatis dihitung dari jumlah form evaluasi yang selesai untuk nama kegiatan ini.</div>
                 </div>
                 <div class="col-12">
                     <div class="form-check">
@@ -297,7 +295,7 @@ if ($tableReady) {
                         <td><?php echo esc((string) ($r['activity_start_time'] ?? '')); ?> - <?php echo esc((string) ($r['activity_end_time'] ?? '')); ?> <?php echo esc((string) ($r['activity_timezone'] ?? '')); ?></td>
                         <td><?php echo esc((string) ($r['activity_location'] ?? '')); ?></td>
                         <td><?php echo esc((string) ($r['activity_organizer'] ?? '')); ?></td>
-                        <td><?php echo esc((string) ($r['participants_invited'] ?? '-')); ?>/<?php echo esc((string) ($r['participants_attended'] ?? '-')); ?>/<?php echo esc((string) ($r['respondent_count'] ?? '-')); ?></td>
+                        <td><?php echo esc((string) ($r['participants_invited'] ?? '-')); ?>/<?php echo esc((string) ($r['participants_attended'] ?? '-')); ?>/<?php echo (int) ($r['total_usage'] ?? 0); ?></td>
                         <td>
                             <?php if ((int) ($r['is_active'] ?? 0) === 1): ?>
                                 <span class="badge text-bg-success">Aktif</span>
@@ -330,7 +328,7 @@ function editRow(row) {
     document.getElementById('form_activity_organizer').value = row.activity_organizer || '';
     document.getElementById('form_participants_invited').value = row.participants_invited || '';
     document.getElementById('form_participants_attended').value = row.participants_attended || '';
-    document.getElementById('form_respondent_count').value = row.respondent_count || '';
+    document.getElementById('form_respondent_count').value = row.total_usage || 0;
     document.getElementById('form_is_active').checked = Number(row.is_active) === 1;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -347,7 +345,7 @@ function resetForm() {
     document.getElementById('form_activity_organizer').value = '';
     document.getElementById('form_participants_invited').value = '';
     document.getElementById('form_participants_attended').value = '';
-    document.getElementById('form_respondent_count').value = '';
+    document.getElementById('form_respondent_count').value = 0;
     document.getElementById('form_is_active').checked = true;
 }
 </script>
