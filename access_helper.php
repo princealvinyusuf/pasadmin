@@ -75,6 +75,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		['settings_integrasi_karirhub_pemda_manage','Manage Dashboard Monitoring Integrasi Karirhub x Pemda','Settings'],
 		['settings_mitra_submission_manage','Manage Mitra Kerja Submission','Settings'],
 		['program_kemitraan_manage','Manage Program Kemitraan Submissions','Settings'],
+		['program_kemitraan_certificate_manage','Manage Program Kemitraan Certificate Settings','Settings'],
 		['settings_kemitraan_booked_manage','Manage Kemitraan Booked','Settings'],
 		['settings_pasker_room_manage','Manage Pasker Room Settings','Settings'],
 		['settings_minijobi_manage','Manage miniJobi Jobs','Settings'],

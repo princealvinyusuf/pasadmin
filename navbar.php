@@ -83,6 +83,7 @@
     $canPartnershipType = current_user_can('settings_partnership_type_manage');
     $canMitraSubmission = current_user_can('settings_mitra_submission_manage');
     $canProgramKemitraan = current_user_can('program_kemitraan_manage');
+    $canProgramKemitraanCertificate = current_user_can('program_kemitraan_certificate_manage');
     $canKemitraanBooked = current_user_can('settings_kemitraan_booked_manage');
     $canPaskerRoom = current_user_can('settings_pasker_room_manage');
     $canWalkinLocationSettings = current_user_can('settings_walkin_location_manage') || $canPaskerRoom;
@@ -170,7 +171,7 @@
         || $canPartnerCompany
     );
     $canJejaringTahapan = current_user_can('jejaring_tahapan_manage');
-    $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan || $canProgramKemitraan);
+    $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan || $canProgramKemitraan || $canProgramKemitraanCertificate);
     $hasAsmen = ($canAsmenDashboard || $canAsmenAssets || $canAsmenServices || $canAsmenCalendar || $canAsmenQR);
     $hasExtensionsMenu = ($canExtensions || $canManageSettings || $canRegistrasiKehadiran || $canSplitScreen || $canPaskerDrive || $canOUI);
     // Naker Award flags
@@ -236,6 +237,7 @@
                         <?php if ($canManageSettings || $canProgramKemitraan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>program_kemitraan_evaluasi">Program Kemitraan Form Evaluasi</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canProgramKemitraan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>program_kemitraan_dashboard_analisis_hasil">Dashboard Analisis Hasil Kegiatan dan Rencana Tindak lanjut</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canProgramKemitraan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>program_kemitraan_evaluation_activity_settings">Program Kemitraan Master Nama Kegiatan</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canProgramKemitraanCertificate): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>program_kemitraan_certificate_settings">Program Kemitraan Sertifikat Settings</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
