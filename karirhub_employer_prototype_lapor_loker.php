@@ -46,6 +46,20 @@ function h(string $value): string
         .ll-description-title { color: #1f3550; font-size: 32px; font-weight: 700; margin-bottom: 14px; }
         .ll-list-title { color: #304a64; font-weight: 700; margin-bottom: 10px; }
         .ll-list { color: #4f647a; font-size: 16px; line-height: 1.6; padding-left: 20px; }
+        .ll-report-wrap { margin-top: 28px; border-top: 1px solid #edf2f8; padding-top: 24px; }
+        .ll-report-toggle { width: 100%; border: 1px solid #d7e3f0; border-radius: 10px; background: #f8fbff; padding: 14px 16px; color: #1f3550; font-size: 21px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; text-align: left; }
+        .ll-report-toggle:hover { background: #f2f8ff; }
+        .ll-report-toggle i { font-size: 16px; color: #56718d; transition: transform .2s ease; }
+        .ll-report-toggle[aria-expanded="true"] i { transform: rotate(180deg); }
+        .ll-report-card { border: 1px solid #dce7f2; border-top: 0; border-radius: 0 0 12px 12px; padding: 18px; background: #fff; }
+        .ll-safe-box { border: 1px solid #ffe4a6; background: #fff9eb; color: #775d21; border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-bottom: 16px; }
+        .ll-form-label { color: #304a64; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+        .ll-form-note { color: #7f92a7; font-size: 12px; margin-top: 4px; }
+        .ll-report-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 16px; }
+        .ll-report-primary { background: #0a8f8a; border-color: #0a8f8a; font-weight: 600; }
+        .ll-report-primary:hover { background: #087a76; border-color: #087a76; }
+        .ll-report-cancel { color: #4f667d; text-decoration: none; font-weight: 600; }
+        .ll-report-cancel:hover { color: #23415f; text-decoration: underline; }
         .ll-proto-note { background: #f1f8ff; color: #2f5c87; border: 1px solid #d6e8fb; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
         @media (max-width: 1199px) {
             .ll-title { font-size: 30px; }
@@ -141,6 +155,70 @@ function h(string $value): string
                     <li>Memenuhi target harian serta mengirimkan laporan capaian kepada pihak manajerial.</li>
                     <li>Bertugas memegang 20-50 toko atau merchant pada 1 area atau mall.</li>
                 </ul>
+            </section>
+
+            <section class="ll-report-wrap">
+                <button
+                    class="ll-report-toggle"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#laporLowonganPanel"
+                    aria-expanded="true"
+                    aria-controls="laporLowonganPanel"
+                >
+                    <span>Laporkan lowongan ini</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div id="laporLowonganPanel" class="collapse show">
+                    <div class="ll-report-card">
+                        <div class="ll-safe-box">
+                            Hati-hati: Jangan pernah membagikan PIN, OTP, password, detail rekening/kartu, atau melakukan pembayaran yang tidak semestinya selama proses melamar.
+                        </div>
+                        <form onsubmit="return false;" aria-label="Prototype form lapor lowongan">
+                            <div class="mb-3">
+                                <label class="ll-form-label" for="reportEmail">Alamat email kamu</label>
+                                <input id="reportEmail" type="email" class="form-control" value="email@example.com" readonly>
+                                <div class="ll-form-note">Diisi otomatis dari akun yang sudah login (prototype read-only).</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="ll-form-label" for="reportReason">Alasan pelaporan lowongan</label>
+                                <select id="reportReason" class="form-select">
+                                    <option selected>Silakan pilih</option>
+                                    <option>Penipuan / lowongan fiktif</option>
+                                    <option>Mencurigakan / informasi menyesatkan</option>
+                                    <option>Meminta biaya/pembayaran</option>
+                                    <option>Diskriminasi / persyaratan tidak patut</option>
+                                    <option>Gaji di bawah upah minimum / informasi upah tidak sesuai</option>
+                                    <option>Meminta data pribadi sensitif/kredensial</option>
+                                    <option>Identitas pemberi kerja tidak sesuai</option>
+                                    <option>Konten tidak pantas/tidak sesuai ketentuan</option>
+                                    <option>Lowongan sudah tidak tersedia/kedaluwarsa</option>
+                                    <option>Lainnya</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="ll-form-label" for="reportComment">Komentar tambahan</label>
+                                <textarea id="reportComment" class="form-control" rows="4" placeholder="Jelaskan informasi yang membantu proses pemeriksaan..."></textarea>
+                                <div class="ll-form-note">Komentar wajib jika memilih alasan “Lainnya”.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="ll-form-label" for="reportEvidence">Tambahkan bukti (opsional)</label>
+                                <input id="reportEvidence" type="file" class="form-control" accept=".pdf,image/*">
+                                <div class="ll-form-note">Tipe file contoh: PDF, JPG, PNG.</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="" id="reportConsent">
+                                <label class="form-check-label" for="reportConsent">
+                                    Saya menyampaikan laporan ini dengan itikad baik.
+                                </label>
+                            </div>
+                            <div class="ll-report-actions">
+                                <button type="button" class="btn btn-primary ll-report-primary">Laporkan lowongan</button>
+                                <a href="#" class="ll-report-cancel">Batal</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </section>
         </div>
     </div>
