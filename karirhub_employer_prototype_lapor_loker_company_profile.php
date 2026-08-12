@@ -40,6 +40,21 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
         .ll-map-city i { color: #2b95eb; }
         .ll-map-address { color: #667f96; font-size: 21px; }
         .ll-back-link { text-decoration: none; font-weight: 600; }
+        .ll-report-wrap { margin-top: 28px; border-top: 1px solid #edf2f8; padding-top: 24px; }
+        .ll-report-toggle { width: 100%; border: 1px solid #d7e3f0; border-radius: 10px; background: #f8fbff; padding: 14px 16px; color: #1f3550; font-size: 24px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; text-align: left; }
+        .ll-report-toggle:hover { background: #f2f8ff; }
+        .ll-report-toggle i { font-size: 16px; color: #56718d; transition: transform .2s ease; }
+        .ll-report-toggle[aria-expanded="true"] i { transform: rotate(180deg); }
+        .ll-report-card { border: 1px solid #dce7f2; border-top: 0; border-radius: 0 0 12px 12px; padding: 18px; background: #fff; }
+        .ll-helper-box { border: 1px solid #d7e5f5; background: #f5faff; color: #2a4f77; border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-bottom: 12px; }
+        .ll-safe-box { border: 1px solid #ffe4a6; background: #fff9eb; color: #775d21; border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-bottom: 16px; }
+        .ll-form-label { color: #304a64; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+        .ll-form-note { color: #7f92a7; font-size: 12px; margin-top: 4px; }
+        .ll-report-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 16px; }
+        .ll-report-primary { background: #0a8f8a; border-color: #0a8f8a; font-weight: 600; }
+        .ll-report-primary:hover { background: #087a76; border-color: #087a76; }
+        .ll-report-cancel { color: #4f667d; text-decoration: none; font-weight: 600; }
+        .ll-report-cancel:hover { color: #23415f; text-decoration: underline; }
         @media (max-width: 1199px) {
             .ll-company-title { font-size: 30px; }
             .ll-company-sub { font-size: 22px; }
@@ -64,6 +79,7 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
             .ll-map-title { font-size: 22px; }
             .ll-map-city { font-size: 15px; }
             .ll-map-address { font-size: 14px; }
+            .ll-report-toggle { font-size: 18px; }
         }
     </style>
 </head>
@@ -129,6 +145,98 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
                     <div class="ll-map-address">Gedung DIPO Tower, Lantai 3 Unit A-B, Jalan Jenderal Gatot Subroto Kavling 51</div>
                 </div>
             </div>
+
+            <section class="ll-report-wrap">
+                <button
+                    class="ll-report-toggle"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#laporPerusahaanPanel"
+                    aria-expanded="true"
+                    aria-controls="laporPerusahaanPanel"
+                >
+                    <span>Laporkan perusahaan ini</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div id="laporPerusahaanPanel" class="collapse show">
+                    <div class="ll-report-card">
+                        <div class="ll-helper-box">
+                            Gunakan Lapor Perusahaan untuk masalah terkait identitas, perilaku, atau akun perusahaan.
+                            Jika masalah hanya terkait satu lowongan, gunakan
+                            <a href="karirhub_employer_prototype_lapor_loker">Lapor Loker</a>.
+                        </div>
+                        <div class="ll-safe-box">
+                            Hati-hati: Jangan pernah membagikan PIN, OTP, password, detail rekening/kartu, atau melakukan pembayaran yang tidak semestinya selama proses rekrutmen.
+                        </div>
+                        <form onsubmit="return false;" aria-label="Prototype form lapor perusahaan">
+                            <div class="row g-3">
+                                <div class="col-12 col-lg-6">
+                                    <label class="ll-form-label" for="reportCompanyName">Nama perusahaan</label>
+                                    <input id="reportCompanyName" type="text" class="form-control" value="PT Finaccel Finance Indonesia" readonly>
+                                </div>
+                                <div class="col-12 col-lg-6">
+                                    <label class="ll-form-label" for="reportCompanyId">Company ID</label>
+                                    <input id="reportCompanyId" type="text" class="form-control" value="COMP-00012026" readonly>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <label class="ll-form-label" for="reportEmailCompany">Alamat email kamu</label>
+                                <input id="reportEmailCompany" type="email" class="form-control" value="email@example.com" readonly>
+                                <div class="ll-form-note">Diisi otomatis dari akun yang sudah login (prototype read-only).</div>
+                            </div>
+
+                            <div class="mt-3">
+                                <label class="ll-form-label" for="reportCompanyReason">Alasan pelaporan perusahaan</label>
+                                <select id="reportCompanyReason" class="form-select">
+                                    <option selected>Silakan pilih</option>
+                                    <option>Perusahaan palsu / mengatasnamakan pihak lain</option>
+                                    <option>Penipuan / modus rekrutmen</option>
+                                    <option>Meminta biaya / pungutan</option>
+                                    <option>Meminta data pribadi sensitif / kredensial</option>
+                                    <option>Identitas perusahaan tidak sesuai</option>
+                                    <option>Informasi profil perusahaan menyesatkan</option>
+                                    <option>Praktik rekrutmen diskriminatif</option>
+                                    <option>Perilaku rekrutmen tidak pantas</option>
+                                    <option>Akun perusahaan diduga disalahgunakan</option>
+                                    <option>Perusahaan tidak ditemukan / diduga tidak beroperasi</option>
+                                    <option>Lainnya</option>
+                                </select>
+                            </div>
+
+                            <div class="mt-3">
+                                <label class="ll-form-label" for="relatedVacancy">Lowongan terkait (opsional)</label>
+                                <input id="relatedVacancy" type="text" class="form-control" placeholder="Contoh: Sales Executive - DKI Jakarta">
+                                <div class="ll-form-note">Hanya sebagai konteks. Objek laporan tetap perusahaan.</div>
+                            </div>
+
+                            <div class="mt-3">
+                                <label class="ll-form-label" for="reportCompanyComment">Komentar tambahan</label>
+                                <textarea id="reportCompanyComment" class="form-control" rows="4" placeholder="Jelaskan informasi yang membantu proses pemeriksaan..."></textarea>
+                                <div class="ll-form-note">Komentar wajib jika memilih alasan “Lainnya”.</div>
+                            </div>
+
+                            <div class="mt-3">
+                                <label class="ll-form-label" for="reportCompanyEvidence">Tambahkan bukti (opsional)</label>
+                                <input id="reportCompanyEvidence" type="file" class="form-control" accept=".pdf,image/*">
+                                <div class="ll-form-note">Tipe file contoh: PDF, JPG, PNG.</div>
+                            </div>
+
+                            <div class="form-check mt-3">
+                                <input class="form-check-input" type="checkbox" value="" id="reportCompanyConsent">
+                                <label class="form-check-label" for="reportCompanyConsent">
+                                    Saya menyampaikan laporan ini dengan itikad baik.
+                                </label>
+                            </div>
+
+                            <div class="ll-report-actions">
+                                <button type="button" class="btn btn-primary ll-report-primary">Laporkan perusahaan</button>
+                                <a href="#" class="ll-report-cancel">Batal</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
 </div>
