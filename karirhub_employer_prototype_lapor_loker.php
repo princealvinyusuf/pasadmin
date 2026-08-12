@@ -60,6 +60,13 @@ function h(string $value): string
         .ll-report-primary:hover { background: #087a76; border-color: #087a76; }
         .ll-report-cancel { color: #4f667d; text-decoration: none; font-weight: 600; }
         .ll-report-cancel:hover { color: #23415f; text-decoration: underline; }
+        .ll-error-text { color: #c0342a; font-size: 12px; margin-top: 4px; display: none; }
+        .ll-success-card { border: 1px solid #cae8d8; background: #f4fff8; border-radius: 10px; padding: 16px; }
+        .ll-success-title { color: #1f5f43; font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+        .ll-success-meta { color: #305345; font-size: 15px; margin-bottom: 8px; }
+        .ll-success-meta strong { color: #1f3550; }
+        .ll-success-note { border: 1px solid #dce8f7; background: #f6f9ff; color: #355271; border-radius: 8px; padding: 10px 12px; font-size: 14px; margin: 10px 0; }
+        .ll-success-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
         .ll-proto-note { background: #f1f8ff; color: #2f5c87; border: 1px solid #d6e8fb; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
         @media (max-width: 1199px) {
             .ll-title { font-size: 30px; }
@@ -171,52 +178,72 @@ function h(string $value): string
                 </button>
                 <div id="laporLowonganPanel" class="collapse show">
                     <div class="ll-report-card">
-                        <div class="ll-safe-box">
-                            Hati-hati: Jangan pernah membagikan PIN, OTP, password, detail rekening/kartu, atau melakukan pembayaran yang tidak semestinya selama proses melamar.
+                        <div id="vacancyReportFormWrap">
+                            <div class="ll-safe-box">
+                                Hati-hati: Jangan pernah membagikan PIN, OTP, password, detail rekening/kartu, atau melakukan pembayaran yang tidak semestinya selama proses melamar.
+                            </div>
+                            <form onsubmit="return false;" aria-label="Prototype form lapor lowongan">
+                                <div class="mb-3">
+                                    <label class="ll-form-label" for="reportEmail">Alamat email kamu</label>
+                                    <input id="reportEmail" type="email" class="form-control" value="email@example.com" readonly>
+                                    <div class="ll-form-note">Diisi otomatis dari akun yang sudah login (prototype read-only).</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="ll-form-label" for="reportReason">Alasan pelaporan lowongan</label>
+                                    <select id="reportReason" class="form-select">
+                                        <option selected>Silakan pilih</option>
+                                        <option>Penipuan / lowongan fiktif</option>
+                                        <option>Mencurigakan / informasi menyesatkan</option>
+                                        <option>Meminta biaya/pembayaran</option>
+                                        <option>Diskriminasi / persyaratan tidak patut</option>
+                                        <option>Gaji di bawah upah minimum / informasi upah tidak sesuai</option>
+                                        <option>Meminta data pribadi sensitif/kredensial</option>
+                                        <option>Identitas pemberi kerja tidak sesuai</option>
+                                        <option>Konten tidak pantas/tidak sesuai ketentuan</option>
+                                        <option>Lowongan sudah tidak tersedia/kedaluwarsa</option>
+                                        <option>Lainnya</option>
+                                    </select>
+                                    <div id="vacancyReasonError" class="ll-error-text">Pilih alasan pelaporan terlebih dahulu.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="ll-form-label" for="reportComment">Komentar tambahan</label>
+                                    <textarea id="reportComment" class="form-control" rows="4" placeholder="Jelaskan informasi yang membantu proses pemeriksaan..."></textarea>
+                                    <div class="ll-form-note">Komentar wajib jika memilih alasan “Lainnya”.</div>
+                                    <div id="vacancyCommentError" class="ll-error-text">Komentar wajib jika alasan yang dipilih adalah “Lainnya”.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="ll-form-label" for="reportEvidence">Tambahkan bukti (opsional)</label>
+                                    <input id="reportEvidence" type="file" class="form-control" accept=".pdf,image/*">
+                                    <div class="ll-form-note">Tipe file contoh: PDF, JPG, PNG.</div>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="reportConsent">
+                                    <label class="form-check-label" for="reportConsent">
+                                        Saya menyampaikan laporan ini dengan itikad baik.
+                                    </label>
+                                    <div id="vacancyConsentError" class="ll-error-text">Centang pernyataan itikad baik untuk melanjutkan.</div>
+                                </div>
+                                <div class="ll-report-actions">
+                                    <button id="submitVacancyReportBtn" type="button" class="btn btn-primary ll-report-primary">Laporkan lowongan</button>
+                                    <a id="cancelVacancyReportBtn" href="#" class="ll-report-cancel">Batal</a>
+                                </div>
+                            </form>
                         </div>
-                        <form onsubmit="return false;" aria-label="Prototype form lapor lowongan">
-                            <div class="mb-3">
-                                <label class="ll-form-label" for="reportEmail">Alamat email kamu</label>
-                                <input id="reportEmail" type="email" class="form-control" value="email@example.com" readonly>
-                                <div class="ll-form-note">Diisi otomatis dari akun yang sudah login (prototype read-only).</div>
+                        <div id="vacancyReportSuccessWrap" class="d-none">
+                            <div class="ll-success-card">
+                                <div class="ll-success-title">Laporan berhasil dikirim</div>
+                                <div class="ll-success-meta"><strong>Nomor laporan:</strong> <span id="vacancyReportIdText">VRP-2026-000001</span></div>
+                                <div class="ll-success-meta"><strong>Status awal:</strong> Pending</div>
+                                <div class="ll-success-note">
+                                    Laporan Anda akan diperiksa oleh Admin. Pengiriman laporan tidak secara otomatis menghapus lowongan.
+                                    Identitas pelapor tidak disampaikan kepada Pemberi Kerja.
+                                </div>
+                                <div class="ll-success-actions">
+                                    <a class="btn btn-outline-primary" href="karirhub_employer_prototype_lapor_loker">Kembali ke lowongan</a>
+                                    <a class="btn btn-primary" href="#">Lihat Laporan Saya</a>
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label class="ll-form-label" for="reportReason">Alasan pelaporan lowongan</label>
-                                <select id="reportReason" class="form-select">
-                                    <option selected>Silakan pilih</option>
-                                    <option>Penipuan / lowongan fiktif</option>
-                                    <option>Mencurigakan / informasi menyesatkan</option>
-                                    <option>Meminta biaya/pembayaran</option>
-                                    <option>Diskriminasi / persyaratan tidak patut</option>
-                                    <option>Gaji di bawah upah minimum / informasi upah tidak sesuai</option>
-                                    <option>Meminta data pribadi sensitif/kredensial</option>
-                                    <option>Identitas pemberi kerja tidak sesuai</option>
-                                    <option>Konten tidak pantas/tidak sesuai ketentuan</option>
-                                    <option>Lowongan sudah tidak tersedia/kedaluwarsa</option>
-                                    <option>Lainnya</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="ll-form-label" for="reportComment">Komentar tambahan</label>
-                                <textarea id="reportComment" class="form-control" rows="4" placeholder="Jelaskan informasi yang membantu proses pemeriksaan..."></textarea>
-                                <div class="ll-form-note">Komentar wajib jika memilih alasan “Lainnya”.</div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="ll-form-label" for="reportEvidence">Tambahkan bukti (opsional)</label>
-                                <input id="reportEvidence" type="file" class="form-control" accept=".pdf,image/*">
-                                <div class="ll-form-note">Tipe file contoh: PDF, JPG, PNG.</div>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="" id="reportConsent">
-                                <label class="form-check-label" for="reportConsent">
-                                    Saya menyampaikan laporan ini dengan itikad baik.
-                                </label>
-                            </div>
-                            <div class="ll-report-actions">
-                                <button type="button" class="btn btn-primary ll-report-primary">Laporkan lowongan</button>
-                                <a href="#" class="ll-report-cancel">Batal</a>
-                            </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -225,6 +252,80 @@ function h(string $value): string
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    (function () {
+        const submitBtn = document.getElementById('submitVacancyReportBtn');
+        const cancelBtn = document.getElementById('cancelVacancyReportBtn');
+        const formWrap = document.getElementById('vacancyReportFormWrap');
+        const successWrap = document.getElementById('vacancyReportSuccessWrap');
+        const reasonField = document.getElementById('reportReason');
+        const commentField = document.getElementById('reportComment');
+        const consentField = document.getElementById('reportConsent');
+        const reasonError = document.getElementById('vacancyReasonError');
+        const commentError = document.getElementById('vacancyCommentError');
+        const consentError = document.getElementById('vacancyConsentError');
+        const reportIdText = document.getElementById('vacancyReportIdText');
+
+        if (!submitBtn || !formWrap || !successWrap || !reasonField || !commentField || !consentField || !reportIdText) {
+            return;
+        }
+
+        function hideErrors() {
+            if (reasonError) reasonError.style.display = 'none';
+            if (commentError) commentError.style.display = 'none';
+            if (consentError) consentError.style.display = 'none';
+        }
+
+        function generateMockReportId() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const random = Math.floor(Math.random() * 900000) + 100000;
+            return 'VRP-' + year + '-' + String(random);
+        }
+
+        submitBtn.addEventListener('click', function () {
+            hideErrors();
+            let hasError = false;
+            const reasonValue = reasonField.value.trim().toLowerCase();
+            const commentValue = commentField.value.trim();
+            const reasonNotChosen = (reasonValue === '' || reasonValue === 'silakan pilih');
+            const reasonIsOther = (reasonValue === 'lainnya');
+
+            if (reasonNotChosen) {
+                hasError = true;
+                if (reasonError) reasonError.style.display = 'block';
+            }
+
+            if (reasonIsOther && commentValue === '') {
+                hasError = true;
+                if (commentError) commentError.style.display = 'block';
+            }
+
+            if (!consentField.checked) {
+                hasError = true;
+                if (consentError) consentError.style.display = 'block';
+            }
+
+            if (hasError) {
+                return;
+            }
+
+            reportIdText.textContent = generateMockReportId();
+            formWrap.classList.add('d-none');
+            successWrap.classList.remove('d-none');
+        });
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', function (evt) {
+                evt.preventDefault();
+                reasonField.selectedIndex = 0;
+                commentField.value = '';
+                consentField.checked = false;
+                hideErrors();
+            });
+        }
+    })();
+</script>
 <?php kh_proto_render_sidebar_script(); ?>
 </body>
 </html>
