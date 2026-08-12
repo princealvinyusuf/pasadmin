@@ -143,6 +143,12 @@ register_menu_permission(
 );
 register_menu_permission(
 	$conn,
+	'karirhub_employer_prototype_lapor_loker_view',
+	'Karirhub Employer Prototype: View Lapor Loker Prototype',
+	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
 	'pasker_connect_api_manage',
 	'Pasker Connect API: Manage External Clients',
 	'API'
