@@ -136,7 +136,7 @@ function h(string $value): string
                             Dipo Tower Lt. 3, Jl. Gatot Subroto No.Kav 50-52, RW.7, Petamburan, Kecamatan Tanah Abang, Jakarta, DKI Jakarta 10260
                         </div>
                         <div class="ll-company-badge">Banking &amp; Financial Services</div><br>
-                        <a class="ll-company-link" href="#">
+                        <a class="ll-company-link" href="karirhub_employer_prototype_lapor_loker_company_profile">
                             <i class="bi bi-building"></i> Lihat Profil Perusahaan
                         </a>
                         <div class="small text-muted mt-3">Lowongan dari Karirhub</div>
