@@ -127,6 +127,10 @@ if ($case === null) {
         .ard-item-label { color: #6c8298; font-size: 12px; margin-bottom: 4px; }
         .ard-item-value { color: #1f3550; font-weight: 600; font-size: 14px; }
         .ard-actions { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+        .ard-feedback { margin-top: 12px; font-size: 13px; display: none; }
+        .ard-outcome { border: 1px solid #d9e7f8; background: #f4f9ff; border-radius: 10px; padding: 12px; margin-top: 12px; display: none; }
+        .ard-outcome-title { font-weight: 700; color: #1f3550; margin-bottom: 6px; }
+        .ard-outcome-text { color: #31506f; font-size: 13px; margin-bottom: 0; }
         @media (max-width: 991px) {
             .ard-grid { grid-template-columns: 1fr; }
         }
@@ -151,7 +155,7 @@ if ($case === null) {
                     <div class="ard-meta">Subject: <?php echo h($case['subject']); ?> | Submit: <?php echo h($case['submit_at']); ?></div>
                 </div>
                 <div class="d-flex gap-2">
-                    <span class="ard-badge text-bg-primary"><?php echo h($case['status']); ?></span>
+                    <span id="caseStatusBadge" class="ard-badge text-bg-primary"><?php echo h($case['status']); ?></span>
                     <span class="ard-badge text-bg-danger"><?php echo h($case['severity']); ?></span>
                     <span class="ard-badge text-bg-warning"><?php echo h($case['sla']); ?></span>
                 </div>
@@ -194,7 +198,7 @@ if ($case === null) {
                 <div class="row g-2">
                     <div class="col-12 col-md-4">
                         <label class="form-label small mb-1">Keputusan</label>
-                        <select class="form-select form-select-sm">
+                        <select id="decisionSelect" class="form-select form-select-sm">
                             <option>PENDING_REVIEW</option>
                             <option>IN_REVIEW</option>
                             <option>WAITING_REPORTER_INFO</option>
@@ -206,7 +210,7 @@ if ($case === null) {
                     </div>
                     <div class="col-12 col-md-4">
                         <label class="form-label small mb-1">Enforcement Action</label>
-                        <select class="form-select form-select-sm">
+                        <select id="actionSelect" class="form-select form-select-sm">
                             <option>NONE</option>
                             <option>WARNING</option>
                             <option>PROFILE_CORRECTION_REQUIRED</option>
@@ -217,7 +221,7 @@ if ($case === null) {
                     </div>
                     <div class="col-12 col-md-4">
                         <label class="form-label small mb-1">Action Scope Lowongan</label>
-                        <select class="form-select form-select-sm">
+                        <select id="scopeSelect" class="form-select form-select-sm">
                             <option>NONE</option>
                             <option>SELECTED_VACANCIES</option>
                             <option>ALL_ACTIVE_NATIVE_VACANCIES</option>
@@ -225,14 +229,120 @@ if ($case === null) {
                     </div>
                 </div>
                 <div class="ard-actions">
-                    <button class="btn btn-sm btn-outline-secondary" type="button">Minta Info Pelapor</button>
-                    <button class="btn btn-sm btn-outline-secondary" type="button">Minta Klarifikasi Pemberi Kerja</button>
-                    <button class="btn btn-sm btn-primary" type="button">Simpan Keputusan (Prototype)</button>
+                    <button id="requestReporterInfoBtn" class="btn btn-sm btn-outline-secondary" type="button">Minta Info Pelapor</button>
+                    <button id="requestEmployerClarificationBtn" class="btn btn-sm btn-outline-secondary" type="button">Minta Klarifikasi Pemberi Kerja</button>
+                    <button id="saveDecisionBtn" class="btn btn-sm btn-primary" type="button">Simpan Keputusan (Prototype)</button>
+                </div>
+                <div id="decisionFeedback" class="ard-feedback"></div>
+                <div id="decisionOutcome" class="ard-outcome">
+                    <div class="ard-outcome-title">Ringkasan Outcome Prototype</div>
+                    <p id="decisionOutcomeText" class="ard-outcome-text"></p>
                 </div>
             </div>
         </div>
     <?php endif; ?>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    (function () {
+        const statusBadge = document.getElementById('caseStatusBadge');
+        const decisionSelect = document.getElementById('decisionSelect');
+        const actionSelect = document.getElementById('actionSelect');
+        const scopeSelect = document.getElementById('scopeSelect');
+        const requestReporterBtn = document.getElementById('requestReporterInfoBtn');
+        const requestEmployerBtn = document.getElementById('requestEmployerClarificationBtn');
+        const saveBtn = document.getElementById('saveDecisionBtn');
+        const feedback = document.getElementById('decisionFeedback');
+        const outcome = document.getElementById('decisionOutcome');
+        const outcomeText = document.getElementById('decisionOutcomeText');
+
+        if (!statusBadge || !decisionSelect || !actionSelect || !scopeSelect || !saveBtn || !feedback || !outcome || !outcomeText) {
+            return;
+        }
+
+        function setStatusBadge(status) {
+            statusBadge.textContent = status;
+            statusBadge.classList.remove('text-bg-primary', 'text-bg-warning', 'text-bg-info', 'text-bg-success', 'text-bg-secondary');
+            if (status === 'WAITING_REPORTER_INFO' || status === 'WAITING_EMPLOYER_CLARIFICATION') {
+                statusBadge.classList.add('text-bg-warning');
+                return;
+            }
+            if (status === 'ESCALATED') {
+                statusBadge.classList.add('text-bg-secondary');
+                return;
+            }
+            if (status === 'VALID_ACTIONED' || status === 'CLOSED' || status === 'NOT_PROVEN') {
+                statusBadge.classList.add('text-bg-success');
+                return;
+            }
+            if (status === 'IN_REVIEW') {
+                statusBadge.classList.add('text-bg-info');
+                return;
+            }
+            statusBadge.classList.add('text-bg-primary');
+        }
+
+        function showFeedback(message, isError) {
+            feedback.style.display = 'block';
+            feedback.classList.toggle('text-danger', !!isError);
+            feedback.classList.toggle('text-success', !isError);
+            feedback.textContent = message;
+        }
+
+        function showOutcome(message) {
+            outcome.style.display = 'block';
+            outcomeText.textContent = message;
+        }
+
+        if (requestReporterBtn) {
+            requestReporterBtn.addEventListener('click', function () {
+                decisionSelect.value = 'WAITING_REPORTER_INFO';
+                setStatusBadge('WAITING_REPORTER_INFO');
+                showFeedback('Status diubah ke WAITING_REPORTER_INFO. Permintaan info akan tampil di Laporan Saya (prototype).', false);
+                showOutcome('Menunggu informasi tambahan dari pelapor. Tidak ada perubahan otomatis pada perusahaan/lowongan.');
+            });
+        }
+
+        if (requestEmployerBtn) {
+            requestEmployerBtn.addEventListener('click', function () {
+                decisionSelect.value = 'WAITING_EMPLOYER_CLARIFICATION';
+                setStatusBadge('WAITING_EMPLOYER_CLARIFICATION');
+                showFeedback('Status diubah ke WAITING_EMPLOYER_CLARIFICATION. Klarifikasi ke pemberi kerja disiapkan (prototype).', false);
+                showOutcome('Menunggu klarifikasi pemberi kerja. Identitas pelapor harus tetap terlindungi.');
+            });
+        }
+
+        saveBtn.addEventListener('click', function () {
+            const decision = decisionSelect.value;
+            const action = actionSelect.value;
+            const scope = scopeSelect.value;
+
+            if (decision === 'VALID_ACTIONED' && action === 'NONE') {
+                showFeedback('Untuk VALID_ACTIONED, Enforcement Action tidak boleh NONE.', true);
+                return;
+            }
+
+            if ((action === 'SUSPEND_EMPLOYER_ACCOUNT' || action === 'BLOCK_EMPLOYER_ACCOUNT') && scope === 'NONE') {
+                showFeedback('Untuk SUSPEND/BLOCK, pilih Action Scope Lowongan secara eksplisit bila ada dampak lowongan.', true);
+                return;
+            }
+
+            setStatusBadge(decision);
+            showFeedback('Keputusan prototype berhasil disimpan.', false);
+
+            let outcomeMessage = 'Decision: ' + decision + '. ';
+            if (decision === 'NOT_PROVEN') {
+                outcomeMessage += 'Case dapat ditutup tanpa perubahan perusahaan/lowongan.';
+            } else if (decision === 'VALID_ACTIONED') {
+                outcomeMessage += 'Action: ' + action + ' dengan scope ' + scope + '.';
+            } else if (decision === 'ESCALATED') {
+                outcomeMessage += 'Case dieskalasi ke role berwenang.';
+            } else {
+                outcomeMessage += 'Case tetap pada alur review.';
+            }
+            showOutcome(outcomeMessage);
+        });
+    })();
+</script>
 </body>
 </html>

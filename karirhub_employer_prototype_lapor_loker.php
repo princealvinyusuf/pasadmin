@@ -240,7 +240,7 @@ function h(string $value): string
                                 </div>
                                 <div class="ll-success-actions">
                                     <a class="btn btn-outline-primary" href="karirhub_employer_prototype_lapor_loker">Kembali ke lowongan</a>
-                                    <a class="btn btn-primary" href="#">Lihat Laporan Saya</a>
+                                    <a class="btn btn-primary" href="laporan_saya_prototype">Lihat Laporan Saya</a>
                                 </div>
                             </div>
                         </div>
