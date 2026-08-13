@@ -66,18 +66,6 @@ register_menu_permission(
 	'Manage Dashboard Monitoring & Evaluasi Kemitraan Menu',
 	'Layanan'
 );
-register_menu_permission(
-	$conn,
-	'lapor_perusahaan_manage',
-	'Manage Lapor Perusahaan Reports Menu',
-	'Layanan'
-);
-register_menu_permission(
-	$conn,
-	'laporan_masuk_admin_manage',
-	'Manage Pusat Pemeriksaan Laporan Menu',
-	'Layanan'
-);
 
 register_menu_permission(
 	$conn,
@@ -158,6 +146,12 @@ register_menu_permission(
 	'karirhub_employer_prototype_lapor_loker_view',
 	'Karirhub Employer Prototype: View Lapor Loker Prototype',
 	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
+	'admin_review_laporan_prototype_view',
+	'Admin Review Laporan Prototype: View Menu',
+	'Admin Review Prototype'
 );
 register_menu_permission(
 	$conn,

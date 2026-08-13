@@ -129,8 +129,6 @@
     $canCareerBoostDaySlot = $canCareerBoostDay; // same permission
     $canWalkinSurvey = current_user_can('walkin_survey_manage') || $canManageSettings;
     $canLaporLoker = current_user_can('lapor_loker_manage') || $canManageSettings;
-    $canLaporPerusahaan = current_user_can('lapor_perusahaan_manage') || $canManageSettings;
-    $canLaporanMasukAdmin = current_user_can('laporan_masuk_admin_manage') || $canManageSettings;
     $canGrabEmail = current_user_can('grab_email_manage') || $canManageSettings;
     $canPaskerDrive = current_user_can('pasker_drive_manage') || $canManageSettings;
     $canKhProtoGlobal = current_user_can('karirhub_employer_prototype_view') || $canManageSettings;
@@ -142,6 +140,7 @@
     $canKhProtoStatusKeterisian = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_status_keterisian_view');
     $canKhProtoPaskerConnect = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_pasker_connect_view');
     $canKhProtoLaporLoker = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_lapor_loker_view');
+    $canAdminReviewLaporanPrototype = current_user_can('admin_review_laporan_prototype_view') || $canManageSettings;
     $canKarirhubEmployerPrototype = (
         $canKhProtoDashboardWllp
         || $canKhProtoDashboardWllpAdmin
@@ -178,7 +177,6 @@
     $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan || $canProgramKemitraan || $canProgramKemitraanCertificate);
     $hasAsmen = ($canAsmenDashboard || $canAsmenAssets || $canAsmenServices || $canAsmenCalendar || $canAsmenQR);
     $hasExtensionsMenu = ($canExtensions || $canManageSettings || $canRegistrasiKehadiran || $canSplitScreen || $canPaskerDrive || $canOUI);
-    $hasReportsMenu = ($canLaporanMasukAdmin || $canLaporLoker || $canLaporPerusahaan);
     // Naker Award flags
     $canNakerAssessment = current_user_can('naker_award_manage_assessment');
     $canNakerStage1 = current_user_can('naker_award_view_stage1') || $canNakerAssessment || $canManageSettings;
@@ -340,19 +338,6 @@
                     </ul>
                 </li>
                 <?php endif; ?>
-                <?php if ($hasReportsMenu): ?>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="laporanDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Laporan
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="laporanDropdown">
-                        <?php if ($canLaporanMasukAdmin): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>laporan_masuk_admin"><i class="bi bi-inboxes me-1"></i>Pusat Pemeriksaan Laporan</a></li><?php endif; ?>
-                        <?php if (($canLaporanMasukAdmin) && ($canLaporLoker || $canLaporPerusahaan)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
-                        <?php if ($canLaporLoker): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>lapor_loker_reports"><i class="bi bi-flag me-1"></i>Laporan Loker</a></li><?php endif; ?>
-                        <?php if ($canLaporPerusahaan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>lapor_perusahaan_reports"><i class="bi bi-buildings me-1"></i>Laporan Perusahaan</a></li><?php endif; ?>
-                    </ul>
-                </li>
-                <?php endif; ?>
                 <?php if ($canKarirhubEmployerPrototype): ?>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="karirhubEmployerPrototypeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -369,6 +354,11 @@
                         <?php if ($canKhProtoPaskerConnect): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_pasker_connect"><i class="bi bi-plug me-1"></i>Pasker Connect</a></li><?php endif; ?>
                         <?php if ($canKhProtoLaporLoker): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_lapor_loker"><i class="bi bi-flag me-1"></i>Lapor Loker Prototype</a></li><?php endif; ?>
                     </ul>
+                </li>
+                <?php endif; ?>
+                <?php if ($canAdminReviewLaporanPrototype): ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="<?php echo $rootPrefix; ?>admin_review_laporan_prototype"><i class="bi bi-clipboard-data me-1"></i>Admin Review Prototype</a>
                 </li>
                 <?php endif; ?>
                 <?php if ($hasAsmen): ?>
