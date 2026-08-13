@@ -130,6 +130,9 @@ $vacancyReports = [
         .arp-tabs .nav-link { font-weight: 600; color: #4b637c; }
         .arp-tabs .nav-link.active { color: #fff; background: #1f5f99; border-color: #1f5f99; }
         .arp-actions { white-space: nowrap; }
+        .arp-booking-box { border: 1px solid #d9e7f8; background: #f4f9ff; color: #284e76; border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+        .arp-booking-box strong { color: #173b61; }
+        .arp-booking-msg { font-size: 12px; margin-top: 6px; display: none; }
     </style>
 </head>
 <body>
@@ -148,6 +151,10 @@ $vacancyReports = [
         <div class="arp-note mb-3">
             Prinsip workflow: semua laporan masuk status <strong>Pending</strong>, admin harus klik <strong>Ambil Kasus</strong> (manual booking),
             maksimal 5 case aktif per admin, dan tidak ada keputusan otomatis hanya karena severity/SLA.
+        </div>
+        <div class="arp-booking-box mb-3">
+            Case aktif saya (simulasi): <strong><span id="activeCaseCountText">0</span>/5</strong>
+            <div id="bookingStatusMessage" class="arp-booking-msg"></div>
         </div>
 
         <div class="row g-3 mb-4">
@@ -219,6 +226,7 @@ $vacancyReports = [
                         </thead>
                         <tbody>
                         <?php foreach ($companyReports as $row): ?>
+                            <?php $isPending = $row['status'] === 'PENDING_REVIEW'; ?>
                             <tr>
                                 <td><?php echo h($row['report_id']); ?></td>
                                 <td><?php echo h($row['tanggal_masuk']); ?></td>
@@ -243,12 +251,19 @@ $vacancyReports = [
                                     if ($row['status'] === 'WAITING_REPORTER_INFO' || $row['status'] === 'WAITING_EMPLOYER_CLARIFICATION') { $statusClass = 'waiting'; }
                                     if ($row['status'] === 'ESCALATED') { $statusClass = 'overdue'; }
                                     ?>
-                                    <span class="arp-chip <?php echo h($statusClass); ?>"><?php echo h($row['status']); ?></span>
+                                    <span class="arp-chip <?php echo h($statusClass); ?> js-status-chip"><?php echo h($row['status']); ?></span>
                                 </td>
-                                <td><?php echo h($row['assigned_to']); ?></td>
+                                <td class="js-assigned-cell"><?php echo h($row['assigned_to']); ?></td>
                                 <td class="arp-actions">
-                                    <button class="btn btn-sm btn-outline-primary">Detail</button>
-                                    <button class="btn btn-sm btn-primary">Ambil Kasus</button>
+                                    <a class="btn btn-sm btn-outline-primary" href="admin_review_laporan_case_detail_prototype?type=company&report_id=<?php echo rawurlencode($row['report_id']); ?>">Detail</a>
+                                    <button
+                                        class="btn btn-sm btn-primary js-book-case"
+                                        data-report-id="<?php echo h($row['report_id']); ?>"
+                                        data-case-type="company"
+                                        <?php echo $isPending ? '' : 'disabled'; ?>
+                                    >
+                                        <?php echo $isPending ? 'Ambil Kasus' : 'Sedang Diproses'; ?>
+                                    </button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -279,6 +294,7 @@ $vacancyReports = [
                         </thead>
                         <tbody>
                         <?php foreach ($vacancyReports as $row): ?>
+                            <?php $isPending = $row['status'] === 'PENDING_REVIEW'; ?>
                             <tr>
                                 <td><?php echo h($row['report_id']); ?></td>
                                 <td><?php echo h($row['waktu_masuk']); ?></td>
@@ -304,13 +320,20 @@ $vacancyReports = [
                                     if ($row['status'] === 'WAITING_REPORTER_INFO' || $row['status'] === 'WAITING_EMPLOYER_CLARIFICATION') { $statusClass = 'waiting'; }
                                     if ($row['status'] === 'ESCALATED') { $statusClass = 'overdue'; }
                                     ?>
-                                    <span class="arp-chip <?php echo h($statusClass); ?>"><?php echo h($row['status']); ?></span>
+                                    <span class="arp-chip <?php echo h($statusClass); ?> js-status-chip"><?php echo h($row['status']); ?></span>
                                 </td>
-                                <td><?php echo h($row['assigned_to']); ?></td>
+                                <td class="js-assigned-cell"><?php echo h($row['assigned_to']); ?></td>
                                 <td><?php echo h($row['source']); ?></td>
                                 <td class="arp-actions">
-                                    <button class="btn btn-sm btn-outline-primary">Detail</button>
-                                    <button class="btn btn-sm btn-primary">Ambil Kasus</button>
+                                    <a class="btn btn-sm btn-outline-primary" href="admin_review_laporan_case_detail_prototype?type=vacancy&report_id=<?php echo rawurlencode($row['report_id']); ?>">Detail</a>
+                                    <button
+                                        class="btn btn-sm btn-primary js-book-case"
+                                        data-report-id="<?php echo h($row['report_id']); ?>"
+                                        data-case-type="vacancy"
+                                        <?php echo $isPending ? '' : 'disabled'; ?>
+                                    >
+                                        <?php echo $isPending ? 'Ambil Kasus' : 'Sedang Diproses'; ?>
+                                    </button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -323,5 +346,102 @@ $vacancyReports = [
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    (function () {
+        const MAX_ACTIVE_CASE = 5;
+        const STORAGE_KEY = 'adminReviewPrototypeBookedCases';
+        const ACTIVE_USER = 'admin.sesi.anda';
+
+        const activeCountText = document.getElementById('activeCaseCountText');
+        const statusMessage = document.getElementById('bookingStatusMessage');
+        const bookButtons = document.querySelectorAll('.js-book-case');
+
+        function readBookedCases() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                const parsed = raw ? JSON.parse(raw) : [];
+                if (!Array.isArray(parsed)) return [];
+                return parsed;
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveBookedCases(cases) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cases));
+        }
+
+        function showMessage(text, isError) {
+            if (!statusMessage) return;
+            statusMessage.style.display = 'block';
+            statusMessage.classList.toggle('text-danger', !!isError);
+            statusMessage.classList.toggle('text-success', !isError);
+            statusMessage.textContent = text;
+        }
+
+        function refreshCounter() {
+            const cases = readBookedCases();
+            if (activeCountText) activeCountText.textContent = String(cases.length);
+            return cases;
+        }
+
+        function markRowAsBooked(btn) {
+            const row = btn.closest('tr');
+            if (!row) return;
+            const statusChip = row.querySelector('.js-status-chip');
+            const assignedCell = row.querySelector('.js-assigned-cell');
+            if (statusChip) {
+                statusChip.textContent = 'IN_REVIEW';
+                statusChip.classList.remove('pending', 'waiting', 'overdue');
+                statusChip.classList.add('review');
+            }
+            if (assignedCell) assignedCell.textContent = ACTIVE_USER;
+            btn.disabled = true;
+            btn.textContent = 'Sudah Diambil';
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline-secondary');
+        }
+
+        function markBookedRowsFromStorage() {
+            const booked = readBookedCases();
+            bookButtons.forEach(function (btn) {
+                const reportId = btn.getAttribute('data-report-id') || '';
+                const alreadyBooked = booked.includes(reportId);
+                if (alreadyBooked) {
+                    markRowAsBooked(btn);
+                }
+            });
+        }
+
+        refreshCounter();
+        markBookedRowsFromStorage();
+
+        bookButtons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                if (btn.disabled) return;
+                const reportId = btn.getAttribute('data-report-id') || '';
+                if (!reportId) return;
+
+                const booked = refreshCounter();
+                if (booked.includes(reportId)) {
+                    markRowAsBooked(btn);
+                    showMessage('Case ini sudah pernah diambil pada sesi prototype.', false);
+                    return;
+                }
+
+                if (booked.length >= MAX_ACTIVE_CASE) {
+                    showMessage('Gagal mengambil case: batas maksimal 5 case aktif per admin tercapai.', true);
+                    return;
+                }
+
+                booked.push(reportId);
+                saveBookedCases(booked);
+                refreshCounter();
+                markRowAsBooked(btn);
+                showMessage('Berhasil mengambil case ' + reportId + ' ke status IN_REVIEW.', false);
+            });
+        });
+    })();
+</script>
 </body>
 </html>
