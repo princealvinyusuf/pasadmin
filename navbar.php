@@ -129,6 +129,8 @@
     $canCareerBoostDaySlot = $canCareerBoostDay; // same permission
     $canWalkinSurvey = current_user_can('walkin_survey_manage') || $canManageSettings;
     $canLaporLoker = current_user_can('lapor_loker_manage') || $canManageSettings;
+    $canLaporPerusahaan = current_user_can('lapor_perusahaan_manage') || $canManageSettings;
+    $canLaporanMasukAdmin = current_user_can('laporan_masuk_admin_manage') || $canManageSettings;
     $canGrabEmail = current_user_can('grab_email_manage') || $canManageSettings;
     $canPaskerDrive = current_user_can('pasker_drive_manage') || $canManageSettings;
     $canKhProtoGlobal = current_user_can('karirhub_employer_prototype_view') || $canManageSettings;
@@ -176,6 +178,7 @@
     $hasJejaring = ($canManageSettings || $canDatabaseContact || $canJejaringTahapan || $canProgramKemitraan || $canProgramKemitraanCertificate);
     $hasAsmen = ($canAsmenDashboard || $canAsmenAssets || $canAsmenServices || $canAsmenCalendar || $canAsmenQR);
     $hasExtensionsMenu = ($canExtensions || $canManageSettings || $canRegistrasiKehadiran || $canSplitScreen || $canPaskerDrive || $canOUI);
+    $hasReportsMenu = ($canLaporanMasukAdmin || $canLaporLoker || $canLaporPerusahaan);
     // Naker Award flags
     $canNakerAssessment = current_user_can('naker_award_manage_assessment');
     $canNakerStage1 = current_user_can('naker_award_view_stage1') || $canNakerAssessment || $canManageSettings;
@@ -334,6 +337,19 @@
                         <?php if ($canWalkinGallery || $canPartnerCompany): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
                         <?php if ($canWalkinGallery): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>walkin_gallery"><i class="bi bi-images me-1"></i>Walk-in Gallery</a></li><?php endif; ?>
                         <?php if ($canPartnerCompany): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>partner_company_settings"><i class="bi bi-buildings me-1"></i>Perusahaan Mitra</a></li><?php endif; ?>
+                    </ul>
+                </li>
+                <?php endif; ?>
+                <?php if ($hasReportsMenu): ?>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="laporanDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Laporan
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="laporanDropdown">
+                        <?php if ($canLaporanMasukAdmin): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>laporan_masuk_admin"><i class="bi bi-inboxes me-1"></i>Pusat Pemeriksaan Laporan</a></li><?php endif; ?>
+                        <?php if (($canLaporanMasukAdmin) && ($canLaporLoker || $canLaporPerusahaan)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
+                        <?php if ($canLaporLoker): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>lapor_loker_reports"><i class="bi bi-flag me-1"></i>Laporan Loker</a></li><?php endif; ?>
+                        <?php if ($canLaporPerusahaan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>lapor_perusahaan_reports"><i class="bi bi-buildings me-1"></i>Laporan Perusahaan</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>

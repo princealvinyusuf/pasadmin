@@ -66,6 +66,18 @@ register_menu_permission(
 	'Manage Dashboard Monitoring & Evaluasi Kemitraan Menu',
 	'Layanan'
 );
+register_menu_permission(
+	$conn,
+	'lapor_perusahaan_manage',
+	'Manage Lapor Perusahaan Reports Menu',
+	'Layanan'
+);
+register_menu_permission(
+	$conn,
+	'laporan_masuk_admin_manage',
+	'Manage Pusat Pemeriksaan Laporan Menu',
+	'Layanan'
+);
 
 register_menu_permission(
 	$conn,
