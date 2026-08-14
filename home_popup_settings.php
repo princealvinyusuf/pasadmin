@@ -85,6 +85,57 @@ function upload_error_message(int $errorCode): string
     }
 }
 
+function store_popup_image(string $tmpPath, string $mimeType): string
+{
+    $extensions = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/gif' => 'gif',
+        'image/webp' => 'webp',
+    ];
+    if (!isset($extensions[$mimeType])) {
+        throw new RuntimeException('Format gambar harus JPG, PNG, GIF, atau WebP.');
+    }
+
+    $publicDir = dirname(__DIR__);
+    $relativeDir = 'uploads/home_popup';
+    $uploadDir = $publicDir . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'home_popup';
+    if (!is_dir($uploadDir) && !@mkdir($uploadDir, 0775, true)) {
+        throw new RuntimeException('Folder upload gambar tidak dapat dibuat.');
+    }
+    if (!is_writable($uploadDir)) {
+        throw new RuntimeException('Folder upload gambar tidak memiliki izin tulis.');
+    }
+
+    try {
+        $fileName = bin2hex(random_bytes(16)) . '.' . $extensions[$mimeType];
+    } catch (Throwable $e) {
+        $fileName = uniqid('popup_', true) . '.' . $extensions[$mimeType];
+    }
+    $destination = $uploadDir . DIRECTORY_SEPARATOR . $fileName;
+    if (!@move_uploaded_file($tmpPath, $destination)) {
+        throw new RuntimeException('Gagal menyimpan gambar ke folder upload.');
+    }
+
+    return '/' . $relativeDir . '/' . $fileName;
+}
+
+function popup_image_src(?string $payload, ?string $mimeType): string
+{
+    $payload = trim((string) $payload);
+    if ($payload === '') {
+        return '';
+    }
+    if (strpos($payload, '/') === 0 || preg_match('#^https?://#i', $payload)) {
+        return $payload;
+    }
+    if (strpos($payload, 'data:') === 0) {
+        return $payload;
+    }
+    $mimeType = trim((string) $mimeType);
+    return 'data:' . ($mimeType !== '' ? $mimeType : 'image/jpeg') . ';base64,' . $payload;
+}
+
 $conn->query("CREATE TABLE IF NOT EXISTS home_popup_settings (
     id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
     is_enabled TINYINT(1) NOT NULL DEFAULT 0,
@@ -209,13 +260,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['error'] = 'File gambar tidak valid.';
                 redirect_back();
             }
-            $imageData = @file_get_contents($tmp);
-            if ($imageData === false) {
-                $_SESSION['error'] = 'Gagal membaca file gambar.';
+            $newMimeType = (string) ($imageInfo['mime'] ?? 'image/jpeg');
+            try {
+                $newImageBase64 = store_popup_image($tmp, $newMimeType);
+            } catch (Throwable $e) {
+                $_SESSION['error'] = $e->getMessage();
                 redirect_back();
             }
-            $newImageBase64 = base64_encode($imageData);
-            $newMimeType = (string) ($imageInfo['mime'] ?? 'image/jpeg');
             $hasNewUpload = true;
         } elseif ($uploadError !== UPLOAD_ERR_NO_FILE) {
             $_SESSION['error'] = upload_error_message($uploadError);
@@ -432,6 +483,7 @@ if (count($items) === 0) {
                             $sortOrderValue = (int) ($item['sort_order'] ?? ($index + 1));
                             $mimeType = htmlspecialchars((string) (($item['mime_type'] ?? '') ?: 'image/jpeg'));
                             $imageBase64 = (string) ($item['image_base64'] ?? '');
+                            $imageSrc = popup_image_src($imageBase64, (string) ($item['mime_type'] ?? ''));
                         ?>
                         <div class="card mb-3 popup-item-card" data-row-key="<?php echo htmlspecialchars($rowKey); ?>">
                             <div class="card-body">
@@ -474,7 +526,7 @@ if (count($items) === 0) {
                                     <?php if ($imageBase64 !== ''): ?>
                                         <div class="col-12">
                                             <label class="form-label d-block">Preview gambar saat ini</label>
-                                            <img src="data:<?php echo $mimeType; ?>;base64,<?php echo htmlspecialchars($imageBase64); ?>" alt="Current popup image" class="img-thumbnail" style="max-width: 240px;">
+                                            <img src="<?php echo htmlspecialchars($imageSrc); ?>" alt="Current popup image" class="img-thumbnail" style="max-width: 240px;">
                                         </div>
                                     <?php endif; ?>
                                 </div>
