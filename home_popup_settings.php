@@ -30,6 +30,61 @@ function table_has_column(mysqli $conn, string $table, string $column): bool
     return $res instanceof mysqli_result && $res->num_rows > 0;
 }
 
+function ini_size_to_bytes(string $value): int
+{
+    $value = trim($value);
+    if ($value === '') {
+        return 0;
+    }
+
+    $lastChar = strtolower(substr($value, -1));
+    $number = (float) $value;
+    if ($lastChar === 'g') {
+        $number *= 1024;
+    }
+    if ($lastChar === 'm' || $lastChar === 'g') {
+        $number *= 1024;
+    }
+    if ($lastChar === 'k' || $lastChar === 'm' || $lastChar === 'g') {
+        $number *= 1024;
+    }
+    return (int) round($number);
+}
+
+function format_bytes_human(int $bytes): string
+{
+    if ($bytes >= 1024 * 1024 * 1024) {
+        return rtrim(rtrim(number_format($bytes / (1024 * 1024 * 1024), 2, '.', ''), '0'), '.') . ' GB';
+    }
+    if ($bytes >= 1024 * 1024) {
+        return rtrim(rtrim(number_format($bytes / (1024 * 1024), 2, '.', ''), '0'), '.') . ' MB';
+    }
+    if ($bytes >= 1024) {
+        return rtrim(rtrim(number_format($bytes / 1024, 2, '.', ''), '0'), '.') . ' KB';
+    }
+    return (string) $bytes . ' B';
+}
+
+function upload_error_message(int $errorCode): string
+{
+    switch ($errorCode) {
+        case UPLOAD_ERR_INI_SIZE:
+            return 'Ukuran file melebihi batas upload server (upload_max_filesize).';
+        case UPLOAD_ERR_FORM_SIZE:
+            return 'Ukuran file melebihi batas maksimal formulir.';
+        case UPLOAD_ERR_PARTIAL:
+            return 'Upload file tidak selesai. Silakan coba lagi.';
+        case UPLOAD_ERR_NO_TMP_DIR:
+            return 'Folder temporary upload tidak tersedia di server.';
+        case UPLOAD_ERR_CANT_WRITE:
+            return 'Server gagal menulis file upload.';
+        case UPLOAD_ERR_EXTENSION:
+            return 'Upload dihentikan oleh ekstensi server.';
+        default:
+            return 'Terjadi kesalahan saat upload gambar.';
+    }
+}
+
 $conn->query("CREATE TABLE IF NOT EXISTS home_popup_settings (
     id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
     is_enabled TINYINT(1) NOT NULL DEFAULT 0,
@@ -90,6 +145,20 @@ if ($itemCount === 0 && is_array($legacyRow)) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postMaxBytes = ini_size_to_bytes((string) ini_get('post_max_size'));
+    $contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+    if (
+        $contentLength > 0 &&
+        empty($_POST) &&
+        empty($_FILES) &&
+        $postMaxBytes > 0 &&
+        $contentLength > $postMaxBytes
+    ) {
+        $_SESSION['error'] = 'Ukuran data formulir melebihi batas server (' . format_bytes_human($postMaxBytes) . '). Kurangi ukuran gambar lalu coba lagi.';
+        redirect_back();
+    }
+
+    $maxImageBytes = 2 * 1024 * 1024; // 2 MB per image
     $isEnabled = isset($_POST['is_enabled']) ? 1 : 0;
     $titles = isset($_POST['title']) && is_array($_POST['title']) ? $_POST['title'] : [];
     $subtitles = isset($_POST['subtitle']) && is_array($_POST['subtitle']) ? $_POST['subtitle'] : [];
@@ -127,8 +196,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newImageBase64 = null;
         $newMimeType = null;
         $hasNewUpload = false;
-        if (isset($_FILES['image_file']['error'][$key]) && (int) $_FILES['image_file']['error'][$key] === UPLOAD_ERR_OK) {
+        $uploadError = isset($_FILES['image_file']['error'][$key]) ? (int) $_FILES['image_file']['error'][$key] : UPLOAD_ERR_NO_FILE;
+        if ($uploadError === UPLOAD_ERR_OK) {
             $tmp = (string) ($_FILES['image_file']['tmp_name'][$key] ?? '');
+            $fileSize = (int) ($_FILES['image_file']['size'][$key] ?? 0);
+            if ($fileSize > $maxImageBytes) {
+                $_SESSION['error'] = 'Ukuran gambar melebihi batas aplikasi (' . format_bytes_human($maxImageBytes) . ').';
+                redirect_back();
+            }
             $imageInfo = @getimagesize($tmp);
             if ($imageInfo === false) {
                 $_SESSION['error'] = 'File gambar tidak valid.';
@@ -142,6 +217,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newImageBase64 = base64_encode($imageData);
             $newMimeType = (string) ($imageInfo['mime'] ?? 'image/jpeg');
             $hasNewUpload = true;
+        } elseif ($uploadError !== UPLOAD_ERR_NO_FILE) {
+            $_SESSION['error'] = upload_error_message($uploadError);
+            redirect_back();
         }
 
         $imageBase64 = null;
@@ -379,7 +457,7 @@ if (count($items) === 0) {
                                     <div class="col-md-6">
                                         <label class="form-label">Gambar Popup</label>
                                         <input type="file" class="form-control" name="image_file[<?php echo htmlspecialchars($rowKey); ?>]" accept="image/*">
-                                        <div class="form-text">Upload jika ingin mengganti gambar.</div>
+                                        <div class="form-text">Upload jika ingin mengganti gambar (maks. 2 MB per file).</div>
                                     </div>
                                     <div class="col-md-6 d-flex align-items-end">
                                         <div class="w-100">
@@ -459,7 +537,7 @@ if (count($items) === 0) {
                         <div class="col-md-6">
                             <label class="form-label">Gambar Popup</label>
                             <input type="file" class="form-control" name="image_file[${rowKey}]" accept="image/*">
-                            <div class="form-text">Upload jika ingin mengganti gambar.</div>
+                            <div class="form-text">Upload jika ingin mengganti gambar (maks. 2 MB per file).</div>
                         </div>
                         <div class="col-md-6 d-flex align-items-end">
                             <div class="w-100">
