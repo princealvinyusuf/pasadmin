@@ -97,14 +97,27 @@ function store_popup_image(string $tmpPath, string $mimeType): string
         throw new RuntimeException('Format gambar harus JPG, PNG, GIF, atau WebP.');
     }
 
-    $publicDir = dirname(__DIR__);
-    $relativeDir = 'uploads/home_popup';
-    $uploadDir = $publicDir . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'home_popup';
-    if (!is_dir($uploadDir) && !@mkdir($uploadDir, 0775, true)) {
-        throw new RuntimeException('Folder upload gambar tidak dapat dibuat.');
+    $publicDir = realpath(__DIR__ . DIRECTORY_SEPARATOR . '..') ?: dirname(__DIR__);
+    $projectRoot = realpath($publicDir . DIRECTORY_SEPARATOR . '..') ?: dirname($publicDir);
+    $storageCandidates = [
+        '/opt/lampp/htdocs/paskerid/storage/app/public',
+        $projectRoot . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'public',
+        $publicDir . DIRECTORY_SEPARATOR . 'storage',
+    ];
+
+    $uploadDir = null;
+    foreach (array_unique($storageCandidates) as $storageBase) {
+        if (!is_dir($storageBase) || !is_writable($storageBase)) {
+            continue;
+        }
+        $candidate = $storageBase . DIRECTORY_SEPARATOR . 'home_popup';
+        if ((is_dir($candidate) || @mkdir($candidate, 0775, true)) && is_writable($candidate)) {
+            $uploadDir = $candidate;
+            break;
+        }
     }
-    if (!is_writable($uploadDir)) {
-        throw new RuntimeException('Folder upload gambar tidak memiliki izin tulis.');
+    if ($uploadDir === null) {
+        throw new RuntimeException('Storage Laravel tidak writable. Pastikan storage/app/public dapat ditulis oleh web server.');
     }
 
     try {
@@ -117,7 +130,7 @@ function store_popup_image(string $tmpPath, string $mimeType): string
         throw new RuntimeException('Gagal menyimpan gambar ke folder upload.');
     }
 
-    return '/' . $relativeDir . '/' . $fileName;
+    return '/storage/home_popup/' . $fileName;
 }
 
 function popup_image_src(?string $payload, ?string $mimeType): string
