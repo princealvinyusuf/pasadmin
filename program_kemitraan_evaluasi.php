@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
         $conn->query("DELETE FROM program_kemitraan_evaluation_answers WHERE evaluation_id = {$deleteId}");
         $conn->query("DELETE FROM program_kemitraan_evaluation_rtl_items WHERE evaluation_id = {$deleteId}");
         $conn->query("DELETE FROM program_kemitraan_evaluations WHERE id = {$deleteId}");
-        header('Location: program_kemitraan_evaluasi.php?msg=deleted');
+        header('Location: program_kemitraan_evaluasi?msg=deleted');
         exit;
     }
 }
