@@ -22,6 +22,17 @@ if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    $deleteId = (int) $_POST['delete_id'];
+    if ($deleteId > 0) {
+        $conn->query("DELETE FROM program_kemitraan_evaluation_answers WHERE evaluation_id = {$deleteId}");
+        $conn->query("DELETE FROM program_kemitraan_evaluation_rtl_items WHERE evaluation_id = {$deleteId}");
+        $conn->query("DELETE FROM program_kemitraan_evaluations WHERE id = {$deleteId}");
+        header('Location: program_kemitraan_evaluasi.php?msg=deleted');
+        exit;
+    }
+}
+
 function table_exists(mysqli $conn, string $table): bool
 {
     $t = $conn->real_escape_string($table);
@@ -201,6 +212,13 @@ if ($headerTableReady) {
             <p class="pk-admin-subtitle">Monitoring data evaluasi publik yang dikirim dari tab Form Evaluasi.</p>
         </div>
         <div class="pk-admin-content">
+            <?php if (isset($_GET['msg']) && $_GET['msg'] === 'deleted'): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    Data evaluasi berhasil dihapus.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
             <?php if (!$headerTableReady): ?>
                 <div class="alert alert-warning mb-3">
                     Tabel <code>program_kemitraan_evaluations</code> belum tersedia. Jalankan migrasi Laravel terlebih dahulu.
@@ -266,7 +284,13 @@ if ($headerTableReady) {
                         <?php foreach ($rows as $row): ?>
                             <tr>
                                 <td>
-                                    <a href="program_kemitraan_evaluasi_detail?id=<?php echo (int) ($row['id'] ?? 0); ?>" class="btn btn-sm btn-outline-primary">Detail</a>
+                                    <div class="d-flex gap-1">
+                                        <a href="program_kemitraan_evaluasi_detail?id=<?php echo (int) ($row['id'] ?? 0); ?>" class="btn btn-sm btn-outline-primary">Detail</a>
+                                        <form method="POST" class="d-inline m-0" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data evaluasi ini? Semua jawaban terkait juga akan terhapus.');">
+                                            <input type="hidden" name="delete_id" value="<?php echo (int) ($row['id'] ?? 0); ?>">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
+                                        </form>
+                                    </div>
                                 </td>
                                 <td><?php echo (int) ($row['id'] ?? 0); ?></td>
                                 <td>
