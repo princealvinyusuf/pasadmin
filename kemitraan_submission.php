@@ -188,6 +188,14 @@ if (isset($_POST['approve_id'])) {
         }
     } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $schedule)) {
         $dates_to_check[] = $schedule;
+    } elseif (strpos($schedule, ',') !== false) {
+        // Multi-date format: "2026-08-15, 2026-08-20, 2026-08-25"
+        foreach (explode(',', $schedule) as $part) {
+            $part = trim($part);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $part)) {
+                $dates_to_check[] = $part;
+            }
+        }
     }
 
     // Past date guard
@@ -911,6 +919,8 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
     <title>Mitra Kerja Submission</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
         .navbar-brand { font-weight: bold; letter-spacing: 1px; }
         h2, h3 {
@@ -1290,8 +1300,8 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                       <input type="text" name="other_pasker_facility" id="edit_other_pasker_facility" class="form-control">
                     </div>
                     <div class="col-md-6">
-                      <label class="form-label">Schedule</label>
-                      <input type="text" name="schedule" id="edit_schedule" class="form-control" placeholder="YYYY-MM-DD or YYYY-MM-DD to YYYY-MM-DD">
+                      <label class="form-label">Schedule (Usulan Jadwal Kegiatan)</label>
+                      <input type="text" name="schedule" id="edit_schedule" class="form-control" placeholder="Pilih satu atau beberapa tanggal" autocomplete="off" readonly>
                     </div>
                     <div class="col-md-3">
                       <label class="form-label">Time Start</label>
@@ -1597,7 +1607,24 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               document.getElementById('edit_institution_name').value = rowData.institution_name || '';
               document.getElementById('edit_business_sector').value = rowData.business_sector || '';
               document.getElementById('edit_institution_address').value = rowData.institution_address || '';
-              document.getElementById('edit_schedule').value = rowData.schedule || '';
+              // Set schedule via flatpickr instance
+              if (window._editSchedulePicker) {
+                const rawSchedule = rowData.schedule || '';
+                // Parse comma-separated, single, or range formats into date array
+                let datesToSet = [];
+                if (rawSchedule.indexOf(',') !== -1) {
+                  datesToSet = rawSchedule.split(',').map(s => s.trim()).filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s));
+                } else if (/^(\d{4}-\d{2}-\d{2})\s*to\s*(\d{4}-\d{2}-\d{2})$/.test(rawSchedule)) {
+                  const parts = rawSchedule.split(/\s*to\s*/);
+                  const start = new Date(parts[0]), end = new Date(parts[1]);
+                  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    datesToSet.push(d.toISOString().slice(0, 10));
+                  }
+                } else if (/^\d{4}-\d{2}-\d{2}$/.test(rawSchedule)) {
+                  datesToSet = [rawSchedule];
+                }
+                window._editSchedulePicker.setDate(datesToSet, false);
+              }
               document.getElementById('edit_tipe_penyelenggara').value = rowData.tipe_penyelenggara || '';
               document.getElementById('edit_other_pasker_room').value = rowData.other_pasker_room || '';
               document.getElementById('edit_other_pasker_facility').value = rowData.other_pasker_facility || '';
@@ -1843,6 +1870,24 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
           });
         });
         </script>
+    <script>
+        // Initialize flatpickr (multiple mode) for the admin edit schedule field
+        window._editSchedulePicker = flatpickr('#edit_schedule', {
+            mode: 'multiple',
+            dateFormat: 'Y-m-d',
+            locale: {
+                firstDayOfWeek: 1,
+                weekdays: {
+                    shorthand: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+                    longhand: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+                },
+                months: {
+                    shorthand: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+                    longhand: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+                }
+            }
+        });
+    </script>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <?php if (isset($_SESSION['error'])): ?>
