@@ -130,6 +130,12 @@ function build_export_schedule_row(array $r): array
     $start = (string) ($r['booked_date_start'] ?? '');
     $finish = (string) ($r['booked_date_finish'] ?? '');
 
+    if ($start !== '' && $finish !== '' && strtotime($start) > strtotime($finish)) {
+        $tmp = $start;
+        $start = $finish;
+        $finish = $tmp;
+    }
+
     $dateLabel = $start;
     if ($start !== '' && $finish !== '' && $start !== $finish) {
         $dateLabel = date('d M Y', strtotime($start)) . ' s/d ' . date('d M Y', strtotime($finish));
@@ -433,7 +439,7 @@ $date_select = $has_range
     ? 'bd.booked_date_start, bd.booked_date_finish'
     : 'bd.booked_date AS booked_date_start, bd.booked_date AS booked_date_finish';
 $date_where = $has_range
-    ? "(bd.booked_date_start <= '$last_day' AND bd.booked_date_finish >= '$first_day')"
+    ? "((bd.booked_date_start <= '$last_day' AND bd.booked_date_finish >= '$first_day') OR (bd.booked_date_finish <= '$last_day' AND bd.booked_date_start >= '$first_day'))"
     : "bd.booked_date BETWEEN '$first_day' AND '$last_day'";
 $order_by = $has_range ? 'bd.booked_date_start' : 'bd.booked_date';
 
@@ -506,8 +512,14 @@ if ($result === false) {
 
         $start = $row['booked_date_start'];
         $finish = $row['booked_date_finish'];
-        if (!$start) continue;
+        if (!$start && !$finish) continue;
+        if (!$start) $start = $finish;
         if (!$finish) $finish = $start;
+        if (strtotime($start) > strtotime($finish)) {
+            $tmp = $start;
+            $start = $finish;
+            $finish = $tmp;
+        }
         $cur = strtotime($start);
         $end = strtotime($finish);
         if ($cur === false || $end === false) continue;

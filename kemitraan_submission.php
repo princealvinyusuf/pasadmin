@@ -182,12 +182,13 @@ if (isset($_POST['approve_id'])) {
         $end = $matches[2];
         $current = strtotime($start);
         $end_ts = strtotime($end);
+        if ($current > $end_ts) {
+            $tmp = $current; $current = $end_ts; $end_ts = $tmp;
+        }
         while ($current <= $end_ts) {
             $dates_to_check[] = date('Y-m-d', $current);
             $current = strtotime('+1 day', $current);
         }
-    } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $schedule)) {
-        $dates_to_check[] = $schedule;
     } elseif (strpos($schedule, ',') !== false) {
         // Multi-date format: "2026-08-15, 2026-08-20, 2026-08-25"
         foreach (explode(',', $schedule) as $part) {
@@ -196,7 +197,12 @@ if (isset($_POST['approve_id'])) {
                 $dates_to_check[] = $part;
             }
         }
+    } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $schedule)) {
+        $dates_to_check[] = $schedule;
     }
+
+    $dates_to_check = array_values(array_unique($dates_to_check));
+    sort($dates_to_check);
 
     // Past date guard
     $today = date('Y-m-d');
@@ -278,15 +284,15 @@ if (isset($_POST['approve_id'])) {
 
     // Insert booking rows based on schema
     if ($has_range) {
-        // Insert a single row with start/finish (use provided times if present)
-        $start_date = $dates_to_check[0];
-        $end_date = $dates_to_check[count($dates_to_check) - 1];
+        // Insert per-date row with booked_date_start = $date and booked_date_finish = $date
         $ins = $conn->prepare("INSERT INTO booked_date (kemitraan_id, booked_date_start, booked_time_start, booked_date_finish, booked_time_finish, type_of_partnership_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())");
         if ($ins) {
             $time_start = $scheduletimestart ?: '00:00:00';
             $time_finish = $scheduletimefinish ?: '23:59:59';
-            $ins->bind_param("issssi", $id, $start_date, $time_start, $end_date, $time_finish, $type_id);
-            $ins->execute();
+            foreach ($dates_to_check as $date) {
+                $ins->bind_param("issssi", $id, $date, $time_start, $date, $time_finish, $type_id);
+                $ins->execute();
+            }
             $ins->close();
         }
     } else {
@@ -1874,7 +1880,13 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
         // Initialize flatpickr (multiple mode) for the admin edit schedule field
         window._editSchedulePicker = flatpickr('#edit_schedule', {
             mode: 'multiple',
+            conjunction: ', ',
             dateFormat: 'Y-m-d',
+            onChange: function(selectedDates, dateStr, instance) {
+                if (selectedDates && selectedDates.length > 1) {
+                    selectedDates.sort((a, b) => a.getTime() - b.getTime());
+                }
+            },
             locale: {
                 firstDayOfWeek: 1,
                 weekdays: {
