@@ -168,27 +168,11 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
                 <div id="laporPerusahaanPanel" class="collapse show">
                     <div class="ll-report-card">
                         <div id="companyReportFormWrap">
-                            <div class="ll-helper-box">
-                                Gunakan Lapor Perusahaan untuk masalah terkait identitas, perilaku, atau akun perusahaan.
-                                Jika masalah hanya terkait satu lowongan, gunakan
-                                <a href="karirhub_employer_prototype_lapor_loker">Lapor Loker</a>.
-                            </div>
                             <div class="ll-safe-box">
                                 Hati-hati: Jangan pernah membagikan PIN, OTP, password, detail rekening/kartu, atau melakukan pembayaran yang tidak semestinya selama proses rekrutmen.
                             </div>
                             <form onsubmit="return false;" aria-label="Prototype form lapor perusahaan">
-                                <div class="row g-3">
-                                    <div class="col-12 col-lg-6">
-                                        <label class="ll-form-label" for="reportCompanyName">Nama perusahaan</label>
-                                        <input id="reportCompanyName" type="text" class="form-control" value="PT Finaccel Finance Indonesia" readonly>
-                                    </div>
-                                    <div class="col-12 col-lg-6">
-                                        <label class="ll-form-label" for="reportCompanyId">Company ID</label>
-                                        <input id="reportCompanyId" type="text" class="form-control" value="COMP-00012026" readonly>
-                                    </div>
-                                </div>
-
-                                <div class="mt-3">
+                                <div class="mb-3">
                                     <label class="ll-form-label" for="reportEmailCompany">Alamat email kamu</label>
                                     <input id="reportEmailCompany" type="email" class="form-control" value="email@example.com" readonly>
                                     <div class="ll-form-note">Diisi otomatis dari akun yang sudah login (prototype read-only).</div>
