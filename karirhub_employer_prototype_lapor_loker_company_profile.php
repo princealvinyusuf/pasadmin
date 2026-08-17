@@ -182,16 +182,13 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
                                     <label class="ll-form-label" for="reportCompanyReason">Alasan pelaporan perusahaan</label>
                                     <select id="reportCompanyReason" class="form-select">
                                         <option selected>Silakan pilih</option>
-                                        <option>Perusahaan palsu / mengatasnamakan pihak lain</option>
-                                        <option>Penipuan / modus rekrutmen</option>
-                                        <option>Meminta biaya / pungutan</option>
+                                        <option>Perusahaan palsu / informasi menyesatkan</option>
+                                        <option>Penipuan / modus rekrutment</option>
+                                        <option>Meminta biaya / pembayaran</option>
                                         <option>Meminta data pribadi sensitif / kredensial</option>
-                                        <option>Identitas perusahaan tidak sesuai</option>
-                                        <option>Informasi profil perusahaan menyesatkan</option>
-                                        <option>Praktik rekrutmen diskriminatif</option>
-                                        <option>Perilaku rekrutmen tidak pantas</option>
-                                        <option>Akun perusahaan diduga disalahgunakan</option>
-                                        <option>Perusahaan tidak ditemukan / diduga tidak beroperasi</option>
+                                        <option>Praktik diskriminatif</option>
+                                        <option>Konten tidak pantas / tidak sesuai ketentuan</option>
+                                        <option>Dugaan penyalahgunaan akun perusahaan</option>
                                         <option>Lainnya</option>
                                     </select>
                                     <div id="reasonError" class="ll-error-text">Pilih alasan pelaporan terlebih dahulu.</div>
