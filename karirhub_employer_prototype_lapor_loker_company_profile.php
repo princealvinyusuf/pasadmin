@@ -195,12 +195,6 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
                                 </div>
 
                                 <div class="mt-3">
-                                    <label class="ll-form-label" for="relatedVacancy">Lowongan terkait (opsional)</label>
-                                    <input id="relatedVacancy" type="text" class="form-control" placeholder="Contoh: Sales Executive - DKI Jakarta">
-                                    <div class="ll-form-note">Hanya sebagai konteks. Objek laporan tetap perusahaan.</div>
-                                </div>
-
-                                <div class="mt-3">
                                     <label class="ll-form-label" for="reportCompanyComment">Komentar tambahan</label>
                                     <textarea id="reportCompanyComment" class="form-control" rows="4" placeholder="Jelaskan informasi yang membantu proses pemeriksaan..."></textarea>
                                     <div class="ll-form-note">Komentar wajib jika memilih alasan “Lainnya”.</div>
