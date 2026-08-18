@@ -512,6 +512,62 @@ $resWeekly = $conn->query("SELECT * FROM karirhub_mitra_weekly_records ORDER BY 
 while ($r = $resWeekly->fetch_assoc()) {
     $weeklyRows[] = $r;
 }
+
+$portalExportRows = [];
+foreach ($allRows as $r) {
+    $portalExportRows[] = [
+        'id' => intval($r['id']),
+        'portal_code' => (string)($r['portal_code'] ?? ''),
+        'portal_name' => (string)($r['portal_name'] ?? ''),
+        'company_name' => (string)($r['company_name'] ?? ''),
+        'tipe' => (string)($r['tipe'] ?? 'Swasta'),
+        'card_color' => (string)($r['card_color'] ?? '#0F8F92'),
+        'kerjasama_apis' => (string)($r['kerjasama_apis'] ?? ''),
+        'cooperation_types' => (string)($r['cooperation_types'] ?? ''),
+        'progress_summary' => (string)($r['progress_summary'] ?? ''),
+        'perizinan' => !empty($r['perizinan_done']) ? 'Ya' : 'Tidak',
+        'kb' => !empty($r['kb_done']) ? 'Ya' : 'Tidak',
+        'pks' => !empty($r['pks_done']) ? 'Ya' : 'Tidak',
+        'nda' => !empty($r['nda_done']) ? 'Ya' : 'Tidak',
+        'integrasi' => !empty($r['integrasi_done']) ? 'Ya' : 'Tidak',
+        'progress_indicator' => strtoupper((string)($r['progress_indicator'] ?? 'YELLOW')),
+        'notes' => (string)($r['notes'] ?? ''),
+        'issue_notes' => (string)($r['issue_notes'] ?? ''),
+        'display_order' => intval($r['display_order'] ?? 0),
+        'is_active' => intval($r['is_active'] ?? 1) === 1 ? 'Ya' : 'Tidak',
+    ];
+}
+
+$jossExportRows = [];
+foreach ($jossRows as $r) {
+    $closed = intval($r['closed_count'] ?? 0);
+    $expired = intval($r['expired_count'] ?? 0);
+    $open = intval($r['open_count'] ?? 0);
+    $total = $closed + $expired + $open;
+    $jossExportRows[] = [
+        'id' => intval($r['id']),
+        'metric_date' => (string)($r['metric_date'] ?? ''),
+        'portal_name' => (string)($r['portal_name'] ?? ''),
+        'closed_count' => $closed,
+        'expired_count' => $expired,
+        'open_count' => $open,
+        'total' => $total,
+    ];
+}
+
+$weeklyExportRows = [];
+foreach ($weeklyRows as $r) {
+    $weeklyExportRows[] = [
+        'id' => intval($r['id']),
+        'record_date' => (string)($r['record_date'] ?? ''),
+        'portal_name' => (string)($r['portal_name'] ?? ''),
+        'total_loker' => intval($r['total_loker'] ?? 0),
+    ];
+}
+
+$portalExportJson = json_encode($portalExportRows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '[]';
+$jossExportJson = json_encode($jossExportRows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '[]';
+$weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '[]';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -521,15 +577,21 @@ while ($r = $resWeekly->fetch_assoc()) {
     <title>Monitoring Integrasi Karirhub x Mitra Settings</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body class="bg-light">
 <?php include 'navbar.php'; ?>
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0">Monitoring Integrasi Karirhub x Mitra Settings</h3>
-        <a href="dashboard_monitoring_integrasi_karirhub_mitra" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-eye me-1"></i>Lihat Dashboard
-        </a>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-success btn-sm" id="btnExportAll">
+                <i class="bi bi-file-earmark-excel me-1"></i>Export Semua (Excel)
+            </button>
+            <a href="dashboard_monitoring_integrasi_karirhub_mitra" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-eye me-1"></i>Lihat Dashboard
+            </a>
+        </div>
     </div>
 
     <?php if (!empty($_SESSION['error'])): ?>
@@ -640,7 +702,12 @@ while ($r = $resWeekly->fetch_assoc()) {
 
     <div class="card">
         <div class="card-body">
-            <h5 class="mb-3">Data Existing</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Data Existing</h5>
+                <button type="button" class="btn btn-outline-success btn-sm" id="btnExportPortal">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Export to Excel
+                </button>
+            </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-sm mb-0">
                     <thead class="table-light">
@@ -678,9 +745,9 @@ while ($r = $resWeekly->fetch_assoc()) {
                                     <td>
                                         <a class="btn btn-sm btn-outline-primary" href="?edit=<?php echo intval($row['id']); ?>"><i class="bi bi-pencil-square"></i></a>
                                         <form method="post" class="d-inline" onsubmit="return confirm('Delete this item?');">
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="id" value="<?php echo intval($row['id']); ?>">
-                                            <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
+                                             <input type="hidden" name="action" value="delete">
+                                             <input type="hidden" name="id" value="<?php echo intval($row['id']); ?>">
+                                             <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
                                         </form>
                                     </td>
                                 </tr>
@@ -730,7 +797,12 @@ while ($r = $resWeekly->fetch_assoc()) {
                     </div>
                 </div>
             </form>
-            <h5 class="mb-3 mt-4">Data Existing JOSS</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+                <h5 class="mb-0">Data Existing JOSS</h5>
+                <button type="button" class="btn btn-outline-success btn-sm" id="btnExportJoss">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Export to Excel
+                </button>
+            </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-sm mb-0">
                     <thead class="table-light">
@@ -807,7 +879,12 @@ while ($r = $resWeekly->fetch_assoc()) {
                 </div>
             </form>
 
-            <h5 class="mb-3 mt-4">Record List</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+                <h5 class="mb-0">Record List</h5>
+                <button type="button" class="btn btn-outline-success btn-sm" id="btnExportWeekly">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Export to Excel
+                </button>
+            </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-sm mb-0">
                     <thead class="table-light">
@@ -847,5 +924,147 @@ while ($r = $resWeekly->fetch_assoc()) {
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function() {
+    var portalData = <?php echo $portalExportJson; ?>;
+    var jossData = <?php echo $jossExportJson; ?>;
+    var weeklyData = <?php echo $weeklyExportJson; ?>;
+
+    function getTimestamp() {
+        var d = new Date();
+        var pad = function(n) { return String(n).padStart(2, '0'); };
+        return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '_' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+    }
+
+    function createPortalSheet(data) {
+        var headers = [
+            'ID', 'Portal Code', 'Nama Job Portal', 'Nama Perusahaan', 'Tipe', 'Card Color',
+            'Kerjasama APIs', 'Jenis Kerjasama', 'Progress Ringkas', 'Perizinan', 'KB', 'PKS', 'NDA',
+            'Integrasi', 'Progress Indicator', 'Keterangan', 'Kendala', 'Display Order', 'Aktif'
+        ];
+        var rows = [headers];
+        data.forEach(function(item) {
+            rows.push([
+                item.id,
+                item.portal_code,
+                item.portal_name,
+                item.company_name,
+                item.tipe,
+                item.card_color,
+                item.kerjasama_apis,
+                item.cooperation_types,
+                item.progress_summary,
+                item.perizinan,
+                item.kb,
+                item.pks,
+                item.nda,
+                item.integrasi,
+                item.progress_indicator,
+                item.notes,
+                item.issue_notes,
+                item.display_order,
+                item.is_active
+            ]);
+        });
+        return XLSX.utils.aoa_to_sheet(rows);
+    }
+
+    function createJossSheet(data) {
+        var headers = ['ID', 'Tanggal', 'Nama Job Portal', 'Closed', 'Expired', 'Open', 'Total'];
+        var rows = [headers];
+        data.forEach(function(item) {
+            rows.push([
+                item.id,
+                item.metric_date,
+                item.portal_name,
+                item.closed_count,
+                item.expired_count,
+                item.open_count,
+                item.total
+            ]);
+        });
+        return XLSX.utils.aoa_to_sheet(rows);
+    }
+
+    function createWeeklySheet(data) {
+        var headers = ['ID', 'Tanggal Data', 'Nama Job Portal', 'Total Loker'];
+        var rows = [headers];
+        data.forEach(function(item) {
+            rows.push([
+                item.id,
+                item.record_date,
+                item.portal_name,
+                item.total_loker
+            ]);
+        });
+        return XLSX.utils.aoa_to_sheet(rows);
+    }
+
+    // Export Portal
+    var btnPortal = document.getElementById('btnExportPortal');
+    if (btnPortal) {
+        btnPortal.addEventListener('click', function() {
+            if (typeof XLSX === 'undefined') { alert('Library Excel belum termuat.'); return; }
+            if (!portalData.length) { alert('Tidak ada data Portal untuk diexport.'); return; }
+            var wb = XLSX.utils.book_new();
+            var ws = createPortalSheet(portalData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Mitra Monitoring');
+            XLSX.writeFile(wb, 'data_portal_mitra_' + getTimestamp() + '.xlsx');
+        });
+    }
+
+    // Export JOSS
+    var btnJoss = document.getElementById('btnExportJoss');
+    if (btnJoss) {
+        btnJoss.addEventListener('click', function() {
+            if (typeof XLSX === 'undefined') { alert('Library Excel belum termuat.'); return; }
+            if (!jossData.length) { alert('Tidak ada data JOSS untuk diexport.'); return; }
+            var wb = XLSX.utils.book_new();
+            var ws = createJossSheet(jossData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Data JOSS');
+            XLSX.writeFile(wb, 'data_existing_joss_' + getTimestamp() + '.xlsx');
+        });
+    }
+
+    // Export Weekly
+    var btnWeekly = document.getElementById('btnExportWeekly');
+    if (btnWeekly) {
+        btnWeekly.addEventListener('click', function() {
+            if (typeof XLSX === 'undefined') { alert('Library Excel belum termuat.'); return; }
+            if (!weeklyData.length) { alert('Tidak ada data Weekly untuk diexport.'); return; }
+            var wb = XLSX.utils.book_new();
+            var ws = createWeeklySheet(weeklyData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Record Weekly');
+            XLSX.writeFile(wb, 'record_list_weekly_' + getTimestamp() + '.xlsx');
+        });
+    }
+
+    // Export All
+    var btnAll = document.getElementById('btnExportAll');
+    if (btnAll) {
+        btnAll.addEventListener('click', function() {
+            if (typeof XLSX === 'undefined') { alert('Library Excel belum termuat.'); return; }
+            if (!portalData.length && !jossData.length && !weeklyData.length) {
+                alert('Tidak ada data untuk diexport.');
+                return;
+            }
+            var wb = XLSX.utils.book_new();
+            if (portalData.length) {
+                var wsPortal = createPortalSheet(portalData);
+                XLSX.utils.book_append_sheet(wb, wsPortal, 'Mitra Monitoring');
+            }
+            if (jossData.length) {
+                var wsJoss = createJossSheet(jossData);
+                XLSX.utils.book_append_sheet(wb, wsJoss, 'Data JOSS');
+            }
+            if (weeklyData.length) {
+                var wsWeekly = createWeeklySheet(weeklyData);
+                XLSX.utils.book_append_sheet(wb, wsWeekly, 'Record Weekly');
+            }
+            XLSX.writeFile(wb, 'monitoring_integrasi_karirhub_all_' + getTimestamp() + '.xlsx');
+        });
+    }
+})();
+</script>
 </body>
 </html>
