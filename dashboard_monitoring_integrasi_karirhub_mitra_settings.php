@@ -761,18 +761,18 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
 
     <div class="card mt-4" id="section_joss">
         <div class="card-body">
-            <h5 class="mb-3"><?php echo $editJossRow ? 'Edit Data JOSS' : 'Tambah Data JOSS'; ?></h5>
-            <form method="post">
+            <h5 class="mb-3">Tambah Data JOSS</h5>
+            <form method="post" action="#section_joss">
                 <input type="hidden" name="action" value="joss_save">
-                <input type="hidden" name="joss_id" value="<?php echo intval($editJossRow['id'] ?? 0); ?>">
+                <input type="hidden" name="joss_id" value="0">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
                         <label class="form-label">Tanggal Data</label>
-                        <input type="date" class="form-control" name="metric_date" required value="<?php echo htmlspecialchars($editJossRow['metric_date'] ?? date('Y-m-d')); ?>">
+                        <input type="date" class="form-control" name="metric_date" required value="<?php echo date('Y-m-d'); ?>">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Nama Job Portal</label>
-                        <input class="form-control" list="joss_portal_list" name="portal_name_joss" required value="<?php echo htmlspecialchars($editJossRow['portal_name'] ?? ''); ?>" placeholder="contoh: Glints TapLoker">
+                        <input class="form-control" list="joss_portal_list" name="portal_name_joss" required value="" placeholder="contoh: Glints TapLoker">
                         <datalist id="joss_portal_list">
                             <?php foreach ($jossPortalOptions as $portalOption): ?>
                                 <option value="<?php echo htmlspecialchars($portalOption); ?>"></option>
@@ -781,19 +781,19 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">closed</label>
-                        <input type="number" min="0" class="form-control" name="closed_count" required value="<?php echo intval($editJossRow['closed_count'] ?? 0); ?>">
+                        <input type="number" min="0" class="form-control" name="closed_count" required value="0">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">expired</label>
-                        <input type="number" min="0" class="form-control" name="expired_count" required value="<?php echo intval($editJossRow['expired_count'] ?? 0); ?>">
+                        <input type="number" min="0" class="form-control" name="expired_count" required value="0">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">open</label>
-                        <input type="number" min="0" class="form-control" name="open_count" required value="<?php echo intval($editJossRow['open_count'] ?? 0); ?>">
+                        <input type="number" min="0" class="form-control" name="open_count" required value="0">
                     </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit"><i class="bi bi-save me-1"></i>Simpan Data JOSS</button>
-                        <a class="btn btn-secondary" href="dashboard_monitoring_integrasi_karirhub_mitra_settings#section_joss">Reset</a>
+                        <button class="btn btn-secondary" type="reset">Reset</button>
                     </div>
                 </div>
             </form>
@@ -832,8 +832,20 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
                                     <td class="text-end"><?php echo number_format(intval($jossRow['open_count'])); ?></td>
                                     <td class="text-end"><strong><?php echo number_format($total); ?></strong></td>
                                     <td>
-                                        <a class="btn btn-sm btn-outline-primary" href="?edit_joss=<?php echo intval($jossRow['id']); ?>#section_joss"><i class="bi bi-pencil-square"></i></a>
-                                        <form method="post" class="d-inline" onsubmit="return confirm('Delete this JOSS item?');">
+                                        <button type="button"
+                                            class="btn btn-sm btn-outline-primary"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalEditJoss"
+                                            data-id="<?php echo intval($jossRow['id']); ?>"
+                                            data-date="<?php echo htmlspecialchars($jossRow['metric_date']); ?>"
+                                            data-portal="<?php echo htmlspecialchars($jossRow['portal_name']); ?>"
+                                            data-closed="<?php echo intval($jossRow['closed_count']); ?>"
+                                            data-expired="<?php echo intval($jossRow['expired_count']); ?>"
+                                            data-open="<?php echo intval($jossRow['open_count']); ?>"
+                                            title="Edit Data JOSS">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                        <form method="post" class="d-inline" action="#section_joss" onsubmit="return confirm('Delete this JOSS item?');">
                                             <input type="hidden" name="action" value="joss_delete">
                                             <input type="hidden" name="joss_id" value="<?php echo intval($jossRow['id']); ?>">
                                             <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
@@ -850,18 +862,18 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
 
     <div class="card mt-4" id="section_weekly">
         <div class="card-body">
-            <h5 class="mb-3"><?php echo $editWeeklyRow ? 'Edit Record List Weekly' : 'Tambah Record List Weekly'; ?></h5>
-            <form method="post">
+            <h5 class="mb-3">Tambah Record List Weekly</h5>
+            <form method="post" action="#section_weekly">
                 <input type="hidden" name="action" value="weekly_save">
-                <input type="hidden" name="weekly_id" value="<?php echo intval($editWeeklyRow['id'] ?? 0); ?>">
+                <input type="hidden" name="weekly_id" value="0">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-4">
                         <label class="form-label">Tanggal Data</label>
-                        <input type="date" class="form-control" name="weekly_record_date" required value="<?php echo htmlspecialchars($editWeeklyRow['record_date'] ?? date('Y-m-d')); ?>">
+                        <input type="date" class="form-control" name="weekly_record_date" required value="<?php echo date('Y-m-d'); ?>">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Nama Job Portal</label>
-                        <input class="form-control" list="weekly_portal_list" name="portal_name_weekly" required value="<?php echo htmlspecialchars($editWeeklyRow['portal_name'] ?? ''); ?>" placeholder="contoh: Glints TapLoker">
+                        <input class="form-control" list="weekly_portal_list" name="portal_name_weekly" required value="" placeholder="contoh: Glints TapLoker">
                         <datalist id="weekly_portal_list">
                             <?php foreach ($jossPortalOptions as $portalOption): ?>
                                 <option value="<?php echo htmlspecialchars($portalOption); ?>"></option>
@@ -870,11 +882,11 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Total Loker</label>
-                        <input type="number" min="0" class="form-control" name="total_loker" required value="<?php echo intval($editWeeklyRow['total_loker'] ?? 0); ?>">
+                        <input type="number" min="0" class="form-control" name="total_loker" required value="0">
                     </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit"><i class="bi bi-save me-1"></i>Simpan Record Weekly</button>
-                        <a class="btn btn-secondary" href="dashboard_monitoring_integrasi_karirhub_mitra_settings#section_weekly">Reset</a>
+                        <button class="btn btn-secondary" type="reset">Reset</button>
                     </div>
                 </div>
             </form>
@@ -907,8 +919,18 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
                                     <td><?php echo htmlspecialchars($weeklyRow['portal_name']); ?></td>
                                     <td class="text-end"><strong><?php echo number_format(intval($weeklyRow['total_loker'])); ?></strong></td>
                                     <td>
-                                        <a class="btn btn-sm btn-outline-primary" href="?edit_weekly=<?php echo intval($weeklyRow['id']); ?>#section_weekly"><i class="bi bi-pencil-square"></i></a>
-                                        <form method="post" class="d-inline" onsubmit="return confirm('Delete this weekly item?');">
+                                        <button type="button"
+                                            class="btn btn-sm btn-outline-primary"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalEditWeekly"
+                                            data-id="<?php echo intval($weeklyRow['id']); ?>"
+                                            data-date="<?php echo htmlspecialchars($weeklyRow['record_date']); ?>"
+                                            data-portal="<?php echo htmlspecialchars($weeklyRow['portal_name']); ?>"
+                                            data-total="<?php echo intval($weeklyRow['total_loker']); ?>"
+                                            title="Edit Record Weekly">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                        <form method="post" class="d-inline" action="#section_weekly" onsubmit="return confirm('Delete this weekly item?');">
                                             <input type="hidden" name="action" value="weekly_delete">
                                             <input type="hidden" name="weekly_id" value="<?php echo intval($weeklyRow['id']); ?>">
                                             <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
@@ -923,6 +945,97 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
         </div>
     </div>
 </div>
+
+<!-- Modal Edit Data JOSS -->
+<div class="modal fade" id="modalEditJoss" tabindex="-1" aria-labelledby="modalEditJossLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="#section_joss">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalEditJossLabel"><i class="bi bi-pencil-square me-2"></i>Edit Data JOSS</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="joss_save">
+                    <input type="hidden" name="joss_id" id="modal_joss_id" value="">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Tanggal Data</label>
+                            <input type="date" class="form-control" name="metric_date" id="modal_joss_metric_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nama Job Portal</label>
+                            <input class="form-control" list="joss_portal_list_modal" name="portal_name_joss" id="modal_joss_portal_name" required placeholder="contoh: Glints TapLoker">
+                            <datalist id="joss_portal_list_modal">
+                                <?php foreach ($jossPortalOptions as $portalOption): ?>
+                                    <option value="<?php echo htmlspecialchars($portalOption); ?>"></option>
+                                <?php endforeach; ?>
+                            </datalist>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">closed</label>
+                            <input type="number" min="0" class="form-control" name="closed_count" id="modal_joss_closed_count" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">expired</label>
+                            <input type="number" min="0" class="form-control" name="expired_count" id="modal_joss_expired_count" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">open</label>
+                            <input type="number" min="0" class="form-control" name="open_count" id="modal_joss_open_count" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Record List Weekly -->
+<div class="modal fade" id="modalEditWeekly" tabindex="-1" aria-labelledby="modalEditWeeklyLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="#section_weekly">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalEditWeeklyLabel"><i class="bi bi-pencil-square me-2"></i>Edit Record List Weekly</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="weekly_save">
+                    <input type="hidden" name="weekly_id" id="modal_weekly_id" value="">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Tanggal Data</label>
+                            <input type="date" class="form-control" name="weekly_record_date" id="modal_weekly_record_date" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Nama Job Portal</label>
+                            <input class="form-control" list="weekly_portal_list_modal" name="portal_name_weekly" id="modal_weekly_portal_name" required placeholder="contoh: Glints TapLoker">
+                            <datalist id="weekly_portal_list_modal">
+                                <?php foreach ($jossPortalOptions as $portalOption): ?>
+                                    <option value="<?php echo htmlspecialchars($portalOption); ?>"></option>
+                                <?php endforeach; ?>
+                            </datalist>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Total Loker</label>
+                            <input type="number" min="0" class="form-control" name="total_loker" id="modal_weekly_total_loker" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 (function() {
@@ -1065,33 +1178,32 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
         });
     }
 
-    // Auto-scroll to section on edit or hash anchor
-    window.addEventListener('DOMContentLoaded', function() {
-        var urlParams = new URLSearchParams(window.location.search);
-        var targetId = null;
-        if (urlParams.has('edit_joss')) {
-            targetId = 'section_joss';
-        } else if (urlParams.has('edit_weekly')) {
-            targetId = 'section_weekly';
-        } else if (urlParams.has('edit')) {
-            targetId = 'section_portal';
-        } else if (window.location.hash) {
-            targetId = window.location.hash.substring(1);
-        }
+    // Modal Edit Listeners
+    var modalEditJoss = document.getElementById('modalEditJoss');
+    if (modalEditJoss) {
+        modalEditJoss.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            if (!button) return;
+            document.getElementById('modal_joss_id').value = button.getAttribute('data-id') || '';
+            document.getElementById('modal_joss_metric_date').value = button.getAttribute('data-date') || '';
+            document.getElementById('modal_joss_portal_name').value = button.getAttribute('data-portal') || '';
+            document.getElementById('modal_joss_closed_count').value = button.getAttribute('data-closed') || '0';
+            document.getElementById('modal_joss_expired_count').value = button.getAttribute('data-expired') || '0';
+            document.getElementById('modal_joss_open_count').value = button.getAttribute('data-open') || '0';
+        });
+    }
 
-        if (targetId) {
-            var targetEl = document.getElementById(targetId);
-            if (targetEl) {
-                setTimeout(function() {
-                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    var firstInput = targetEl.querySelector('input:not([type=hidden]), select, textarea');
-                    if (firstInput) {
-                        firstInput.focus({ preventScroll: true });
-                    }
-                }, 100);
-            }
-        }
-    });
+    var modalEditWeekly = document.getElementById('modalEditWeekly');
+    if (modalEditWeekly) {
+        modalEditWeekly.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            if (!button) return;
+            document.getElementById('modal_weekly_id').value = button.getAttribute('data-id') || '';
+            document.getElementById('modal_weekly_record_date').value = button.getAttribute('data-date') || '';
+            document.getElementById('modal_weekly_portal_name').value = button.getAttribute('data-portal') || '';
+            document.getElementById('modal_weekly_total_loker').value = button.getAttribute('data-total') || '0';
+        });
+    }
 })();
 </script>
 </body>
