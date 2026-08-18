@@ -240,12 +240,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($metricDate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $metricDate)) {
             $_SESSION['error'] = 'Tanggal JOSS wajib diisi dengan format yang valid.';
-            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings#section_joss');
             exit;
         }
         if ($portalName === '') {
             $_SESSION['error'] = 'Nama Job Portal JOSS wajib diisi.';
-            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings#section_joss');
             exit;
         }
 
@@ -271,7 +271,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['success'] = 'Data JOSS berhasil disimpan.';
         }
 
-        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings#section_joss');
         exit;
     }
 
@@ -284,7 +284,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
             $_SESSION['success'] = 'Data JOSS berhasil dihapus.';
         }
-        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings#section_joss');
         exit;
     }
 
@@ -296,12 +296,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($recordDate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $recordDate)) {
             $_SESSION['error'] = 'Tanggal data Weekly wajib diisi dengan format yang valid.';
-            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings#section_weekly');
             exit;
         }
         if ($portalName === '') {
             $_SESSION['error'] = 'Nama Job Portal Weekly wajib diisi.';
-            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings#section_weekly');
             exit;
         }
 
@@ -325,7 +325,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['success'] = 'Record Weekly berhasil disimpan.';
         }
 
-        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings#section_weekly');
         exit;
     }
 
@@ -338,7 +338,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
             $_SESSION['success'] = 'Record Weekly berhasil dihapus.';
         }
-        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings#section_weekly');
         exit;
     }
 
@@ -376,7 +376,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($portalCode === '' || $portalName === '' || $companyName === '') {
             $_SESSION['error'] = 'Portal code, portal name, and company name are required.';
-            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+            header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings#section_portal');
             exit;
         }
 
@@ -421,7 +421,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $_SESSION['success'] = 'Data saved successfully.';
-        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings#section_portal');
         exit;
     }
 
@@ -434,7 +434,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
             $_SESSION['success'] = 'Data deleted.';
         }
-        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings');
+        header('Location: dashboard_monitoring_integrasi_karirhub_mitra_settings#section_portal');
         exit;
     }
 }
@@ -601,7 +601,7 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
         <div class="alert alert-success"><?php echo htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?></div>
     <?php endif; ?>
 
-    <div class="card mb-4">
+    <div class="card mb-4" id="section_portal">
         <div class="card-body">
             <h5 class="mb-3"><?php echo $editRow ? 'Edit Data Portal' : 'Tambah Data Portal'; ?></h5>
             <form method="post">
@@ -693,7 +693,7 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
 
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit"><i class="bi bi-save me-1"></i>Simpan</button>
-                        <a class="btn btn-secondary" href="dashboard_monitoring_integrasi_karirhub_mitra_settings">Reset</a>
+                        <a class="btn btn-secondary" href="dashboard_monitoring_integrasi_karirhub_mitra_settings#section_portal">Reset</a>
                     </div>
                 </div>
             </form>
@@ -743,7 +743,7 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
                                     <td><?php echo intval($row['display_order']); ?></td>
                                     <td><?php echo intval($row['is_active']) === 1 ? 'Ya' : 'Tidak'; ?></td>
                                     <td>
-                                        <a class="btn btn-sm btn-outline-primary" href="?edit=<?php echo intval($row['id']); ?>"><i class="bi bi-pencil-square"></i></a>
+                                        <a class="btn btn-sm btn-outline-primary" href="?edit=<?php echo intval($row['id']); ?>#section_portal"><i class="bi bi-pencil-square"></i></a>
                                         <form method="post" class="d-inline" onsubmit="return confirm('Delete this item?');">
                                              <input type="hidden" name="action" value="delete">
                                              <input type="hidden" name="id" value="<?php echo intval($row['id']); ?>">
@@ -759,7 +759,7 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
         </div>
     </div>
 
-    <div class="card mt-4">
+    <div class="card mt-4" id="section_joss">
         <div class="card-body">
             <h5 class="mb-3"><?php echo $editJossRow ? 'Edit Data JOSS' : 'Tambah Data JOSS'; ?></h5>
             <form method="post">
@@ -793,7 +793,7 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
                     </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit"><i class="bi bi-save me-1"></i>Simpan Data JOSS</button>
-                        <a class="btn btn-secondary" href="dashboard_monitoring_integrasi_karirhub_mitra_settings">Reset</a>
+                        <a class="btn btn-secondary" href="dashboard_monitoring_integrasi_karirhub_mitra_settings#section_joss">Reset</a>
                     </div>
                 </div>
             </form>
@@ -832,7 +832,7 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
                                     <td class="text-end"><?php echo number_format(intval($jossRow['open_count'])); ?></td>
                                     <td class="text-end"><strong><?php echo number_format($total); ?></strong></td>
                                     <td>
-                                        <a class="btn btn-sm btn-outline-primary" href="?edit_joss=<?php echo intval($jossRow['id']); ?>"><i class="bi bi-pencil-square"></i></a>
+                                        <a class="btn btn-sm btn-outline-primary" href="?edit_joss=<?php echo intval($jossRow['id']); ?>#section_joss"><i class="bi bi-pencil-square"></i></a>
                                         <form method="post" class="d-inline" onsubmit="return confirm('Delete this JOSS item?');">
                                             <input type="hidden" name="action" value="joss_delete">
                                             <input type="hidden" name="joss_id" value="<?php echo intval($jossRow['id']); ?>">
@@ -848,7 +848,7 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
         </div>
     </div>
 
-    <div class="card mt-4">
+    <div class="card mt-4" id="section_weekly">
         <div class="card-body">
             <h5 class="mb-3"><?php echo $editWeeklyRow ? 'Edit Record List Weekly' : 'Tambah Record List Weekly'; ?></h5>
             <form method="post">
@@ -874,7 +874,7 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
                     </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit"><i class="bi bi-save me-1"></i>Simpan Record Weekly</button>
-                        <a class="btn btn-secondary" href="dashboard_monitoring_integrasi_karirhub_mitra_settings">Reset</a>
+                        <a class="btn btn-secondary" href="dashboard_monitoring_integrasi_karirhub_mitra_settings#section_weekly">Reset</a>
                     </div>
                 </div>
             </form>
@@ -907,7 +907,7 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
                                     <td><?php echo htmlspecialchars($weeklyRow['portal_name']); ?></td>
                                     <td class="text-end"><strong><?php echo number_format(intval($weeklyRow['total_loker'])); ?></strong></td>
                                     <td>
-                                        <a class="btn btn-sm btn-outline-primary" href="?edit_weekly=<?php echo intval($weeklyRow['id']); ?>"><i class="bi bi-pencil-square"></i></a>
+                                        <a class="btn btn-sm btn-outline-primary" href="?edit_weekly=<?php echo intval($weeklyRow['id']); ?>#section_weekly"><i class="bi bi-pencil-square"></i></a>
                                         <form method="post" class="d-inline" onsubmit="return confirm('Delete this weekly item?');">
                                             <input type="hidden" name="action" value="weekly_delete">
                                             <input type="hidden" name="weekly_id" value="<?php echo intval($weeklyRow['id']); ?>">
@@ -1064,6 +1064,34 @@ $weeklyExportJson = json_encode($weeklyExportRows, JSON_UNESCAPED_UNICODE | JSON
             XLSX.writeFile(wb, 'monitoring_integrasi_karirhub_all_' + getTimestamp() + '.xlsx');
         });
     }
+
+    // Auto-scroll to section on edit or hash anchor
+    window.addEventListener('DOMContentLoaded', function() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var targetId = null;
+        if (urlParams.has('edit_joss')) {
+            targetId = 'section_joss';
+        } else if (urlParams.has('edit_weekly')) {
+            targetId = 'section_weekly';
+        } else if (urlParams.has('edit')) {
+            targetId = 'section_portal';
+        } else if (window.location.hash) {
+            targetId = window.location.hash.substring(1);
+        }
+
+        if (targetId) {
+            var targetEl = document.getElementById(targetId);
+            if (targetEl) {
+                setTimeout(function() {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    var firstInput = targetEl.querySelector('input:not([type=hidden]), select, textarea');
+                    if (firstInput) {
+                        firstInput.focus({ preventScroll: true });
+                    }
+                }, 100);
+            }
+        }
+    });
 })();
 </script>
 </body>
