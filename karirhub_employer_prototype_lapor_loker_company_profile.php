@@ -49,6 +49,7 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
         .ll-helper-box { border: 1px solid #d7e5f5; background: #f5faff; color: #2a4f77; border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-bottom: 12px; }
         .ll-safe-box { border: 1px solid #ffe4a6; background: #fff9eb; color: #775d21; border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-bottom: 16px; }
         .ll-form-label { color: #304a64; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+        .ll-required { color: #c0342a; }
         .ll-form-note { color: #7f92a7; font-size: 12px; margin-top: 4px; }
         .ll-report-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 16px; }
         .ll-report-primary { background: #0a8f8a; border-color: #0a8f8a; font-weight: 600; }
@@ -172,13 +173,13 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
                             </div>
                             <form onsubmit="return false;" aria-label="Prototype form lapor perusahaan">
                                 <div class="mb-3">
-                                    <label class="ll-form-label" for="reportEmailCompany">Alamat email kamu</label>
+                                    <label class="ll-form-label" for="reportEmailCompany">Alamat email kamu <span class="ll-required">*</span></label>
                                     <input id="reportEmailCompany" type="email" class="form-control" value="email@example.com" readonly>
                                     <div class="ll-form-note">Diisi otomatis dari akun yang sudah login (prototype read-only).</div>
                                 </div>
 
                                 <div class="mt-3">
-                                    <label class="ll-form-label" for="reportCompanyReason">Alasan pelaporan perusahaan</label>
+                                    <label class="ll-form-label" for="reportCompanyReason">Alasan pelaporan perusahaan <span class="ll-required">*</span></label>
                                     <select id="reportCompanyReason" class="form-select">
                                         <option selected>Silakan pilih</option>
                                         <option>Perusahaan palsu / informasi menyesatkan</option>
@@ -194,27 +195,29 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
                                 </div>
 
                                 <div id="reportCompanyReasonOtherWrap" class="mt-3 d-none">
-                                    <label class="ll-form-label" for="reportCompanyReasonOther">Alasan pelaporan lainnya</label>
+                                    <label class="ll-form-label" for="reportCompanyReasonOther">Alasan pelaporan lainnya <span class="ll-required">*</span></label>
                                     <input id="reportCompanyReasonOther" type="text" class="form-control" placeholder="Tuliskan alasan pelaporan lainnya...">
                                     <div id="reasonOtherError" class="ll-error-text">Isi alasan pelaporan lainnya terlebih dahulu.</div>
                                 </div>
 
                                 <div class="mt-3">
-                                    <label class="ll-form-label" for="reportCompanyComment">Komentar tambahan</label>
+                                    <label class="ll-form-label" for="reportCompanyComment">Komentar tambahan <span class="ll-required">*</span></label>
                                     <textarea id="reportCompanyComment" class="form-control" rows="4" placeholder="Jelaskan informasi yang membantu proses pemeriksaan..."></textarea>
-                                    <div class="ll-form-note">Opsional. Tambahkan detail yang membantu pemeriksaan laporan.</div>
+                                    <div class="ll-form-note">Tambahkan detail yang membantu pemeriksaan laporan.</div>
+                                    <div id="commentError" class="ll-error-text">Komentar tambahan wajib diisi.</div>
                                 </div>
 
                                 <div class="mt-3">
-                                    <label class="ll-form-label" for="reportCompanyEvidence">Tambahkan bukti</label>
+                                    <label class="ll-form-label" for="reportCompanyEvidence">Tambahkan bukti <span class="ll-required">*</span></label>
                                     <input id="reportCompanyEvidence" type="file" class="form-control" accept=".pdf,image/*">
                                     <div class="ll-form-note">Tipe file contoh: PDF, JPG, PNG.</div>
+                                    <div id="evidenceError" class="ll-error-text">Tambahkan bukti terlebih dahulu.</div>
                                 </div>
 
                                 <div class="form-check mt-3">
                                     <input class="form-check-input" type="checkbox" value="" id="reportCompanyConsent">
                                     <label class="form-check-label" for="reportCompanyConsent">
-                                        Saya menyampaikan laporan ini dengan itikad baik.
+                                        Saya menyampaikan laporan ini dengan itikad baik. <span class="ll-required">*</span>
                                     </label>
                                     <div id="consentError" class="ll-error-text">Centang pernyataan itikad baik untuk melanjutkan.</div>
                                 </div>
@@ -258,19 +261,24 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
         const reasonOtherWrap = document.getElementById('reportCompanyReasonOtherWrap');
         const reasonOtherField = document.getElementById('reportCompanyReasonOther');
         const commentField = document.getElementById('reportCompanyComment');
+        const evidenceField = document.getElementById('reportCompanyEvidence');
         const consentField = document.getElementById('reportCompanyConsent');
         const reasonError = document.getElementById('reasonError');
         const reasonOtherError = document.getElementById('reasonOtherError');
+        const commentError = document.getElementById('commentError');
+        const evidenceError = document.getElementById('evidenceError');
         const consentError = document.getElementById('consentError');
         const reportIdText = document.getElementById('companyReportIdText');
 
-        if (!submitBtn || !formWrap || !successWrap || !reasonField || !reasonOtherWrap || !reasonOtherField || !commentField || !consentField || !reportIdText) {
+        if (!submitBtn || !formWrap || !successWrap || !reasonField || !reasonOtherWrap || !reasonOtherField || !commentField || !evidenceField || !consentField || !reportIdText) {
             return;
         }
 
         function hideErrors() {
             if (reasonError) reasonError.style.display = 'none';
             if (reasonOtherError) reasonOtherError.style.display = 'none';
+            if (commentError) commentError.style.display = 'none';
+            if (evidenceError) evidenceError.style.display = 'none';
             if (consentError) consentError.style.display = 'none';
         }
 
@@ -302,8 +310,10 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
             let hasError = false;
             const reasonValue = reasonField.value.trim().toLowerCase();
             const reasonOtherValue = reasonOtherField.value.trim();
+            const commentValue = commentField.value.trim();
             const reasonNotChosen = (reasonValue === '' || reasonValue === 'silakan pilih');
             const reasonIsOther = isOtherReasonSelected();
+            const evidenceMissing = !(evidenceField.files && evidenceField.files.length > 0);
 
             if (reasonNotChosen) {
                 hasError = true;
@@ -313,6 +323,16 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
             if (reasonIsOther && reasonOtherValue === '') {
                 hasError = true;
                 if (reasonOtherError) reasonOtherError.style.display = 'block';
+            }
+
+            if (commentValue === '') {
+                hasError = true;
+                if (commentError) commentError.style.display = 'block';
+            }
+
+            if (evidenceMissing) {
+                hasError = true;
+                if (evidenceError) evidenceError.style.display = 'block';
             }
 
             if (!consentField.checked) {
@@ -335,6 +355,7 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
                 reasonField.selectedIndex = 0;
                 reasonOtherField.value = '';
                 commentField.value = '';
+                evidenceField.value = '';
                 consentField.checked = false;
                 syncReasonOtherVisibility();
                 hideErrors();
