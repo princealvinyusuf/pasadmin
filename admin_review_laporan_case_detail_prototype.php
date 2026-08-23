@@ -127,6 +127,11 @@ $vacancyCases = [
         'snapshot' => 'vacancy_id=VAC-99311, publication_status=ACTIVE, source_flag=NATIVE.',
         'vacancy_snapshot' => $salesExecutiveSnapshot,
         'employer_profile' => $employerProfile,
+        'employer_clarification' => [
+            'response' => 'Kami tidak pernah meminta biaya kepada pelamar. Informasi yang beredar berasal dari pihak tidak bertanggung jawab. Kami siap memberikan bukti proses rekrutmen yang sah.',
+            'document_name' => 'klarifikasi_pemberi_kerja.pdf',
+            'document_content' => "Klarifikasi Pemberi Kerja\nReport: VRP-2026-304511\n\nKami tidak pernah meminta biaya kepada pelamar. Informasi yang beredar berasal dari pihak tidak bertanggung jawab. Kami siap memberikan bukti proses rekrutmen yang sah.\n",
+        ],
         'current_data' => 'Lowongan masih tayang dan belum ada perubahan status.',
         'verified_by_admin' => 'admin.pusat.verifikasi',
         'history_count' => 4,
@@ -217,6 +222,11 @@ $vacancyCases = [
             'job_type' => 'Full time',
         ]),
         'employer_profile' => $employerProfile,
+        'employer_clarification' => [
+            'response' => 'Deskripsi lowongan sudah kami perbarui agar sesuai dengan posisi Kasir. Mohon ditinjau kembali.',
+            'document_name' => 'klarifikasi_kasir.pdf',
+            'document_content' => "Klarifikasi Pemberi Kerja\nReport: VRP-2026-304477\n\nDeskripsi lowongan sudah kami perbarui agar sesuai dengan posisi Kasir. Mohon ditinjau kembali.\n",
+        ],
         'current_data' => 'Listing masih aktif, menunggu klarifikasi mitra.',
         'verified_by_admin' => 'admin.kabkota.tng',
         'history_count' => 2,
@@ -348,6 +358,9 @@ if ($case === null) {
                     </button>
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#klarifikasiModal">
                         <i class="bi bi-chat-left-text me-1"></i>Minta Klarifikasi Pemberi Kerja
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#lihatKlarifikasiModal">
+                        <i class="bi bi-eye me-1"></i>Lihat Klarifikasi Pemberi Kerja
                     </button>
                 </div>
             </div>
@@ -644,6 +657,53 @@ if ($case === null) {
                     </div>
                 </div>
             </div>
+
+            <?php
+            $employerClarification = $case['employer_clarification'] ?? [
+                'response' => 'Belum ada tanggapan dari pemberi kerja pada dataset prototype.',
+                'document_name' => 'klarifikasi_pemberi_kerja.pdf',
+                'document_content' => "Belum ada dokumen klarifikasi.\n",
+            ];
+            ?>
+            <div class="modal fade" id="lihatKlarifikasiModal" tabindex="-1" aria-labelledby="lihatKlarifikasiModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="lihatKlarifikasiModalLabel">Lihat Klarifikasi Pemberi Kerja</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label small mb-1" for="tanggapanPemberiKerjaField">Tanggapan Pemberi Kerja</label>
+                                <textarea
+                                    id="tanggapanPemberiKerjaField"
+                                    class="form-control"
+                                    rows="5"
+                                    readonly
+                                ><?php echo h($employerClarification['response']); ?></textarea>
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label small mb-1">Dokumen Bukti</label>
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <span class="ard-text"><?php echo h($employerClarification['document_name']); ?></span>
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-primary"
+                                        id="downloadKlarifikasiDocBtn"
+                                        data-filename="<?php echo h($employerClarification['document_name']); ?>"
+                                        data-content="<?php echo h($employerClarification['document_content']); ?>"
+                                    >
+                                        <i class="bi bi-download me-1"></i>Download Dokumen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     <?php endif; ?>
 </div>
@@ -832,6 +892,23 @@ if ($case === null) {
             successAlert.classList.remove('d-none');
             klarifikasiModal.hide();
         });
+
+        const downloadKlarifikasiDocBtn = document.getElementById('downloadKlarifikasiDocBtn');
+        if (downloadKlarifikasiDocBtn) {
+            downloadKlarifikasiDocBtn.addEventListener('click', function () {
+                const filename = downloadKlarifikasiDocBtn.getAttribute('data-filename') || 'klarifikasi_pemberi_kerja.txt';
+                const content = downloadKlarifikasiDocBtn.getAttribute('data-content') || '';
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename.replace(/\.pdf$/i, '.txt');
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(url);
+            });
+        }
     })();
 </script>
 </body>
