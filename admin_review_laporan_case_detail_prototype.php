@@ -309,7 +309,7 @@ if ($case === null) {
             </div>
 
             <div class="ard-section">
-                <h6>Panel Data Terkini</h6>
+                <h6>Status</h6>
                 <p class="ard-text"><?php echo h($case['current_data']); ?></p>
             </div>
 
