@@ -387,68 +387,64 @@ if ($case === null) {
                 </p>
             </div>
 
+            <?php if (!empty($case['vacancy_snapshot']) && is_array($case['vacancy_snapshot'])): ?>
+            <?php $vacancy = $case['vacancy_snapshot']; ?>
             <div class="ard-section">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                     <h6 class="mb-0">Panel Snapshot</h6>
-                    <?php if (!empty($case['vacancy_snapshot']) && is_array($case['vacancy_snapshot'])): ?>
-                        <a
-                            class="btn btn-sm btn-outline-primary"
-                            href="https://karirhub.kemnaker.go.id/lowongan-dalam-negeri/lowongan/marketing-specialist-4934b8f4-5744-4530-afdd-d6365136bcb0"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            <i class="bi bi-box-arrow-up-right me-1"></i>Lihat Lowongan
-                        </a>
-                    <?php endif; ?>
+                    <a
+                        class="btn btn-sm btn-outline-primary"
+                        href="https://karirhub.kemnaker.go.id/lowongan-dalam-negeri/lowongan/marketing-specialist-4934b8f4-5744-4530-afdd-d6365136bcb0"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Lihat Lowongan
+                    </a>
                 </div>
-                <?php if (!empty($case['vacancy_snapshot']) && is_array($case['vacancy_snapshot'])): ?>
-                    <?php $vacancy = $case['vacancy_snapshot']; ?>
-                    <div class="ard-vacancy-title"><?php echo h($vacancy['title']); ?></div>
-                    <div class="ard-vacancy-location"><?php echo h($vacancy['location']); ?></div>
-                    <div class="ard-vacancy-meta">
-                        <span>Diposting <?php echo h($vacancy['posted_at']); ?></span>
-                        <span>Jumlah lowongan: <?php echo h($vacancy['vacancy_count']); ?></span>
-                    </div>
-                    <div class="ard-vacancy-meta">Batas waktu lamaran <?php echo h($vacancy['deadline']); ?></div>
+                <div class="ard-vacancy-title"><?php echo h($vacancy['title']); ?></div>
+                <div class="ard-vacancy-location"><?php echo h($vacancy['location']); ?></div>
+                <div class="ard-vacancy-meta">
+                    <span>Diposting <?php echo h($vacancy['posted_at']); ?></span>
+                    <span>Jumlah lowongan: <?php echo h($vacancy['vacancy_count']); ?></span>
+                </div>
+                <div class="ard-vacancy-meta">Batas waktu lamaran <?php echo h($vacancy['deadline']); ?></div>
 
-                    <div class="ard-vacancy-attrs">
-                        <div class="ard-vacancy-attr"><strong>Bidang pekerjaan :</strong> <?php echo h($vacancy['job_field']); ?></div>
-                        <div class="ard-vacancy-attr"><strong>Jenis pekerjaan :</strong> <?php echo h($vacancy['job_type']); ?></div>
-                        <div class="ard-vacancy-attr"><strong>Tipe pekerjaan :</strong> <?php echo h($vacancy['job_category']); ?></div>
-                        <div class="ard-vacancy-attr"><strong>Jenis kelamin :</strong> <?php echo h($vacancy['gender']); ?></div>
-                        <div class="ard-vacancy-attr"><strong>Rentang gaji :</strong> <?php echo h($vacancy['salary_range']); ?></div>
-                    </div>
+                <div class="ard-vacancy-attrs">
+                    <div class="ard-vacancy-attr"><strong>Bidang pekerjaan :</strong> <?php echo h($vacancy['job_field']); ?></div>
+                    <div class="ard-vacancy-attr"><strong>Jenis pekerjaan :</strong> <?php echo h($vacancy['job_type']); ?></div>
+                    <div class="ard-vacancy-attr"><strong>Tipe pekerjaan :</strong> <?php echo h($vacancy['job_category']); ?></div>
+                    <div class="ard-vacancy-attr"><strong>Jenis kelamin :</strong> <?php echo h($vacancy['gender']); ?></div>
+                    <div class="ard-vacancy-attr"><strong>Rentang gaji :</strong> <?php echo h($vacancy['salary_range']); ?></div>
+                </div>
 
-                    <div class="ard-vacancy-block">
-                        <div class="ard-vacancy-block-title">Deskripsi Pekerjaan:</div>
-                        <ul class="ard-vacancy-list">
-                            <?php foreach ($vacancy['description'] as $item): ?>
-                                <li><?php echo h($item); ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </div>
+                <div class="ard-vacancy-block">
+                    <div class="ard-vacancy-block-title">Deskripsi Pekerjaan:</div>
+                    <ul class="ard-vacancy-list">
+                        <?php foreach ($vacancy['description'] as $item): ?>
+                            <li><?php echo h($item); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
 
-                    <div class="ard-vacancy-block">
-                        <div class="ard-vacancy-block-title">Persyaratan Khusus:</div>
-                        <ul class="ard-vacancy-list">
-                            <?php foreach ($vacancy['special_requirements'] as $item): ?>
-                                <li><?php echo h($item); ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </div>
+                <div class="ard-vacancy-block">
+                    <div class="ard-vacancy-block-title">Persyaratan Khusus:</div>
+                    <ul class="ard-vacancy-list">
+                        <?php foreach ($vacancy['special_requirements'] as $item): ?>
+                            <li><?php echo h($item); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
 
-                    <div class="ard-vacancy-block">
-                        <div class="ard-vacancy-block-title">Persyaratan Umum:</div>
-                        <ul class="ard-vacancy-kv">
-                            <?php foreach ($vacancy['general_requirements'] as $label => $value): ?>
-                                <li><strong><?php echo h($label); ?> :</strong> <?php echo h($value); ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </div>
-                <?php else: ?>
-                    <p class="ard-text"><?php echo h($case['snapshot']); ?></p>
-                <?php endif; ?>
+                <div class="ard-vacancy-block">
+                    <div class="ard-vacancy-block-title">Persyaratan Umum:</div>
+                    <ul class="ard-vacancy-kv">
+                        <?php foreach ($vacancy['general_requirements'] as $label => $value): ?>
+                            <li><strong><?php echo h($label); ?> :</strong> <?php echo h($value); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
             </div>
+            <?php endif; ?>
 
             <div class="ard-section">
                 <h6>Status</h6>
