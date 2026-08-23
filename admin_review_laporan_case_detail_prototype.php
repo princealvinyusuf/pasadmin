@@ -561,7 +561,7 @@ if ($case === null) {
             <div class="ard-section">
                 <h6>Panel Keputusan & Action Scope (Prototype)</h6>
                 <div class="row g-2">
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-6">
                         <label class="form-label small mb-1">Keputusan</label>
                         <select id="decisionSelect" class="form-select form-select-sm">
                             <option>Tidak Terbukti</option>
@@ -569,21 +569,13 @@ if ($case === null) {
                             <option>Warning</option>
                         </select>
                     </div>
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-6">
                         <label class="form-label small mb-1">Enforcement Action</label>
                         <select id="actionSelect" class="form-select form-select-sm">
                             <option>Tidak ada</option>
                             <option>Tangguhkan Lowongan</option>
                             <option>Blokir Lowongan</option>
                             <option>Blokir Akun Pemberi Kerja</option>
-                        </select>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <label class="form-label small mb-1">Action Scope Lowongan</label>
-                        <select id="scopeSelect" class="form-select form-select-sm">
-                            <option>NONE</option>
-                            <option>SELECTED_VACANCIES</option>
-                            <option>ALL_ACTIVE_NATIVE_VACANCIES</option>
                         </select>
                     </div>
                 </div>
@@ -605,13 +597,12 @@ if ($case === null) {
         const statusBadge = document.getElementById('caseStatusBadge');
         const decisionSelect = document.getElementById('decisionSelect');
         const actionSelect = document.getElementById('actionSelect');
-        const scopeSelect = document.getElementById('scopeSelect');
         const saveBtn = document.getElementById('saveDecisionBtn');
         const feedback = document.getElementById('decisionFeedback');
         const outcome = document.getElementById('decisionOutcome');
         const outcomeText = document.getElementById('decisionOutcomeText');
 
-        if (!statusBadge || !decisionSelect || !actionSelect || !scopeSelect || !saveBtn || !feedback || !outcome || !outcomeText) {
+        if (!statusBadge || !decisionSelect || !actionSelect || !saveBtn || !feedback || !outcome || !outcomeText) {
             return;
         }
 
@@ -653,15 +644,9 @@ if ($case === null) {
         saveBtn.addEventListener('click', function () {
             const decision = decisionSelect.value;
             const action = actionSelect.value;
-            const scope = scopeSelect.value;
 
             if (decision === 'Valid' && action === 'Tidak ada') {
                 showFeedback('Untuk Valid, Enforcement Action tidak boleh "Tidak ada".', true);
-                return;
-            }
-
-            if ((action === 'Blokir Lowongan' || action === 'Blokir Akun Pemberi Kerja') && scope === 'NONE') {
-                showFeedback('Untuk Blokir Lowongan/Blokir Akun, pilih Action Scope Lowongan secara eksplisit bila ada dampak lowongan.', true);
                 return;
             }
 
@@ -672,9 +657,9 @@ if ($case === null) {
             if (decision === 'Tidak Terbukti') {
                 outcomeMessage += 'Case dapat ditutup tanpa perubahan perusahaan/lowongan.';
             } else if (decision === 'Valid') {
-                outcomeMessage += 'Action: ' + action + ' dengan scope ' + scope + '.';
+                outcomeMessage += 'Action: ' + action + '.';
             } else if (decision === 'Warning') {
-                outcomeMessage += 'Peringatan diberikan kepada pemberi kerja. Action: ' + action + ' dengan scope ' + scope + '.';
+                outcomeMessage += 'Peringatan diberikan kepada pemberi kerja. Action: ' + action + '.';
             } else {
                 outcomeMessage += 'Case tetap pada alur review.';
             }
