@@ -109,6 +109,29 @@ $employerProfile = [
     'address' => 'Kota Adm. Jakarta Selatan, The CEO Building Level 12, Jl. TB Simatupang No. 18C',
 ];
 
+$finaccelEmployerProfile = [
+    'name' => 'PT Finaccel Finance Indonesia',
+    'field' => 'Banking & Financial Services',
+    'registered_since' => '19 Mei 2023',
+    'contact' => '0211500987',
+    'email' => 'hr@finaccel.co.id',
+    'website' => 'www.finaccel.co.id',
+    'address' => 'Jakarta Pusat - DKI Jakarta',
+];
+
+$majuKarierEmployerProfile = [
+    'name' => 'PT Maju Karier Nusantara',
+    'field' => 'Human Resources & Recruitment',
+    'registered_since' => '02 Januari 2024',
+    'contact' => '0221234567',
+    'email' => 'info@majukarier.co.id',
+    'website' => 'www.maju-karier.co.id',
+    'address' => 'Bandung - Jawa Barat',
+];
+
+$companyCases['CRP-2026-103421']['employer_profile'] = $finaccelEmployerProfile;
+$companyCases['CRP-2026-103109']['employer_profile'] = $majuKarierEmployerProfile;
+
 $vacancyCases = [
     'VRP-2026-304511' => [
         'report_id' => 'VRP-2026-304511',
@@ -387,6 +410,24 @@ if ($case === null) {
                 </p>
             </div>
 
+            <?php if (!empty($case['employer_profile']) && is_array($case['employer_profile'])): ?>
+                <?php $employer = $case['employer_profile']; ?>
+                <div class="ard-section">
+                    <h6>Profil Pemberi Kerja</h6>
+                    <div class="ard-vacancy-attrs">
+                        <div class="ard-vacancy-attr"><strong>Nama Pemberi Kerja:</strong> <?php echo h($employer['name']); ?></div>
+                        <div class="ard-vacancy-attr"><strong>Bidang :</strong> <?php echo h($employer['field']); ?></div>
+                        <div class="ard-vacancy-attr"><strong>Terdaftar sejak :</strong> <?php echo h($employer['registered_since']); ?></div>
+                    </div>
+                    <div class="ard-vacancy-attrs mb-0">
+                        <div class="ard-vacancy-attr"><strong>Kontak perusahaan :</strong> <?php echo h($employer['contact']); ?></div>
+                        <div class="ard-vacancy-attr"><strong>Email perusahaan :</strong> <?php echo h($employer['email']); ?></div>
+                        <div class="ard-vacancy-attr"><strong>Website perusahaan :</strong> <?php echo h($employer['website']); ?></div>
+                        <div class="ard-vacancy-attr"><strong>Lokasi alamat perusahaan :</strong> <?php echo h($employer['address']); ?></div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <?php if (!empty($case['vacancy_snapshot']) && is_array($case['vacancy_snapshot'])): ?>
             <?php $vacancy = $case['vacancy_snapshot']; ?>
             <div class="ard-section">
@@ -453,24 +494,6 @@ if ($case === null) {
                     <p class="ard-text mt-2">Lowongan ini sebelumnya diverifikasi tayang oleh: <strong><?php echo h($case['verified_by_admin']); ?></strong></p>
                 <?php endif; ?>
             </div>
-
-            <?php if (!empty($case['employer_profile']) && is_array($case['employer_profile'])): ?>
-                <?php $employer = $case['employer_profile']; ?>
-                <div class="ard-section">
-                    <h6>Profil Pemberi Kerja</h6>
-                    <div class="ard-vacancy-attrs">
-                        <div class="ard-vacancy-attr"><strong>Nama Pemberi Kerja:</strong> <?php echo h($employer['name']); ?></div>
-                        <div class="ard-vacancy-attr"><strong>Bidang :</strong> <?php echo h($employer['field']); ?></div>
-                        <div class="ard-vacancy-attr"><strong>Terdaftar sejak :</strong> <?php echo h($employer['registered_since']); ?></div>
-                    </div>
-                    <div class="ard-vacancy-attrs mb-0">
-                        <div class="ard-vacancy-attr"><strong>Kontak perusahaan :</strong> <?php echo h($employer['contact']); ?></div>
-                        <div class="ard-vacancy-attr"><strong>Email perusahaan :</strong> <?php echo h($employer['email']); ?></div>
-                        <div class="ard-vacancy-attr"><strong>Website perusahaan :</strong> <?php echo h($employer['website']); ?></div>
-                        <div class="ard-vacancy-attr"><strong>Lokasi alamat perusahaan :</strong> <?php echo h($employer['address']); ?></div>
-                    </div>
-                </div>
-            <?php endif; ?>
 
             <div class="ard-section">
                 <h6>Panel Histori dan Keterkaitan</h6>
