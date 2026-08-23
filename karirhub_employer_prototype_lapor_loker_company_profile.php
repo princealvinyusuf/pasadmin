@@ -92,7 +92,6 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
 </head>
 <body class="kh-proto-page">
 <?php include 'navbar.php'; ?>
-<?php kh_proto_render_hero('Profil Perusahaan', 'Simulasi halaman profil perusahaan dari lowongan Karirhub.', 'Lowongan Kerja', 'karirhub_employer_prototype_lapor_loker', 'Proyek', 'karirhub_employer_prototype_lapor_loker', false); ?>
 
 <div class="kh-content-wrap">
     <div class="container py-4">
