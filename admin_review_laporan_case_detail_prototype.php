@@ -154,7 +154,7 @@ if ($case === null) {
                     <div class="ard-title"><?php echo h($case['object_type']); ?> - <?php echo h($case['report_id']); ?></div>
                     <div class="ard-meta">Subject: <?php echo h($case['subject']); ?> | Submit: <?php echo h($case['submit_at']); ?></div>
                     <div class="d-flex flex-wrap gap-2 mt-2">
-                        <span id="caseStatusBadge" class="ard-badge text-bg-primary"><?php echo h($case['status']); ?></span>
+                        <span id="caseStatusBadge" class="ard-badge text-bg-primary"><?php echo h(($case['status'] === 'PENDING_REVIEW' || $case['status'] === 'IN_REVIEW') ? 'Dalam Verifikasi' : $case['status']); ?></span>
                         <span class="ard-badge text-bg-danger"><?php echo h($case['severity']); ?></span>
                         <span class="ard-badge text-bg-warning"><?php echo h($case['sla']); ?></span>
                     </div>
@@ -261,7 +261,8 @@ if ($case === null) {
         }
 
         function setStatusBadge(status) {
-            statusBadge.textContent = status;
+            const displayStatus = (status === 'PENDING_REVIEW' || status === 'IN_REVIEW') ? 'Dalam Verifikasi' : status;
+            statusBadge.textContent = displayStatus;
             statusBadge.classList.remove('text-bg-primary', 'text-bg-warning', 'text-bg-info', 'text-bg-success', 'text-bg-secondary');
             if (status === 'WAITING_REPORTER_INFO' || status === 'WAITING_EMPLOYER_CLARIFICATION') {
                 statusBadge.classList.add('text-bg-warning');
@@ -275,7 +276,7 @@ if ($case === null) {
                 statusBadge.classList.add('text-bg-success');
                 return;
             }
-            if (status === 'IN_REVIEW') {
+            if (status === 'IN_REVIEW' || status === 'PENDING_REVIEW') {
                 statusBadge.classList.add('text-bg-info');
                 return;
             }
