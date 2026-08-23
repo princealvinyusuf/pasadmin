@@ -206,7 +206,7 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
                                 </div>
 
                                 <div class="mt-3">
-                                    <label class="ll-form-label" for="reportCompanyEvidence">Tambahkan bukti (opsional)</label>
+                                    <label class="ll-form-label" for="reportCompanyEvidence">Tambahkan bukti</label>
                                     <input id="reportCompanyEvidence" type="file" class="form-control" accept=".pdf,image/*">
                                     <div class="ll-form-note">Tipe file contoh: PDF, JPG, PNG.</div>
                                 </div>
