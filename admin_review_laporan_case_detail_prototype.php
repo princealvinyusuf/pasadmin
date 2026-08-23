@@ -309,6 +309,10 @@ if ($case === null) {
         .ard-related-current { background: #f3f9ff; }
         .ard-subfield { margin-top: 14px; }
         .ard-subfield-title { font-size: 14px; font-weight: 700; color: #1f3550; margin-bottom: 8px; }
+        .ard-aksi-list { display: flex; flex-direction: column; gap: 8px; }
+        .ard-aksi-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e3ebf5; border-radius: 8px; background: #fbfdff; color: #1f3550; font-size: 14px; }
+        .ard-aksi-item.is-disabled { background: #f1f4f8; color: #9aa9b8; border-color: #e6ebf1; }
+        .ard-aksi-item.is-disabled .form-check-input { opacity: .55; }
         @media (max-width: 991px) {
             .ard-grid { grid-template-columns: 1fr; }
             .ard-vacancy-attrs { grid-template-columns: 1fr; }
@@ -585,13 +589,25 @@ if ($case === null) {
                                     </select>
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label small mb-1" for="actionSelect">Aksi</label>
-                                    <select id="actionSelect" class="form-select form-select-sm">
-                                        <option>Tidak ada</option>
-                                        <option>Tangguhkan Lowongan</option>
-                                        <option>Blokir Lowongan</option>
-                                        <option>Blokir Akun Pemberi Kerja</option>
-                                    </select>
+                                    <label class="form-label small mb-2">Aksi</label>
+                                    <div class="ard-aksi-list" id="aksiCheckboxList">
+                                        <label class="ard-aksi-item" data-aksi="Tidak ada">
+                                            <input class="form-check-input m-0 js-aksi-check" type="checkbox" value="Tidak ada">
+                                            <span>Tidak ada</span>
+                                        </label>
+                                        <label class="ard-aksi-item" data-aksi="Tangguhkan Lowongan">
+                                            <input class="form-check-input m-0 js-aksi-check" type="checkbox" value="Tangguhkan Lowongan">
+                                            <span>Tangguhkan Lowongan</span>
+                                        </label>
+                                        <label class="ard-aksi-item" data-aksi="Blokir Lowongan">
+                                            <input class="form-check-input m-0 js-aksi-check" type="checkbox" value="Blokir Lowongan">
+                                            <span>Blokir Lowongan</span>
+                                        </label>
+                                        <label class="ard-aksi-item" data-aksi="Blokir Akun Pemberi Kerja">
+                                            <input class="form-check-input m-0 js-aksi-check" type="checkbox" value="Blokir Akun Pemberi Kerja">
+                                            <span>Blokir Akun Pemberi Kerja</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                             <div id="decisionFeedback" class="ard-feedback"></div>
@@ -611,18 +627,36 @@ if ($case === null) {
     (function () {
         const statusBadge = document.getElementById('caseStatusBadge');
         const decisionSelect = document.getElementById('decisionSelect');
-        const actionSelect = document.getElementById('actionSelect');
+        const aksiChecks = Array.prototype.slice.call(document.querySelectorAll('.js-aksi-check'));
         const saveBtn = document.getElementById('saveDecisionBtn');
         const feedback = document.getElementById('decisionFeedback');
         const successAlert = document.getElementById('tindakanSuccessAlert');
         const tindakanModalEl = document.getElementById('tindakanModal');
         const requestEmployerBtn = document.getElementById('requestEmployerClarificationBtn');
 
-        if (!statusBadge || !decisionSelect || !actionSelect || !saveBtn || !feedback || !successAlert || !tindakanModalEl) {
+        if (!statusBadge || !decisionSelect || aksiChecks.length === 0 || !saveBtn || !feedback || !successAlert || !tindakanModalEl) {
             return;
         }
 
         const tindakanModal = bootstrap.Modal.getOrCreateInstance(tindakanModalEl);
+
+        const aksiRules = {
+            'Tidak Terbukti': {
+                enabled: ['Tidak ada'],
+                checked: ['Tidak ada'],
+                locked: true
+            },
+            'Valid': {
+                enabled: ['Blokir Lowongan', 'Blokir Akun Pemberi Kerja'],
+                checked: ['Blokir Lowongan', 'Blokir Akun Pemberi Kerja'],
+                locked: true
+            },
+            'Warning': {
+                enabled: ['Tangguhkan Lowongan', 'Blokir Lowongan'],
+                checked: [],
+                locked: false
+            }
+        };
 
         function setStatusBadge(status) {
             const displayStatus = (status === 'PENDING_REVIEW' || status === 'IN_REVIEW') ? 'Dalam Verifikasi' : status;
@@ -659,12 +693,56 @@ if ($case === null) {
             feedback.textContent = '';
         }
 
+        function getSelectedAksi() {
+            return aksiChecks
+                .filter(function (input) { return input.checked && !input.disabled; })
+                .map(function (input) { return input.value; });
+        }
+
+        function syncAksiByDecision() {
+            const decision = decisionSelect.value;
+            const rule = aksiRules[decision] || { enabled: [], checked: [], locked: false };
+
+            aksiChecks.forEach(function (input) {
+                const enabled = rule.enabled.indexOf(input.value) !== -1;
+                const shouldCheck = rule.checked.indexOf(input.value) !== -1;
+                input.disabled = !enabled;
+                input.checked = shouldCheck;
+                const item = input.closest('.ard-aksi-item');
+                if (item) {
+                    item.classList.toggle('is-disabled', !enabled);
+                }
+            });
+        }
+
+        decisionSelect.addEventListener('change', function () {
+            hideFeedback();
+            syncAksiByDecision();
+        });
+
+        aksiChecks.forEach(function (input) {
+            input.addEventListener('change', function () {
+                const decision = decisionSelect.value;
+                const rule = aksiRules[decision];
+                if (!rule || rule.locked) {
+                    syncAksiByDecision();
+                }
+            });
+        });
+
+        syncAksiByDecision();
+
         saveBtn.addEventListener('click', function () {
             const decision = decisionSelect.value;
-            const action = actionSelect.value;
+            const selectedAksi = getSelectedAksi();
 
-            if (decision === 'Valid' && action === 'Tidak ada') {
-                showFeedback('Untuk Valid, Aksi tidak boleh "Tidak ada".', true);
+            if (decision === 'Warning' && selectedAksi.length === 0) {
+                showFeedback('Pilih minimal satu Aksi untuk Warning.', true);
+                return;
+            }
+
+            if (selectedAksi.length === 0) {
+                showFeedback('Pilih Aksi terlebih dahulu.', true);
                 return;
             }
 
@@ -674,9 +752,14 @@ if ($case === null) {
             statusBadge.classList.remove('text-bg-primary', 'text-bg-warning', 'text-bg-info', 'text-bg-secondary');
             statusBadge.classList.add('text-bg-success');
 
-            successAlert.textContent = 'Tindakan atas Pelaporan Ini telah berhasil disimpan, Case ditutup dengan Aksi ' + action;
+            successAlert.textContent = 'Tindakan atas Pelaporan Ini telah berhasil disimpan, Case ditutup dengan Aksi ' + selectedAksi.join(', ');
             successAlert.classList.remove('d-none');
             tindakanModal.hide();
+        });
+
+        tindakanModalEl.addEventListener('shown.bs.modal', function () {
+            hideFeedback();
+            syncAksiByDecision();
         });
 
         tindakanModalEl.addEventListener('hidden.bs.modal', function () {
