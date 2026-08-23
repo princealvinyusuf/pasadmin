@@ -594,8 +594,6 @@ if ($case === null) {
                     </div>
                 </div>
                 <div class="ard-actions">
-                    <button id="requestReporterInfoBtn" class="btn btn-sm btn-outline-secondary" type="button">Minta Info Pelapor</button>
-                    <button id="requestEmployerClarificationBtn" class="btn btn-sm btn-outline-secondary" type="button">Minta Klarifikasi Pemberi Kerja</button>
                     <button id="saveDecisionBtn" class="btn btn-sm btn-primary" type="button">Simpan Keputusan (Prototype)</button>
                 </div>
                 <div id="decisionFeedback" class="ard-feedback"></div>
@@ -614,8 +612,6 @@ if ($case === null) {
         const decisionSelect = document.getElementById('decisionSelect');
         const actionSelect = document.getElementById('actionSelect');
         const scopeSelect = document.getElementById('scopeSelect');
-        const requestReporterBtn = document.getElementById('requestReporterInfoBtn');
-        const requestEmployerBtn = document.getElementById('requestEmployerClarificationBtn');
         const saveBtn = document.getElementById('saveDecisionBtn');
         const feedback = document.getElementById('decisionFeedback');
         const outcome = document.getElementById('decisionOutcome');
@@ -658,24 +654,6 @@ if ($case === null) {
         function showOutcome(message) {
             outcome.style.display = 'block';
             outcomeText.textContent = message;
-        }
-
-        if (requestReporterBtn) {
-            requestReporterBtn.addEventListener('click', function () {
-                decisionSelect.value = 'WAITING_REPORTER_INFO';
-                setStatusBadge('WAITING_REPORTER_INFO');
-                showFeedback('Status diubah ke WAITING_REPORTER_INFO. Permintaan info akan tampil di Laporan Saya (prototype).', false);
-                showOutcome('Menunggu informasi tambahan dari pelapor. Tidak ada perubahan otomatis pada perusahaan/lowongan.');
-            });
-        }
-
-        if (requestEmployerBtn) {
-            requestEmployerBtn.addEventListener('click', function () {
-                decisionSelect.value = 'WAITING_EMPLOYER_CLARIFICATION';
-                setStatusBadge('WAITING_EMPLOYER_CLARIFICATION');
-                showFeedback('Status diubah ke WAITING_EMPLOYER_CLARIFICATION. Klarifikasi ke pemberi kerja disiapkan (prototype).', false);
-                showOutcome('Menunggu klarifikasi pemberi kerja. Identitas pelapor harus tetap terlindungi.');
-            });
         }
 
         saveBtn.addEventListener('click', function () {
