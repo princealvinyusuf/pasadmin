@@ -572,12 +572,10 @@ if ($case === null) {
                     <div class="col-12 col-md-4">
                         <label class="form-label small mb-1">Enforcement Action</label>
                         <select id="actionSelect" class="form-select form-select-sm">
-                            <option>NONE</option>
-                            <option>WARNING</option>
-                            <option>PROFILE_CORRECTION_REQUIRED</option>
-                            <option>RESTRICT_POSTING</option>
-                            <option>SUSPEND_EMPLOYER_ACCOUNT</option>
-                            <option>BLOCK_EMPLOYER_ACCOUNT</option>
+                            <option>Tidak ada</option>
+                            <option>Tangguhkan Lowongan</option>
+                            <option>Blokir Lowongan</option>
+                            <option>Blokir Akun Pemberi Kerja</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-4">
@@ -657,13 +655,13 @@ if ($case === null) {
             const action = actionSelect.value;
             const scope = scopeSelect.value;
 
-            if (decision === 'Valid' && action === 'NONE') {
-                showFeedback('Untuk Valid, Enforcement Action tidak boleh NONE.', true);
+            if (decision === 'Valid' && action === 'Tidak ada') {
+                showFeedback('Untuk Valid, Enforcement Action tidak boleh "Tidak ada".', true);
                 return;
             }
 
-            if ((action === 'SUSPEND_EMPLOYER_ACCOUNT' || action === 'BLOCK_EMPLOYER_ACCOUNT') && scope === 'NONE') {
-                showFeedback('Untuk SUSPEND/BLOCK, pilih Action Scope Lowongan secara eksplisit bila ada dampak lowongan.', true);
+            if ((action === 'Blokir Lowongan' || action === 'Blokir Akun Pemberi Kerja') && scope === 'NONE') {
+                showFeedback('Untuk Blokir Lowongan/Blokir Akun, pilih Action Scope Lowongan secara eksplisit bila ada dampak lowongan.', true);
                 return;
             }
 
