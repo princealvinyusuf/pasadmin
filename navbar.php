@@ -150,6 +150,7 @@
         || $canKhProtoStatusKeterisian
         || $canKhProtoPaskerConnect
         || $canKhProtoLaporLoker
+        || $canAdminReviewLaporanPrototype
     );
 
     $hasLayanan = (
@@ -353,12 +354,9 @@
                         <?php if ($canKhProtoStatusKeterisian): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_status_keterisian"><i class="bi bi-list-check me-1"></i>Status Keterisian</a></li><?php endif; ?>
                         <?php if ($canKhProtoPaskerConnect): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_pasker_connect"><i class="bi bi-plug me-1"></i>Pasker Connect</a></li><?php endif; ?>
                         <?php if ($canKhProtoLaporLoker): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_lapor_loker"><i class="bi bi-flag me-1"></i>Lapor Loker Prototype</a></li><?php endif; ?>
+                        <?php if ($canAdminReviewLaporanPrototype && ($canKhProtoDashboardWllp || $canKhProtoDashboardWllpAdmin || $canKhProtoJobPosted || $canKhProtoBuktiLapor || $canKhProtoPelaporan || $canKhProtoStatusKeterisian || $canKhProtoPaskerConnect || $canKhProtoLaporLoker)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
+                        <?php if ($canAdminReviewLaporanPrototype): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>admin_review_laporan_prototype"><i class="bi bi-clipboard-data me-1"></i>Admin Review Prototype</a></li><?php endif; ?>
                     </ul>
-                </li>
-                <?php endif; ?>
-                <?php if ($canAdminReviewLaporanPrototype): ?>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootPrefix; ?>admin_review_laporan_prototype"><i class="bi bi-clipboard-data me-1"></i>Admin Review Prototype</a>
                 </li>
                 <?php endif; ?>
                 <?php if ($hasAsmen): ?>
