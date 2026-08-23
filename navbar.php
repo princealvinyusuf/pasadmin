@@ -345,6 +345,9 @@
                         Karirhub Prototype
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="karirhubEmployerPrototypeDropdown">
+                        <?php if ($canKhProtoDashboardWllp || $canKhProtoDashboardWllpAdmin || $canKhProtoJobPosted || $canKhProtoBuktiLapor || $canKhProtoPelaporan || $canKhProtoStatusKeterisian || $canKhProtoPaskerConnect): ?>
+                        <li><h6 class="dropdown-header">WLLP Prototype</h6></li>
+                        <?php endif; ?>
                         <?php if ($canKhProtoDashboardWllp): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_dashboard_wllp"><i class="bi bi-speedometer2 me-1"></i>Dashboard WLLP</a></li><?php endif; ?>
                         <?php if ($canKhProtoDashboardWllpAdmin): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_dashboard_wllp_admin"><i class="bi bi-bar-chart-line me-1"></i>Dashboard WLLP Admin</a></li><?php endif; ?>
                         <?php if ($canKhProtoJobPosted): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_job_posted_karirhub"><i class="bi bi-briefcase me-1"></i>Job Posted Karirhub</a></li><?php endif; ?>
@@ -353,6 +356,9 @@
                         <?php if ($canKhProtoStatusKeterisian): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_status_keterisian"><i class="bi bi-list-check me-1"></i>Status Keterisian</a></li><?php endif; ?>
                         <?php if ($canKhProtoPaskerConnect): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_pasker_connect"><i class="bi bi-plug me-1"></i>Pasker Connect</a></li><?php endif; ?>
                         <?php if (($canAdminReviewLaporanPrototype || $canKhProtoLaporLoker) && ($canKhProtoDashboardWllp || $canKhProtoDashboardWllpAdmin || $canKhProtoJobPosted || $canKhProtoBuktiLapor || $canKhProtoPelaporan || $canKhProtoStatusKeterisian || $canKhProtoPaskerConnect)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
+                        <?php if ($canAdminReviewLaporanPrototype || $canKhProtoLaporLoker): ?>
+                        <li><h6 class="dropdown-header">Lapor Loker Prototype</h6></li>
+                        <?php endif; ?>
                         <?php if ($canAdminReviewLaporanPrototype): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>admin_review_laporan_prototype"><i class="bi bi-clipboard-data me-1"></i>Admin Review Prototype</a></li><?php endif; ?>
                         <?php if ($canKhProtoLaporLoker): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_lapor_loker"><i class="bi bi-flag me-1"></i>Lapor Loker Prototype</a></li><?php endif; ?>
                     </ul>
