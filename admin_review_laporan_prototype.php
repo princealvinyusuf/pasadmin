@@ -102,7 +102,7 @@ $vacancyReports = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Review Laporan Prototype</title>
+    <title>Laporan Lowongan & Perusahaan</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -142,7 +142,7 @@ $vacancyReports = [
     <div class="arp-shell">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
             <div>
-                <div class="arp-title">Admin Review Laporan Prototype</div>
+                <div class="arp-title">Laporan Lowongan & Perusahaan</div>
                 <div class="arp-sub">UI version untuk proses pemeriksaan laporan perusahaan dan laporan loker (referensi FSD Lapor Perusahaan + Lapor Loker).</div>
             </div>
             <button type="button" class="btn btn-primary btn-sm"><i class="bi bi-download me-1"></i>Export Prototype</button>

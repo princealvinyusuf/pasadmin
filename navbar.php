@@ -359,7 +359,7 @@
                         <?php if ($canAdminReviewLaporanPrototype || $canKhProtoLaporLoker): ?>
                         <li><h6 class="dropdown-header">Lapor Loker Prototype</h6></li>
                         <?php endif; ?>
-                        <?php if ($canAdminReviewLaporanPrototype): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>admin_review_laporan_prototype"><i class="bi bi-clipboard-data me-1"></i>Admin Review Prototype</a></li><?php endif; ?>
+                        <?php if ($canAdminReviewLaporanPrototype): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>admin_review_laporan_prototype"><i class="bi bi-clipboard-data me-1"></i>Laporan Lowongan & Perusahaan</a></li><?php endif; ?>
                         <?php if ($canKhProtoLaporLoker): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_lapor_loker"><i class="bi bi-flag me-1"></i>Lapor Loker Prototype</a></li><?php endif; ?>
                     </ul>
                 </li>
