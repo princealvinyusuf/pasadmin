@@ -445,6 +445,7 @@ if ($case === null) {
                                         <th>Severity</th>
                                         <th>Status</th>
                                         <th>Pelapor</th>
+                                        <th>Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -461,6 +462,12 @@ if ($case === null) {
                                             <td><?php echo h($report['severity']); ?></td>
                                             <td><?php echo h($report['status']); ?></td>
                                             <td><?php echo h($report['reporter_ref']); ?></td>
+                                            <td>
+                                                <a
+                                                    class="btn btn-sm btn-outline-primary"
+                                                    href="admin_review_laporan_case_detail_prototype?type=vacancy&report_id=<?php echo rawurlencode($report['report_id']); ?>"
+                                                >Lihat Detail Laporan</a>
+                                            </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -484,10 +491,14 @@ if ($case === null) {
                                         <th>Reason</th>
                                         <th>Severity</th>
                                         <th>Status</th>
+                                        <th>Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($companyOtherReports as $report): ?>
+                                        <?php
+                                        $relatedType = str_starts_with($report['report_id'], 'CRP-') ? 'company' : 'vacancy';
+                                        ?>
                                         <tr>
                                             <td><?php echo h($report['report_id']); ?></td>
                                             <td><?php echo h($report['waktu_masuk']); ?></td>
@@ -495,6 +506,12 @@ if ($case === null) {
                                             <td><?php echo h($report['reason']); ?></td>
                                             <td><?php echo h($report['severity']); ?></td>
                                             <td><?php echo h($report['status']); ?></td>
+                                            <td>
+                                                <a
+                                                    class="btn btn-sm btn-outline-primary"
+                                                    href="admin_review_laporan_case_detail_prototype?type=<?php echo rawurlencode($relatedType); ?>&report_id=<?php echo rawurlencode($report['report_id']); ?>"
+                                                >Lihat Detail Laporan</a>
+                                            </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
