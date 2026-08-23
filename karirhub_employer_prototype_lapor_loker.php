@@ -85,7 +85,6 @@ function h(string $value): string
 </head>
 <body class="kh-proto-page">
 <?php include 'navbar.php'; ?>
-<?php kh_proto_render_hero('Lapor Loker Prototype', 'Simulasi UI detail lowongan bergaya Karirhub untuk kebutuhan prototyping.', 'Lowongan Kerja', 'karirhub_employer_prototype_lapor_loker', 'Proyek', 'karirhub_employer_prototype_lapor_loker', false); ?>
 
 <div class="kh-content-wrap">
     <div class="container py-4">
