@@ -198,81 +198,15 @@ $vacancyReports = [
 
         <ul class="nav nav-tabs arp-tabs mb-3" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#queuePerusahaan" type="button" role="tab">Queue Laporan Perusahaan</button>
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#queueLoker" type="button" role="tab">Queue Laporan Loker</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#queueLoker" type="button" role="tab">Queue Laporan Loker</button>
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#queuePerusahaan" type="button" role="tab">Queue Laporan Perusahaan</button>
             </li>
         </ul>
 
         <div class="tab-content">
-            <div class="tab-pane fade show active" id="queuePerusahaan" role="tabpanel">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover arp-table align-middle">
-                        <thead>
-                            <tr>
-                                <th>Report ID</th>
-                                <th>Tanggal Masuk</th>
-                                <th>Perusahaan</th>
-                                <th>Employer Type</th>
-                                <th>Wilayah</th>
-                                <th>Reason</th>
-                                <th>Severity</th>
-                                <th>SLA</th>
-                                <th>Status</th>
-                                <th>Assigned To</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($companyReports as $row): ?>
-                            <?php $isPending = $row['status'] === 'PENDING_REVIEW'; ?>
-                            <tr>
-                                <td><?php echo h($row['report_id']); ?></td>
-                                <td><?php echo h($row['tanggal_masuk']); ?></td>
-                                <td><?php echo h($row['perusahaan']); ?></td>
-                                <td><?php echo h($row['employer_type']); ?></td>
-                                <td><?php echo h($row['wilayah']); ?></td>
-                                <td><?php echo h($row['reason']); ?></td>
-                                <td><span class="arp-chip <?php echo strtolower($row['severity']); ?>"><?php echo h($row['severity']); ?></span></td>
-                                <td>
-                                    <?php
-                                    $slaClass = strtolower(str_replace(' ', '', $row['sla']));
-                                    if ($slaClass === 'ontime') { $slaClass = 'ontime'; }
-                                    if ($slaClass === 'approaching') { $slaClass = 'approaching'; }
-                                    if ($slaClass === 'overdue') { $slaClass = 'overdue'; }
-                                    ?>
-                                    <span class="arp-chip <?php echo h($slaClass); ?>"><?php echo h($row['sla']); ?></span>
-                                </td>
-                                <td>
-                                    <?php
-                                    $statusClass = 'review';
-                                    if ($row['status'] === 'PENDING_REVIEW') { $statusClass = 'pending'; }
-                                    if ($row['status'] === 'WAITING_REPORTER_INFO' || $row['status'] === 'WAITING_EMPLOYER_CLARIFICATION') { $statusClass = 'waiting'; }
-                                    if ($row['status'] === 'ESCALATED') { $statusClass = 'overdue'; }
-                                    ?>
-                                    <span class="arp-chip <?php echo h($statusClass); ?> js-status-chip"><?php echo h($row['status']); ?></span>
-                                </td>
-                                <td class="js-assigned-cell"><?php echo h($row['assigned_to']); ?></td>
-                                <td class="arp-actions">
-                                    <a class="btn btn-sm btn-outline-primary" href="admin_review_laporan_case_detail_prototype?type=company&report_id=<?php echo rawurlencode($row['report_id']); ?>">Detail</a>
-                                    <button
-                                        class="btn btn-sm btn-primary js-book-case"
-                                        data-report-id="<?php echo h($row['report_id']); ?>"
-                                        data-case-type="company"
-                                        <?php echo $isPending ? '' : 'disabled'; ?>
-                                    >
-                                        <?php echo $isPending ? 'Ambil Kasus' : 'Sedang Diproses'; ?>
-                                    </button>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="tab-pane fade" id="queueLoker" role="tabpanel">
+            <div class="tab-pane fade show active" id="queueLoker" role="tabpanel">
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover arp-table align-middle">
                         <thead>
@@ -330,6 +264,72 @@ $vacancyReports = [
                                         class="btn btn-sm btn-primary js-book-case"
                                         data-report-id="<?php echo h($row['report_id']); ?>"
                                         data-case-type="vacancy"
+                                        <?php echo $isPending ? '' : 'disabled'; ?>
+                                    >
+                                        <?php echo $isPending ? 'Ambil Kasus' : 'Sedang Diproses'; ?>
+                                    </button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="queuePerusahaan" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover arp-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Report ID</th>
+                                <th>Tanggal Masuk</th>
+                                <th>Perusahaan</th>
+                                <th>Employer Type</th>
+                                <th>Wilayah</th>
+                                <th>Reason</th>
+                                <th>Severity</th>
+                                <th>SLA</th>
+                                <th>Status</th>
+                                <th>Assigned To</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($companyReports as $row): ?>
+                            <?php $isPending = $row['status'] === 'PENDING_REVIEW'; ?>
+                            <tr>
+                                <td><?php echo h($row['report_id']); ?></td>
+                                <td><?php echo h($row['tanggal_masuk']); ?></td>
+                                <td><?php echo h($row['perusahaan']); ?></td>
+                                <td><?php echo h($row['employer_type']); ?></td>
+                                <td><?php echo h($row['wilayah']); ?></td>
+                                <td><?php echo h($row['reason']); ?></td>
+                                <td><span class="arp-chip <?php echo strtolower($row['severity']); ?>"><?php echo h($row['severity']); ?></span></td>
+                                <td>
+                                    <?php
+                                    $slaClass = strtolower(str_replace(' ', '', $row['sla']));
+                                    if ($slaClass === 'ontime') { $slaClass = 'ontime'; }
+                                    if ($slaClass === 'approaching') { $slaClass = 'approaching'; }
+                                    if ($slaClass === 'overdue') { $slaClass = 'overdue'; }
+                                    ?>
+                                    <span class="arp-chip <?php echo h($slaClass); ?>"><?php echo h($row['sla']); ?></span>
+                                </td>
+                                <td>
+                                    <?php
+                                    $statusClass = 'review';
+                                    if ($row['status'] === 'PENDING_REVIEW') { $statusClass = 'pending'; }
+                                    if ($row['status'] === 'WAITING_REPORTER_INFO' || $row['status'] === 'WAITING_EMPLOYER_CLARIFICATION') { $statusClass = 'waiting'; }
+                                    if ($row['status'] === 'ESCALATED') { $statusClass = 'overdue'; }
+                                    ?>
+                                    <span class="arp-chip <?php echo h($statusClass); ?> js-status-chip"><?php echo h($row['status']); ?></span>
+                                </td>
+                                <td class="js-assigned-cell"><?php echo h($row['assigned_to']); ?></td>
+                                <td class="arp-actions">
+                                    <a class="btn btn-sm btn-outline-primary" href="admin_review_laporan_case_detail_prototype?type=company&report_id=<?php echo rawurlencode($row['report_id']); ?>">Detail</a>
+                                    <button
+                                        class="btn btn-sm btn-primary js-book-case"
+                                        data-report-id="<?php echo h($row['report_id']); ?>"
+                                        data-case-type="company"
                                         <?php echo $isPending ? '' : 'disabled'; ?>
                                     >
                                         <?php echo $isPending ? 'Ambil Kasus' : 'Sedang Diproses'; ?>
