@@ -174,7 +174,12 @@ if ($case === null) {
                 <h6>Panel Laporan Pelapor</h6>
                 <p class="ard-text"><strong>Reporter Ref:</strong> <?php echo h($case['reporter_ref']); ?></p>
                 <p class="ard-text"><strong>Komentar:</strong> <?php echo h($case['comment']); ?></p>
-                <p class="ard-text"><strong>Evidensi:</strong> <?php echo h($case['evidence']); ?></p>
+                <p class="ard-text d-flex flex-wrap align-items-center gap-2 mb-0">
+                    <span><strong>Evidensi:</strong> <?php echo h($case['evidence']); ?></span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="downloadEvidenceBtn">
+                        <i class="bi bi-download me-1"></i>Download Dokumen
+                    </button>
+                </p>
             </div>
 
             <div class="ard-section">
