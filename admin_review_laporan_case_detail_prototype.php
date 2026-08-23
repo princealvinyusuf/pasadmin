@@ -564,13 +564,8 @@ if ($case === null) {
                     <div class="col-12 col-md-4">
                         <label class="form-label small mb-1">Keputusan</label>
                         <select id="decisionSelect" class="form-select form-select-sm">
-                            <option>PENDING_REVIEW</option>
-                            <option>IN_REVIEW</option>
-                            <option>WAITING_REPORTER_INFO</option>
-                            <option>WAITING_EMPLOYER_CLARIFICATION</option>
                             <option>NOT_PROVEN</option>
                             <option>VALID_ACTIONED</option>
-                            <option>ESCALATED</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-4">
