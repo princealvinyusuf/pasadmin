@@ -215,7 +215,7 @@ function h(string $value): string
                                     <div class="ll-form-note">Opsional. Tambahkan detail yang membantu pemeriksaan laporan.</div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="ll-form-label" for="reportEvidence">Tambahkan bukti (opsional)</label>
+                                    <label class="ll-form-label" for="reportEvidence">Tambahkan bukti</label>
                                     <input id="reportEvidence" type="file" class="form-control" accept=".pdf,image/*">
                                     <div class="ll-form-note">Tipe file contoh: PDF, JPG, PNG.</div>
                                 </div>
