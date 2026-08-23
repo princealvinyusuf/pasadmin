@@ -570,7 +570,7 @@ if ($case === null) {
                         </select>
                     </div>
                     <div class="col-12 col-md-6">
-                        <label class="form-label small mb-1">Enforcement Action</label>
+                        <label class="form-label small mb-1">Aksi</label>
                         <select id="actionSelect" class="form-select form-select-sm">
                             <option>Tidak ada</option>
                             <option>Tangguhkan Lowongan</option>
@@ -646,7 +646,7 @@ if ($case === null) {
             const action = actionSelect.value;
 
             if (decision === 'Valid' && action === 'Tidak ada') {
-                showFeedback('Untuk Valid, Enforcement Action tidak boleh "Tidak ada".', true);
+                showFeedback('Untuk Valid, Aksi tidak boleh "Tidak ada".', true);
                 return;
             }
 
