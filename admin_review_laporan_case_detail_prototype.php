@@ -246,7 +246,19 @@ if ($case === null) {
             </div>
 
             <div class="ard-section">
-                <h6>Panel Snapshot</h6>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                    <h6 class="mb-0">Panel Snapshot</h6>
+                    <?php if (!empty($case['vacancy_snapshot']) && is_array($case['vacancy_snapshot'])): ?>
+                        <a
+                            class="btn btn-sm btn-outline-primary"
+                            href="https://karirhub.kemnaker.go.id/lowongan-dalam-negeri/lowongan/marketing-specialist-4934b8f4-5744-4530-afdd-d6365136bcb0"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Lihat Lowongan
+                        </a>
+                    <?php endif; ?>
+                </div>
                 <?php if (!empty($case['vacancy_snapshot']) && is_array($case['vacancy_snapshot'])): ?>
                     <?php $vacancy = $case['vacancy_snapshot']; ?>
                     <div class="ard-vacancy-title"><?php echo h($vacancy['title']); ?></div>
