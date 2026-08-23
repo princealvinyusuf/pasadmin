@@ -338,7 +338,16 @@ if ($case === null) {
                         <span class="ard-badge text-bg-warning"><?php echo h($case['sla']); ?></span>
                     </div>
                 </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#tindakanModal">
+                        <i class="bi bi-lightning-charge me-1"></i>Tindakan
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="requestEmployerClarificationBtn">
+                        <i class="bi bi-chat-left-text me-1"></i>Minta Klarifikasi Pemberi Kerja
+                    </button>
+                </div>
             </div>
+            <div id="tindakanSuccessAlert" class="alert alert-success mt-3 mb-0 d-none" role="alert"></div>
 
             <div class="ard-section">
                 <h6>Header Case</h6>
@@ -558,34 +567,40 @@ if ($case === null) {
                 </div>
             </div>
 
-            <div class="ard-section">
-                <h6>Panel Tindakan</h6>
-                <div class="row g-2">
-                    <div class="col-12 col-md-6">
-                        <label class="form-label small mb-1">Keputusan</label>
-                        <select id="decisionSelect" class="form-select form-select-sm">
-                            <option>Tidak Terbukti</option>
-                            <option>Valid</option>
-                            <option>Warning</option>
-                        </select>
+            <div class="modal fade" id="tindakanModal" tabindex="-1" aria-labelledby="tindakanModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="tindakanModalLabel">Panel Tindakan</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label small mb-1" for="decisionSelect">Keputusan</label>
+                                    <select id="decisionSelect" class="form-select form-select-sm">
+                                        <option>Tidak Terbukti</option>
+                                        <option>Valid</option>
+                                        <option>Warning</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small mb-1" for="actionSelect">Aksi</label>
+                                    <select id="actionSelect" class="form-select form-select-sm">
+                                        <option>Tidak ada</option>
+                                        <option>Tangguhkan Lowongan</option>
+                                        <option>Blokir Lowongan</option>
+                                        <option>Blokir Akun Pemberi Kerja</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="decisionFeedback" class="ard-feedback"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                            <button id="saveDecisionBtn" class="btn btn-primary btn-sm" type="button">Simpan Tindakan</button>
+                        </div>
                     </div>
-                    <div class="col-12 col-md-6">
-                        <label class="form-label small mb-1">Aksi</label>
-                        <select id="actionSelect" class="form-select form-select-sm">
-                            <option>Tidak ada</option>
-                            <option>Tangguhkan Lowongan</option>
-                            <option>Blokir Lowongan</option>
-                            <option>Blokir Akun Pemberi Kerja</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="ard-actions">
-                    <button id="saveDecisionBtn" class="btn btn-sm btn-primary" type="button">Simpan Tindakan</button>
-                </div>
-                <div id="decisionFeedback" class="ard-feedback"></div>
-                <div id="decisionOutcome" class="ard-outcome">
-                    <div class="ard-outcome-title">Ringkasan Outcome Prototype</div>
-                    <p id="decisionOutcomeText" class="ard-outcome-text"></p>
                 </div>
             </div>
         </div>
@@ -599,12 +614,15 @@ if ($case === null) {
         const actionSelect = document.getElementById('actionSelect');
         const saveBtn = document.getElementById('saveDecisionBtn');
         const feedback = document.getElementById('decisionFeedback');
-        const outcome = document.getElementById('decisionOutcome');
-        const outcomeText = document.getElementById('decisionOutcomeText');
+        const successAlert = document.getElementById('tindakanSuccessAlert');
+        const tindakanModalEl = document.getElementById('tindakanModal');
+        const requestEmployerBtn = document.getElementById('requestEmployerClarificationBtn');
 
-        if (!statusBadge || !decisionSelect || !actionSelect || !saveBtn || !feedback || !outcome || !outcomeText) {
+        if (!statusBadge || !decisionSelect || !actionSelect || !saveBtn || !feedback || !successAlert || !tindakanModalEl) {
             return;
         }
+
+        const tindakanModal = bootstrap.Modal.getOrCreateInstance(tindakanModalEl);
 
         function setStatusBadge(status) {
             const displayStatus = (status === 'PENDING_REVIEW' || status === 'IN_REVIEW') ? 'Dalam Verifikasi' : status;
@@ -636,9 +654,9 @@ if ($case === null) {
             feedback.textContent = message;
         }
 
-        function showOutcome(message) {
-            outcome.style.display = 'block';
-            outcomeText.textContent = message;
+        function hideFeedback() {
+            feedback.style.display = 'none';
+            feedback.textContent = '';
         }
 
         saveBtn.addEventListener('click', function () {
@@ -650,21 +668,30 @@ if ($case === null) {
                 return;
             }
 
+            hideFeedback();
             setStatusBadge(decision);
-            showFeedback('Tindakan berhasil disimpan.', false);
+            statusBadge.textContent = 'Ditutup';
+            statusBadge.classList.remove('text-bg-primary', 'text-bg-warning', 'text-bg-info', 'text-bg-secondary');
+            statusBadge.classList.add('text-bg-success');
 
-            let outcomeMessage = 'Decision: ' + decision + '. ';
-            if (decision === 'Tidak Terbukti') {
-                outcomeMessage += 'Case dapat ditutup tanpa perubahan perusahaan/lowongan.';
-            } else if (decision === 'Valid') {
-                outcomeMessage += 'Action: ' + action + '.';
-            } else if (decision === 'Warning') {
-                outcomeMessage += 'Peringatan diberikan kepada pemberi kerja. Action: ' + action + '.';
-            } else {
-                outcomeMessage += 'Case tetap pada alur review.';
-            }
-            showOutcome(outcomeMessage);
+            successAlert.textContent = 'Tindakan atas Pelaporan Ini telah berhasil disimpan, Case ditutup dengan Aksi ' + action;
+            successAlert.classList.remove('d-none');
+            tindakanModal.hide();
         });
+
+        tindakanModalEl.addEventListener('hidden.bs.modal', function () {
+            hideFeedback();
+        });
+
+        if (requestEmployerBtn) {
+            requestEmployerBtn.addEventListener('click', function () {
+                statusBadge.textContent = 'Menunggu Klarifikasi';
+                statusBadge.classList.remove('text-bg-primary', 'text-bg-info', 'text-bg-success', 'text-bg-secondary');
+                statusBadge.classList.add('text-bg-warning');
+                successAlert.textContent = 'Permintaan klarifikasi kepada pemberi kerja telah disiapkan (prototype).';
+                successAlert.classList.remove('d-none');
+            });
+        }
     })();
 </script>
 </body>
