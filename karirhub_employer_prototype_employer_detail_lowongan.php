@@ -15,12 +15,12 @@ function h(string $value): string
 }
 
 $job = [
-    'title' => 'Testing Dummy',
-    'status' => 'Ditutup',
+    'title' => 'Sales Executive - DKI Jakarta',
+    'status' => 'Dibuka',
     'posted_at' => '19 Agt 2026',
     'expired_at' => '19 Nov 2026',
     'education' => 'Sarjana',
-    'location' => 'Lenggang, Gantung, Kab. Belitung Timur, Kepulauan Bangka Belitung',
+    'location' => 'Ciracas, Kota Jakarta Timur, DKI Jakarta, Indonesia',
     'quota_filled' => 0,
     'quota_total' => 1,
 ];
@@ -53,6 +53,9 @@ $job = [
         .edl-quota-text { color: #4b5563; font-size: 14px; }
         .edl-reopen-btn { width: 100%; margin-top: 12px; background: #4ea3f0; border-color: #4ea3f0; color: #fff; font-weight: 600; border-radius: 10px; padding: 10px 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
         .edl-reopen-btn:hover { background: #3b93e3; border-color: #3b93e3; color: #fff; }
+        .edl-action-stack { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+        .edl-followup-btn { width: 100%; background: #fff; border: 1px solid #4ea3f0; color: #2f7fc7; font-weight: 600; border-radius: 10px; padding: 10px 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .edl-followup-btn:hover { background: #f2f8ff; border-color: #3b93e3; color: #226aa8; }
         .edl-feedback { margin-top: 14px; display: none; }
         @media (max-width: 991px) {
             .edl-layout { grid-template-columns: 1fr; }
@@ -104,10 +107,16 @@ $job = [
                             <?php echo (int)$job['quota_filled']; ?> / <?php echo (int)$job['quota_total']; ?> kuota telah terisi
                         </div>
                     </div>
-                    <button type="button" class="btn edl-reopen-btn" id="reopenJobBtn">
-                        <i class="bi bi-arrow-repeat"></i>
-                        Buka Kembali Lowongan
-                    </button>
+                    <div class="edl-action-stack">
+                        <button type="button" class="btn edl-reopen-btn" id="reopenJobBtn">
+                            <i class="bi bi-arrow-repeat"></i>
+                            Buka Kembali Lowongan
+                        </button>
+                        <button type="button" class="btn edl-followup-btn" id="followUpComplaintBtn">
+                            <i class="bi bi-chat-dots"></i>
+                            Tindak Lanjut Aduan
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
