@@ -1,0 +1,138 @@
+<?php
+require_once __DIR__ . '/auth_guard.php';
+require_once __DIR__ . '/access_helper.php';
+require_once __DIR__ . '/karirhub_employer_prototype_ui.php';
+
+if (!kh_proto_can_access('karirhub_employer_prototype_employer_detail_lowongan_view')) {
+    http_response_code(403);
+    echo 'Forbidden';
+    exit;
+}
+
+function h(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
+
+$job = [
+    'title' => 'Testing Dummy',
+    'status' => 'Ditutup',
+    'posted_at' => '19 Agt 2026',
+    'expired_at' => '19 Nov 2026',
+    'education' => 'Sarjana',
+    'location' => 'Lenggang, Gantung, Kab. Belitung Timur, Kepulauan Bangka Belitung',
+    'quota_filled' => 0,
+    'quota_total' => 1,
+];
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Employer - Detail Lowongan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <?php kh_proto_render_styles(); ?>
+    <style>
+        body.kh-proto-page { background: #f7f9fc; }
+        .edl-shell { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 24px; }
+        .edl-back { color: #5f738a; text-decoration: none; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 18px; }
+        .edl-back:hover { color: #1f3550; }
+        .edl-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; align-items: start; }
+        .edl-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+        .edl-title { margin: 0; font-size: 34px; font-weight: 700; color: #1a1a1a; line-height: 1.2; }
+        .edl-status { display: inline-flex; align-items: center; border-radius: 999px; background: #eef1f4; color: #5b6775; font-size: 12px; font-weight: 600; padding: 4px 10px; }
+        .edl-meta { display: flex; flex-direction: column; gap: 10px; }
+        .edl-meta-item { display: flex; align-items: flex-start; gap: 10px; color: #4b5563; font-size: 15px; line-height: 1.45; }
+        .edl-meta-item i { color: #8a97a8; margin-top: 2px; }
+        .edl-quota-card { background: #f3f5f7; border-radius: 12px; padding: 16px; }
+        .edl-quota-label { color: #6b7280; font-size: 14px; margin-bottom: 10px; }
+        .edl-quota-bar { height: 8px; border-radius: 999px; background: #d7dde5; overflow: hidden; margin-bottom: 10px; }
+        .edl-quota-fill { height: 100%; width: 0%; background: #94a3b8; border-radius: 999px; }
+        .edl-quota-text { color: #4b5563; font-size: 14px; }
+        .edl-reopen-btn { width: 100%; margin-top: 12px; background: #4ea3f0; border-color: #4ea3f0; color: #fff; font-weight: 600; border-radius: 10px; padding: 10px 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .edl-reopen-btn:hover { background: #3b93e3; border-color: #3b93e3; color: #fff; }
+        .edl-feedback { margin-top: 14px; display: none; }
+        @media (max-width: 991px) {
+            .edl-layout { grid-template-columns: 1fr; }
+            .edl-title { font-size: 28px; }
+        }
+    </style>
+</head>
+<body class="kh-proto-page">
+<?php include 'navbar.php'; ?>
+
+<div class="kh-content-wrap">
+    <div class="container py-4">
+        <div class="edl-shell">
+            <a class="edl-back" href="javascript:history.back()"><i class="bi bi-arrow-left"></i>Kembali</a>
+
+            <div class="edl-layout">
+                <div>
+                    <div class="edl-title-row">
+                        <h1 class="edl-title"><?php echo h($job['title']); ?></h1>
+                        <span class="edl-status" id="jobStatusBadge"><?php echo h($job['status']); ?></span>
+                    </div>
+                    <div class="edl-meta">
+                        <div class="edl-meta-item">
+                            <i class="bi bi-calendar3"></i>
+                            <span>Ditayangkan: <?php echo h($job['posted_at']); ?> — Kadaluarsa: <?php echo h($job['expired_at']); ?></span>
+                        </div>
+                        <div class="edl-meta-item">
+                            <i class="bi bi-mortarboard"></i>
+                            <span>Pendidikan Minimal: <?php echo h($job['education']); ?></span>
+                        </div>
+                        <div class="edl-meta-item">
+                            <i class="bi bi-geo-alt"></i>
+                            <span>Lokasi: <?php echo h($job['location']); ?></span>
+                        </div>
+                    </div>
+                    <div id="reopenFeedback" class="alert alert-success edl-feedback" role="alert"></div>
+                </div>
+
+                <div>
+                    <div class="edl-quota-card">
+                        <div class="edl-quota-label">Kuota</div>
+                        <div class="edl-quota-bar">
+                            <div
+                                class="edl-quota-fill"
+                                style="width: <?php echo (int)$job['quota_total'] > 0 ? round(((int)$job['quota_filled'] / (int)$job['quota_total']) * 100) : 0; ?>%;"
+                            ></div>
+                        </div>
+                        <div class="edl-quota-text">
+                            <?php echo (int)$job['quota_filled']; ?> / <?php echo (int)$job['quota_total']; ?> kuota telah terisi
+                        </div>
+                    </div>
+                    <button type="button" class="btn edl-reopen-btn" id="reopenJobBtn">
+                        <i class="bi bi-arrow-repeat"></i>
+                        Buka Kembali Lowongan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    (function () {
+        const reopenBtn = document.getElementById('reopenJobBtn');
+        const statusBadge = document.getElementById('jobStatusBadge');
+        const feedback = document.getElementById('reopenFeedback');
+        if (!reopenBtn || !statusBadge || !feedback) return;
+
+        reopenBtn.addEventListener('click', function () {
+            statusBadge.textContent = 'Aktif';
+            statusBadge.style.background = '#e7f8ed';
+            statusBadge.style.color = '#1d7a3d';
+            feedback.textContent = 'Lowongan berhasil dibuka kembali (prototype).';
+            feedback.style.display = 'block';
+            reopenBtn.disabled = true;
+            reopenBtn.textContent = 'Lowongan Sudah Dibuka';
+        });
+    })();
+</script>
+<?php kh_proto_render_sidebar_script(); ?>
+</body>
+</html>

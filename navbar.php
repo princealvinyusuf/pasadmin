@@ -140,6 +140,7 @@
     $canKhProtoStatusKeterisian = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_status_keterisian_view');
     $canKhProtoPaskerConnect = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_pasker_connect_view');
     $canKhProtoLaporLoker = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_lapor_loker_view');
+    $canKhProtoEmployerDetailLowongan = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_employer_detail_lowongan_view');
     $canAdminReviewLaporanPrototype = current_user_can('admin_review_laporan_prototype_view') || $canManageSettings;
     $canKarirhubEmployerPrototype = (
         $canKhProtoDashboardWllp
@@ -150,6 +151,7 @@
         || $canKhProtoStatusKeterisian
         || $canKhProtoPaskerConnect
         || $canKhProtoLaporLoker
+        || $canKhProtoEmployerDetailLowongan
         || $canAdminReviewLaporanPrototype
     );
 
@@ -355,12 +357,13 @@
                         <?php if ($canKhProtoPelaporan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_pelaporan_lowongan"><i class="bi bi-journal-plus me-1"></i>Pelaporan Lowongan</a></li><?php endif; ?>
                         <?php if ($canKhProtoStatusKeterisian): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_status_keterisian"><i class="bi bi-list-check me-1"></i>Status Keterisian</a></li><?php endif; ?>
                         <?php if ($canKhProtoPaskerConnect): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_pasker_connect"><i class="bi bi-plug me-1"></i>Pasker Connect</a></li><?php endif; ?>
-                        <?php if (($canAdminReviewLaporanPrototype || $canKhProtoLaporLoker) && ($canKhProtoDashboardWllp || $canKhProtoDashboardWllpAdmin || $canKhProtoJobPosted || $canKhProtoBuktiLapor || $canKhProtoPelaporan || $canKhProtoStatusKeterisian || $canKhProtoPaskerConnect)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
-                        <?php if ($canAdminReviewLaporanPrototype || $canKhProtoLaporLoker): ?>
+                        <?php if (($canAdminReviewLaporanPrototype || $canKhProtoLaporLoker || $canKhProtoEmployerDetailLowongan) && ($canKhProtoDashboardWllp || $canKhProtoDashboardWllpAdmin || $canKhProtoJobPosted || $canKhProtoBuktiLapor || $canKhProtoPelaporan || $canKhProtoStatusKeterisian || $canKhProtoPaskerConnect)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
+                        <?php if ($canAdminReviewLaporanPrototype || $canKhProtoLaporLoker || $canKhProtoEmployerDetailLowongan): ?>
                         <li><h6 class="dropdown-header">Lapor Loker Prototype</h6></li>
                         <?php endif; ?>
                         <?php if ($canAdminReviewLaporanPrototype): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>admin_review_laporan_prototype"><i class="bi bi-clipboard-data me-1"></i>Laporan Lowongan & Perusahaan</a></li><?php endif; ?>
                         <?php if ($canKhProtoLaporLoker): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_lapor_loker"><i class="bi bi-flag me-1"></i>Lapor Loker Prototype</a></li><?php endif; ?>
+                        <?php if ($canKhProtoEmployerDetailLowongan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_employer_detail_lowongan"><i class="bi bi-briefcase-fill me-1"></i>Dashboard Employer - Detail Lowongan</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>

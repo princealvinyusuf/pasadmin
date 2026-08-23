@@ -149,6 +149,12 @@ register_menu_permission(
 );
 register_menu_permission(
 	$conn,
+	'karirhub_employer_prototype_employer_detail_lowongan_view',
+	'Karirhub Employer Prototype: View Dashboard Employer Detail Lowongan',
+	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
 	'admin_review_laporan_prototype_view',
 	'Admin Review Laporan Prototype: View Menu',
 	'Admin Review Prototype'
