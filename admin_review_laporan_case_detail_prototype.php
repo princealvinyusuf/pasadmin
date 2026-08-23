@@ -565,7 +565,7 @@ if ($case === null) {
                         <label class="form-label small mb-1">Keputusan</label>
                         <select id="decisionSelect" class="form-select form-select-sm">
                             <option>Tidak Terbukti</option>
-                            <option>valid</option>
+                            <option>Valid</option>
                             <option>Warning</option>
                         </select>
                     </div>
@@ -629,7 +629,7 @@ if ($case === null) {
                 statusBadge.classList.add('text-bg-secondary');
                 return;
             }
-            if (status === 'valid' || status === 'CLOSED' || status === 'Tidak Terbukti' || status === 'Warning') {
+            if (status === 'Valid' || status === 'CLOSED' || status === 'Tidak Terbukti' || status === 'Warning') {
                 statusBadge.classList.add('text-bg-success');
                 return;
             }
@@ -657,8 +657,8 @@ if ($case === null) {
             const action = actionSelect.value;
             const scope = scopeSelect.value;
 
-            if (decision === 'valid' && action === 'NONE') {
-                showFeedback('Untuk valid, Enforcement Action tidak boleh NONE.', true);
+            if (decision === 'Valid' && action === 'NONE') {
+                showFeedback('Untuk Valid, Enforcement Action tidak boleh NONE.', true);
                 return;
             }
 
@@ -673,7 +673,7 @@ if ($case === null) {
             let outcomeMessage = 'Decision: ' + decision + '. ';
             if (decision === 'Tidak Terbukti') {
                 outcomeMessage += 'Case dapat ditutup tanpa perubahan perusahaan/lowongan.';
-            } else if (decision === 'valid') {
+            } else if (decision === 'Valid') {
                 outcomeMessage += 'Action: ' + action + ' dengan scope ' + scope + '.';
             } else if (decision === 'Warning') {
                 outcomeMessage += 'Peringatan diberikan kepada pemberi kerja. Action: ' + action + ' dengan scope ' + scope + '.';
