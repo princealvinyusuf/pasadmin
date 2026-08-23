@@ -32,6 +32,7 @@ $companyCases = [
         'reporter_ref' => 'usr-92811 (email@example.com)',
         'evidence' => 'bukti_transfer.jpg, screenshot_chat.pdf',
         'snapshot' => 'Profil terverifikasi, employer_type Perusahaan, verification_status=VERIFIED, enforcement_status=ACTIVE.',
+        'vacancy_snapshot' => null,
         'current_data' => 'Masih terverifikasi, memiliki 12 lowongan aktif native.',
         'history' => 'Laporan perusahaan serupa 2x dalam 30 hari terakhir.',
         'related' => 'Terkait lowongan: Sales Executive - DKI Jakarta (opsional context).',
@@ -51,9 +52,50 @@ $companyCases = [
         'reporter_ref' => 'usr-81221 (john@mail.com)',
         'evidence' => 'domain_mismatch.png',
         'snapshot' => 'company_id=COMP-22911, website profile: maju-karier.co.id',
+        'vacancy_snapshot' => null,
         'current_data' => 'Website saat ini berubah menjadi majukariers.id',
         'history' => 'Pernah ada permintaan klarifikasi saat verifikasi awal.',
         'related' => 'Tidak ada related_vacancy_id.',
+    ],
+];
+
+$salesExecutiveSnapshot = [
+    'title' => 'Sales Executive',
+    'location' => 'DKI Jakarta',
+    'posted_at' => '1 Agustus 2026',
+    'vacancy_count' => '1',
+    'deadline' => '25 Agt 2026',
+    'job_field' => 'Penjualan dan Pengembangan Bisnis',
+    'job_type' => 'Full time',
+    'job_category' => 'Lowongan dalam negeri',
+    'gender' => 'Laki-laki / Perempuan',
+    'salary_range' => 'Dirahasiakan',
+    'description' => [
+        'Melakukan riset dan analisis pasar untuk mengetahui kebutuhan pelanggan, tren pasar, dan peluang bisnis.',
+        'Menyusun dan melaksanakan strategi pemasaran sesuai dengan target perusahaan.',
+        'Mengidentifikasi calon pelanggan dan mengembangkan peluang pasar baru.',
+        'Menyusun program promosi untuk meningkatkan penjualan dan pengenalan produk perusahaan.',
+        'Menjelaskan keunggulan, spesifikasi, dan manfaat produk kepada calon pelanggan.',
+        'Menjalin dan memelihara hubungan baik dengan pelanggan, distributor, maupun mitra bisnis.',
+    ],
+    'special_requirements' => [
+        'Memiliki pendidikan minimal S1 Pemasaran, Manajemen, Bisnis, Komunikasi, atau bidang yang relevan.',
+        'Memiliki pengalaman kerja di bidang marketing, sales, business development, atau pengembangan pasar.',
+        'Menguasai market research, analisis tren pasar, perilaku konsumen, dan analisis kompetitor.',
+        'Memahami penyusunan dan implementasi strategi pemasaran dan promosi.',
+        'Mampu melakukan analisis data pemasaran dan menyusun laporan hasil kegiatan pemasaran.',
+        'Memiliki kemampuan dalam product knowledge, product positioning, dan market segmentation.',
+        'Mampu mengembangkan dan memelihara hubungan dengan pelanggan, distributor, dan mitra bisnis.',
+        'Memiliki kemampuan komunikasi, negosiasi, presentasi, dan koordinasi yang baik.',
+        'Menguasai penggunaan Microsoft Office atau aplikasi pengolahan data dan pemasaran.',
+        'Memiliki kemampuan bahasa Inggris, baik lisan maupun tulisan, terutama apabila berhubungan dengan pelanggan atau mitra internasional.',
+    ],
+    'general_requirements' => [
+        'Minimal Pendidikan' => 'Diploma',
+        'Status Pernikahan' => 'Tidak ada preferensi',
+        'Minimal pengalaman' => 'Tidak ditentukan',
+        'Kondisi fisik' => 'Non disabilitas',
+        'Keterampilan' => 'Microsoft Excel, Microsoft Office, Risk Analysis',
     ],
 ];
 
@@ -73,6 +115,7 @@ $vacancyCases = [
         'reporter_ref' => 'usr-73100 (rina@mail.com)',
         'evidence' => 'biaya_pelatihan.png, invoice.pdf',
         'snapshot' => 'vacancy_id=VAC-99311, publication_status=ACTIVE, source_flag=NATIVE.',
+        'vacancy_snapshot' => $salesExecutiveSnapshot,
         'current_data' => 'Lowongan masih tayang dan belum ada perubahan status.',
         'history' => 'Report count lowongan ini: 4.',
         'related' => 'company_id=COMP-00012026 (PT Finaccel Finance Indonesia).',
@@ -92,6 +135,12 @@ $vacancyCases = [
         'reporter_ref' => 'usr-65520 (anna@mail.com)',
         'evidence' => 'chat_rekrutmen.jpg',
         'snapshot' => 'vacancy_id=VAC-88119, source_flag=INTEGRATION.',
+        'vacancy_snapshot' => array_merge($salesExecutiveSnapshot, [
+            'title' => 'Kasir',
+            'location' => 'Tangerang - Banten',
+            'job_field' => 'Penjualan dan Pengembangan Bisnis',
+            'job_type' => 'Full time',
+        ]),
         'current_data' => 'Listing masih aktif, menunggu klarifikasi mitra.',
         'history' => 'Report count lowongan ini: 2.',
         'related' => 'company_id=COMP-98122 (CV Maju Sejahtera).',
@@ -131,8 +180,22 @@ if ($case === null) {
         .ard-outcome { border: 1px solid #d9e7f8; background: #f4f9ff; border-radius: 10px; padding: 12px; margin-top: 12px; display: none; }
         .ard-outcome-title { font-weight: 700; color: #1f3550; margin-bottom: 6px; }
         .ard-outcome-text { color: #31506f; font-size: 13px; margin-bottom: 0; }
+        .ard-vacancy-title { font-size: 22px; font-weight: 700; color: #1f3550; margin-bottom: 2px; }
+        .ard-vacancy-location { color: #4f667d; font-size: 15px; margin-bottom: 6px; }
+        .ard-vacancy-meta { color: #6c8298; font-size: 13px; margin-bottom: 14px; }
+        .ard-vacancy-meta span + span::before { content: "•"; margin: 0 8px; color: #9aadc0; }
+        .ard-vacancy-attrs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 18px; margin-bottom: 16px; }
+        .ard-vacancy-attr { font-size: 14px; color: #2f4b66; }
+        .ard-vacancy-attr strong { color: #1f3550; font-weight: 600; }
+        .ard-vacancy-block { margin-top: 14px; }
+        .ard-vacancy-block-title { font-size: 15px; font-weight: 700; color: #1f3550; margin-bottom: 8px; }
+        .ard-vacancy-list { margin: 0; padding-left: 18px; color: #2f4b66; font-size: 14px; line-height: 1.55; }
+        .ard-vacancy-list li { margin-bottom: 6px; }
+        .ard-vacancy-kv { margin: 0; padding: 0; list-style: none; color: #2f4b66; font-size: 14px; }
+        .ard-vacancy-kv li { margin-bottom: 6px; }
         @media (max-width: 991px) {
             .ard-grid { grid-template-columns: 1fr; }
+            .ard-vacancy-attrs { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -184,7 +247,53 @@ if ($case === null) {
 
             <div class="ard-section">
                 <h6>Panel Snapshot</h6>
-                <p class="ard-text"><?php echo h($case['snapshot']); ?></p>
+                <?php if (!empty($case['vacancy_snapshot']) && is_array($case['vacancy_snapshot'])): ?>
+                    <?php $vacancy = $case['vacancy_snapshot']; ?>
+                    <div class="ard-vacancy-title"><?php echo h($vacancy['title']); ?></div>
+                    <div class="ard-vacancy-location"><?php echo h($vacancy['location']); ?></div>
+                    <div class="ard-vacancy-meta">
+                        <span>Diposting <?php echo h($vacancy['posted_at']); ?></span>
+                        <span>Jumlah lowongan: <?php echo h($vacancy['vacancy_count']); ?></span>
+                    </div>
+                    <div class="ard-vacancy-meta">Batas waktu lamaran <?php echo h($vacancy['deadline']); ?></div>
+
+                    <div class="ard-vacancy-attrs">
+                        <div class="ard-vacancy-attr"><strong>Bidang pekerjaan :</strong> <?php echo h($vacancy['job_field']); ?></div>
+                        <div class="ard-vacancy-attr"><strong>Jenis pekerjaan :</strong> <?php echo h($vacancy['job_type']); ?></div>
+                        <div class="ard-vacancy-attr"><strong>Tipe pekerjaan :</strong> <?php echo h($vacancy['job_category']); ?></div>
+                        <div class="ard-vacancy-attr"><strong>Jenis kelamin :</strong> <?php echo h($vacancy['gender']); ?></div>
+                        <div class="ard-vacancy-attr"><strong>Rentang gaji :</strong> <?php echo h($vacancy['salary_range']); ?></div>
+                    </div>
+
+                    <div class="ard-vacancy-block">
+                        <div class="ard-vacancy-block-title">Deskripsi Pekerjaan:</div>
+                        <ul class="ard-vacancy-list">
+                            <?php foreach ($vacancy['description'] as $item): ?>
+                                <li><?php echo h($item); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+
+                    <div class="ard-vacancy-block">
+                        <div class="ard-vacancy-block-title">Persyaratan Khusus:</div>
+                        <ul class="ard-vacancy-list">
+                            <?php foreach ($vacancy['special_requirements'] as $item): ?>
+                                <li><?php echo h($item); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+
+                    <div class="ard-vacancy-block">
+                        <div class="ard-vacancy-block-title">Persyaratan Umum:</div>
+                        <ul class="ard-vacancy-kv">
+                            <?php foreach ($vacancy['general_requirements'] as $label => $value): ?>
+                                <li><strong><?php echo h($label); ?> :</strong> <?php echo h($value); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php else: ?>
+                    <p class="ard-text"><?php echo h($case['snapshot']); ?></p>
+                <?php endif; ?>
             </div>
 
             <div class="ard-section">
