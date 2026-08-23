@@ -21,7 +21,7 @@ $companyReports = [
         'employer_type' => 'Perusahaan',
         'wilayah' => 'Jakarta Pusat - DKI Jakarta',
         'reason' => 'Meminta biaya / pungutan',
-        'severity' => 'Critical',
+        'severity' => 'High',
         'sla' => 'Approaching',
         'status' => 'PENDING_REVIEW',
         'assigned_to' => '-',
@@ -60,7 +60,7 @@ $vacancyReports = [
         'pemberi_kerja' => 'PT Finaccel Finance Indonesia',
         'wilayah' => 'Jakarta Timur - DKI Jakarta',
         'reason' => 'Meminta biaya/pembayaran',
-        'severity' => 'Critical',
+        'severity' => 'High',
         'report_count' => '4',
         'sla' => 'Approaching',
         'status' => 'PENDING_REVIEW',
@@ -88,7 +88,7 @@ $vacancyReports = [
         'pemberi_kerja' => 'PT Samudra Arta',
         'wilayah' => 'Makassar - Sulawesi Selatan',
         'reason' => 'Data sensitif/kredensial',
-        'severity' => 'Critical',
+        'severity' => 'High',
         'report_count' => '1',
         'sla' => 'Overdue',
         'status' => 'ESCALATED',
@@ -184,7 +184,7 @@ $vacancyReports = [
             </div>
             <div class="col-6 col-lg-2">
                 <div class="arp-kpi-card">
-                    <div class="arp-kpi-label">Critical/High</div>
+                    <div class="arp-kpi-label">High</div>
                     <div class="arp-kpi-value">14</div>
                 </div>
             </div>
