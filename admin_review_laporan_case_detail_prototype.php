@@ -117,8 +117,71 @@ $vacancyCases = [
         'snapshot' => 'vacancy_id=VAC-99311, publication_status=ACTIVE, source_flag=NATIVE.',
         'vacancy_snapshot' => $salesExecutiveSnapshot,
         'current_data' => 'Lowongan masih tayang dan belum ada perubahan status.',
-        'history' => 'Report count lowongan ini: 4.',
-        'related' => 'company_id=COMP-00012026 (PT Finaccel Finance Indonesia).',
+        'history_count' => 4,
+        'same_vacancy_reports' => [
+            [
+                'report_id' => 'VRP-2026-304511',
+                'waktu_masuk' => '13 Aug 2026 10:20',
+                'reason' => 'Meminta biaya/pembayaran',
+                'severity' => 'High',
+                'status' => 'Dalam Verifikasi',
+                'reporter_ref' => 'usr-73100 (rina@mail.com)',
+                'is_current' => true,
+            ],
+            [
+                'report_id' => 'VRP-2026-304498',
+                'waktu_masuk' => '12 Aug 2026 18:05',
+                'reason' => 'Meminta biaya/pembayaran',
+                'severity' => 'High',
+                'status' => 'Dalam Verifikasi',
+                'reporter_ref' => 'usr-74211 (budi@mail.com)',
+                'is_current' => false,
+            ],
+            [
+                'report_id' => 'VRP-2026-304450',
+                'waktu_masuk' => '11 Aug 2026 14:22',
+                'reason' => 'Mencurigakan / informasi menyesatkan',
+                'severity' => 'Medium',
+                'status' => 'Dalam Verifikasi',
+                'reporter_ref' => 'usr-70933 (sari@mail.com)',
+                'is_current' => false,
+            ],
+            [
+                'report_id' => 'VRP-2026-304401',
+                'waktu_masuk' => '10 Aug 2026 09:48',
+                'reason' => 'Meminta biaya/pembayaran',
+                'severity' => 'High',
+                'status' => 'Dalam Verifikasi',
+                'reporter_ref' => 'usr-68820 (andi@mail.com)',
+                'is_current' => false,
+            ],
+        ],
+        'company_other_reports' => [
+            [
+                'report_id' => 'VRP-2026-303812',
+                'waktu_masuk' => '08 Aug 2026 11:15',
+                'lowongan' => 'Account Executive - Jakarta',
+                'reason' => 'Meminta data pribadi sensitif / kredensial',
+                'severity' => 'High',
+                'status' => 'Dalam Verifikasi',
+            ],
+            [
+                'report_id' => 'VRP-2026-303640',
+                'waktu_masuk' => '05 Aug 2026 16:40',
+                'lowongan' => 'Business Development Staff',
+                'reason' => 'Mencurigakan / informasi menyesatkan',
+                'severity' => 'Medium',
+                'status' => 'Dalam Verifikasi',
+            ],
+            [
+                'report_id' => 'CRP-2026-103421',
+                'waktu_masuk' => '13 Aug 2026 09:14',
+                'lowongan' => 'Laporan Perusahaan',
+                'reason' => 'Meminta biaya / pungutan',
+                'severity' => 'High',
+                'status' => 'Dalam Verifikasi',
+            ],
+        ],
     ],
     'VRP-2026-304477' => [
         'report_id' => 'VRP-2026-304477',
@@ -142,8 +205,37 @@ $vacancyCases = [
             'job_type' => 'Full time',
         ]),
         'current_data' => 'Listing masih aktif, menunggu klarifikasi mitra.',
-        'history' => 'Report count lowongan ini: 2.',
-        'related' => 'company_id=COMP-98122 (CV Maju Sejahtera).',
+        'history_count' => 2,
+        'same_vacancy_reports' => [
+            [
+                'report_id' => 'VRP-2026-304477',
+                'waktu_masuk' => '13 Aug 2026 09:11',
+                'reason' => 'Mencurigakan / informasi menyesatkan',
+                'severity' => 'Medium',
+                'status' => 'Dalam Verifikasi',
+                'reporter_ref' => 'usr-65520 (anna@mail.com)',
+                'is_current' => true,
+            ],
+            [
+                'report_id' => 'VRP-2026-304410',
+                'waktu_masuk' => '11 Aug 2026 13:05',
+                'reason' => 'Mencurigakan / informasi menyesatkan',
+                'severity' => 'Medium',
+                'status' => 'Dalam Verifikasi',
+                'reporter_ref' => 'usr-64110 (dewi@mail.com)',
+                'is_current' => false,
+            ],
+        ],
+        'company_other_reports' => [
+            [
+                'report_id' => 'VRP-2026-303901',
+                'waktu_masuk' => '07 Aug 2026 10:30',
+                'lowongan' => 'Pramuniaga - Tangerang',
+                'reason' => 'Meminta biaya/pembayaran',
+                'severity' => 'High',
+                'status' => 'Dalam Verifikasi',
+            ],
+        ],
     ],
 ];
 
@@ -193,6 +285,16 @@ if ($case === null) {
         .ard-vacancy-list li { margin-bottom: 6px; }
         .ard-vacancy-kv { margin: 0; padding: 0; list-style: none; color: #2f4b66; font-size: 14px; }
         .ard-vacancy-kv li { margin-bottom: 6px; }
+        .ard-history-toggle { border: 0; background: transparent; padding: 0; color: #2f4b66; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; text-align: left; }
+        .ard-history-toggle:hover { color: #1f3550; }
+        .ard-history-toggle .bi-chevron-down { transition: transform .2s ease; font-size: 12px; color: #56718d; }
+        .ard-history-toggle[aria-expanded="true"] .bi-chevron-down { transform: rotate(180deg); }
+        .ard-related-table { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 13px; }
+        .ard-related-table th { background: #f5f9fd; color: #324a63; font-weight: 600; padding: 8px 10px; border: 1px solid #e3ebf5; white-space: nowrap; }
+        .ard-related-table td { color: #2b455f; padding: 8px 10px; border: 1px solid #e3ebf5; vertical-align: middle; }
+        .ard-related-current { background: #f3f9ff; }
+        .ard-subfield { margin-top: 14px; }
+        .ard-subfield-title { font-size: 14px; font-weight: 700; color: #1f3550; margin-bottom: 8px; }
         @media (max-width: 991px) {
             .ard-grid { grid-template-columns: 1fr; }
             .ard-vacancy-attrs { grid-template-columns: 1fr; }
@@ -315,8 +417,93 @@ if ($case === null) {
 
             <div class="ard-section">
                 <h6>Panel Histori dan Keterkaitan</h6>
-                <p class="ard-text"><strong>Histori:</strong> <?php echo h($case['history']); ?></p>
-                <p class="ard-text"><strong>Konteks Relasi:</strong> <?php echo h($case['related']); ?></p>
+                <?php
+                $sameVacancyReports = $case['same_vacancy_reports'] ?? [];
+                $companyOtherReports = $case['company_other_reports'] ?? [];
+                $historyCount = (int)($case['history_count'] ?? count($sameVacancyReports));
+                ?>
+                <?php if (!empty($sameVacancyReports)): ?>
+                    <button
+                        class="ard-history-toggle"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#sameVacancyHistory"
+                        aria-expanded="false"
+                        aria-controls="sameVacancyHistory"
+                    >
+                        <strong>Histori:</strong> Report count lowongan ini: <?php echo h((string)$historyCount); ?>
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+                    <div class="collapse" id="sameVacancyHistory">
+                        <div class="table-responsive">
+                            <table class="ard-related-table">
+                                <thead>
+                                    <tr>
+                                        <th>Report ID</th>
+                                        <th>Waktu Masuk</th>
+                                        <th>Reason</th>
+                                        <th>Severity</th>
+                                        <th>Status</th>
+                                        <th>Pelapor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($sameVacancyReports as $report): ?>
+                                        <tr class="<?php echo !empty($report['is_current']) ? 'ard-related-current' : ''; ?>">
+                                            <td>
+                                                <?php echo h($report['report_id']); ?>
+                                                <?php if (!empty($report['is_current'])): ?>
+                                                    <span class="ard-badge text-bg-info ms-1">Current</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td><?php echo h($report['waktu_masuk']); ?></td>
+                                            <td><?php echo h($report['reason']); ?></td>
+                                            <td><?php echo h($report['severity']); ?></td>
+                                            <td><?php echo h($report['status']); ?></td>
+                                            <td><?php echo h($report['reporter_ref']); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <p class="ard-text"><strong>Histori:</strong> <?php echo h($case['history'] ?? '-'); ?></p>
+                <?php endif; ?>
+
+                <div class="ard-subfield">
+                    <div class="ard-subfield-title">Laporan lowongan lainnya dari Perusahaan Ini</div>
+                    <?php if (!empty($companyOtherReports)): ?>
+                        <div class="table-responsive">
+                            <table class="ard-related-table">
+                                <thead>
+                                    <tr>
+                                        <th>Report ID</th>
+                                        <th>Waktu Masuk</th>
+                                        <th>Lowongan / Objek</th>
+                                        <th>Reason</th>
+                                        <th>Severity</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($companyOtherReports as $report): ?>
+                                        <tr>
+                                            <td><?php echo h($report['report_id']); ?></td>
+                                            <td><?php echo h($report['waktu_masuk']); ?></td>
+                                            <td><?php echo h($report['lowongan']); ?></td>
+                                            <td><?php echo h($report['reason']); ?></td>
+                                            <td><?php echo h($report['severity']); ?></td>
+                                            <td><?php echo h($report['status']); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php else: ?>
+                        <p class="ard-text">Belum ada laporan lain dari perusahaan ini pada dataset prototype.</p>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <div class="ard-section">
