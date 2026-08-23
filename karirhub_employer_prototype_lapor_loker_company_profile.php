@@ -193,11 +193,16 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
                                     <div id="reasonError" class="ll-error-text">Pilih alasan pelaporan terlebih dahulu.</div>
                                 </div>
 
+                                <div id="reportCompanyReasonOtherWrap" class="mt-3 d-none">
+                                    <label class="ll-form-label" for="reportCompanyReasonOther">Alasan pelaporan lainnya</label>
+                                    <input id="reportCompanyReasonOther" type="text" class="form-control" placeholder="Tuliskan alasan pelaporan lainnya...">
+                                    <div id="reasonOtherError" class="ll-error-text">Isi alasan pelaporan lainnya terlebih dahulu.</div>
+                                </div>
+
                                 <div class="mt-3">
                                     <label class="ll-form-label" for="reportCompanyComment">Komentar tambahan</label>
                                     <textarea id="reportCompanyComment" class="form-control" rows="4" placeholder="Jelaskan informasi yang membantu proses pemeriksaan..."></textarea>
-                                    <div class="ll-form-note">Komentar wajib jika memilih alasan “Lainnya”.</div>
-                                    <div id="commentError" class="ll-error-text">Komentar wajib jika alasan yang dipilih adalah “Lainnya”.</div>
+                                    <div class="ll-form-note">Opsional. Tambahkan detail yang membantu pemeriksaan laporan.</div>
                                 </div>
 
                                 <div class="mt-3">
@@ -250,21 +255,36 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
         const formWrap = document.getElementById('companyReportFormWrap');
         const successWrap = document.getElementById('companyReportSuccessWrap');
         const reasonField = document.getElementById('reportCompanyReason');
+        const reasonOtherWrap = document.getElementById('reportCompanyReasonOtherWrap');
+        const reasonOtherField = document.getElementById('reportCompanyReasonOther');
         const commentField = document.getElementById('reportCompanyComment');
         const consentField = document.getElementById('reportCompanyConsent');
         const reasonError = document.getElementById('reasonError');
-        const commentError = document.getElementById('commentError');
+        const reasonOtherError = document.getElementById('reasonOtherError');
         const consentError = document.getElementById('consentError');
         const reportIdText = document.getElementById('companyReportIdText');
 
-        if (!submitBtn || !formWrap || !successWrap || !reasonField || !commentField || !consentField || !reportIdText) {
+        if (!submitBtn || !formWrap || !successWrap || !reasonField || !reasonOtherWrap || !reasonOtherField || !commentField || !consentField || !reportIdText) {
             return;
         }
 
         function hideErrors() {
             if (reasonError) reasonError.style.display = 'none';
-            if (commentError) commentError.style.display = 'none';
+            if (reasonOtherError) reasonOtherError.style.display = 'none';
             if (consentError) consentError.style.display = 'none';
+        }
+
+        function isOtherReasonSelected() {
+            return reasonField.value.trim().toLowerCase() === 'lainnya';
+        }
+
+        function syncReasonOtherVisibility() {
+            const showOther = isOtherReasonSelected();
+            reasonOtherWrap.classList.toggle('d-none', !showOther);
+            if (!showOther) {
+                reasonOtherField.value = '';
+                if (reasonOtherError) reasonOtherError.style.display = 'none';
+            }
         }
 
         function generateMockReportId() {
@@ -274,22 +294,25 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
             return 'CRP-' + year + '-' + String(random);
         }
 
+        reasonField.addEventListener('change', syncReasonOtherVisibility);
+        syncReasonOtherVisibility();
+
         submitBtn.addEventListener('click', function () {
             hideErrors();
             let hasError = false;
             const reasonValue = reasonField.value.trim().toLowerCase();
-            const commentValue = commentField.value.trim();
+            const reasonOtherValue = reasonOtherField.value.trim();
             const reasonNotChosen = (reasonValue === '' || reasonValue === 'silakan pilih');
-            const reasonIsOther = (reasonValue === 'lainnya');
+            const reasonIsOther = isOtherReasonSelected();
 
             if (reasonNotChosen) {
                 hasError = true;
                 if (reasonError) reasonError.style.display = 'block';
             }
 
-            if (reasonIsOther && commentValue === '') {
+            if (reasonIsOther && reasonOtherValue === '') {
                 hasError = true;
-                if (commentError) commentError.style.display = 'block';
+                if (reasonOtherError) reasonOtherError.style.display = 'block';
             }
 
             if (!consentField.checked) {
@@ -310,8 +333,10 @@ if (!kh_proto_can_access('karirhub_employer_prototype_lapor_loker_view')) {
             cancelBtn.addEventListener('click', function (evt) {
                 evt.preventDefault();
                 reasonField.selectedIndex = 0;
+                reasonOtherField.value = '';
                 commentField.value = '';
                 consentField.checked = false;
+                syncReasonOtherVisibility();
                 hideErrors();
             });
         }
