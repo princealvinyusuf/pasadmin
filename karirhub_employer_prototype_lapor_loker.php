@@ -54,6 +54,7 @@ function h(string $value): string
         .ll-report-card { border: 1px solid #dce7f2; border-top: 0; border-radius: 0 0 12px 12px; padding: 18px; background: #fff; }
         .ll-safe-box { border: 1px solid #ffe4a6; background: #fff9eb; color: #775d21; border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-bottom: 16px; }
         .ll-form-label { color: #304a64; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+        .ll-required { color: #c0342a; }
         .ll-form-note { color: #7f92a7; font-size: 12px; margin-top: 4px; }
         .ll-report-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 16px; }
         .ll-report-primary { background: #0a8f8a; border-color: #0a8f8a; font-weight: 600; }
@@ -183,12 +184,12 @@ function h(string $value): string
                             </div>
                             <form onsubmit="return false;" aria-label="Prototype form lapor lowongan">
                                 <div class="mb-3">
-                                    <label class="ll-form-label" for="reportEmail">Alamat email kamu</label>
+                                    <label class="ll-form-label" for="reportEmail">Alamat email kamu <span class="ll-required">*</span></label>
                                     <input id="reportEmail" type="email" class="form-control" value="email@example.com" readonly>
                                     <div class="ll-form-note">Diisi otomatis dari akun yang sudah login (prototype read-only).</div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="ll-form-label" for="reportReason">Alasan pelaporan lowongan</label>
+                                    <label class="ll-form-label" for="reportReason">Alasan pelaporan lowongan <span class="ll-required">*</span></label>
                                     <select id="reportReason" class="form-select">
                                         <option selected>Silakan pilih</option>
                                         <option>Penipuan / lowongan fiktif</option>
@@ -205,7 +206,7 @@ function h(string $value): string
                                     <div id="vacancyReasonError" class="ll-error-text">Pilih alasan pelaporan terlebih dahulu.</div>
                                 </div>
                                 <div id="reportReasonOtherWrap" class="mb-3 d-none">
-                                    <label class="ll-form-label" for="reportReasonOther">Alasan pelaporan lowongan Lainnya</label>
+                                    <label class="ll-form-label" for="reportReasonOther">Alasan pelaporan lowongan Lainnya <span class="ll-required">*</span></label>
                                     <input id="reportReasonOther" type="text" class="form-control" placeholder="Tuliskan alasan pelaporan lainnya...">
                                     <div id="vacancyReasonOtherError" class="ll-error-text">Isi alasan pelaporan lainnya terlebih dahulu.</div>
                                 </div>
@@ -217,12 +218,12 @@ function h(string $value): string
                                 <div class="mb-3">
                                     <label class="ll-form-label" for="reportEvidence">Tambahkan bukti</label>
                                     <input id="reportEvidence" type="file" class="form-control" accept=".pdf,image/*">
-                                    <div class="ll-form-note">Tipe file contoh: PDF, JPG, PNG.</div>
+                                    <div class="ll-form-note">Opsional. Tipe file contoh: PDF, JPG, PNG.</div>
                                 </div>
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" value="" id="reportConsent">
                                     <label class="form-check-label" for="reportConsent">
-                                        Saya menyampaikan laporan ini dengan itikad baik.
+                                        Saya menyampaikan laporan ini dengan itikad baik. <span class="ll-required">*</span>
                                     </label>
                                     <div id="vacancyConsentError" class="ll-error-text">Centang pernyataan itikad baik untuk melanjutkan.</div>
                                 </div>
