@@ -20,8 +20,8 @@ $companyReports = [
         'perusahaan' => 'PT Finaccel Finance Indonesia',
         'employer_type' => 'Perusahaan',
         'wilayah' => 'Jakarta Pusat - DKI Jakarta',
-        'reason' => 'Meminta biaya / pungutan',
-        'severity' => 'High',
+        'reason' => 'Meminta biaya / pembayaran',
+        'severity' => 'Urgent',
         'sla' => 'Approaching',
         'status' => 'PENDING_REVIEW',
         'assigned_to' => '-',
@@ -32,8 +32,8 @@ $companyReports = [
         'perusahaan' => 'PT Maju Karier Nusantara',
         'employer_type' => 'Perusahaan',
         'wilayah' => 'Bandung - Jawa Barat',
-        'reason' => 'Identitas perusahaan tidak sesuai',
-        'severity' => 'High',
+        'reason' => 'Perusahaan palsu / informasi menyesatkan',
+        'severity' => 'Urgent',
         'sla' => 'On Time',
         'status' => 'IN_REVIEW',
         'assigned_to' => 'admin.kabkota.bdg',
@@ -44,8 +44,8 @@ $companyReports = [
         'perusahaan' => 'CV Mitra Giat Sentosa',
         'employer_type' => 'Lembaga',
         'wilayah' => 'Surabaya - Jawa Timur',
-        'reason' => 'Perilaku rekrutmen tidak pantas',
-        'severity' => 'High',
+        'reason' => 'Praktik diskriminatif',
+        'severity' => 'Medium',
         'sla' => 'Overdue',
         'status' => 'ESCALATED',
         'assigned_to' => 'admin.pusat.layanan',
@@ -116,6 +116,7 @@ $vacancyReports = [
         .arp-kpi-value { color: #1f3550; font-size: 24px; font-weight: 700; line-height: 1.2; margin-top: 4px; }
         .arp-chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
         .arp-chip.critical { background: #ffe3e3; color: #a52121; }
+        .arp-chip.urgent { background: #ffe3e3; color: #a52121; }
         .arp-chip.high { background: #fff2df; color: #b06313; }
         .arp-chip.medium { background: #e9f3ff; color: #205c9f; }
         .arp-chip.low { background: #eaf8ed; color: #1b7a3b; }
