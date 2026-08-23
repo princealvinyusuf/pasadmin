@@ -160,13 +160,13 @@ $vacancyReports = [
         <div class="row g-3 mb-4">
             <div class="col-6 col-lg-2">
                 <div class="arp-kpi-card">
-                    <div class="arp-kpi-label">Pending</div>
+                    <div class="arp-kpi-label">Pending Review</div>
                     <div class="arp-kpi-value">32</div>
                 </div>
             </div>
             <div class="col-6 col-lg-2">
                 <div class="arp-kpi-card">
-                    <div class="arp-kpi-label">In Review</div>
+                    <div class="arp-kpi-label">Dalam Verifikasi</div>
                     <div class="arp-kpi-value">18</div>
                 </div>
             </div>
@@ -190,7 +190,7 @@ $vacancyReports = [
             </div>
             <div class="col-6 col-lg-2">
                 <div class="arp-kpi-card">
-                    <div class="arp-kpi-label">Selesai Hari Ini</div>
+                    <div class="arp-kpi-label">Selesai</div>
                     <div class="arp-kpi-value">9</div>
                 </div>
             </div>
