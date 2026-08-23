@@ -153,11 +153,11 @@ if ($case === null) {
                 <div>
                     <div class="ard-title"><?php echo h($case['object_type']); ?> - <?php echo h($case['report_id']); ?></div>
                     <div class="ard-meta">Subject: <?php echo h($case['subject']); ?> | Submit: <?php echo h($case['submit_at']); ?></div>
-                </div>
-                <div class="d-flex gap-2">
-                    <span id="caseStatusBadge" class="ard-badge text-bg-primary"><?php echo h($case['status']); ?></span>
-                    <span class="ard-badge text-bg-danger"><?php echo h($case['severity']); ?></span>
-                    <span class="ard-badge text-bg-warning"><?php echo h($case['sla']); ?></span>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <span id="caseStatusBadge" class="ard-badge text-bg-primary"><?php echo h($case['status']); ?></span>
+                        <span class="ard-badge text-bg-danger"><?php echo h($case['severity']); ?></span>
+                        <span class="ard-badge text-bg-warning"><?php echo h($case['sla']); ?></span>
+                    </div>
                 </div>
             </div>
 
