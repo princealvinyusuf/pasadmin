@@ -346,7 +346,7 @@ if ($case === null) {
                     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#tindakanModal">
                         <i class="bi bi-lightning-charge me-1"></i>Tindakan
                     </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="requestEmployerClarificationBtn">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#klarifikasiModal">
                         <i class="bi bi-chat-left-text me-1"></i>Minta Klarifikasi Pemberi Kerja
                     </button>
                 </div>
@@ -619,6 +619,31 @@ if ($case === null) {
                     </div>
                 </div>
             </div>
+
+            <div class="modal fade" id="klarifikasiModal" tabindex="-1" aria-labelledby="klarifikasiModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="klarifikasiModalLabel">Minta Klarifikasi Pemberi Kerja</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <label class="form-label small mb-1" for="klarifikasiMessage">Masukkan Pesan</label>
+                            <textarea
+                                id="klarifikasiMessage"
+                                class="form-control"
+                                rows="5"
+                                placeholder="Tulis pesan klarifikasi untuk pemberi kerja..."
+                            ></textarea>
+                            <div id="klarifikasiFeedback" class="ard-feedback"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                            <button type="button" class="btn btn-primary btn-sm" id="sendKlarifikasiBtn">Kirim Klarifikasi</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     <?php endif; ?>
 </div>
@@ -632,13 +657,17 @@ if ($case === null) {
         const feedback = document.getElementById('decisionFeedback');
         const successAlert = document.getElementById('tindakanSuccessAlert');
         const tindakanModalEl = document.getElementById('tindakanModal');
-        const requestEmployerBtn = document.getElementById('requestEmployerClarificationBtn');
+        const klarifikasiModalEl = document.getElementById('klarifikasiModal');
+        const klarifikasiMessage = document.getElementById('klarifikasiMessage');
+        const klarifikasiFeedback = document.getElementById('klarifikasiFeedback');
+        const sendKlarifikasiBtn = document.getElementById('sendKlarifikasiBtn');
 
-        if (!statusBadge || !decisionSelect || aksiChecks.length === 0 || !saveBtn || !feedback || !successAlert || !tindakanModalEl) {
+        if (!statusBadge || !decisionSelect || aksiChecks.length === 0 || !saveBtn || !feedback || !successAlert || !tindakanModalEl || !klarifikasiModalEl || !klarifikasiMessage || !klarifikasiFeedback || !sendKlarifikasiBtn) {
             return;
         }
 
         const tindakanModal = bootstrap.Modal.getOrCreateInstance(tindakanModalEl);
+        const klarifikasiModal = bootstrap.Modal.getOrCreateInstance(klarifikasiModalEl);
 
         const aksiRules = {
             'Tidak Terbukti': {
@@ -766,15 +795,43 @@ if ($case === null) {
             hideFeedback();
         });
 
-        if (requestEmployerBtn) {
-            requestEmployerBtn.addEventListener('click', function () {
-                statusBadge.textContent = 'Menunggu Klarifikasi';
-                statusBadge.classList.remove('text-bg-primary', 'text-bg-info', 'text-bg-success', 'text-bg-secondary');
-                statusBadge.classList.add('text-bg-warning');
-                successAlert.textContent = 'Permintaan klarifikasi kepada pemberi kerja telah disiapkan (prototype).';
-                successAlert.classList.remove('d-none');
-            });
+        function hideKlarifikasiFeedback() {
+            klarifikasiFeedback.style.display = 'none';
+            klarifikasiFeedback.textContent = '';
         }
+
+        function showKlarifikasiFeedback(message, isError) {
+            klarifikasiFeedback.style.display = 'block';
+            klarifikasiFeedback.classList.toggle('text-danger', !!isError);
+            klarifikasiFeedback.classList.toggle('text-success', !isError);
+            klarifikasiFeedback.textContent = message;
+        }
+
+        klarifikasiModalEl.addEventListener('shown.bs.modal', function () {
+            hideKlarifikasiFeedback();
+            klarifikasiMessage.focus();
+        });
+
+        klarifikasiModalEl.addEventListener('hidden.bs.modal', function () {
+            hideKlarifikasiFeedback();
+            klarifikasiMessage.value = '';
+        });
+
+        sendKlarifikasiBtn.addEventListener('click', function () {
+            const message = klarifikasiMessage.value.trim();
+            if (message === '') {
+                showKlarifikasiFeedback('Masukkan pesan klarifikasi terlebih dahulu.', true);
+                return;
+            }
+
+            hideKlarifikasiFeedback();
+            statusBadge.textContent = 'Menunggu Klarifikasi';
+            statusBadge.classList.remove('text-bg-primary', 'text-bg-info', 'text-bg-success', 'text-bg-secondary');
+            statusBadge.classList.add('text-bg-warning');
+            successAlert.textContent = 'Permintaan klarifikasi kepada pemberi kerja telah dikirim.';
+            successAlert.classList.remove('d-none');
+            klarifikasiModal.hide();
+        });
     })();
 </script>
 </body>
