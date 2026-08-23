@@ -16,9 +16,9 @@ function h(string $value): string
 
 $employer = [
     'type_label' => 'PERUSAHAAN',
-    'name' => 'PT. Pandu Jaya',
-    'email' => 'pandu@gmail.com',
-    'phone' => '0216645828',
+    'name' => 'PT Finaccel Finance Indonesia',
+    'email' => 'hr@finaccel.co.id',
+    'phone' => '0211500987',
 ];
 ?>
 <!DOCTYPE html>
