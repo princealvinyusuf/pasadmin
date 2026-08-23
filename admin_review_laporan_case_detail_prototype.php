@@ -33,6 +33,11 @@ $companyCases = [
         'evidence' => 'bukti_transfer.jpg, screenshot_chat.pdf',
         'snapshot' => 'Profil terverifikasi, employer_type Perusahaan, verification_status=VERIFIED, enforcement_status=ACTIVE.',
         'vacancy_snapshot' => null,
+        'employer_clarification' => [
+            'response' => 'Kami tidak pernah meminta biaya kepada pelamar. Informasi yang beredar berasal dari pihak tidak bertanggung jawab. Kami siap memberikan bukti proses rekrutmen yang sah.',
+            'document_name' => 'klarifikasi_pemberi_kerja.pdf',
+            'document_content' => "Klarifikasi Pemberi Kerja\nReport: CRP-2026-103421\n\nKami tidak pernah meminta biaya kepada pelamar. Informasi yang beredar berasal dari pihak tidak bertanggung jawab. Kami siap memberikan bukti proses rekrutmen yang sah.\n",
+        ],
         'current_data' => 'Masih terverifikasi, memiliki 12 lowongan aktif native.',
         'verified_by_admin' => 'admin.pusat.verifikasi',
         'history_count' => 4,
