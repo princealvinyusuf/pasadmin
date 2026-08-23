@@ -341,7 +341,7 @@
                 <?php if ($canKarirhubEmployerPrototype): ?>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="karirhubEmployerPrototypeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Karirhub Employer Prototype
+                        Karirhub Prototype
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="karirhubEmployerPrototypeDropdown">
                         <?php if ($canKhProtoDashboardWllp): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_dashboard_wllp"><i class="bi bi-speedometer2 me-1"></i>Dashboard WLLP</a></li><?php endif; ?>
