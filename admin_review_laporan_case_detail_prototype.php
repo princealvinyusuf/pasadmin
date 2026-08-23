@@ -35,6 +35,75 @@ $companyCases = [
         'vacancy_snapshot' => null,
         'current_data' => 'Masih terverifikasi, memiliki 12 lowongan aktif native.',
         'verified_by_admin' => 'admin.pusat.verifikasi',
+        'history_count' => 4,
+        'same_company_reports' => [
+            [
+                'report_id' => 'CRP-2026-103421',
+                'waktu_masuk' => '13 Aug 2026 09:14',
+                'reason' => 'Meminta biaya / pembayaran',
+                'severity' => 'Urgent',
+                'status' => 'Dalam Verifikasi',
+                'reporter_ref' => 'usr-92811 (email@example.com)',
+                'is_current' => true,
+            ],
+            [
+                'report_id' => 'CRP-2026-103400',
+                'waktu_masuk' => '10 Aug 2026 15:30',
+                'reason' => 'Praktik diskriminatif',
+                'severity' => 'Medium',
+                'status' => 'Dalam Verifikasi',
+                'reporter_ref' => 'usr-90112 (sinta@mail.com)',
+                'is_current' => false,
+            ],
+            [
+                'report_id' => 'CRP-2026-103380',
+                'waktu_masuk' => '05 Aug 2026 11:05',
+                'reason' => 'Meminta biaya / pembayaran',
+                'severity' => 'Urgent',
+                'status' => 'Dalam Verifikasi',
+                'reporter_ref' => 'usr-88440 (dono@mail.com)',
+                'is_current' => false,
+            ],
+            [
+                'report_id' => 'CRP-2026-103350',
+                'waktu_masuk' => '28 Jul 2026 08:40',
+                'reason' => 'Perusahaan palsu / informasi menyesatkan',
+                'severity' => 'Urgent',
+                'status' => 'Dalam Verifikasi',
+                'reporter_ref' => 'usr-87001 (mira@mail.com)',
+                'is_current' => false,
+            ],
+        ],
+        'company_open_vacancies' => [
+            [
+                'title' => 'Sales Executive - DKI Jakarta',
+                'location' => 'Jakarta Timur - DKI Jakarta',
+                'status' => 'Dibuka',
+                'posted_at' => '1 Agustus 2026',
+                'url' => 'karirhub_employer_prototype_employer_detail_lowongan.php',
+            ],
+            [
+                'title' => 'Account Executive - Jakarta',
+                'location' => 'Jakarta Pusat - DKI Jakarta',
+                'status' => 'Dibuka',
+                'posted_at' => '28 Juli 2026',
+                'url' => 'https://karirhub.kemnaker.go.id/lowongan-dalam-negeri/lowongan/marketing-specialist-4934b8f4-5744-4530-afdd-d6365136bcb0',
+            ],
+            [
+                'title' => 'Business Development Staff',
+                'location' => 'Jakarta Selatan - DKI Jakarta',
+                'status' => 'Dibuka',
+                'posted_at' => '20 Juli 2026',
+                'url' => 'https://karirhub.kemnaker.go.id/lowongan-dalam-negeri/lowongan/marketing-specialist-4934b8f4-5744-4530-afdd-d6365136bcb0',
+            ],
+            [
+                'title' => 'Marketing Specialist',
+                'location' => 'Jakarta Barat - DKI Jakarta',
+                'status' => 'Dibuka',
+                'posted_at' => '15 Juli 2026',
+                'url' => 'https://karirhub.kemnaker.go.id/lowongan-dalam-negeri/lowongan/marketing-specialist-4934b8f4-5744-4530-afdd-d6365136bcb0',
+            ],
+        ],
         'history' => 'Laporan perusahaan serupa 2x dalam 30 hari terakhir.',
         'related' => 'Terkait lowongan: Sales Executive - DKI Jakarta (opsional context).',
     ],
@@ -55,6 +124,43 @@ $companyCases = [
         'snapshot' => 'company_id=COMP-22911, website profile: maju-karier.co.id',
         'vacancy_snapshot' => null,
         'current_data' => 'Website saat ini berubah menjadi majukariers.id',
+        'history_count' => 2,
+        'same_company_reports' => [
+            [
+                'report_id' => 'CRP-2026-103109',
+                'waktu_masuk' => '13 Aug 2026 08:02',
+                'reason' => 'Perusahaan palsu / informasi menyesatkan',
+                'severity' => 'Urgent',
+                'status' => 'Dalam Verifikasi',
+                'reporter_ref' => 'usr-81221 (john@mail.com)',
+                'is_current' => true,
+            ],
+            [
+                'report_id' => 'CRP-2026-103050',
+                'waktu_masuk' => '01 Aug 2026 10:20',
+                'reason' => 'Praktik diskriminatif',
+                'severity' => 'Medium',
+                'status' => 'Dalam Verifikasi',
+                'reporter_ref' => 'usr-80010 (rudi@mail.com)',
+                'is_current' => false,
+            ],
+        ],
+        'company_open_vacancies' => [
+            [
+                'title' => 'Staff Rekrutmen',
+                'location' => 'Bandung - Jawa Barat',
+                'status' => 'Dibuka',
+                'posted_at' => '10 Agustus 2026',
+                'url' => 'https://karirhub.kemnaker.go.id/lowongan-dalam-negeri/lowongan/marketing-specialist-4934b8f4-5744-4530-afdd-d6365136bcb0',
+            ],
+            [
+                'title' => 'HR Admin',
+                'location' => 'Bandung - Jawa Barat',
+                'status' => 'Dibuka',
+                'posted_at' => '2 Agustus 2026',
+                'url' => 'https://karirhub.kemnaker.go.id/lowongan-dalam-negeri/lowongan/marketing-specialist-4934b8f4-5744-4530-afdd-d6365136bcb0',
+            ],
+        ],
         'history' => 'Pernah ada permintaan klarifikasi saat verifikasi awal.',
         'related' => 'Tidak ada related_vacancy_id.',
     ],
@@ -503,23 +609,27 @@ if ($case === null) {
             <div class="ard-section">
                 <h6>Panel Histori dan Keterkaitan</h6>
                 <?php
-                $sameVacancyReports = $case['same_vacancy_reports'] ?? [];
+                $isCompanyCase = ($case['object_type'] ?? '') === 'Laporan Perusahaan';
+                $historyReports = $case['same_company_reports'] ?? $case['same_vacancy_reports'] ?? [];
                 $companyOtherReports = $case['company_other_reports'] ?? [];
-                $historyCount = (int)($case['history_count'] ?? count($sameVacancyReports));
+                $companyOpenVacancies = $case['company_open_vacancies'] ?? [];
+                $historyCount = (int)($case['history_count'] ?? count($historyReports));
+                $historyLabel = $isCompanyCase ? 'perusahaan ini' : 'lowongan ini';
+                $historyDetailType = $isCompanyCase ? 'company' : 'vacancy';
                 ?>
-                <?php if (!empty($sameVacancyReports)): ?>
+                <?php if (!empty($historyReports)): ?>
                     <button
                         class="ard-history-toggle"
                         type="button"
                         data-bs-toggle="collapse"
-                        data-bs-target="#sameVacancyHistory"
+                        data-bs-target="#sameObjectHistory"
                         aria-expanded="false"
-                        aria-controls="sameVacancyHistory"
+                        aria-controls="sameObjectHistory"
                     >
-                        <strong>Histori:</strong> Report count lowongan ini: <?php echo h((string)$historyCount); ?>
+                        <strong>Histori:</strong> Report count <?php echo h($historyLabel); ?>: <?php echo h((string)$historyCount); ?>
                         <i class="bi bi-chevron-down"></i>
                     </button>
-                    <div class="collapse" id="sameVacancyHistory">
+                    <div class="collapse" id="sameObjectHistory">
                         <div class="table-responsive">
                             <table class="ard-related-table">
                                 <thead>
@@ -534,7 +644,7 @@ if ($case === null) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($sameVacancyReports as $report): ?>
+                                    <?php foreach ($historyReports as $report): ?>
                                         <tr class="<?php echo !empty($report['is_current']) ? 'ard-related-current' : ''; ?>">
                                             <td>
                                                 <?php echo h($report['report_id']); ?>
@@ -550,7 +660,7 @@ if ($case === null) {
                                             <td>
                                                 <a
                                                     class="btn btn-sm btn-outline-primary"
-                                                    href="admin_review_laporan_case_detail_prototype?type=vacancy&report_id=<?php echo rawurlencode($report['report_id']); ?>"
+                                                    href="admin_review_laporan_case_detail_prototype?type=<?php echo rawurlencode($historyDetailType); ?>&report_id=<?php echo rawurlencode($report['report_id']); ?>"
                                                 >Lihat Detail Laporan</a>
                                             </td>
                                         </tr>
@@ -563,49 +673,96 @@ if ($case === null) {
                     <p class="ard-text"><strong>Histori:</strong> <?php echo h($case['history'] ?? '-'); ?></p>
                 <?php endif; ?>
 
-                <div class="ard-subfield">
-                    <div class="ard-subfield-title">Laporan lowongan lainnya dari Perusahaan Ini</div>
-                    <?php if (!empty($companyOtherReports)): ?>
-                        <div class="table-responsive">
-                            <table class="ard-related-table">
-                                <thead>
-                                    <tr>
-                                        <th>Report ID</th>
-                                        <th>Waktu Masuk</th>
-                                        <th>Lowongan / Objek</th>
-                                        <th>Reason</th>
-                                        <th>Severity</th>
-                                        <th>Status</th>
-                                        <th>Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($companyOtherReports as $report): ?>
-                                        <?php
-                                        $relatedType = str_starts_with($report['report_id'], 'CRP-') ? 'company' : 'vacancy';
-                                        ?>
+                <?php if ($isCompanyCase): ?>
+                    <div class="ard-subfield">
+                        <div class="ard-subfield-title">Lowongan yang dibuka perusahaan ini</div>
+                        <?php if (!empty($companyOpenVacancies)): ?>
+                            <div class="table-responsive">
+                                <table class="ard-related-table">
+                                    <thead>
                                         <tr>
-                                            <td><?php echo h($report['report_id']); ?></td>
-                                            <td><?php echo h($report['waktu_masuk']); ?></td>
-                                            <td><?php echo h($report['lowongan']); ?></td>
-                                            <td><?php echo h($report['reason']); ?></td>
-                                            <td><?php echo h($report['severity']); ?></td>
-                                            <td><?php echo h($report['status']); ?></td>
-                                            <td>
-                                                <a
-                                                    class="btn btn-sm btn-outline-primary"
-                                                    href="admin_review_laporan_case_detail_prototype?type=<?php echo rawurlencode($relatedType); ?>&report_id=<?php echo rawurlencode($report['report_id']); ?>"
-                                                >Lihat Detail Laporan</a>
-                                            </td>
+                                            <th>Lowongan</th>
+                                            <th>Lokasi</th>
+                                            <th>Status</th>
+                                            <th>Diposting</th>
+                                            <th>Aksi</th>
                                         </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php else: ?>
-                        <p class="ard-text">Belum ada laporan lain dari perusahaan ini pada dataset prototype.</p>
-                    <?php endif; ?>
-                </div>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($companyOpenVacancies as $vacancyRow): ?>
+                                            <?php
+                                            $vacancyUrl = $vacancyRow['url'] ?? '#';
+                                            $isExternalVacancy = str_starts_with($vacancyUrl, 'http');
+                                            ?>
+                                            <tr>
+                                                <td><?php echo h($vacancyRow['title']); ?></td>
+                                                <td><?php echo h($vacancyRow['location']); ?></td>
+                                                <td><?php echo h($vacancyRow['status']); ?></td>
+                                                <td><?php echo h($vacancyRow['posted_at']); ?></td>
+                                                <td>
+                                                    <a
+                                                        class="btn btn-sm btn-outline-primary"
+                                                        href="<?php echo h($vacancyUrl); ?>"
+                                                        <?php if ($isExternalVacancy): ?>
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                        <?php endif; ?>
+                                                    >Lihat Lowongan</a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <p class="ard-text">Belum ada lowongan aktif dari perusahaan ini pada dataset prototype.</p>
+                        <?php endif; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="ard-subfield">
+                        <div class="ard-subfield-title">Laporan lowongan lainnya dari Perusahaan Ini</div>
+                        <?php if (!empty($companyOtherReports)): ?>
+                            <div class="table-responsive">
+                                <table class="ard-related-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Report ID</th>
+                                            <th>Waktu Masuk</th>
+                                            <th>Lowongan / Objek</th>
+                                            <th>Reason</th>
+                                            <th>Severity</th>
+                                            <th>Status</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($companyOtherReports as $report): ?>
+                                            <?php
+                                            $relatedType = str_starts_with($report['report_id'], 'CRP-') ? 'company' : 'vacancy';
+                                            ?>
+                                            <tr>
+                                                <td><?php echo h($report['report_id']); ?></td>
+                                                <td><?php echo h($report['waktu_masuk']); ?></td>
+                                                <td><?php echo h($report['lowongan']); ?></td>
+                                                <td><?php echo h($report['reason']); ?></td>
+                                                <td><?php echo h($report['severity']); ?></td>
+                                                <td><?php echo h($report['status']); ?></td>
+                                                <td>
+                                                    <a
+                                                        class="btn btn-sm btn-outline-primary"
+                                                        href="admin_review_laporan_case_detail_prototype?type=<?php echo rawurlencode($relatedType); ?>&report_id=<?php echo rawurlencode($report['report_id']); ?>"
+                                                    >Lihat Detail Laporan</a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <p class="ard-text">Belum ada laporan lain dari perusahaan ini pada dataset prototype.</p>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <div class="modal fade" id="tindakanModal" tabindex="-1" aria-labelledby="tindakanModalLabel" aria-hidden="true">
