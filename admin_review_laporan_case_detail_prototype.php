@@ -117,6 +117,7 @@ $vacancyCases = [
         'snapshot' => 'vacancy_id=VAC-99311, publication_status=ACTIVE, source_flag=NATIVE.',
         'vacancy_snapshot' => $salesExecutiveSnapshot,
         'current_data' => 'Lowongan masih tayang dan belum ada perubahan status.',
+        'verified_by_admin' => 'admin.pusat.verifikasi',
         'history_count' => 4,
         'same_vacancy_reports' => [
             [
@@ -205,6 +206,7 @@ $vacancyCases = [
             'job_type' => 'Full time',
         ]),
         'current_data' => 'Listing masih aktif, menunggu klarifikasi mitra.',
+        'verified_by_admin' => 'admin.kabkota.tng',
         'history_count' => 2,
         'same_vacancy_reports' => [
             [
@@ -413,6 +415,9 @@ if ($case === null) {
             <div class="ard-section">
                 <h6>Status</h6>
                 <p class="ard-text"><?php echo h($case['current_data']); ?></p>
+                <?php if (!empty($case['verified_by_admin'])): ?>
+                    <p class="ard-text mt-2">Lowongan ini sebelumnya diverifikasi tayang oleh: <strong><?php echo h($case['verified_by_admin']); ?></strong></p>
+                <?php endif; ?>
             </div>
 
             <div class="ard-section">
