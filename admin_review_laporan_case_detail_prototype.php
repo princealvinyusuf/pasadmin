@@ -99,6 +99,16 @@ $salesExecutiveSnapshot = [
     ],
 ];
 
+$employerProfile = [
+    'name' => 'Naga Bumi Pratama',
+    'field' => 'Consultancy (Business & Management)',
+    'registered_since' => '11 Agustus 2026',
+    'contact' => '081218916348',
+    'email' => 'nagabumipratama@gmail.com',
+    'website' => 'www.nagabumipratama.com',
+    'address' => 'Kota Adm. Jakarta Selatan, The CEO Building Level 12, Jl. TB Simatupang No. 18C',
+];
+
 $vacancyCases = [
     'VRP-2026-304511' => [
         'report_id' => 'VRP-2026-304511',
@@ -116,6 +126,7 @@ $vacancyCases = [
         'evidence' => 'biaya_pelatihan.png, invoice.pdf',
         'snapshot' => 'vacancy_id=VAC-99311, publication_status=ACTIVE, source_flag=NATIVE.',
         'vacancy_snapshot' => $salesExecutiveSnapshot,
+        'employer_profile' => $employerProfile,
         'current_data' => 'Lowongan masih tayang dan belum ada perubahan status.',
         'verified_by_admin' => 'admin.pusat.verifikasi',
         'history_count' => 4,
@@ -205,6 +216,7 @@ $vacancyCases = [
             'job_field' => 'Penjualan dan Pengembangan Bisnis',
             'job_type' => 'Full time',
         ]),
+        'employer_profile' => $employerProfile,
         'current_data' => 'Listing masih aktif, menunggu klarifikasi mitra.',
         'verified_by_admin' => 'admin.kabkota.tng',
         'history_count' => 2,
@@ -419,6 +431,24 @@ if ($case === null) {
                     <p class="ard-text mt-2">Lowongan ini sebelumnya diverifikasi tayang oleh: <strong><?php echo h($case['verified_by_admin']); ?></strong></p>
                 <?php endif; ?>
             </div>
+
+            <?php if (!empty($case['employer_profile']) && is_array($case['employer_profile'])): ?>
+                <?php $employer = $case['employer_profile']; ?>
+                <div class="ard-section">
+                    <h6>Profil Pemberi Kerja</h6>
+                    <div class="ard-vacancy-attrs">
+                        <div class="ard-vacancy-attr"><strong>Nama Pemberi Kerja:</strong> <?php echo h($employer['name']); ?></div>
+                        <div class="ard-vacancy-attr"><strong>Bidang :</strong> <?php echo h($employer['field']); ?></div>
+                        <div class="ard-vacancy-attr"><strong>Terdaftar sejak :</strong> <?php echo h($employer['registered_since']); ?></div>
+                    </div>
+                    <div class="ard-vacancy-attrs mb-0">
+                        <div class="ard-vacancy-attr"><strong>Kontak perusahaan :</strong> <?php echo h($employer['contact']); ?></div>
+                        <div class="ard-vacancy-attr"><strong>Email perusahaan :</strong> <?php echo h($employer['email']); ?></div>
+                        <div class="ard-vacancy-attr"><strong>Website perusahaan :</strong> <?php echo h($employer['website']); ?></div>
+                        <div class="ard-vacancy-attr"><strong>Lokasi alamat perusahaan :</strong> <?php echo h($employer['address']); ?></div>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <div class="ard-section">
                 <h6>Panel Histori dan Keterkaitan</h6>
