@@ -564,8 +564,9 @@ if ($case === null) {
                     <div class="col-12 col-md-4">
                         <label class="form-label small mb-1">Keputusan</label>
                         <select id="decisionSelect" class="form-select form-select-sm">
-                            <option>NOT_PROVEN</option>
-                            <option>VALID_ACTIONED</option>
+                            <option>Tidak Terbukti</option>
+                            <option>valid</option>
+                            <option>Warning</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-4">
@@ -628,7 +629,7 @@ if ($case === null) {
                 statusBadge.classList.add('text-bg-secondary');
                 return;
             }
-            if (status === 'VALID_ACTIONED' || status === 'CLOSED' || status === 'NOT_PROVEN') {
+            if (status === 'valid' || status === 'CLOSED' || status === 'Tidak Terbukti' || status === 'Warning') {
                 statusBadge.classList.add('text-bg-success');
                 return;
             }
@@ -656,8 +657,8 @@ if ($case === null) {
             const action = actionSelect.value;
             const scope = scopeSelect.value;
 
-            if (decision === 'VALID_ACTIONED' && action === 'NONE') {
-                showFeedback('Untuk VALID_ACTIONED, Enforcement Action tidak boleh NONE.', true);
+            if (decision === 'valid' && action === 'NONE') {
+                showFeedback('Untuk valid, Enforcement Action tidak boleh NONE.', true);
                 return;
             }
 
@@ -670,12 +671,12 @@ if ($case === null) {
             showFeedback('Keputusan prototype berhasil disimpan.', false);
 
             let outcomeMessage = 'Decision: ' + decision + '. ';
-            if (decision === 'NOT_PROVEN') {
+            if (decision === 'Tidak Terbukti') {
                 outcomeMessage += 'Case dapat ditutup tanpa perubahan perusahaan/lowongan.';
-            } else if (decision === 'VALID_ACTIONED') {
+            } else if (decision === 'valid') {
                 outcomeMessage += 'Action: ' + action + ' dengan scope ' + scope + '.';
-            } else if (decision === 'ESCALATED') {
-                outcomeMessage += 'Case dieskalasi ke role berwenang.';
+            } else if (decision === 'Warning') {
+                outcomeMessage += 'Peringatan diberikan kepada pemberi kerja. Action: ' + action + ' dengan scope ' + scope + '.';
             } else {
                 outcomeMessage += 'Case tetap pada alur review.';
             }
