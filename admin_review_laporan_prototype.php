@@ -254,7 +254,7 @@ $vacancyReports = [
                                     if ($row['status'] === 'WAITING_REPORTER_INFO' || $row['status'] === 'WAITING_EMPLOYER_CLARIFICATION') { $statusClass = 'waiting'; }
                                     if ($row['status'] === 'ESCALATED') { $statusClass = 'overdue'; }
                                     ?>
-                                    <span class="arp-chip <?php echo h($statusClass); ?> js-status-chip"><?php echo h($row['status']); ?></span>
+                                    <span class="arp-chip <?php echo h($statusClass); ?> js-status-chip">Dalam Verifikasi</span>
                                 </td>
                                 <td class="js-assigned-cell"><?php echo h($row['assigned_to']); ?></td>
                                 <td><?php echo h($row['source']); ?></td>
@@ -321,7 +321,7 @@ $vacancyReports = [
                                     if ($row['status'] === 'WAITING_REPORTER_INFO' || $row['status'] === 'WAITING_EMPLOYER_CLARIFICATION') { $statusClass = 'waiting'; }
                                     if ($row['status'] === 'ESCALATED') { $statusClass = 'overdue'; }
                                     ?>
-                                    <span class="arp-chip <?php echo h($statusClass); ?> js-status-chip"><?php echo h($row['status']); ?></span>
+                                    <span class="arp-chip <?php echo h($statusClass); ?> js-status-chip">Dalam Verifikasi</span>
                                 </td>
                                 <td class="js-assigned-cell"><?php echo h($row['assigned_to']); ?></td>
                                 <td class="arp-actions">
@@ -391,7 +391,7 @@ $vacancyReports = [
             const statusChip = row.querySelector('.js-status-chip');
             const assignedCell = row.querySelector('.js-assigned-cell');
             if (statusChip) {
-                statusChip.textContent = 'IN_REVIEW';
+                statusChip.textContent = 'Dalam Verifikasi';
                 statusChip.classList.remove('pending', 'waiting', 'overdue');
                 statusChip.classList.add('review');
             }
