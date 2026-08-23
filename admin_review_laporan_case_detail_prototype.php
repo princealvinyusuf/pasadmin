@@ -34,6 +34,7 @@ $companyCases = [
         'snapshot' => 'Profil terverifikasi, employer_type Perusahaan, verification_status=VERIFIED, enforcement_status=ACTIVE.',
         'vacancy_snapshot' => null,
         'current_data' => 'Masih terverifikasi, memiliki 12 lowongan aktif native.',
+        'verified_by_admin' => 'admin.pusat.verifikasi',
         'history' => 'Laporan perusahaan serupa 2x dalam 30 hari terakhir.',
         'related' => 'Terkait lowongan: Sales Executive - DKI Jakarta (opsional context).',
     ],
@@ -491,7 +492,11 @@ if ($case === null) {
                 <h6>Status</h6>
                 <p class="ard-text"><?php echo h($case['current_data']); ?></p>
                 <?php if (!empty($case['verified_by_admin'])): ?>
-                    <p class="ard-text mt-2">Lowongan ini sebelumnya diverifikasi tayang oleh: <strong><?php echo h($case['verified_by_admin']); ?></strong></p>
+                    <?php if (($case['object_type'] ?? '') === 'Laporan Perusahaan'): ?>
+                        <p class="ard-text mt-2">Perusahaan ini sebelumnya diverifikasi oleh: <strong><?php echo h($case['verified_by_admin']); ?></strong></p>
+                    <?php else: ?>
+                        <p class="ard-text mt-2">Lowongan ini sebelumnya diverifikasi tayang oleh: <strong><?php echo h($case['verified_by_admin']); ?></strong></p>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
 
