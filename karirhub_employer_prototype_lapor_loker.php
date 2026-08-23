@@ -204,11 +204,15 @@ function h(string $value): string
                                     </select>
                                     <div id="vacancyReasonError" class="ll-error-text">Pilih alasan pelaporan terlebih dahulu.</div>
                                 </div>
+                                <div id="reportReasonOtherWrap" class="mb-3 d-none">
+                                    <label class="ll-form-label" for="reportReasonOther">Alasan pelaporan lowongan Lainnya</label>
+                                    <input id="reportReasonOther" type="text" class="form-control" placeholder="Tuliskan alasan pelaporan lainnya...">
+                                    <div id="vacancyReasonOtherError" class="ll-error-text">Isi alasan pelaporan lainnya terlebih dahulu.</div>
+                                </div>
                                 <div class="mb-3">
                                     <label class="ll-form-label" for="reportComment">Komentar tambahan</label>
                                     <textarea id="reportComment" class="form-control" rows="4" placeholder="Jelaskan informasi yang membantu proses pemeriksaan..."></textarea>
-                                    <div class="ll-form-note">Komentar wajib jika memilih alasan “Lainnya”.</div>
-                                    <div id="vacancyCommentError" class="ll-error-text">Komentar wajib jika alasan yang dipilih adalah “Lainnya”.</div>
+                                    <div class="ll-form-note">Opsional. Tambahkan detail yang membantu pemeriksaan laporan.</div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="ll-form-label" for="reportEvidence">Tambahkan bukti (opsional)</label>
@@ -258,21 +262,36 @@ function h(string $value): string
         const formWrap = document.getElementById('vacancyReportFormWrap');
         const successWrap = document.getElementById('vacancyReportSuccessWrap');
         const reasonField = document.getElementById('reportReason');
+        const reasonOtherWrap = document.getElementById('reportReasonOtherWrap');
+        const reasonOtherField = document.getElementById('reportReasonOther');
         const commentField = document.getElementById('reportComment');
         const consentField = document.getElementById('reportConsent');
         const reasonError = document.getElementById('vacancyReasonError');
-        const commentError = document.getElementById('vacancyCommentError');
+        const reasonOtherError = document.getElementById('vacancyReasonOtherError');
         const consentError = document.getElementById('vacancyConsentError');
         const reportIdText = document.getElementById('vacancyReportIdText');
 
-        if (!submitBtn || !formWrap || !successWrap || !reasonField || !commentField || !consentField || !reportIdText) {
+        if (!submitBtn || !formWrap || !successWrap || !reasonField || !reasonOtherWrap || !reasonOtherField || !commentField || !consentField || !reportIdText) {
             return;
         }
 
         function hideErrors() {
             if (reasonError) reasonError.style.display = 'none';
-            if (commentError) commentError.style.display = 'none';
+            if (reasonOtherError) reasonOtherError.style.display = 'none';
             if (consentError) consentError.style.display = 'none';
+        }
+
+        function isOtherReasonSelected() {
+            return reasonField.value.trim().toLowerCase() === 'lainnya';
+        }
+
+        function syncReasonOtherVisibility() {
+            const showOther = isOtherReasonSelected();
+            reasonOtherWrap.classList.toggle('d-none', !showOther);
+            if (!showOther) {
+                reasonOtherField.value = '';
+                if (reasonOtherError) reasonOtherError.style.display = 'none';
+            }
         }
 
         function generateMockReportId() {
@@ -282,22 +301,25 @@ function h(string $value): string
             return 'VRP-' + year + '-' + String(random);
         }
 
+        reasonField.addEventListener('change', syncReasonOtherVisibility);
+        syncReasonOtherVisibility();
+
         submitBtn.addEventListener('click', function () {
             hideErrors();
             let hasError = false;
             const reasonValue = reasonField.value.trim().toLowerCase();
-            const commentValue = commentField.value.trim();
+            const reasonOtherValue = reasonOtherField.value.trim();
             const reasonNotChosen = (reasonValue === '' || reasonValue === 'silakan pilih');
-            const reasonIsOther = (reasonValue === 'lainnya');
+            const reasonIsOther = isOtherReasonSelected();
 
             if (reasonNotChosen) {
                 hasError = true;
                 if (reasonError) reasonError.style.display = 'block';
             }
 
-            if (reasonIsOther && commentValue === '') {
+            if (reasonIsOther && reasonOtherValue === '') {
                 hasError = true;
-                if (commentError) commentError.style.display = 'block';
+                if (reasonOtherError) reasonOtherError.style.display = 'block';
             }
 
             if (!consentField.checked) {
@@ -318,8 +340,10 @@ function h(string $value): string
             cancelBtn.addEventListener('click', function (evt) {
                 evt.preventDefault();
                 reasonField.selectedIndex = 0;
+                reasonOtherField.value = '';
                 commentField.value = '';
                 consentField.checked = false;
+                syncReasonOtherVisibility();
                 hideErrors();
             });
         }
