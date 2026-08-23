@@ -249,13 +249,7 @@ $vacancyReports = [
                                     <span class="arp-chip <?php echo h($slaClass); ?>"><?php echo h($row['sla']); ?></span>
                                 </td>
                                 <td>
-                                    <?php
-                                    $statusClass = 'review';
-                                    if ($row['status'] === 'PENDING_REVIEW') { $statusClass = 'pending'; }
-                                    if ($row['status'] === 'WAITING_REPORTER_INFO' || $row['status'] === 'WAITING_EMPLOYER_CLARIFICATION') { $statusClass = 'waiting'; }
-                                    if ($row['status'] === 'ESCALATED') { $statusClass = 'overdue'; }
-                                    ?>
-                                    <span class="arp-chip <?php echo h($statusClass); ?> js-status-chip">Dalam Verifikasi</span>
+                                    <span class="arp-chip review js-status-chip">Dalam Verifikasi</span>
                                 </td>
                                 <td class="js-assigned-cell"><?php echo h($row['assigned_to']); ?></td>
                                 <td><?php echo h($row['source']); ?></td>
@@ -316,13 +310,7 @@ $vacancyReports = [
                                     <span class="arp-chip <?php echo h($slaClass); ?>"><?php echo h($row['sla']); ?></span>
                                 </td>
                                 <td>
-                                    <?php
-                                    $statusClass = 'review';
-                                    if ($row['status'] === 'PENDING_REVIEW') { $statusClass = 'pending'; }
-                                    if ($row['status'] === 'WAITING_REPORTER_INFO' || $row['status'] === 'WAITING_EMPLOYER_CLARIFICATION') { $statusClass = 'waiting'; }
-                                    if ($row['status'] === 'ESCALATED') { $statusClass = 'overdue'; }
-                                    ?>
-                                    <span class="arp-chip <?php echo h($statusClass); ?> js-status-chip">Dalam Verifikasi</span>
+                                    <span class="arp-chip review js-status-chip">Dalam Verifikasi</span>
                                 </td>
                                 <td class="js-assigned-cell"><?php echo h($row['assigned_to']); ?></td>
                                 <td class="arp-actions">
