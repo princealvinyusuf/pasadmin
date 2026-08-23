@@ -239,14 +239,12 @@ function h(string $value): string
                             <div class="ll-success-card">
                                 <div class="ll-success-title">Laporan berhasil dikirim</div>
                                 <div class="ll-success-meta"><strong>Nomor laporan:</strong> <span id="vacancyReportIdText">VRP-2026-000001</span></div>
-                                <div class="ll-success-meta"><strong>Status awal:</strong> Pending</div>
+                                <div class="ll-success-meta"><strong>Status Awal:</strong> Pending Review</div>
                                 <div class="ll-success-note">
-                                    Laporan Anda akan diperiksa oleh Admin. Pengiriman laporan tidak secara otomatis menghapus lowongan.
-                                    Identitas pelapor tidak disampaikan kepada Pemberi Kerja.
+                                    Laporan Anda akan diperiksa dan ditinjau oleh Admin, Terima Kasih
                                 </div>
                                 <div class="ll-success-actions">
                                     <a class="btn btn-outline-primary" href="karirhub_employer_prototype_lapor_loker">Kembali ke lowongan</a>
-                                    <a class="btn btn-primary" href="laporan_saya_prototype">Lihat Laporan Saya</a>
                                 </div>
                             </div>
                         </div>
