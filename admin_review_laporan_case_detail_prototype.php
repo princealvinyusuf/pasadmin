@@ -559,7 +559,7 @@ if ($case === null) {
             </div>
 
             <div class="ard-section">
-                <h6>Panel Keputusan & Action Scope (Prototype)</h6>
+                <h6>Panel Tindakan</h6>
                 <div class="row g-2">
                     <div class="col-12 col-md-6">
                         <label class="form-label small mb-1">Keputusan</label>
@@ -580,7 +580,7 @@ if ($case === null) {
                     </div>
                 </div>
                 <div class="ard-actions">
-                    <button id="saveDecisionBtn" class="btn btn-sm btn-primary" type="button">Simpan Keputusan (Prototype)</button>
+                    <button id="saveDecisionBtn" class="btn btn-sm btn-primary" type="button">Simpan Tindakan</button>
                 </div>
                 <div id="decisionFeedback" class="ard-feedback"></div>
                 <div id="decisionOutcome" class="ard-outcome">
@@ -651,7 +651,7 @@ if ($case === null) {
             }
 
             setStatusBadge(decision);
-            showFeedback('Keputusan prototype berhasil disimpan.', false);
+            showFeedback('Tindakan berhasil disimpan.', false);
 
             let outcomeMessage = 'Decision: ' + decision + '. ';
             if (decision === 'Tidak Terbukti') {
