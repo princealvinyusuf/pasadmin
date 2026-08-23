@@ -211,14 +211,16 @@ function h(string $value): string
                                     <div id="vacancyReasonOtherError" class="ll-error-text">Isi alasan pelaporan lainnya terlebih dahulu.</div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="ll-form-label" for="reportComment">Komentar tambahan</label>
+                                    <label class="ll-form-label" for="reportComment">Komentar tambahan <span class="ll-required">*</span></label>
                                     <textarea id="reportComment" class="form-control" rows="4" placeholder="Jelaskan informasi yang membantu proses pemeriksaan..."></textarea>
-                                    <div class="ll-form-note">Opsional. Tambahkan detail yang membantu pemeriksaan laporan.</div>
+                                    <div class="ll-form-note">Tambahkan detail yang membantu pemeriksaan laporan.</div>
+                                    <div id="vacancyCommentError" class="ll-error-text">Komentar tambahan wajib diisi.</div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="ll-form-label" for="reportEvidence">Tambahkan bukti</label>
+                                    <label class="ll-form-label" for="reportEvidence">Tambahkan bukti <span class="ll-required">*</span></label>
                                     <input id="reportEvidence" type="file" class="form-control" accept=".pdf,image/*">
-                                    <div class="ll-form-note">Opsional. Tipe file contoh: PDF, JPG, PNG.</div>
+                                    <div class="ll-form-note">Tipe file contoh: PDF, JPG, PNG.</div>
+                                    <div id="vacancyEvidenceError" class="ll-error-text">Tambahkan bukti terlebih dahulu.</div>
                                 </div>
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" value="" id="reportConsent">
@@ -266,19 +268,24 @@ function h(string $value): string
         const reasonOtherWrap = document.getElementById('reportReasonOtherWrap');
         const reasonOtherField = document.getElementById('reportReasonOther');
         const commentField = document.getElementById('reportComment');
+        const evidenceField = document.getElementById('reportEvidence');
         const consentField = document.getElementById('reportConsent');
         const reasonError = document.getElementById('vacancyReasonError');
         const reasonOtherError = document.getElementById('vacancyReasonOtherError');
+        const commentError = document.getElementById('vacancyCommentError');
+        const evidenceError = document.getElementById('vacancyEvidenceError');
         const consentError = document.getElementById('vacancyConsentError');
         const reportIdText = document.getElementById('vacancyReportIdText');
 
-        if (!submitBtn || !formWrap || !successWrap || !reasonField || !reasonOtherWrap || !reasonOtherField || !commentField || !consentField || !reportIdText) {
+        if (!submitBtn || !formWrap || !successWrap || !reasonField || !reasonOtherWrap || !reasonOtherField || !commentField || !evidenceField || !consentField || !reportIdText) {
             return;
         }
 
         function hideErrors() {
             if (reasonError) reasonError.style.display = 'none';
             if (reasonOtherError) reasonOtherError.style.display = 'none';
+            if (commentError) commentError.style.display = 'none';
+            if (evidenceError) evidenceError.style.display = 'none';
             if (consentError) consentError.style.display = 'none';
         }
 
@@ -310,8 +317,10 @@ function h(string $value): string
             let hasError = false;
             const reasonValue = reasonField.value.trim().toLowerCase();
             const reasonOtherValue = reasonOtherField.value.trim();
+            const commentValue = commentField.value.trim();
             const reasonNotChosen = (reasonValue === '' || reasonValue === 'silakan pilih');
             const reasonIsOther = isOtherReasonSelected();
+            const evidenceMissing = !(evidenceField.files && evidenceField.files.length > 0);
 
             if (reasonNotChosen) {
                 hasError = true;
@@ -321,6 +330,16 @@ function h(string $value): string
             if (reasonIsOther && reasonOtherValue === '') {
                 hasError = true;
                 if (reasonOtherError) reasonOtherError.style.display = 'block';
+            }
+
+            if (commentValue === '') {
+                hasError = true;
+                if (commentError) commentError.style.display = 'block';
+            }
+
+            if (evidenceMissing) {
+                hasError = true;
+                if (evidenceError) evidenceError.style.display = 'block';
             }
 
             if (!consentField.checked) {
@@ -343,6 +362,7 @@ function h(string $value): string
                 reasonField.selectedIndex = 0;
                 reasonOtherField.value = '';
                 commentField.value = '';
+                evidenceField.value = '';
                 consentField.checked = false;
                 syncReasonOtherVisibility();
                 hideErrors();
