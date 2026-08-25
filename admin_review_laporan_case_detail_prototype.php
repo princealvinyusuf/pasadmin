@@ -770,6 +770,36 @@ if ($case === null) {
                 <?php endif; ?>
             </div>
 
+            <?php
+            $isCompanyTindakan = ($case['object_type'] ?? '') === 'Laporan Perusahaan';
+            $alasanOptions = $isCompanyTindakan
+                ? [
+                    'Laporan Tidak Terbukti',
+                    'Bukti Tidak Mencukupi',
+                    'Perusahaan Palsu / Informasi Menyesatkan',
+                    'Penipuan / Modus Rekrutment',
+                    'Permintaan Biaya / Pembayaran',
+                    'Permintaan Data Sensitif',
+                    'Praktik Diskriminatif',
+                    'Konten Tidak Sesuai Ketentuan',
+                    'Penyalahgunaan Akun Perusahaan',
+                    'Data/Identitas Perusahaan Tidak Sesuai',
+                    'Pelanggaran Ketentuan Lainnya',
+                ]
+                : [
+                    'Penipuan / lowongan fiktif',
+                    'Mencurigakan / informasi menyesatkan',
+                    'Meminta biaya/pembayaran',
+                    'Diskriminasi / persyaratan tidak patut',
+                    'Gaji di bawah upah minimum / informasi upah tidak sesuai',
+                    'Meminta data pribadi sensitif/kredensial',
+                    'Identitas pemberi kerja tidak sesuai',
+                    'Konten tidak pantas/tidak sesuai ketentuan',
+                    'Lowongan sudah tidak tersedia/kedaluwarsa',
+                    'Lainnya',
+                ];
+            $alasanLainnyaValue = $isCompanyTindakan ? 'Pelanggaran Ketentuan Lainnya' : 'Lainnya';
+            ?>
             <div class="modal fade" id="tindakanModal" tabindex="-1" aria-labelledby="tindakanModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
@@ -807,6 +837,47 @@ if ($case === null) {
                                             <span>Blokir Akun Pemberi Kerja</span>
                                         </label>
                                     </div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small mb-1" for="alasanSelect">Alasan</label>
+                                    <select
+                                        id="alasanSelect"
+                                        class="form-select form-select-sm"
+                                        data-lainnya-value="<?php echo h($alasanLainnyaValue); ?>"
+                                    >
+                                        <option value="">Pilih alasan</option>
+                                        <?php foreach ($alasanOptions as $alasanOption): ?>
+                                            <option value="<?php echo h($alasanOption); ?>"><?php echo h($alasanOption); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-12 d-none" id="alasanLainnyaWrap">
+                                    <label class="form-label small mb-1" for="alasanLainnyaField">Masukkan Alasan Lainnya</label>
+                                    <input
+                                        type="text"
+                                        id="alasanLainnyaField"
+                                        class="form-control form-control-sm"
+                                        placeholder="Tuliskan alasan lainnya..."
+                                    >
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small mb-1" for="catatanTambahanField">Catatan tambahan</label>
+                                    <textarea
+                                        id="catatanTambahanField"
+                                        class="form-control form-control-sm"
+                                        rows="3"
+                                        placeholder="Tuliskan catatan tambahan..."
+                                    ></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small mb-1" for="buktiPendukungField">Bukti Pendukung (opsional)</label>
+                                    <input
+                                        id="buktiPendukungField"
+                                        type="file"
+                                        class="form-control form-control-sm"
+                                        accept=".pdf,image/*"
+                                    >
+                                    <div class="form-text">Tipe file contoh: PDF, JPG, PNG.</div>
                                 </div>
                             </div>
                             <div id="decisionFeedback" class="ard-feedback"></div>
@@ -899,6 +970,11 @@ if ($case === null) {
         const statusBadge = document.getElementById('caseStatusBadge');
         const decisionSelect = document.getElementById('decisionSelect');
         const aksiChecks = Array.prototype.slice.call(document.querySelectorAll('.js-aksi-check'));
+        const alasanSelect = document.getElementById('alasanSelect');
+        const alasanLainnyaWrap = document.getElementById('alasanLainnyaWrap');
+        const alasanLainnyaField = document.getElementById('alasanLainnyaField');
+        const catatanTambahanField = document.getElementById('catatanTambahanField');
+        const buktiPendukungField = document.getElementById('buktiPendukungField');
         const saveBtn = document.getElementById('saveDecisionBtn');
         const feedback = document.getElementById('decisionFeedback');
         const successAlert = document.getElementById('tindakanSuccessAlert');
@@ -908,9 +984,11 @@ if ($case === null) {
         const klarifikasiFeedback = document.getElementById('klarifikasiFeedback');
         const sendKlarifikasiBtn = document.getElementById('sendKlarifikasiBtn');
 
-        if (!statusBadge || !decisionSelect || aksiChecks.length === 0 || !saveBtn || !feedback || !successAlert || !tindakanModalEl || !klarifikasiModalEl || !klarifikasiMessage || !klarifikasiFeedback || !sendKlarifikasiBtn) {
+        if (!statusBadge || !decisionSelect || aksiChecks.length === 0 || !alasanSelect || !alasanLainnyaWrap || !alasanLainnyaField || !catatanTambahanField || !buktiPendukungField || !saveBtn || !feedback || !successAlert || !tindakanModalEl || !klarifikasiModalEl || !klarifikasiMessage || !klarifikasiFeedback || !sendKlarifikasiBtn) {
             return;
         }
+
+        const alasanLainnyaValue = alasanSelect.getAttribute('data-lainnya-value') || 'Lainnya';
 
         const tindakanModal = bootstrap.Modal.getOrCreateInstance(tindakanModalEl);
         const klarifikasiModal = bootstrap.Modal.getOrCreateInstance(klarifikasiModalEl);
@@ -990,9 +1068,30 @@ if ($case === null) {
             });
         }
 
+        function syncAlasanLainnyaField() {
+            const showLainnya = alasanSelect.value === alasanLainnyaValue;
+            alasanLainnyaWrap.classList.toggle('d-none', !showLainnya);
+            if (!showLainnya) {
+                alasanLainnyaField.value = '';
+            }
+        }
+
+        function resetTindakanExtraFields() {
+            alasanSelect.value = '';
+            alasanLainnyaField.value = '';
+            catatanTambahanField.value = '';
+            buktiPendukungField.value = '';
+            syncAlasanLainnyaField();
+        }
+
         decisionSelect.addEventListener('change', function () {
             hideFeedback();
             syncAksiByDecision();
+        });
+
+        alasanSelect.addEventListener('change', function () {
+            hideFeedback();
+            syncAlasanLainnyaField();
         });
 
         aksiChecks.forEach(function (input) {
@@ -1006,10 +1105,12 @@ if ($case === null) {
         });
 
         syncAksiByDecision();
+        syncAlasanLainnyaField();
 
         saveBtn.addEventListener('click', function () {
             const decision = decisionSelect.value;
             const selectedAksi = getSelectedAksi();
+            const selectedAlasan = alasanSelect.value;
 
             if (decision === 'Warning' && selectedAksi.length === 0) {
                 showFeedback('Pilih minimal satu Aksi untuk Warning.', true);
@@ -1018,6 +1119,16 @@ if ($case === null) {
 
             if (selectedAksi.length === 0) {
                 showFeedback('Pilih Aksi terlebih dahulu.', true);
+                return;
+            }
+
+            if (selectedAlasan === '') {
+                showFeedback('Pilih Alasan terlebih dahulu.', true);
+                return;
+            }
+
+            if (selectedAlasan === alasanLainnyaValue && alasanLainnyaField.value.trim() === '') {
+                showFeedback('Masukkan Alasan Lainnya terlebih dahulu.', true);
                 return;
             }
 
@@ -1035,10 +1146,12 @@ if ($case === null) {
         tindakanModalEl.addEventListener('shown.bs.modal', function () {
             hideFeedback();
             syncAksiByDecision();
+            syncAlasanLainnyaField();
         });
 
         tindakanModalEl.addEventListener('hidden.bs.modal', function () {
             hideFeedback();
+            resetTindakanExtraFields();
         });
 
         function hideKlarifikasiFeedback() {
