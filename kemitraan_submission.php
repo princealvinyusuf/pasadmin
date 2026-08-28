@@ -392,6 +392,52 @@ if (isset($_POST['live_update_jumlah_penempatan'])) {
     exit();
 }
 
+// Handle live update for link_melamar from Detail modal
+if (isset($_POST['live_update_link_melamar'])) {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $kemitraanId = intval($_POST['kemitraan_id'] ?? 0);
+    $detailLowonganId = intval($_POST['detail_lowongan_id'] ?? 0);
+    $linkMelamar = trim($_POST['link_melamar'] ?? '');
+
+    if ($kemitraanId <= 0 || $detailLowonganId <= 0) {
+        echo json_encode(['ok' => false, 'message' => 'Parameter tidak valid.']);
+        exit();
+    }
+    if (!can_access_kemitraan_record($conn, $kemitraanId, $isSuperAdmin, $scopedLocationId)) {
+        echo json_encode(['ok' => false, 'message' => 'Anda tidak memiliki akses ke data kemitraan ini.']);
+        exit();
+    }
+    if (!table_exists($conn, 'kemitraan_detail_lowongan')) {
+        echo json_encode(['ok' => false, 'message' => 'Tabel kemitraan_detail_lowongan tidak ditemukan.']);
+        exit();
+    }
+    if (!column_exists($conn, 'kemitraan_detail_lowongan', 'link_melamar')) {
+        @$conn->query("ALTER TABLE kemitraan_detail_lowongan ADD COLUMN link_melamar TEXT NULL");
+    }
+
+    $stmt = $conn->prepare("UPDATE kemitraan_detail_lowongan SET link_melamar=? WHERE id=? AND kemitraan_id=?");
+    if (!$stmt) {
+        echo json_encode(['ok' => false, 'message' => 'DB prepare failed: ' . $conn->error]);
+        exit();
+    }
+    $stmt->bind_param("sii", $linkMelamar, $detailLowonganId, $kemitraanId);
+    $ok = $stmt->execute();
+    $stmt->close();
+
+    if (!$ok) {
+        echo json_encode(['ok' => false, 'message' => 'Gagal menyimpan data.']);
+        exit();
+    }
+
+    echo json_encode([
+        'ok' => true,
+        'message' => 'Link Melamar berhasil disimpan.',
+        'link_melamar' => $linkMelamar
+    ]);
+    exit();
+}
+
 // Handle Update
 if (isset($_POST['update_id'])) {
     $id = intval($_POST['update_id']);
@@ -666,12 +712,14 @@ if (isset($_POST['update_id'])) {
             if (isset($_POST['detail_lowongan']) && is_array($_POST['detail_lowongan'])) {
                 $hasNamaPerusahaanCol = column_exists($conn, 'kemitraan_detail_lowongan', 'nama_perusahaan');
                 $hasJumlahPenempatanCol = column_exists($conn, 'kemitraan_detail_lowongan', 'jumlah_penempatan');
+                $hasLinkMelamarCol = column_exists($conn, 'kemitraan_detail_lowongan', 'link_melamar');
                 $hasSasaranPemenuhanCol = column_exists($conn, 'kemitraan_detail_lowongan', 'sasaran_pemenuhan_walk_in_interview');
                 
                 foreach ($_POST['detail_lowongan'] as $dl) {
                     $jabatan = trim($dl['jabatan_yang_dibuka'] ?? '');
                     $jumlah = trim($dl['jumlah_kebutuhan'] ?? '');
                     $jumlahPenempatan = trim($dl['jumlah_penempatan'] ?? '');
+                    $linkMelamar = trim($dl['link_melamar'] ?? '');
                     $sasaranPemenuhan = max(0, intval($dl['sasaran_pemenuhan_walk_in_interview'] ?? 0));
                     $jumlahKebutuhanInt = max(0, intval($jumlah));
                     if ($sasaranPemenuhan > $jumlahKebutuhanInt) {
@@ -724,6 +772,12 @@ if (isset($_POST['update_id'])) {
                     if ($hasJumlahPenempatanCol) {
                         $insertColumns[] = 'jumlah_penempatan';
                         $insertValues[] = $jumlahPenempatan;
+                        $insertTypes .= "s";
+                    }
+
+                    if ($hasLinkMelamarCol) {
+                        $insertColumns[] = 'link_melamar';
+                        $insertValues[] = $linkMelamar;
                         $insertTypes .= "s";
                     }
 
@@ -811,10 +865,16 @@ if (table_exists($conn, 'kemitraan_detail_lowongan')) {
         $hasJumlahPenempatanCol = $colRes->num_rows > 0;
         $colRes->free();
     }
+    $hasLinkMelamarCol = false;
+    if ($colRes = $conn->query("SHOW COLUMNS FROM kemitraan_detail_lowongan LIKE 'link_melamar'")) {
+        $hasLinkMelamarCol = $colRes->num_rows > 0;
+        $colRes->free();
+    }
     $namaPerusahaanSelect = $hasNamaPerusahaanCol ? ", nama_perusahaan" : "";
     $sasaranPemenuhanSelect = $hasSasaranPemenuhanCol ? ", sasaran_pemenuhan_walk_in_interview" : "";
     $jumlahPenempatanSelect = $hasJumlahPenempatanCol ? ", jumlah_penempatan" : "";
-    $dlRes = $conn->query("SELECT id, kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan{$sasaranPemenuhanSelect}{$jumlahPenempatanSelect}, gender, pendidikan_terakhir, pengalaman_kerja, kompetensi_yang_dibutuhkan, tahapan_seleksi, lokasi_penempatan{$namaPerusahaanSelect} FROM kemitraan_detail_lowongan ORDER BY kemitraan_id ASC, id ASC");
+    $linkMelamarSelect = $hasLinkMelamarCol ? ", link_melamar" : "";
+    $dlRes = $conn->query("SELECT id, kemitraan_id, jabatan_yang_dibuka, jumlah_kebutuhan{$sasaranPemenuhanSelect}{$jumlahPenempatanSelect}{$linkMelamarSelect}, gender, pendidikan_terakhir, pengalaman_kerja, kompetensi_yang_dibutuhkan, tahapan_seleksi, lokasi_penempatan{$namaPerusahaanSelect} FROM kemitraan_detail_lowongan ORDER BY kemitraan_id ASC, id ASC");
     if ($dlRes) {
         while ($dl = $dlRes->fetch_assoc()) {
             $kid = intval($dl['kemitraan_id']);
@@ -846,6 +906,7 @@ if (table_exists($conn, 'kemitraan_detail_lowongan')) {
                 'jumlah_kebutuhan' => $dl['jumlah_kebutuhan'] ?? '',
                 'sasaran_pemenuhan_walk_in_interview' => $dl['sasaran_pemenuhan_walk_in_interview'] ?? 0,
                 'jumlah_penempatan' => $dl['jumlah_penempatan'] ?? '',
+                'link_melamar' => $dl['link_melamar'] ?? '',
                 'gender' => $dl['gender'] ?? '',
                 'pendidikan_terakhir' => $dl['pendidikan_terakhir'] ?? '',
                 'pengalaman_kerja' => $dl['pengalaman_kerja'] ?? '',
@@ -1441,6 +1502,29 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                           >Save</button>
                           <small class="text-muted live-jumlah-penempatan-status" data-lowongan-idx="${idx}"></small>
                         </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+                          <span class="text-muted">Link Melamar:</span>
+                          <input
+                            type="url"
+                            placeholder="https://..."
+                            class="form-control form-control-sm live-link-melamar-input"
+                            style="max-width:280px"
+                            data-kemitraan-id="${kemitraanId}"
+                            data-lowongan-id="${lowonganId}"
+                            data-lowongan-idx="${idx}"
+                            value="${escapeHtml(l.link_melamar || '')}"
+                            ${lowonganId > 0 ? '' : 'disabled'}
+                          >
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary live-link-melamar-save"
+                            data-kemitraan-id="${kemitraanId}"
+                            data-lowongan-id="${lowonganId}"
+                            data-lowongan-idx="${idx}"
+                            ${lowonganId > 0 ? '' : 'disabled'}
+                          >Save</button>
+                          <small class="text-muted live-link-melamar-status" data-lowongan-idx="${idx}"></small>
+                        </div>
                         <div><span class="text-muted">Gender:</span> ${escapeHtml(l.gender || '-')}</div>
                         <div><span class="text-muted">Pendidikan Terakhir:</span> ${escapeHtml(l.pendidikan_terakhir || '-')}</div>
                         <div><span class="text-muted">Pengalaman Kerja:</span> ${escapeHtml(l.pengalaman_kerja || '-')}</div>
@@ -1549,6 +1633,97 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                     statusEl.textContent = 'Tersimpan';
                   } catch (err) {
                     statusEl.className = 'text-danger live-jumlah-penempatan-status';
+                    statusEl.textContent = err.message || 'Gagal menyimpan';
+                  } finally {
+                    input.disabled = false;
+                    this.disabled = false;
+                  }
+                });
+              });
+
+              // Live save Link Melamar from Detail modal
+              document.querySelectorAll('.live-link-melamar-save').forEach(function(saveBtn) {
+                saveBtn.addEventListener('click', async function() {
+                  const kemitraanId = this.getAttribute('data-kemitraan-id') || '';
+                  const lowonganId = this.getAttribute('data-lowongan-id') || '';
+                  const lowonganIdx = this.getAttribute('data-lowongan-idx') || '';
+
+                  const input = document.querySelector(`.live-link-melamar-input[data-lowongan-idx="${lowonganIdx}"]`);
+                  const statusEl = document.querySelector(`.live-link-melamar-status[data-lowongan-idx="${lowonganIdx}"]`);
+                  if (!input || !statusEl) return;
+
+                  const linkMelamar = input.value.trim();
+                  input.disabled = true;
+                  this.disabled = true;
+                  statusEl.className = 'text-muted live-link-melamar-status';
+                  statusEl.textContent = 'Menyimpan...';
+
+                  try {
+                    const payload = new URLSearchParams();
+                    payload.set('live_update_link_melamar', '1');
+                    payload.set('kemitraan_id', kemitraanId);
+                    payload.set('detail_lowongan_id', lowonganId);
+                    payload.set('link_melamar', linkMelamar);
+
+                    // Try posting to current route first, then fallback aliases.
+                    const endpoints = [
+                      window.location.pathname + window.location.search,
+                      'kemitraan_submission',
+                      'kemitraan_submission.php'
+                    ];
+                    let resp = null;
+                    let lastFetchError = null;
+
+                    for (const endpoint of endpoints) {
+                      try {
+                        resp = await fetch(endpoint, {
+                          method: 'POST',
+                          credentials: 'same-origin',
+                          headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                            'X-Requested-With': 'XMLHttpRequest'
+                          },
+                          body: payload.toString()
+                        });
+                        break;
+                      } catch (fetchErr) {
+                        lastFetchError = fetchErr;
+                      }
+                    }
+
+                    if (!resp) {
+                      throw new Error((lastFetchError && lastFetchError.message) ? lastFetchError.message : 'Failed to fetch');
+                    }
+
+                    const rawText = await resp.text();
+                    let result = null;
+                    try {
+                      result = JSON.parse(rawText);
+                    } catch (jsonErr) {
+                      throw new Error(resp.ok ? 'Response bukan JSON valid.' : (`HTTP ${resp.status}`));
+                    }
+
+                    if (!result || !result.ok) {
+                      throw new Error((result && result.message) ? result.message : 'Gagal menyimpan data.');
+                    }
+
+                    // Keep table row data in sync so reopening Detail shows latest value
+                    try {
+                      const raw = row.getAttribute('data-detail-lowongan') || '[]';
+                      const arr = JSON.parse(raw);
+                      const idx = parseInt(lowonganIdx, 10);
+                      if (Array.isArray(arr) && arr[idx]) {
+                        arr[idx].link_melamar = linkMelamar;
+                        row.setAttribute('data-detail-lowongan', JSON.stringify(arr));
+                      }
+                    } catch (syncErr) {
+                      console.warn('Failed to sync row detail lowongan payload', syncErr);
+                    }
+
+                    statusEl.className = 'text-success live-link-melamar-status';
+                    statusEl.textContent = 'Tersimpan';
+                  } catch (err) {
+                    statusEl.className = 'text-danger live-link-melamar-status';
                     statusEl.textContent = err.message || 'Gagal menyimpan';
                   } finally {
                     input.disabled = false;
@@ -1772,6 +1947,10 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                   <div class="col-md-6">
                     <label class="form-label small">Jumlah Penempatan (Admin)</label>
                     <input type="text" name="detail_lowongan[${idx}][jumlah_penempatan]" class="form-control form-control-sm" value="${data ? (data.jumlah_penempatan || '') : ''}">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small">Link Melamar (Admin)</label>
+                    <input type="url" name="detail_lowongan[${idx}][link_melamar]" placeholder="https://..." class="form-control form-control-sm" value="${data ? (data.link_melamar || '') : ''}">
                   </div>
                   <div class="col-md-6">
                     <label class="form-label small">Gender</label>
