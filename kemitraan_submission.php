@@ -1505,10 +1505,10 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                         <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
                           <span class="text-muted">Link Melamar:</span>
                           <input
-                            type="url"
-                            placeholder="https://..."
+                            type="text"
+                            placeholder="https://link1.com, https://link2.com"
                             class="form-control form-control-sm live-link-melamar-input"
-                            style="max-width:280px"
+                            style="min-width:240px; flex:1;"
                             data-kemitraan-id="${kemitraanId}"
                             data-lowongan-id="${lowonganId}"
                             data-lowongan-idx="${idx}"
@@ -1949,8 +1949,8 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                     <input type="text" name="detail_lowongan[${idx}][jumlah_penempatan]" class="form-control form-control-sm" value="${data ? (data.jumlah_penempatan || '') : ''}">
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label small">Link Melamar (Admin)</label>
-                    <input type="url" name="detail_lowongan[${idx}][link_melamar]" placeholder="https://..." class="form-control form-control-sm" value="${data ? (data.link_melamar || '') : ''}">
+                    <label class="form-label small">Link Melamar (Admin - pisahkan koma jika &gt; 1)</label>
+                    <input type="text" name="detail_lowongan[${idx}][link_melamar]" placeholder="https://link1.com, https://link2.com" class="form-control form-control-sm" value="${data ? (data.link_melamar || '') : ''}">
                   </div>
                   <div class="col-md-6">
                     <label class="form-label small">Gender</label>
