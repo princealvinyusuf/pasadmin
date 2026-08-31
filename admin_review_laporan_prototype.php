@@ -65,7 +65,7 @@ $vacancyReports = [
         'sla' => 'Approaching',
         'status' => 'PENDING_REVIEW',
         'assigned_to' => '-',
-        'source' => 'NATIVE',
+        'source' => 'Karirhub',
     ],
     [
         'report_id' => 'VRP-2026-304477',
@@ -79,7 +79,7 @@ $vacancyReports = [
         'sla' => 'On Time',
         'status' => 'IN_REVIEW',
         'assigned_to' => 'admin.kabkota.tng',
-        'source' => 'INTEGRATION',
+        'source' => 'JOSS',
     ],
     [
         'report_id' => 'VRP-2026-304220',
@@ -93,7 +93,7 @@ $vacancyReports = [
         'sla' => 'Overdue',
         'status' => 'ESCALATED',
         'assigned_to' => 'admin.pusat.layanan',
-        'source' => 'NATIVE',
+        'source' => 'Karirhub',
     ],
 ];
 ?>
