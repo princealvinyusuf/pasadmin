@@ -15,12 +15,48 @@ function h(string $value): string
 }
 
 $summary = [
-    ['label' => 'Total Laporan', 'value' => 59, 'icon' => 'bi-flag', 'tone' => 'blue'],
-    ['label' => 'Pending Review', 'value' => 32, 'icon' => 'bi-hourglass-split', 'tone' => 'indigo'],
-    ['label' => 'Dalam Verifikasi', 'value' => 18, 'icon' => 'bi-search', 'tone' => 'cyan'],
-    ['label' => 'Approaching SLA', 'value' => 7, 'icon' => 'bi-clock-history', 'tone' => 'amber'],
-    ['label' => 'Overdue', 'value' => 5, 'icon' => 'bi-exclamation-triangle', 'tone' => 'red'],
-    ['label' => 'Selesai', 'value' => 9, 'icon' => 'bi-check-circle', 'tone' => 'green'],
+    [
+        'label' => 'Total Laporan',
+        'value' => 59,
+        'icon' => 'bi-flag',
+        'tone' => 'blue',
+        'tooltip' => 'Jumlah seluruh laporan lowongan dan perusahaan pada periode yang dipilih.',
+    ],
+    [
+        'label' => 'Pending Review',
+        'value' => 32,
+        'icon' => 'bi-hourglass-split',
+        'tone' => 'indigo',
+        'tooltip' => 'Laporan baru yang belum diambil admin. Semua laporan masuk ke status ini terlebih dahulu.',
+    ],
+    [
+        'label' => 'Dalam Verifikasi',
+        'value' => 18,
+        'icon' => 'bi-search',
+        'tone' => 'cyan',
+        'tooltip' => 'Laporan yang sudah diambil (Ambil Kasus) dan sedang diperiksa admin.',
+    ],
+    [
+        'label' => 'Approaching SLA',
+        'value' => 7,
+        'icon' => 'bi-clock-history',
+        'tone' => 'amber',
+        'tooltip' => 'Laporan yang mendekati batas waktu penanganan (SLA).',
+    ],
+    [
+        'label' => 'Overdue',
+        'value' => 5,
+        'icon' => 'bi-exclamation-triangle',
+        'tone' => 'red',
+        'tooltip' => 'Laporan yang sudah melewati batas waktu penanganan (SLA).',
+    ],
+    [
+        'label' => 'Selesai',
+        'value' => 9,
+        'icon' => 'bi-check-circle',
+        'tone' => 'green',
+        'tooltip' => 'Laporan yang sudah selesai ditinjau dan diberi keputusan.',
+    ],
 ];
 
 $reportTypes = [
@@ -139,9 +175,11 @@ $recentReports = [
         .dml-title { margin: 0; color: #1f3550; font-size: 26px; font-weight: 700; }
         .dml-subtitle { margin: 5px 0 0; color: #688097; font-size: 14px; }
         .dml-period { min-width: 180px; color: #405b75; font-size: 13px; }
-        .dml-kpi { height: 100%; padding: 15px; border: 1px solid #e2eaf3; border-radius: 12px; background: #fff; }
+        .dml-kpi { height: 100%; padding: 15px; border: 1px solid #e2eaf3; border-radius: 12px; background: #fff; cursor: help; }
+        .dml-kpi:hover, .dml-kpi:focus { border-color: #b9cde4; outline: none; }
         .dml-kpi-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-        .dml-kpi-label { color: #70869c; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .035em; }
+        .dml-kpi-label { color: #70869c; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .035em; display: inline-flex; align-items: center; gap: 5px; }
+        .dml-kpi-hint { color: #8aa0b6; font-size: 12px; line-height: 1; text-transform: none; }
         .dml-kpi-icon { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9px; font-size: 16px; }
         .dml-kpi-value { margin-top: 9px; color: #1e3853; font-size: 27px; font-weight: 700; line-height: 1; }
         .dml-kpi-icon.blue { color: #286aa9; background: #eaf4ff; }
@@ -211,9 +249,18 @@ $recentReports = [
             <div class="row g-3 mb-3">
                 <?php foreach ($summary as $item): ?>
                     <div class="col-6 col-md-4 col-xl-2">
-                        <div class="dml-kpi">
+                        <div
+                            class="dml-kpi"
+                            tabindex="0"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="bottom"
+                            data-bs-title="<?php echo h($item['tooltip']); ?>"
+                        >
                             <div class="dml-kpi-head">
-                                <span class="dml-kpi-label"><?php echo h($item['label']); ?></span>
+                                <span class="dml-kpi-label">
+                                    <?php echo h($item['label']); ?>
+                                    <i class="bi bi-info-circle dml-kpi-hint" aria-hidden="true"></i>
+                                </span>
                                 <span class="dml-kpi-icon <?php echo h($item['tone']); ?>"><i class="bi <?php echo h($item['icon']); ?>"></i></span>
                             </div>
                             <div class="dml-kpi-value"><?php echo (int)$item['value']; ?></div>
@@ -333,6 +380,11 @@ $recentReports = [
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+        bootstrap.Tooltip.getOrCreateInstance(el);
+    });
+</script>
 <?php kh_proto_render_sidebar_script(); ?>
 </body>
 </html>
