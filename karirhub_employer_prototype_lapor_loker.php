@@ -64,8 +64,6 @@ function h(string $value): string
         .ll-error-text { color: #c0342a; font-size: 12px; margin-top: 4px; display: none; }
         .ll-success-card { border: 1px solid #cae8d8; background: #f4fff8; border-radius: 10px; padding: 16px; }
         .ll-success-title { color: #1f5f43; font-size: 22px; font-weight: 700; margin-bottom: 10px; }
-        .ll-success-meta { color: #305345; font-size: 15px; margin-bottom: 8px; }
-        .ll-success-meta strong { color: #1f3550; }
         .ll-success-note { border: 1px solid #dce8f7; background: #f6f9ff; color: #355271; border-radius: 8px; padding: 10px 12px; font-size: 14px; margin: 10px 0; }
         .ll-success-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
         .ll-proto-note { background: #f1f8ff; color: #2f5c87; border: 1px solid #d6e8fb; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
@@ -238,8 +236,6 @@ function h(string $value): string
                         <div id="vacancyReportSuccessWrap" class="d-none">
                             <div class="ll-success-card">
                                 <div class="ll-success-title">Laporan berhasil dikirim</div>
-                                <div class="ll-success-meta"><strong>Nomor laporan:</strong> <span id="vacancyReportIdText">VRP-2026-000001</span></div>
-                                <div class="ll-success-meta"><strong>Status Awal:</strong> Pending Review</div>
                                 <div class="ll-success-note">
                                     Laporan Anda akan diperiksa dan ditinjau oleh Admin, Terima Kasih
                                 </div>
@@ -273,9 +269,8 @@ function h(string $value): string
         const commentError = document.getElementById('vacancyCommentError');
         const evidenceError = document.getElementById('vacancyEvidenceError');
         const consentError = document.getElementById('vacancyConsentError');
-        const reportIdText = document.getElementById('vacancyReportIdText');
 
-        if (!submitBtn || !formWrap || !successWrap || !reasonField || !reasonOtherWrap || !reasonOtherField || !commentField || !evidenceField || !consentField || !reportIdText) {
+        if (!submitBtn || !formWrap || !successWrap || !reasonField || !reasonOtherWrap || !reasonOtherField || !commentField || !evidenceField || !consentField) {
             return;
         }
 
@@ -298,13 +293,6 @@ function h(string $value): string
                 reasonOtherField.value = '';
                 if (reasonOtherError) reasonOtherError.style.display = 'none';
             }
-        }
-
-        function generateMockReportId() {
-            const now = new Date();
-            const year = now.getFullYear();
-            const random = Math.floor(Math.random() * 900000) + 100000;
-            return 'VRP-' + year + '-' + String(random);
         }
 
         reasonField.addEventListener('change', syncReasonOtherVisibility);
@@ -349,7 +337,6 @@ function h(string $value): string
                 return;
             }
 
-            reportIdText.textContent = generateMockReportId();
             formWrap.classList.add('d-none');
             successWrap.classList.remove('d-none');
         });
