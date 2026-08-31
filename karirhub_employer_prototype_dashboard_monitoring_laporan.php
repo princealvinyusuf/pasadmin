@@ -96,6 +96,7 @@ $recentReports = [
         'severity' => 'High',
         'sla' => 'Approaching',
         'status' => 'Dalam Verifikasi',
+        'assigned_to' => '-',
         'detail_type' => 'vacancy',
     ],
     [
@@ -108,6 +109,7 @@ $recentReports = [
         'severity' => 'Urgent',
         'sla' => 'Approaching',
         'status' => 'Dalam Verifikasi',
+        'assigned_to' => '-',
         'detail_type' => 'company',
     ],
     [
@@ -120,6 +122,7 @@ $recentReports = [
         'severity' => 'Medium',
         'sla' => 'On Time',
         'status' => 'Dalam Verifikasi',
+        'assigned_to' => 'admin.kabkota.tng',
         'detail_type' => 'vacancy',
     ],
     [
@@ -132,6 +135,7 @@ $recentReports = [
         'severity' => 'Urgent',
         'sla' => 'On Time',
         'status' => 'Dalam Verifikasi',
+        'assigned_to' => 'admin.kabkota.bdg',
         'detail_type' => 'company',
     ],
     [
@@ -144,6 +148,7 @@ $recentReports = [
         'severity' => 'High',
         'sla' => 'Overdue',
         'status' => 'Dalam Verifikasi',
+        'assigned_to' => 'admin.pusat.layanan',
         'detail_type' => 'vacancy',
     ],
     [
@@ -156,6 +161,7 @@ $recentReports = [
         'severity' => 'Medium',
         'sla' => 'Overdue',
         'status' => 'Dalam Verifikasi',
+        'assigned_to' => 'admin.pusat.layanan',
         'detail_type' => 'company',
     ],
 ];
@@ -334,6 +340,7 @@ $recentReports = [
                                         <th>Severity</th>
                                         <th>SLA</th>
                                         <th>Status</th>
+                                        <th>Assigned To</th>
                                         <th>Aksi</th>
                                     </tr>
                                 </thead>
@@ -353,6 +360,7 @@ $recentReports = [
                                             <td><span class="dml-chip <?php echo strtolower(h($report['severity'])); ?>"><?php echo h($report['severity']); ?></span></td>
                                             <td><span class="dml-chip <?php echo strtolower(str_replace(' ', '', h($report['sla']))); ?>"><?php echo h($report['sla']); ?></span></td>
                                             <td><?php echo h($report['status']); ?></td>
+                                            <td><?php echo h($report['assigned_to'] ?? '-'); ?></td>
                                             <td>
                                                 <a class="btn btn-sm btn-outline-primary text-nowrap" href="admin_review_laporan_case_detail_prototype?type=<?php echo rawurlencode($report['detail_type']); ?>&amp;report_id=<?php echo rawurlencode($report['id']); ?>">Lihat Detail</a>
                                             </td>
