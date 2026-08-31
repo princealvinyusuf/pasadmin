@@ -111,8 +111,11 @@ $vacancyReports = [
         .arp-title { font-size: 26px; font-weight: 700; color: #1f3550; }
         .arp-sub { color: #60778f; font-size: 14px; }
         .arp-note { border: 1px solid #dce8f7; background: #f6f9ff; color: #325277; border-radius: 10px; padding: 10px 12px; font-size: 13px; }
-        .arp-kpi-card { border: 1px solid #e3ebf5; border-radius: 10px; padding: 14px; background: #fff; height: 100%; }
+        .arp-kpi-card { border: 1px solid #e3ebf5; border-radius: 10px; padding: 14px; background: #fff; height: 100%; cursor: help; }
+        .arp-kpi-card:hover, .arp-kpi-card:focus { border-color: #b9cde4; outline: none; }
+        .arp-kpi-label-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
         .arp-kpi-label { color: #6e849a; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+        .arp-kpi-hint { color: #8aa0b6; font-size: 12px; line-height: 1; }
         .arp-kpi-value { color: #1f3550; font-size: 24px; font-weight: 700; line-height: 1.2; margin-top: 4px; }
         .arp-chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
         .arp-chip.critical { background: #ffe3e3; color: #a52121; }
@@ -158,43 +161,58 @@ $vacancyReports = [
             <div id="bookingStatusMessage" class="arp-booking-msg"></div>
         </div>
 
+        <?php
+        $kpis = [
+            [
+                'label' => 'Pending Review',
+                'value' => 32,
+                'tooltip' => 'Laporan baru yang belum diambil admin. Semua laporan masuk ke status ini terlebih dahulu.',
+            ],
+            [
+                'label' => 'Dalam Verifikasi',
+                'value' => 18,
+                'tooltip' => 'Laporan yang sudah diambil (Ambil Kasus) dan sedang diperiksa admin.',
+            ],
+            [
+                'label' => 'Approaching SLA',
+                'value' => 7,
+                'tooltip' => 'Laporan yang mendekati batas waktu penanganan (SLA).',
+            ],
+            [
+                'label' => 'Overdue',
+                'value' => 5,
+                'tooltip' => 'Laporan yang sudah melewati batas waktu penanganan (SLA).',
+            ],
+            [
+                'label' => 'High',
+                'value' => 14,
+                'tooltip' => 'Jumlah laporan dengan tingkat keparahan High yang perlu diprioritaskan.',
+            ],
+            [
+                'label' => 'Selesai',
+                'value' => 9,
+                'tooltip' => 'Laporan yang sudah selesai ditinjau dan diberi keputusan.',
+            ],
+        ];
+        ?>
         <div class="row g-3 mb-4">
+            <?php foreach ($kpis as $kpi): ?>
             <div class="col-6 col-lg-2">
-                <div class="arp-kpi-card">
-                    <div class="arp-kpi-label">Pending Review</div>
-                    <div class="arp-kpi-value">32</div>
+                <div
+                    class="arp-kpi-card"
+                    tabindex="0"
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="bottom"
+                    data-bs-title="<?php echo h($kpi['tooltip']); ?>"
+                >
+                    <div class="arp-kpi-label-row">
+                        <div class="arp-kpi-label"><?php echo h($kpi['label']); ?></div>
+                        <i class="bi bi-info-circle arp-kpi-hint" aria-hidden="true"></i>
+                    </div>
+                    <div class="arp-kpi-value"><?php echo h((string) $kpi['value']); ?></div>
                 </div>
             </div>
-            <div class="col-6 col-lg-2">
-                <div class="arp-kpi-card">
-                    <div class="arp-kpi-label">Dalam Verifikasi</div>
-                    <div class="arp-kpi-value">18</div>
-                </div>
-            </div>
-            <div class="col-6 col-lg-2">
-                <div class="arp-kpi-card">
-                    <div class="arp-kpi-label">Approaching SLA</div>
-                    <div class="arp-kpi-value">7</div>
-                </div>
-            </div>
-            <div class="col-6 col-lg-2">
-                <div class="arp-kpi-card">
-                    <div class="arp-kpi-label">Overdue</div>
-                    <div class="arp-kpi-value">5</div>
-                </div>
-            </div>
-            <div class="col-6 col-lg-2">
-                <div class="arp-kpi-card">
-                    <div class="arp-kpi-label">High</div>
-                    <div class="arp-kpi-value">14</div>
-                </div>
-            </div>
-            <div class="col-6 col-lg-2">
-                <div class="arp-kpi-card">
-                    <div class="arp-kpi-label">Selesai</div>
-                    <div class="arp-kpi-value">9</div>
-                </div>
-            </div>
+            <?php endforeach; ?>
         </div>
 
         <ul class="nav nav-tabs arp-tabs mb-3" role="tablist">
@@ -344,6 +362,10 @@ $vacancyReports = [
         const activeCountText = document.getElementById('activeCaseCountText');
         const statusMessage = document.getElementById('bookingStatusMessage');
         const bookButtons = document.querySelectorAll('.js-book-case');
+
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+            bootstrap.Tooltip.getOrCreateInstance(el);
+        });
 
         function readBookedCases() {
             try {
