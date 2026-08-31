@@ -95,7 +95,7 @@ $recentReports = [
         'reason' => 'Meminta biaya / pembayaran',
         'severity' => 'High',
         'sla' => 'Approaching',
-        'status' => 'Dalam Verifikasi',
+        'status' => 'Menunggu Verifikasi',
         'assigned_to' => '-',
         'detail_type' => 'vacancy',
     ],
@@ -108,7 +108,7 @@ $recentReports = [
         'reason' => 'Meminta biaya / pembayaran',
         'severity' => 'Urgent',
         'sla' => 'Approaching',
-        'status' => 'Dalam Verifikasi',
+        'status' => 'Menunggu Verifikasi',
         'assigned_to' => '-',
         'detail_type' => 'company',
     ],
@@ -134,7 +134,7 @@ $recentReports = [
         'reason' => 'Perusahaan palsu / informasi menyesatkan',
         'severity' => 'Urgent',
         'sla' => 'On Time',
-        'status' => 'Dalam Verifikasi',
+        'status' => 'Selesai',
         'assigned_to' => 'admin.kabkota.bdg',
         'detail_type' => 'company',
     ],
@@ -160,7 +160,7 @@ $recentReports = [
         'reason' => 'Praktik diskriminatif',
         'severity' => 'Medium',
         'sla' => 'Overdue',
-        'status' => 'Dalam Verifikasi',
+        'status' => 'Selesai',
         'assigned_to' => 'admin.pusat.layanan',
         'detail_type' => 'company',
     ],
@@ -226,6 +226,12 @@ $recentReports = [
         .dml-chip.ontime { color: #1d763c; background: #eaf8ed; }
         .dml-chip.approaching { color: #8f6319; background: #fff4dd; }
         .dml-chip.overdue { color: #9d2831; background: #ffe7e9; }
+        .dml-tabs { display: flex; flex-wrap: wrap; gap: 4px 28px; margin: 2px 0 14px; border-bottom: 1px solid #e7edf5; }
+        .dml-tab { border: 0; background: transparent; padding: 8px 2px 10px; color: #7a8c9e; font-size: 14px; font-weight: 500; line-height: 1.2; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+        .dml-tab:hover { color: #0a8f8a; }
+        .dml-tab.active { color: #0a8f8a; border-bottom-color: #0a8f8a; }
+        .dml-tab:focus { outline: none; }
+        .dml-empty { color: #75879a; text-align: center; padding: 22px 12px; }
         @media (max-width: 767px) {
             .dml-shell { padding: 16px; }
             .dml-title { font-size: 23px; }
@@ -328,8 +334,15 @@ $recentReports = [
                             <h2 class="dml-panel-title mb-0">Laporan Terbaru</h2>
                             <a class="btn btn-sm btn-outline-primary" href="admin_review_laporan_prototype">Lihat Semua Laporan</a>
                         </div>
+                        <div class="dml-tabs" role="tablist" aria-label="Filter laporan terbaru">
+                            <button type="button" class="dml-tab active" data-filter="semua">Semua</button>
+                            <button type="button" class="dml-tab" data-filter="menunggu">Menunggu Verifikasi</button>
+                            <button type="button" class="dml-tab" data-filter="dalam-verifikasi">Dalam Verifikasi</button>
+                            <button type="button" class="dml-tab" data-filter="selesai">Selesai</button>
+                            <button type="button" class="dml-tab" data-filter="overdue">Overdue</button>
+                        </div>
                         <div class="table-responsive">
-                            <table class="table table-bordered table-hover dml-table mb-0">
+                            <table class="table table-bordered table-hover dml-table mb-0" id="laporanTerbaruTable">
                                 <thead>
                                     <tr>
                                         <th>Report ID</th>
@@ -346,7 +359,11 @@ $recentReports = [
                                 </thead>
                                 <tbody>
                                     <?php foreach ($recentReports as $report): ?>
-                                        <tr>
+                                        <tr
+                                            class="js-report-row"
+                                            data-status="<?php echo h($report['status']); ?>"
+                                            data-sla="<?php echo h($report['sla']); ?>"
+                                        >
                                             <td><?php echo h($report['id']); ?></td>
                                             <td><span class="dml-chip <?php echo strtolower(h($report['type'])); ?>"><?php echo h($report['type']); ?></span></td>
                                             <td>
@@ -366,6 +383,9 @@ $recentReports = [
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
+                                    <tr id="laporanTerbaruEmpty" class="d-none">
+                                        <td colspan="10" class="dml-empty">Tidak ada laporan pada tab ini.</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -392,6 +412,37 @@ $recentReports = [
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
         bootstrap.Tooltip.getOrCreateInstance(el);
     });
+
+    (function () {
+        const tabs = document.querySelectorAll('.dml-tab');
+        const rows = document.querySelectorAll('#laporanTerbaruTable tbody tr.js-report-row');
+        const emptyRow = document.getElementById('laporanTerbaruEmpty');
+
+        function applyFilter(filter) {
+            let visible = 0;
+            rows.forEach(function (row) {
+                const status = row.getAttribute('data-status') || '';
+                const sla = row.getAttribute('data-sla') || '';
+                let show = false;
+                if (filter === 'semua') show = true;
+                else if (filter === 'menunggu') show = status === 'Menunggu Verifikasi';
+                else if (filter === 'dalam-verifikasi') show = status === 'Dalam Verifikasi';
+                else if (filter === 'selesai') show = status === 'Selesai';
+                else if (filter === 'overdue') show = sla === 'Overdue';
+                row.classList.toggle('d-none', !show);
+                if (show) visible += 1;
+            });
+            if (emptyRow) emptyRow.classList.toggle('d-none', visible > 0);
+        }
+
+        tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                tabs.forEach(function (item) { item.classList.remove('active'); });
+                tab.classList.add('active');
+                applyFilter(tab.getAttribute('data-filter') || 'semua');
+            });
+        });
+    })();
 </script>
 <?php kh_proto_render_sidebar_script(); ?>
 </body>
