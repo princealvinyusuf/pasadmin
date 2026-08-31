@@ -30,6 +30,7 @@ $companyCases = [
         'reason' => 'Meminta biaya / pembayaran',
         'comment' => 'Pelamar diminta transfer biaya administrasi sebelum interview.',
         'reporter_ref' => 'usr-92811 (email@example.com)',
+        'phone' => '0812-3456-7811',
         'evidence' => 'bukti_transfer.jpg, screenshot_chat.pdf',
         'snapshot' => 'Profil terverifikasi, employer_type Perusahaan, verification_status=VERIFIED, enforcement_status=ACTIVE.',
         'vacancy_snapshot' => null,
@@ -125,6 +126,7 @@ $companyCases = [
         'reason' => 'Perusahaan palsu / informasi menyesatkan',
         'comment' => 'Alamat domain email berbeda dengan profil legal perusahaan.',
         'reporter_ref' => 'usr-81221 (john@mail.com)',
+        'phone' => '0813-2211-8844',
         'evidence' => 'domain_mismatch.png',
         'snapshot' => 'company_id=COMP-22911, website profile: maju-karier.co.id',
         'vacancy_snapshot' => null,
@@ -258,6 +260,7 @@ $vacancyCases = [
         'reason' => 'Meminta biaya/pembayaran',
         'comment' => 'Ada biaya pendaftaran dan biaya pelatihan sebelum offering.',
         'reporter_ref' => 'usr-73100 (rina@mail.com)',
+        'phone' => '0812-7788-3100',
         'evidence' => 'biaya_pelatihan.png, invoice.pdf',
         'snapshot' => 'vacancy_id=VAC-99311, publication_status=ACTIVE, source_flag=NATIVE.',
         'vacancy_snapshot' => $salesExecutiveSnapshot,
@@ -348,6 +351,7 @@ $vacancyCases = [
         'reason' => 'Mencurigakan / informasi menyesatkan',
         'comment' => 'Deskripsi lowongan tidak konsisten dengan posisi yang ditawarkan.',
         'reporter_ref' => 'usr-65520 (anna@mail.com)',
+        'phone' => '0815-6552-0020',
         'evidence' => 'chat_rekrutmen.jpg',
         'snapshot' => 'vacancy_id=VAC-88119, source_flag=INTEGRATION.',
         'vacancy_snapshot' => array_merge($salesExecutiveSnapshot, [
@@ -513,6 +517,7 @@ if ($case === null) {
             <div class="ard-section">
                 <h6>Panel Laporan Pelapor</h6>
                 <p class="ard-text"><strong>Reporter Ref:</strong> <?php echo h($case['reporter_ref']); ?></p>
+                <p class="ard-text"><strong>Nomor Telepon:</strong> <?php echo h($case['phone'] ?? '-'); ?></p>
                 <p class="ard-text"><strong>Komentar:</strong> <?php echo h($case['comment']); ?></p>
                 <p class="ard-text d-flex flex-wrap align-items-center gap-2 mb-0">
                     <span><strong>Evidensi:</strong> <?php echo h($case['evidence']); ?></span>
