@@ -13,6 +13,47 @@ function h(string $value): string
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
+function arp_display_status(string $status): string
+{
+    if ($status === 'PENDING_REVIEW') {
+        return 'Menunggu Verifikasi';
+    }
+    if ($status === 'SELESAI' || $status === 'ESCALATED') {
+        return 'Selesai';
+    }
+    return 'Dalam Verifikasi';
+}
+
+function arp_status_chip_class(string $label): string
+{
+    if ($label === 'Menunggu Verifikasi') {
+        return 'pending';
+    }
+    if ($label === 'Selesai') {
+        return 'ontime';
+    }
+    return 'review';
+}
+
+function arp_render_queue_filter_tabs(): void
+{
+    $tabs = [
+        'semua' => 'Semua',
+        'menunggu' => 'Menunggu Verifikasi',
+        'dalam-verifikasi' => 'Dalam Verifikasi',
+        'selesai' => 'Selesai',
+        'overdue' => 'Overdue',
+    ];
+    echo '<div class="arp-filter-tabs" role="tablist" aria-label="Filter antrian laporan">';
+    $isFirst = true;
+    foreach ($tabs as $key => $label) {
+        $active = $isFirst ? ' active' : '';
+        $isFirst = false;
+        echo '<button type="button" class="arp-filter-tab' . $active . '" data-filter="' . h($key) . '">' . h($label) . '</button>';
+    }
+    echo '</div>';
+}
+
 $companyReports = [
     [
         'report_id' => 'CRP-2026-103421',
@@ -137,6 +178,12 @@ $vacancyReports = [
         .arp-booking-box { border: 1px solid #d9e7f8; background: #f4f9ff; color: #284e76; border-radius: 10px; padding: 10px 12px; font-size: 13px; }
         .arp-booking-box strong { color: #173b61; }
         .arp-booking-msg { font-size: 12px; margin-top: 6px; display: none; }
+        .arp-filter-tabs { display: flex; flex-wrap: wrap; gap: 4px 28px; margin: 2px 0 14px; border-bottom: 1px solid #e7edf5; }
+        .arp-filter-tab { border: 0; background: transparent; padding: 8px 2px 10px; color: #7a8c9e; font-size: 14px; font-weight: 500; line-height: 1.2; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+        .arp-filter-tab:hover { color: #0a8f8a; }
+        .arp-filter-tab.active { color: #0a8f8a; border-bottom-color: #0a8f8a; }
+        .arp-filter-tab:focus { outline: none; }
+        .arp-empty { color: #75879a; text-align: center; padding: 22px 12px; }
     </style>
 </head>
 <body>
@@ -221,6 +268,7 @@ $vacancyReports = [
 
         <div class="tab-content">
             <div class="tab-pane fade show active" id="queueLoker" role="tabpanel">
+                <?php arp_render_queue_filter_tabs(); ?>
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover arp-table align-middle">
                         <thead>
@@ -242,8 +290,15 @@ $vacancyReports = [
                         </thead>
                         <tbody>
                         <?php foreach ($vacancyReports as $row): ?>
-                            <?php $isPending = $row['status'] === 'PENDING_REVIEW'; ?>
-                            <tr>
+                            <?php
+                            $isPending = $row['status'] === 'PENDING_REVIEW';
+                            $statusLabel = arp_display_status($row['status']);
+                            ?>
+                            <tr
+                                class="js-report-row"
+                                data-status="<?php echo h($statusLabel); ?>"
+                                data-sla="<?php echo h($row['sla']); ?>"
+                            >
                                 <td><?php echo h($row['report_id']); ?></td>
                                 <td><?php echo h($row['waktu_masuk']); ?></td>
                                 <td><?php echo h($row['lowongan']); ?></td>
@@ -262,7 +317,7 @@ $vacancyReports = [
                                     <span class="arp-chip <?php echo h($slaClass); ?>"><?php echo h($row['sla']); ?></span>
                                 </td>
                                 <td>
-                                    <span class="arp-chip review js-status-chip">Dalam Verifikasi</span>
+                                    <span class="arp-chip <?php echo h(arp_status_chip_class($statusLabel)); ?> js-status-chip"><?php echo h($statusLabel); ?></span>
                                 </td>
                                 <td class="js-assigned-cell"><?php echo h($row['assigned_to']); ?></td>
                                 <td><?php echo h($row['source']); ?></td>
@@ -279,12 +334,16 @@ $vacancyReports = [
                                 </td>
                             </tr>
                         <?php endforeach; ?>
+                            <tr class="js-queue-empty d-none">
+                                <td colspan="13" class="arp-empty">Tidak ada laporan pada tab ini.</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
             <div class="tab-pane fade" id="queuePerusahaan" role="tabpanel">
+                <?php arp_render_queue_filter_tabs(); ?>
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover arp-table align-middle">
                         <thead>
@@ -304,8 +363,15 @@ $vacancyReports = [
                         </thead>
                         <tbody>
                         <?php foreach ($companyReports as $row): ?>
-                            <?php $isPending = $row['status'] === 'PENDING_REVIEW'; ?>
-                            <tr>
+                            <?php
+                            $isPending = $row['status'] === 'PENDING_REVIEW';
+                            $statusLabel = arp_display_status($row['status']);
+                            ?>
+                            <tr
+                                class="js-report-row"
+                                data-status="<?php echo h($statusLabel); ?>"
+                                data-sla="<?php echo h($row['sla']); ?>"
+                            >
                                 <td><?php echo h($row['report_id']); ?></td>
                                 <td><?php echo h($row['tanggal_masuk']); ?></td>
                                 <td><?php echo h($row['perusahaan']); ?></td>
@@ -323,7 +389,7 @@ $vacancyReports = [
                                     <span class="arp-chip <?php echo h($slaClass); ?>"><?php echo h($row['sla']); ?></span>
                                 </td>
                                 <td>
-                                    <span class="arp-chip review js-status-chip">Dalam Verifikasi</span>
+                                    <span class="arp-chip <?php echo h(arp_status_chip_class($statusLabel)); ?> js-status-chip"><?php echo h($statusLabel); ?></span>
                                 </td>
                                 <td class="js-assigned-cell"><?php echo h($row['assigned_to']); ?></td>
                                 <td class="arp-actions">
@@ -339,6 +405,9 @@ $vacancyReports = [
                                 </td>
                             </tr>
                         <?php endforeach; ?>
+                            <tr class="js-queue-empty d-none">
+                                <td colspan="11" class="arp-empty">Tidak ada laporan pada tab ini.</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -398,14 +467,60 @@ $vacancyReports = [
             const assignedCell = row.querySelector('.js-assigned-cell');
             if (statusChip) {
                 statusChip.textContent = 'Dalam Verifikasi';
-                statusChip.classList.remove('pending', 'waiting', 'overdue');
+                statusChip.classList.remove('pending', 'waiting', 'overdue', 'ontime');
                 statusChip.classList.add('review');
             }
+            row.setAttribute('data-status', 'Dalam Verifikasi');
             if (assignedCell) assignedCell.textContent = ACTIVE_USER;
             btn.disabled = true;
             btn.textContent = 'Sudah Diambil';
             btn.classList.remove('btn-primary');
             btn.classList.add('btn-outline-secondary');
+        }
+
+        function bindQueueFilters(root) {
+            const tabs = root.querySelectorAll('.arp-filter-tab');
+            const rows = root.querySelectorAll('tbody tr.js-report-row');
+            const emptyRow = root.querySelector('.js-queue-empty');
+
+            function applyFilter(filter) {
+                let visible = 0;
+                rows.forEach(function (row) {
+                    const status = row.getAttribute('data-status') || '';
+                    const sla = row.getAttribute('data-sla') || '';
+                    let show = false;
+                    if (filter === 'semua') show = true;
+                    else if (filter === 'menunggu') show = status === 'Menunggu Verifikasi';
+                    else if (filter === 'dalam-verifikasi') show = status === 'Dalam Verifikasi';
+                    else if (filter === 'selesai') show = status === 'Selesai';
+                    else if (filter === 'overdue') show = sla === 'Overdue';
+                    row.classList.toggle('d-none', !show);
+                    if (show) visible += 1;
+                });
+                if (emptyRow) emptyRow.classList.toggle('d-none', visible > 0);
+            }
+
+            tabs.forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    tabs.forEach(function (item) { item.classList.remove('active'); });
+                    tab.classList.add('active');
+                    applyFilter(tab.getAttribute('data-filter') || 'semua');
+                });
+            });
+
+            return function refresh() {
+                const active = root.querySelector('.arp-filter-tab.active');
+                applyFilter(active ? (active.getAttribute('data-filter') || 'semua') : 'semua');
+            };
+        }
+
+        const queueRefreshers = [];
+        document.querySelectorAll('.tab-pane').forEach(function (pane) {
+            queueRefreshers.push(bindQueueFilters(pane));
+        });
+
+        function refreshQueueFilters() {
+            queueRefreshers.forEach(function (refresh) { refresh(); });
         }
 
         function markBookedRowsFromStorage() {
@@ -421,6 +536,7 @@ $vacancyReports = [
 
         refreshCounter();
         markBookedRowsFromStorage();
+        refreshQueueFilters();
 
         bookButtons.forEach(function (btn) {
             btn.addEventListener('click', function () {
@@ -431,6 +547,7 @@ $vacancyReports = [
                 const booked = refreshCounter();
                 if (booked.includes(reportId)) {
                     markRowAsBooked(btn);
+                    refreshQueueFilters();
                     showMessage('Case ini sudah pernah diambil pada sesi prototype.', false);
                     return;
                 }
@@ -444,6 +561,7 @@ $vacancyReports = [
                 saveBookedCases(booked);
                 refreshCounter();
                 markRowAsBooked(btn);
+                refreshQueueFilters();
                 showMessage('Berhasil mengambil case ' + reportId + ' ke status IN_REVIEW.', false);
             });
         });
