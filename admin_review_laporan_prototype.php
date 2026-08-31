@@ -113,9 +113,7 @@ $vacancyReports = [
         .arp-note { border: 1px solid #dce8f7; background: #f6f9ff; color: #325277; border-radius: 10px; padding: 10px 12px; font-size: 13px; }
         .arp-kpi-card { border: 1px solid #e3ebf5; border-radius: 10px; padding: 14px; background: #fff; height: 100%; cursor: help; }
         .arp-kpi-card:hover, .arp-kpi-card:focus { border-color: #b9cde4; outline: none; }
-        .arp-kpi-label-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
         .arp-kpi-label { color: #6e849a; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-        .arp-kpi-hint { color: #8aa0b6; font-size: 12px; line-height: 1; }
         .arp-kpi-value { color: #1f3550; font-size: 24px; font-weight: 700; line-height: 1.2; margin-top: 4px; }
         .arp-chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
         .arp-chip.critical { background: #ffe3e3; color: #a52121; }
@@ -205,10 +203,7 @@ $vacancyReports = [
                     data-bs-placement="bottom"
                     data-bs-title="<?php echo h($kpi['tooltip']); ?>"
                 >
-                    <div class="arp-kpi-label-row">
-                        <div class="arp-kpi-label"><?php echo h($kpi['label']); ?></div>
-                        <i class="bi bi-info-circle arp-kpi-hint" aria-hidden="true"></i>
-                    </div>
+                    <div class="arp-kpi-label"><?php echo h($kpi['label']); ?></div>
                     <div class="arp-kpi-value"><?php echo h((string) $kpi['value']); ?></div>
                 </div>
             </div>
