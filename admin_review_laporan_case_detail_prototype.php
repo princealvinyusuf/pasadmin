@@ -609,9 +609,9 @@ if ($case === null) {
                 <p class="ard-text"><?php echo h($case['current_data']); ?></p>
                 <?php if (!empty($case['verified_by_admin'])): ?>
                     <?php if (($case['object_type'] ?? '') === 'Laporan Perusahaan'): ?>
-                        <p class="ard-text mt-2">Perusahaan ini sebelumnya diverifikasi oleh: <strong><?php echo h($case['verified_by_admin']); ?></strong></p>
+                        <p class="ard-text mt-2">Perusahaan ini diverifikasi oleh: <strong><?php echo h($case['verified_by_admin']); ?></strong></p>
                     <?php else: ?>
-                        <p class="ard-text mt-2">Lowongan ini sebelumnya diverifikasi tayang oleh: <strong><?php echo h($case['verified_by_admin']); ?></strong></p>
+                        <p class="ard-text mt-2">Lowongan ini diverifikasi tayang oleh: <strong><?php echo h($case['verified_by_admin']); ?></strong></p>
                     <?php endif; ?>
                 <?php endif; ?>
             </div>
