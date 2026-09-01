@@ -462,6 +462,17 @@ if ($case === null) {
         .ard-aksi-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e3ebf5; border-radius: 8px; background: #fbfdff; color: #1f3550; font-size: 14px; }
         .ard-aksi-item.is-disabled { background: #f1f4f8; color: #9aa9b8; border-color: #e6ebf1; }
         .ard-aksi-item.is-disabled .form-check-input { opacity: .55; }
+        .ard-tindakan-menu { min-width: 200px; border: 1px solid #dce6f1; border-radius: 10px; padding: 6px 0; box-shadow: 0 8px 24px rgba(31, 53, 80, .12); }
+        .ard-tindakan-menu .dropdown-item { font-size: 14px; color: #1f3550; padding: 8px 14px; }
+        .ard-tindakan-menu .dropdown-item:hover,
+        .ard-tindakan-menu .dropdown-item:focus { background: #f3f8ff; color: #1f3550; }
+        .ard-assign-alert { display: flex; align-items: flex-start; gap: 10px; background: #fff8e6; border: 1px solid #f0c36d; border-radius: 8px; padding: 10px 12px; margin-bottom: 16px; }
+        .ard-assign-alert-badge { flex-shrink: 0; background: #fff; border: 1px solid #e8a23a; color: #c47a12; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 700; }
+        .ard-assign-alert-text { color: #5c4a28; font-size: 13px; line-height: 1.45; }
+        .ard-required { color: #dc3545; }
+        #assignPemeriksaModal .form-select,
+        #assignPemeriksaModal .form-control { background: #f4f6f8; border-radius: 8px; }
+        #assignPemeriksaModal .modal-footer { border-top: 0; padding-top: 0; }
         @media (max-width: 991px) {
             .ard-grid { grid-template-columns: 1fr; }
             .ard-vacancy-attrs { grid-template-columns: 1fr; }
@@ -492,9 +503,23 @@ if ($case === null) {
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#tindakanModal">
-                        <i class="bi bi-lightning-charge me-1"></i>Tindakan
-                    </button>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" id="tindakanDropdownBtn">
+                            <i class="bi bi-lightning-charge me-1"></i>Tindakan
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end ard-tindakan-menu" aria-labelledby="tindakanDropdownBtn">
+                            <li>
+                                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#tindakanModal">
+                                    Panel Tindakan
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#assignPemeriksaModal">
+                                    Assign Pemeriksa
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#klarifikasiModal">
                         <i class="bi bi-chat-left-text me-1"></i>Minta Klarifikasi Pemberi Kerja
                     </button>
@@ -508,7 +533,7 @@ if ($case === null) {
             <div class="ard-section">
                 <h6>Header Case</h6>
                 <div class="ard-grid">
-                    <div class="ard-item"><div class="ard-item-label">Assigned To</div><div class="ard-item-value"><?php echo h($case['assigned_to']); ?></div></div>
+                    <div class="ard-item"><div class="ard-item-label">Assigned To</div><div class="ard-item-value" id="assignedToValue"><?php echo h($case['assigned_to']); ?></div></div>
                     <div class="ard-item"><div class="ard-item-label">Wilayah</div><div class="ard-item-value"><?php echo h($case['wilayah']); ?></div></div>
                     <div class="ard-item"><div class="ard-item-label">Reason Utama</div><div class="ard-item-value"><?php echo h($case['reason']); ?></div></div>
                 </div>
@@ -804,6 +829,12 @@ if ($case === null) {
                     'Lainnya',
                 ];
             $alasanLainnyaValue = $isCompanyTindakan ? 'Pelanggaran Ketentuan Lainnya' : 'Lainnya';
+            $pemeriksaOptions = [
+                'admin.kabkota.bdg',
+                'admin.kabkota.tng',
+                'admin.pusat.layanan',
+                'admin.pusat.verifikasi',
+            ];
             ?>
             <div class="modal fade" id="tindakanModal" tabindex="-1" aria-labelledby="tindakanModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
@@ -890,6 +921,46 @@ if ($case === null) {
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
                             <button id="saveDecisionBtn" class="btn btn-primary btn-sm" type="button">Simpan Tindakan</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="assignPemeriksaModal" tabindex="-1" aria-labelledby="assignPemeriksaModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="assignPemeriksaModalLabel">Assign Pemeriksa</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="ard-assign-alert" role="alert">
+                                <span class="ard-assign-alert-badge">Perhatian</span>
+                                <span class="ard-assign-alert-text">Untuk mengubah pemeriksa, pemberi kerja harus memiliki penugasan aktif terlebih dahulu. Silahkan ambil case terlebih dahulu melalui aksi di header.</span>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small mb-1" for="pemeriksaSelect">Pemeriksa <span class="ard-required">*</span></label>
+                                <select id="pemeriksaSelect" class="form-select" required>
+                                    <option value="">Pilih pemeriksa...</option>
+                                    <?php foreach ($pemeriksaOptions as $pemeriksaOption): ?>
+                                        <option value="<?php echo h($pemeriksaOption); ?>"><?php echo h($pemeriksaOption); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label small mb-1" for="assignAlasanField">Alasan <span class="ard-required">*</span></label>
+                                <textarea
+                                    id="assignAlasanField"
+                                    class="form-control"
+                                    rows="4"
+                                    placeholder="Masukkan alasan penugasan (minimal 10 karakter)..."
+                                    required
+                                ></textarea>
+                            </div>
+                            <div id="assignPemeriksaFeedback" class="ard-feedback"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary w-100" id="assignPemeriksaBtn">Assign Pemeriksa</button>
                         </div>
                     </div>
                 </div>
@@ -1211,6 +1282,67 @@ if ($case === null) {
                 link.click();
                 link.remove();
                 URL.revokeObjectURL(url);
+            });
+        }
+
+        const assignModalEl = document.getElementById('assignPemeriksaModal');
+        const pemeriksaSelect = document.getElementById('pemeriksaSelect');
+        const assignAlasanField = document.getElementById('assignAlasanField');
+        const assignFeedback = document.getElementById('assignPemeriksaFeedback');
+        const assignSubmitBtn = document.getElementById('assignPemeriksaBtn');
+        const assignedToValue = document.getElementById('assignedToValue');
+
+        if (assignModalEl && pemeriksaSelect && assignAlasanField && assignFeedback && assignSubmitBtn) {
+            const assignModal = bootstrap.Modal.getOrCreateInstance(assignModalEl);
+
+            function hideAssignFeedback() {
+                assignFeedback.style.display = 'none';
+                assignFeedback.textContent = '';
+            }
+
+            function showAssignFeedback(message, isError) {
+                assignFeedback.style.display = 'block';
+                assignFeedback.classList.toggle('text-danger', !!isError);
+                assignFeedback.classList.toggle('text-success', !isError);
+                assignFeedback.textContent = message;
+            }
+
+            function resetAssignForm() {
+                pemeriksaSelect.value = '';
+                assignAlasanField.value = '';
+                hideAssignFeedback();
+            }
+
+            assignModalEl.addEventListener('shown.bs.modal', function () {
+                hideAssignFeedback();
+                pemeriksaSelect.focus();
+            });
+
+            assignModalEl.addEventListener('hidden.bs.modal', function () {
+                resetAssignForm();
+            });
+
+            assignSubmitBtn.addEventListener('click', function () {
+                const pemeriksa = pemeriksaSelect.value.trim();
+                const alasan = assignAlasanField.value.trim();
+
+                if (pemeriksa === '') {
+                    showAssignFeedback('Pilih pemeriksa terlebih dahulu.', true);
+                    return;
+                }
+
+                if (alasan.length < 10) {
+                    showAssignFeedback('Masukkan alasan penugasan minimal 10 karakter.', true);
+                    return;
+                }
+
+                hideAssignFeedback();
+                if (assignedToValue) {
+                    assignedToValue.textContent = pemeriksa;
+                }
+                successAlert.textContent = 'Pemeriksa ' + pemeriksa + ' berhasil ditugaskan pada case ini.';
+                successAlert.classList.remove('d-none');
+                assignModal.hide();
             });
         }
     })();
