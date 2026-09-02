@@ -349,18 +349,28 @@
                 <?php endif; ?>
                 <?php if ($canKarirhubEmployerPrototype): ?>
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="karirhubEmployerPrototypeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <a class="nav-link dropdown-toggle" href="#" id="karirhubEmployerPrototypeDropdown" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                         Karirhub Prototype
                     </a>
-                    <ul class="dropdown-menu" aria-labelledby="karirhubEmployerPrototypeDropdown">
+                    <ul class="dropdown-menu kh-proto-navbar-menu" aria-labelledby="karirhubEmployerPrototypeDropdown">
                         <?php if ($canKhProtoDashboardWllp || $canKhProtoDashboardWllpAdmin || $canKhProtoJobPosted || $canKhProtoBuktiLapor || $canKhProtoPelaporan || $canKhProtoStatusKeterisian || $canKhProtoPaskerConnect): ?>
                         <li><h6 class="dropdown-header">WLLP Prototype</h6></li>
                         <?php endif; ?>
                         <?php if ($canKhProtoDashboardWllp): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_dashboard_wllp"><i class="bi bi-speedometer2 me-1"></i>Dashboard WLLP</a></li><?php endif; ?>
                         <?php if ($canKhProtoDashboardWllpAdmin): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_dashboard_wllp_admin"><i class="bi bi-bar-chart-line me-1"></i>Dashboard WLLP Admin</a></li><?php endif; ?>
-                        <?php if ($canKhProtoJobPosted): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_job_posted_karirhub"><i class="bi bi-briefcase me-1"></i>Job Posted Karirhub</a></li><?php endif; ?>
                         <?php if ($canKhProtoBuktiLapor): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_bukti_lapor"><i class="bi bi-file-earmark-check me-1"></i>Bukti Lapor</a></li><?php endif; ?>
-                        <?php if ($canKhProtoPelaporan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_pelaporan_lowongan"><i class="bi bi-journal-plus me-1"></i>Pelaporan Lowongan</a></li><?php endif; ?>
+                        <?php if ($canKhProtoJobPosted || $canKhProtoPelaporan): ?>
+                        <li class="dropstart">
+                            <button class="dropdown-item kh-navbar-submenu-toggle" type="button" aria-expanded="false">
+                                <i class="bi bi-journal-plus me-1"></i>Pelaporan Lowongan
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <?php if ($canKhProtoJobPosted): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_job_posted_karirhub"><i class="bi bi-briefcase me-1"></i>Job Posted Karirhub</a></li><?php endif; ?>
+                                <?php if ($canKhProtoPelaporan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_pelaporan_lowongan"><i class="bi bi-list-ul me-1"></i>Sumber Lainnya</a></li><?php endif; ?>
+                            </ul>
+                        </li>
+                        <?php endif; ?>
                         <?php if ($canKhProtoStatusKeterisian): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_status_keterisian"><i class="bi bi-list-check me-1"></i>Status Keterisian</a></li><?php endif; ?>
                         <?php if ($canKhProtoPaskerConnect): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_pasker_connect"><i class="bi bi-plug me-1"></i>Pasker Connect</a></li><?php endif; ?>
                         <?php if (($canAdminReviewLaporanPrototype || $canKhProtoLaporLoker || $canKhProtoEmployerDetailLowongan || $canKhProtoEmployerProfilPemberiKerja || $canKhProtoMonitoringLaporan || $canKhProtoEmployerIndividu) && ($canKhProtoDashboardWllp || $canKhProtoDashboardWllpAdmin || $canKhProtoJobPosted || $canKhProtoBuktiLapor || $canKhProtoPelaporan || $canKhProtoStatusKeterisian || $canKhProtoPaskerConnect)): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
@@ -441,4 +451,97 @@
         </div>
     </div>
 </nav>
+<style>
+    .kh-proto-navbar-menu .kh-navbar-submenu-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        border: 0;
+        background: transparent;
+        text-align: left;
+    }
+    .kh-proto-navbar-menu .kh-navbar-submenu-toggle .bi-chevron-left {
+        margin-left: auto;
+        font-size: 11px;
+        opacity: 0.65;
+    }
+    .kh-proto-navbar-menu .dropstart > .dropdown-menu {
+        top: 0;
+        right: 100%;
+        left: auto;
+        margin-top: -6px;
+        margin-right: 0;
+    }
+    @media (max-width: 991.98px) {
+        .kh-proto-navbar-menu .dropstart > .dropdown-menu {
+            position: static;
+            right: auto;
+            left: auto;
+            margin-top: 0;
+            margin-right: 0;
+            box-shadow: none;
+            border: 0;
+            padding-left: 1rem;
+        }
+        .kh-proto-navbar-menu .kh-navbar-submenu-toggle .bi-chevron-left {
+            transform: rotate(-90deg);
+        }
+    }
+</style>
+<script>
+    (function () {
+        const menus = document.querySelectorAll('.kh-proto-navbar-menu');
+        menus.forEach(function (menu) {
+            const submenuParents = menu.querySelectorAll('.dropstart');
+            submenuParents.forEach(function (parent) {
+                const toggle = parent.querySelector('.kh-navbar-submenu-toggle');
+                const submenu = parent.querySelector('.dropdown-menu');
+                if (!toggle || !submenu) {
+                    return;
+                }
+
+                toggle.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const isOpen = parent.classList.contains('show');
+                    submenuParents.forEach(function (otherParent) {
+                        otherParent.classList.remove('show');
+                        const otherSubmenu = otherParent.querySelector('.dropdown-menu');
+                        const otherToggle = otherParent.querySelector('.kh-navbar-submenu-toggle');
+                        if (otherSubmenu) {
+                            otherSubmenu.classList.remove('show');
+                        }
+                        if (otherToggle) {
+                            otherToggle.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+
+                    if (!isOpen) {
+                        parent.classList.add('show');
+                        submenu.classList.add('show');
+                        toggle.setAttribute('aria-expanded', 'true');
+                    }
+                });
+            });
+
+            const rootDropdown = menu.closest('.dropdown');
+            if (rootDropdown) {
+                rootDropdown.addEventListener('hide.bs.dropdown', function () {
+                    submenuParents.forEach(function (parent) {
+                        parent.classList.remove('show');
+                        const submenu = parent.querySelector('.dropdown-menu');
+                        const toggle = parent.querySelector('.kh-navbar-submenu-toggle');
+                        if (submenu) {
+                            submenu.classList.remove('show');
+                        }
+                        if (toggle) {
+                            toggle.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                });
+            }
+        });
+    })();
+</script>
 <!-- End Navigation Bar --> 
