@@ -167,6 +167,12 @@ register_menu_permission(
 );
 register_menu_permission(
 	$conn,
+	'karirhub_employer_prototype_ews_view',
+	'Karirhub Employer Prototype: View Early Warning System',
+	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
 	'karirhub_employer_prototype_employer_individu_view',
 	'Karirhub Employer Prototype: View Employer Individu',
 	'Karirhub Employer Prototype'
