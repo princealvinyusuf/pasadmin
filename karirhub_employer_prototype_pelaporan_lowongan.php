@@ -2476,8 +2476,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     rowIssues.push('Metode publikasi loker wajib dipilih');
                 }
                 if (metodePublikasi === 'Online') {
-                    const urlLines = splitUrlLines(row.alamat_url_postingan_loker || '');
                     const postingRows = parsePostingRows(row.alamat_url_postingan_loker || '');
+                    const urlLines = postingRows
+                        .map((postingRow) => String(postingRow.url || '').trim())
+                        .filter((url) => url !== '');
                     const mainUrl = String(row.alamat_url_postingan_loker_main || '').trim();
                     if (urlLines.length > 1 && mainUrl === '') {
                         rowIssues.push('Jika URL lebih dari satu, pilih URL Utama');
