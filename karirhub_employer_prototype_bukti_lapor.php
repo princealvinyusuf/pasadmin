@@ -632,6 +632,14 @@ $rows = array_values(array_filter($headerRows, static function (array $row) use 
 }));
 $filteredRows = $rows;
 
+$totalDocumentCount = count($filteredRows);
+$totalVacancyCount = array_sum(array_map(static fn (array $row): int => (int)($row['total_lowongan'] ?? 0), $filteredRows));
+$totalHeadcount = array_sum(array_map(static fn (array $row): int => (int)($row['jumlah_kebutuhan_total'] ?? 0), $filteredRows));
+$karirhubDocumentCount = count(array_filter(
+    $filteredRows,
+    static fn (array $row): bool => strtolower((string)($row['sumber'] ?? '')) === 'karirhub'
+));
+
 $baseParams = [
     'status' => $statusFilter,
     'unit' => $unitFilter,
@@ -713,8 +721,261 @@ if ($action === 'unduh' && $actionRow !== null) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <?php kh_proto_render_styles(); ?>
+    <style>
+        .kh-proof-page {
+            --proof-ink: #172b4d;
+            --proof-muted: #6e8196;
+            --proof-line: #dfe8f2;
+            --proof-blue: #155eef;
+        }
+        .kh-proof-page .kh-proto-main { color: var(--proof-ink); }
+        .proof-hero {
+            position: relative;
+            overflow: hidden;
+            padding: clamp(1.2rem, 3vw, 1.8rem);
+            border-radius: 1rem;
+            color: #fff;
+            background:
+                radial-gradient(circle at 88% 12%, rgba(255,255,255,.17), transparent 27%),
+                linear-gradient(125deg, #123d85 0%, #155eef 58%, #3f83ef 100%);
+            box-shadow: 0 15px 34px rgba(21, 94, 239, .2);
+        }
+        .proof-hero::after {
+            position: absolute;
+            right: -58px;
+            bottom: -96px;
+            width: 220px;
+            height: 220px;
+            border: 35px solid rgba(255,255,255,.07);
+            border-radius: 50%;
+            content: "";
+        }
+        .proof-hero-content { position: relative; z-index: 1; }
+        .proof-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            margin-bottom: .4rem;
+            padding: .25rem .6rem;
+            border-radius: 999px;
+            color: #dce9ff;
+            font-size: .68rem;
+            font-weight: 750;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            background: rgba(255,255,255,.12);
+        }
+        .proof-hero h3 { font-size: clamp(1.35rem, 3vw, 1.85rem); font-weight: 760; }
+        .proof-hero-copy { color: #dce8ff; font-size: .82rem; }
+        .proof-hero .btn { border-color: rgba(255,255,255,.7); color: #fff; }
+        .proof-hero .btn:hover { border-color: #fff; color: #124dbf; background: #fff; }
+        .proof-summary-card {
+            height: 100%;
+            padding: 1rem;
+            border: 1px solid var(--proof-line);
+            border-radius: .9rem;
+            background: #fff;
+            box-shadow: 0 8px 22px rgba(36, 67, 104, .06);
+            transition: transform 180ms ease, box-shadow 180ms ease;
+        }
+        .proof-summary-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 13px 28px rgba(36, 67, 104, .11);
+        }
+        .proof-summary-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: .75rem;
+        }
+        .proof-summary-label {
+            color: #64778b;
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+        .proof-summary-value {
+            margin-top: .3rem;
+            color: #142b4b;
+            font-size: 1.6rem;
+            font-weight: 780;
+            line-height: 1;
+        }
+        .proof-summary-copy { margin-top: .6rem; color: #7b8ca0; font-size: .68rem; }
+        .proof-summary-icon {
+            display: grid;
+            width: 40px;
+            height: 40px;
+            place-items: center;
+            border-radius: .72rem;
+        }
+        .proof-summary-icon.blue { color: #155eef; background: #eaf1ff; }
+        .proof-summary-icon.cyan { color: #1689a8; background: #e9f9fc; }
+        .proof-summary-icon.green { color: #087e5b; background: #eaf9f4; }
+        .proof-summary-icon.orange { color: #c46a16; background: #fff4e8; }
+        .proof-filter-card,
+        .proof-table-card {
+            overflow: hidden;
+            border: 1px solid var(--proof-line) !important;
+            border-radius: .95rem !important;
+            box-shadow: 0 8px 24px rgba(36, 67, 104, .06) !important;
+        }
+        .proof-filter-head,
+        .proof-table-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: .9rem 1.1rem;
+            border-bottom: 1px solid #e7edf4;
+            background: linear-gradient(135deg, #f8fbff, #f2f7ff);
+        }
+        .proof-panel-title { color: #1d3c5d; font-size: .87rem; font-weight: 750; }
+        .proof-panel-copy { margin-top: .12rem; color: #8090a2; font-size: .65rem; }
+        .proof-filter-card .form-label {
+            color: #526a82;
+            font-size: .7rem;
+            font-weight: 650;
+        }
+        .proof-filter-card .form-control,
+        .proof-filter-card .form-select {
+            min-height: 40px;
+            border-color: #cedae7;
+            border-radius: .55rem;
+            color: #294663;
+        }
+        .proof-filter-card .form-control:focus,
+        .proof-filter-card .form-select:focus {
+            border-color: #5790f5;
+            box-shadow: 0 0 0 .2rem rgba(21, 94, 239, .11);
+        }
+        .proof-count {
+            display: inline-flex;
+            padding: .22rem .55rem;
+            border-radius: 999px;
+            color: #155eef;
+            font-size: .65rem;
+            font-weight: 700;
+            background: #e7f0ff;
+        }
+        .proof-table { min-width: 1180px; margin: 0; }
+        .proof-table thead th {
+            padding: .75rem .7rem;
+            border: 0;
+            border-bottom: 1px solid #dfe7f0;
+            color: #66788c;
+            font-size: .61rem;
+            font-weight: 750;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            background: #f8fafd !important;
+            white-space: nowrap;
+        }
+        .proof-table tbody td {
+            padding: .8rem .7rem;
+            border-color: #ebf0f5;
+            color: #354f69;
+            font-size: .71rem;
+            vertical-align: middle;
+        }
+        .proof-table tbody tr:hover { background: #fbfdff; }
+        .proof-reg {
+            color: #173b61;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: .72rem;
+            font-weight: 700;
+        }
+        .proof-reg-sub { margin-top: .2rem; color: #8997a7; font-size: .61rem; font-weight: 400; }
+        .proof-source,
+        .proof-status {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            padding: .25rem .52rem;
+            border-radius: 999px;
+            font-size: .63rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .proof-source.karirhub { color: #137f9a; background: #e8f8fc; }
+        .proof-source.other { color: #657286; background: #f0f2f5; }
+        .proof-status { color: #087e5b; background: #eaf9f4; }
+        .proof-actions { display: inline-flex; gap: .3rem; }
+        .proof-action {
+            display: inline-grid;
+            width: 31px;
+            height: 31px;
+            place-items: center;
+            border: 1px solid #d8e2ed;
+            border-radius: .48rem !important;
+            color: #597088;
+            background: #fff;
+            text-decoration: none;
+        }
+        .proof-action:hover { border-color: #8fb4f5; color: #155eef; background: #f2f7ff; }
+        .proof-empty {
+            padding: 3rem 1rem !important;
+            color: #7d8ea1 !important;
+        }
+        .kh-proof-page .modal-content {
+            overflow: hidden;
+            border: 0;
+            border-radius: 1rem;
+            box-shadow: 0 25px 70px rgba(16,42,76,.25);
+        }
+        .kh-proof-page .modal-header {
+            color: #fff;
+            border: 0;
+            background: linear-gradient(125deg, #123d85, #155eef);
+        }
+        .kh-proof-page .modal-header .btn-close { filter: invert(1); }
+        .proof-detail-item {
+            height: 100%;
+            padding: .75rem;
+            border: 1px solid #e2e9f1;
+            border-radius: .7rem;
+            background: #f9fbfd;
+        }
+        .proof-detail-label {
+            margin-bottom: .2rem;
+            color: #7a8b9f;
+            font-size: .63rem;
+            font-weight: 700;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+        }
+        .proof-detail-value { color: #274663; font-size: .75rem; font-weight: 600; }
+        #detailModal .modal-body > .row > .col-md-6 {
+            padding: .75rem;
+            border: 6px solid #fff;
+            border-radius: .8rem;
+            color: #274663;
+            font-size: .75rem;
+            font-weight: 600;
+            background: #f7fafd;
+        }
+        #detailModal .modal-body > .row > .col-md-6 strong,
+        #detailModal .modal-body > .row > .col-12 > strong {
+            color: #74869a;
+            font-size: .63rem;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+        }
+        #detailModal .table {
+            overflow: hidden;
+            border-color: #e2e9f1;
+            border-radius: .65rem;
+            font-size: .72rem;
+        }
+        #detailModal .modal-footer { border-top-color: #e6edf5; background: #f8fafd; }
+        @media (max-width: 767px) {
+            .proof-hero-actions { width: 100%; }
+            .proof-hero-actions .btn { width: 100%; }
+        }
+    </style>
 </head>
-<body class="kh-proto-page">
+<body class="kh-proto-page kh-proof-page">
 <?php include 'navbar.php'; ?>
 <?php kh_proto_render_hero('Daftar Lowongan Kerja', 'Kelola bukti lapor dan dokumen WLLP dengan tampilan employer prototype.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_dashboard_wllp', false); ?>
 
@@ -723,15 +984,20 @@ if ($action === 'unduh' && $actionRow !== null) {
     <div class="kh-proto-shell">
     <?php kh_proto_render_sidebar('wllp_bukti_lapor'); ?>
     <main class="kh-proto-main">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <div>
-            <h3 class="mb-0">Bukti Lapor</h3>
-            <div class="text-muted small">Karirhub Employer Prototype (reference only)</div>
+    <section class="proof-hero mb-3">
+        <div class="proof-hero-content d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="proof-eyebrow"><i class="bi bi-file-earmark-check-fill"></i> Dokumen WLLP</div>
+                <h3 class="mb-1">Bukti Lapor</h3>
+                <div class="proof-hero-copy">Kelola, periksa, cetak, dan unduh dokumen bukti pelaporan lowongan perusahaan.</div>
+            </div>
+            <div class="proof-hero-actions">
+                <a class="btn btn-outline-light btn-sm" href="karirhub_employer_prototype_dashboard_wllp">
+                    <i class="bi bi-arrow-left me-1"></i>Kembali ke Dashboard WLLP
+                </a>
+            </div>
         </div>
-        <a class="btn btn-outline-primary btn-sm" href="karirhub_employer_prototype_dashboard_wllp">
-            <i class="bi bi-arrow-left me-1"></i>Kembali ke Dashboard WLLP
-        </a>
-    </div>
+    </section>
 
     <?php if ($actionError !== null): ?>
         <div class="alert alert-danger py-2"><?php echo h($actionError); ?></div>
@@ -744,8 +1010,54 @@ if ($action === 'unduh' && $actionRow !== null) {
         </div>
     <?php endif; ?>
 
-    <form method="GET" class="card border-0 shadow-sm mb-3">
-        <div class="card-body py-3">
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-xl-3">
+            <div class="proof-summary-card">
+                <div class="proof-summary-head">
+                    <div><div class="proof-summary-label">Total Dokumen</div><div class="proof-summary-value"><?php echo h((string)$totalDocumentCount); ?></div></div>
+                    <span class="proof-summary-icon blue"><i class="bi bi-file-earmark-check"></i></span>
+                </div>
+                <div class="proof-summary-copy">Bukti lapor sesuai filter</div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="proof-summary-card">
+                <div class="proof-summary-head">
+                    <div><div class="proof-summary-label">ID Lowongan</div><div class="proof-summary-value"><?php echo h((string)$totalVacancyCount); ?></div></div>
+                    <span class="proof-summary-icon cyan"><i class="bi bi-briefcase-fill"></i></span>
+                </div>
+                <div class="proof-summary-copy">Lowongan yang dilaporkan</div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="proof-summary-card">
+                <div class="proof-summary-head">
+                    <div><div class="proof-summary-label">Total Kebutuhan</div><div class="proof-summary-value"><?php echo h((string)$totalHeadcount); ?></div></div>
+                    <span class="proof-summary-icon orange"><i class="bi bi-people-fill"></i></span>
+                </div>
+                <div class="proof-summary-copy">Tenaga kerja dibutuhkan</div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="proof-summary-card">
+                <div class="proof-summary-head">
+                    <div><div class="proof-summary-label">Dari Karirhub</div><div class="proof-summary-value"><?php echo h((string)$karirhubDocumentCount); ?></div></div>
+                    <span class="proof-summary-icon green"><i class="bi bi-link-45deg"></i></span>
+                </div>
+                <div class="proof-summary-copy">Dokumen terintegrasi otomatis</div>
+            </div>
+        </div>
+    </div>
+
+    <form method="GET" class="card proof-filter-card border-0 shadow-sm mb-3">
+        <div class="proof-filter-head">
+            <div>
+                <div class="proof-panel-title"><i class="bi bi-sliders me-1"></i>Filter Dokumen</div>
+                <div class="proof-panel-copy">Temukan bukti berdasarkan status, unit, sumber, atau kata kunci</div>
+            </div>
+            <a class="btn btn-outline-secondary btn-sm" href="karirhub_employer_prototype_bukti_lapor"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
+        </div>
+        <div class="card-body p-3">
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
                     <label for="status" class="form-label mb-1">Status Bukti</label>
@@ -777,7 +1089,7 @@ if ($action === 'unduh' && $actionRow !== null) {
                         <option value="lainnya"<?php echo $sumberFilter === 'lainnya' ? ' selected' : ''; ?>>Lainnya</option>
                     </select>
                 </div>
-                <div class="col-12 col-md-1 d-grid">
+                <div class="col-12 col-md-2 d-grid">
                     <button type="submit" class="btn btn-primary btn-sm">
                         <i class="bi bi-funnel me-1"></i>Filter
                     </button>
@@ -786,11 +1098,18 @@ if ($action === 'unduh' && $actionRow !== null) {
         </div>
     </form>
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body">
+    <div class="card proof-table-card border-0 shadow-sm">
+        <div class="proof-table-head">
+            <div>
+                <div class="proof-panel-title">Daftar Bukti Lapor</div>
+                <div class="proof-panel-copy">Dokumen WLLP yang tersedia untuk dilihat atau diunduh</div>
+            </div>
+            <span class="proof-count"><?php echo h((string)$totalDocumentCount); ?> dokumen</span>
+        </div>
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-bordered table-sm align-middle mb-0">
-                    <thead class="table-light">
+                <table class="table table-sm proof-table align-middle mb-0">
+                    <thead>
                         <tr>
                             <th>No. Reg Bukti</th>
                             <th>Periode</th>
@@ -807,20 +1126,21 @@ if ($action === 'unduh' && $actionRow !== null) {
                     <tbody>
                     <?php if (empty($filteredRows)): ?>
                         <tr>
-                            <td colspan="10" class="text-center text-muted">Tidak ada data sesuai filter.</td>
+                            <td colspan="10" class="proof-empty">
+                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>Tidak ada data sesuai filter.
+                            </td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($filteredRows as $row): ?>
                             <?php
-                                $badgeClass = karirhub_proto_status_badge_class($row['status_verifikasi']);
                                 $urlLihat = '?' . build_query_url(array_merge($baseParams, ['action' => 'lihat', 'no_reg' => $row['no_reg_bukti']]));
                                 $urlCetak = '?' . build_query_url(array_merge($baseParams, ['action' => 'cetak', 'no_reg' => $row['no_reg_bukti']]));
                                 $urlUnduh = '?' . build_query_url(array_merge($baseParams, ['action' => 'unduh', 'no_reg' => $row['no_reg_bukti']]));
                             ?>
                             <tr>
-                                <td class="fw-semibold">
-                                    <div><?php echo h((string)$row['no_reg_bukti']); ?></div>
-                                    <div class="small text-muted">No. Reg Bukti Penempatan: <?php echo h((string)($row['no_reg_bukti_penempatan'] ?? '-')); ?></div>
+                                <td>
+                                    <div class="proof-reg"><?php echo h((string)$row['no_reg_bukti']); ?></div>
+                                    <div class="proof-reg-sub">Penempatan: <?php echo h((string)($row['no_reg_bukti_penempatan'] ?? '-')); ?></div>
                                 </td>
                                 <td class="small"><?php echo h(strtoupper((string)$row['periode_tipe']) . ' (' . (string)$row['periode_mulai'] . ' s.d. ' . (string)$row['periode_selesai'] . ')'); ?></td>
                                 <td><?php echo h((string)$row['total_lowongan']); ?></td>
@@ -828,13 +1148,19 @@ if ($action === 'unduh' && $actionRow !== null) {
                                 <td><?php echo h((string)$row['daftar_jabatan']); ?></td>
                                 <td><?php echo h((string)$row['jumlah_kebutuhan_total']); ?></td>
                                 <td><?php echo h($unitOptions[$row['unit_kode']] ?? $row['unit_nama']); ?></td>
-                                <td><span class="badge text-bg-<?php echo strtolower((string)($row['sumber'] ?? 'lainnya')) === 'karirhub' ? 'info' : 'secondary'; ?>"><?php echo h((string)($row['sumber'] ?? 'Lainnya')); ?></span></td>
-                                <td><span class="badge text-bg-<?php echo h($badgeClass); ?>"><?php echo h($row['status_verifikasi']); ?></span></td>
                                 <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <a class="btn btn-outline-primary" href="<?php echo h($urlLihat); ?>">Lihat Detail</a>
-                                        <a class="btn btn-outline-secondary" href="<?php echo h($urlCetak); ?>">Cetak</a>
-                                        <a class="btn btn-outline-dark" href="<?php echo h($urlUnduh); ?>">Unduh PDF</a>
+                                    <?php $isKarirhubSource = strtolower((string)($row['sumber'] ?? 'lainnya')) === 'karirhub'; ?>
+                                    <span class="proof-source <?php echo $isKarirhubSource ? 'karirhub' : 'other'; ?>">
+                                        <i class="bi <?php echo $isKarirhubSource ? 'bi-link-45deg' : 'bi-file-earmark'; ?>"></i>
+                                        <?php echo h((string)($row['sumber'] ?? 'Lainnya')); ?>
+                                    </span>
+                                </td>
+                                <td><span class="proof-status"><?php echo h($row['status_verifikasi']); ?></span></td>
+                                <td>
+                                    <div class="proof-actions">
+                                        <a class="proof-action" href="<?php echo h($urlLihat); ?>" title="Lihat detail" aria-label="Lihat detail"><i class="bi bi-eye"></i></a>
+                                        <a class="proof-action" href="<?php echo h($urlCetak); ?>" title="Cetak" aria-label="Cetak"><i class="bi bi-printer"></i></a>
+                                        <a class="proof-action" href="<?php echo h($urlUnduh); ?>" title="Unduh PDF" aria-label="Unduh PDF"><i class="bi bi-file-earmark-pdf"></i></a>
                                     </div>
                                 </td>
                             </tr>
@@ -856,7 +1182,7 @@ if ($action === 'unduh' && $actionRow !== null) {
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Detail Bukti Lapor - <?php echo h($actionRow['no_reg_bukti']); ?></h5>
+                <h5 class="modal-title"><i class="bi bi-file-earmark-check me-2"></i>Detail Bukti Lapor - <?php echo h($actionRow['no_reg_bukti']); ?></h5>
                 <a href="?<?php echo h(build_query_url($baseParams)); ?>" class="btn-close"></a>
             </div>
             <div class="modal-body">
@@ -913,7 +1239,7 @@ if ($action === 'unduh' && $actionRow !== null) {
             </div>
             <div class="modal-footer">
                 <a href="?<?php echo h(build_query_url($baseParams)); ?>" class="btn btn-outline-secondary btn-sm">Tutup</a>
-                <a href="<?php echo h($urlCetakFromModal); ?>" class="btn btn-primary btn-sm">Cetak</a>
+                <a href="<?php echo h($urlCetakFromModal); ?>" class="btn btn-primary btn-sm"><i class="bi bi-printer me-1"></i>Cetak</a>
             </div>
         </div>
     </div>
