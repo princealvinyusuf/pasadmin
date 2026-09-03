@@ -326,11 +326,21 @@ $deltaLabel = $previousCount > 0
     : 'Belum ada pembanding periode sebelumnya';
 
 $summaryCards = [
-    ['label' => 'Total Lowongan Dilaporkan', 'value' => (string)$funnel['dilaporkan'], 'tone' => 'primary', 'sub' => $deltaLabel],
-    ['label' => 'Lowongan Aktif', 'value' => (string)$funnel['aktif'], 'tone' => 'info', 'sub' => 'Status belum terisi dan masa berlaku aktif'],
-    ['label' => 'Sudah Terisi', 'value' => (string)$funnel['terisi'], 'tone' => 'success', 'sub' => 'Data status keterisian terkonfirmasi'],
-    ['label' => 'Belum Terisi', 'value' => (string)$funnel['perlu_update'], 'tone' => 'warning', 'sub' => 'Butuh tindak lanjut employer/unit'],
+    ['label' => 'Total Lowongan Dilaporkan', 'value' => (string)$funnel['dilaporkan'], 'tone' => 'blue', 'icon' => 'bi-briefcase-fill', 'sub' => $deltaLabel],
+    ['label' => 'Lowongan Aktif', 'value' => (string)$funnel['aktif'], 'tone' => 'cyan', 'icon' => 'bi-broadcast-pin', 'sub' => 'Status belum terisi dan masa berlaku aktif'],
+    ['label' => 'Sudah Terisi', 'value' => (string)$funnel['terisi'], 'tone' => 'green', 'icon' => 'bi-person-check-fill', 'sub' => 'Data status keterisian terkonfirmasi'],
+    ['label' => 'Belum Terisi', 'value' => (string)$funnel['perlu_update'], 'tone' => 'orange', 'icon' => 'bi-hourglass-split', 'sub' => 'Butuh tindak lanjut employer/unit'],
 ];
+
+$activeFilterCount = 0;
+foreach ($filters as $filterKey => $filterValue) {
+    $isDefault = in_array($filterKey, ['anchor_mulai', 'anchor_sampai'], true)
+        ? $filterValue === ''
+        : $filterValue === 'all';
+    if (!$isDefault) {
+        $activeFilterCount++;
+    }
+}
 
 $trendLabels = array_map(static fn (array $r): string => $r['period'], $trendRows);
 $trendTotal = array_map(static fn (array $r): int => (int)$r['total'], $trendRows);
@@ -363,12 +373,237 @@ $baseFilterParams = [
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <?php kh_proto_render_styles(); ?>
     <style>
+        .kh-admin-dashboard {
+            --admin-ink: #172b4d;
+            --admin-muted: #6b7f94;
+            --admin-line: #dfe8f2;
+            --admin-blue: #155eef;
+        }
+        .kh-admin-dashboard .kh-proto-main { color: var(--admin-ink); }
+        .kh-admin-hero {
+            position: relative;
+            overflow: hidden;
+            padding: clamp(1.2rem, 3vw, 1.8rem);
+            border-radius: 1rem;
+            color: #fff;
+            background:
+                radial-gradient(circle at 88% 10%, rgba(255,255,255,.16), transparent 28%),
+                linear-gradient(125deg, #102f6f 0%, #155eef 58%, #397ff0 100%);
+            box-shadow: 0 15px 34px rgba(21, 94, 239, .2);
+        }
+        .kh-admin-hero::after {
+            position: absolute;
+            right: -55px;
+            bottom: -95px;
+            width: 220px;
+            height: 220px;
+            border: 34px solid rgba(255,255,255,.07);
+            border-radius: 50%;
+            content: "";
+        }
+        .kh-admin-hero-content { position: relative; z-index: 1; }
+        .kh-admin-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            margin-bottom: .4rem;
+            padding: .25rem .6rem;
+            border-radius: 999px;
+            color: #dce9ff;
+            font-size: .68rem;
+            font-weight: 750;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            background: rgba(255,255,255,.12);
+        }
+        .kh-admin-hero h3 { font-size: clamp(1.35rem, 3vw, 1.85rem); font-weight: 760; }
+        .kh-admin-hero-copy { color: #dce8ff; font-size: .82rem; }
+        .kh-admin-hero .btn-outline-light { border-color: rgba(255,255,255,.65); }
+        .kh-admin-hero .btn-light { color: #124dbf; font-weight: 700; }
+        .kh-admin-filter-card,
+        .kh-admin-panel,
+        .kh-admin-summary-card {
+            border: 1px solid var(--admin-line) !important;
+            border-radius: .95rem !important;
+            box-shadow: 0 8px 24px rgba(36, 67, 104, .06) !important;
+        }
+        .kh-admin-filter-card { overflow: hidden; }
+        .kh-admin-filter-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: .9rem 1.1rem;
+            border-bottom: 1px solid #e7edf4;
+            background: linear-gradient(135deg, #f8fbff, #f2f7ff);
+        }
+        .kh-admin-filter-title { color: #1e3b5c; font-size: .85rem; font-weight: 750; }
+        .kh-admin-filter-badge {
+            display: inline-flex;
+            padding: .2rem .5rem;
+            border-radius: 999px;
+            color: #155eef;
+            font-size: .65rem;
+            font-weight: 700;
+            background: #e7f0ff;
+        }
+        .kh-admin-filter .form-label {
+            margin-bottom: 5px;
+            color: #526a82;
+            font-size: 11px;
+            font-weight: 650;
+        }
+        .kh-admin-filter .form-control,
+        .kh-admin-filter .form-select {
+            min-height: 39px;
+            border-color: #cedae7;
+            border-radius: .55rem;
+            color: #294663;
+            background-color: #fff;
+        }
+        .kh-admin-filter .form-control:focus,
+        .kh-admin-filter .form-select:focus {
+            border-color: #5790f5;
+            box-shadow: 0 0 0 .2rem rgba(21, 94, 239, .11);
+        }
+        .kh-admin-summary-card {
+            height: 100%;
+            padding: 1rem;
+            background: #fff;
+            transition: transform 180ms ease, box-shadow 180ms ease;
+        }
+        .kh-admin-summary-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 13px 28px rgba(36, 67, 104, .11) !important;
+        }
+        .kh-admin-summary-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: .75rem;
+        }
+        .kh-admin-summary-label {
+            color: #61758a;
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+        .kh-admin-summary-value {
+            margin-top: .3rem;
+            color: #142b4b;
+            font-size: 1.65rem;
+            font-weight: 780;
+            line-height: 1;
+        }
+        .kh-admin-summary-icon {
+            display: grid;
+            width: 40px;
+            height: 40px;
+            place-items: center;
+            border-radius: .72rem;
+        }
+        .kh-admin-summary-icon.blue { color: #155eef; background: #eaf1ff; }
+        .kh-admin-summary-icon.cyan { color: #1689a8; background: #e9f9fc; }
+        .kh-admin-summary-icon.green { color: #087e5b; background: #eaf9f4; }
+        .kh-admin-summary-icon.orange { color: #c46a16; background: #fff4e8; }
+        .kh-admin-card-sub { margin-top: .65rem; color: #7b8ca0; font-size: 11px; }
+        .kh-admin-panel { height: 100%; overflow: hidden; background: #fff; }
+        .kh-admin-panel .card-body { padding: 1rem 1.1rem; }
+        .kh-admin-panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .75rem;
+            margin-bottom: .85rem;
+        }
+        .kh-admin-panel-title {
+            margin: 0;
+            color: #183858;
+            font-size: .92rem;
+            font-weight: 750;
+        }
+        .kh-admin-panel-sub { color: #8090a2; font-size: .65rem; }
+        .kh-admin-panel-icon {
+            display: grid;
+            width: 34px;
+            height: 34px;
+            place-items: center;
+            border-radius: .6rem;
+            color: #155eef;
+            background: #eaf2ff;
+        }
         .kh-admin-chart-wrap { min-height: 280px; }
-        .kh-admin-card-sub { font-size: 12px; color: #6c757d; }
-        .kh-admin-filter .form-label { font-size: 12px; margin-bottom: 4px; color: #54657a; }
+        .kh-admin-table { margin: 0; }
+        .kh-admin-table thead th {
+            padding: .7rem .65rem;
+            border: 0;
+            border-bottom: 1px solid #dfe7f0;
+            color: #66788c;
+            font-size: .63rem;
+            font-weight: 750;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            background: #f8fafd !important;
+            white-space: nowrap;
+        }
+        .kh-admin-table tbody td {
+            padding: .7rem .65rem;
+            border-color: #ebf0f5;
+            color: #354f69;
+            font-size: .71rem;
+        }
+        .kh-admin-table tbody tr:hover { background: #fbfdff; }
+        .kh-admin-table .btn {
+            border-radius: .45rem;
+            font-size: .65rem;
+        }
+        .kh-compliance-wrap { min-width: 105px; }
+        .kh-compliance-value { color: #31506e; font-size: .67rem; font-weight: 700; }
+        .kh-compliance-track {
+            height: 5px;
+            margin-top: .25rem;
+            overflow: hidden;
+            border-radius: 999px;
+            background: #e9eef4;
+        }
+        .kh-compliance-fill {
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #0b8f69, #3fc39a);
+        }
+        .kh-admin-status {
+            display: inline-flex;
+            padding: .23rem .52rem;
+            border-radius: 999px;
+            color: #087e5b;
+            font-size: .63rem;
+            font-weight: 700;
+            background: #eaf9f4;
+            white-space: nowrap;
+        }
+        .kh-admin-data-quality {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .75rem;
+            padding-top: .4rem;
+        }
+        .kh-admin-quality-item {
+            padding: 1rem;
+            border: 1px solid #e1e9f2;
+            border-radius: .75rem;
+            background: #f9fbfd;
+        }
+        .kh-admin-quality-value { color: #183858; font-size: 1.25rem; font-weight: 780; }
+        .kh-admin-quality-label { color: #708298; font-size: .68rem; }
+        @media (max-width: 767px) {
+            .kh-admin-hero-actions { width: 100%; }
+            .kh-admin-hero-actions .btn { flex: 1 1 auto; }
+            .kh-admin-data-quality { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
-<body class="kh-proto-page">
+<body class="kh-proto-page kh-admin-dashboard">
 <?php include 'navbar.php'; ?>
 <?php kh_proto_render_hero('Dashboard WLLP Admin', 'Analitik lintas employer untuk monitoring WLLP prototype.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Admin', 'karirhub_employer_prototype_dashboard_wllp_admin', false); ?>
 
@@ -377,23 +612,33 @@ $baseFilterParams = [
     <div class="kh-proto-shell">
     <?php kh_proto_render_sidebar('dashboard_wllp_admin'); ?>
     <main class="kh-proto-main">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <div>
-            <h3 class="mb-0">Dashboard WLLP Admin</h3>
-            <div class="text-muted small">Visualisasi lintas employer, unit, periode, dan wilayah</div>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a class="btn btn-outline-primary btn-sm" href="karirhub_employer_prototype_bukti_lapor?<?php echo h(http_build_query(['status' => 'all', 'unit' => $filters['unit'] === 'all' ? 'all' : $filters['unit']])); ?>">
+    <section class="kh-admin-hero mb-3">
+        <div class="kh-admin-hero-content d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="kh-admin-eyebrow"><i class="bi bi-shield-lock-fill"></i> Admin Analytics</div>
+                <h3 class="mb-1">Dashboard WLLP Admin</h3>
+                <div class="kh-admin-hero-copy">Pantau pelaporan lintas employer, unit, periode, dan wilayah dalam satu tampilan.</div>
+            </div>
+            <div class="kh-admin-hero-actions d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-light btn-sm" href="karirhub_employer_prototype_bukti_lapor?<?php echo h(http_build_query(['status' => 'all', 'unit' => $filters['unit'] === 'all' ? 'all' : $filters['unit']])); ?>">
                 <i class="bi bi-file-earmark-check me-1"></i>Lihat Bukti Lapor
             </a>
-            <a class="btn btn-primary btn-sm" href="karirhub_employer_prototype_dashboard_wllp_admin">
+            <a class="btn btn-light btn-sm" href="karirhub_employer_prototype_dashboard_wllp_admin">
                 <i class="bi bi-arrow-clockwise me-1"></i>Reset Filter
             </a>
+            </div>
         </div>
-    </div>
+    </section>
 
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
+    <div class="card kh-admin-filter-card border-0 shadow-sm mb-3">
+        <div class="kh-admin-filter-head">
+            <div>
+                <div class="kh-admin-filter-title"><i class="bi bi-sliders me-1"></i>Filter Analitik</div>
+                <div class="kh-admin-panel-sub">Sesuaikan data yang ditampilkan pada seluruh panel</div>
+            </div>
+            <span class="kh-admin-filter-badge"><?php echo h((string)$activeFilterCount); ?> filter aktif</span>
+        </div>
+        <div class="card-body p-3">
             <form method="GET" class="row g-2 kh-admin-filter">
                 <div class="col-6 col-md-3">
                     <label class="form-label">Periode Tipe</label>
@@ -451,7 +696,7 @@ $baseFilterParams = [
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-6 col-md-3 d-flex align-items-end gap-2">
+                <div class="col-6 col-md-3 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-funnel me-1"></i>Terapkan</button>
                 </div>
             </form>
@@ -461,12 +706,17 @@ $baseFilterParams = [
     <div class="row g-3 mb-3">
         <?php foreach ($summaryCards as $card): ?>
             <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
-                        <div class="text-muted small"><?php echo h($card['label']); ?></div>
-                        <div class="fs-4 fw-semibold text-<?php echo h($card['tone']); ?>"><?php echo h($card['value']); ?></div>
-                        <div class="kh-admin-card-sub"><?php echo h($card['sub']); ?></div>
+                <div class="kh-admin-summary-card">
+                    <div class="kh-admin-summary-head">
+                        <div>
+                            <div class="kh-admin-summary-label"><?php echo h($card['label']); ?></div>
+                            <div class="kh-admin-summary-value"><?php echo h($card['value']); ?></div>
+                        </div>
+                        <span class="kh-admin-summary-icon <?php echo h($card['tone']); ?>">
+                            <i class="bi <?php echo h($card['icon']); ?>"></i>
+                        </span>
                     </div>
+                    <div class="kh-admin-card-sub"><?php echo h($card['sub']); ?></div>
                 </div>
             </div>
         <?php endforeach; ?>
@@ -474,22 +724,28 @@ $baseFilterParams = [
 
     <div class="row g-3 mb-3">
         <div class="col-12 col-xl-8">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card kh-admin-panel border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h5 class="card-title mb-0">Tren Pelaporan per Periode</h5>
-                        <span class="text-muted small">Detail per bulan/periode anchor</span>
+                    <div class="kh-admin-panel-head">
+                        <div>
+                            <h5 class="kh-admin-panel-title">Tren Pelaporan per Periode</h5>
+                            <span class="kh-admin-panel-sub">Detail per bulan dan periode anchor</span>
+                        </div>
+                        <span class="kh-admin-panel-icon"><i class="bi bi-graph-up-arrow"></i></span>
                     </div>
                     <div class="kh-admin-chart-wrap"><canvas id="trendChart"></canvas></div>
                 </div>
             </div>
         </div>
         <div class="col-12 col-xl-4">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card kh-admin-panel border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h5 class="card-title mb-0">Funnel WLLP</h5>
-                        <span class="text-muted small">Status agregat</span>
+                    <div class="kh-admin-panel-head">
+                        <div>
+                            <h5 class="kh-admin-panel-title">Funnel WLLP</h5>
+                            <span class="kh-admin-panel-sub">Status agregat lowongan</span>
+                        </div>
+                        <span class="kh-admin-panel-icon"><i class="bi bi-funnel-fill"></i></span>
                     </div>
                     <div class="kh-admin-chart-wrap"><canvas id="funnelChart"></canvas></div>
                 </div>
@@ -499,34 +755,76 @@ $baseFilterParams = [
 
     <div class="row g-3 mb-3">
         <div class="col-12 col-xl-4">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card kh-admin-panel border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h5 class="card-title mb-0">Match NIK SIAPKerja</h5>
-                        <span class="text-muted small">Match vs Unmatch</span>
+                    <div class="kh-admin-panel-head">
+                        <div>
+                            <h5 class="kh-admin-panel-title">Match NIK SIAPKerja</h5>
+                            <span class="kh-admin-panel-sub">Match vs unmatch</span>
+                        </div>
+                        <span class="kh-admin-panel-icon"><i class="bi bi-person-vcard"></i></span>
                     </div>
                     <div class="kh-admin-chart-wrap"><canvas id="nikMatchChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-8">
+            <div class="card kh-admin-panel border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="kh-admin-panel-head">
+                        <div>
+                            <h5 class="kh-admin-panel-title">Kualitas Data Identitas</h5>
+                            <span class="kh-admin-panel-sub">Ringkasan validasi NIK terhadap SIAPKerja</span>
+                        </div>
+                        <span class="kh-admin-panel-icon"><i class="bi bi-database-check"></i></span>
+                    </div>
+                    <div class="kh-admin-data-quality">
+                        <div class="kh-admin-quality-item">
+                            <div class="kh-admin-quality-value text-success">80%</div>
+                            <div class="kh-admin-quality-label">NIK berhasil dipadankan dengan SIAPKerja</div>
+                        </div>
+                        <div class="kh-admin-quality-item">
+                            <div class="kh-admin-quality-value text-danger">20%</div>
+                            <div class="kh-admin-quality-label">NIK memerlukan verifikasi atau perbaikan</div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info small mt-3 mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Prioritaskan tindak lanjut pada data yang belum cocok untuk menjaga kualitas pelaporan.
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="row g-3 mb-3">
-        <div class="col-12 col-xl-6">
-            <div class="card border-0 shadow-sm h-100">
+        <div class="col-12 col-xl-5">
+            <div class="card kh-admin-panel border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <h5 class="card-title mb-2">Distribusi Wilayah (Top Provinsi)</h5>
+                    <div class="kh-admin-panel-head">
+                        <div>
+                            <h5 class="kh-admin-panel-title">Distribusi Wilayah</h5>
+                            <span class="kh-admin-panel-sub">Top provinsi berdasarkan jumlah lowongan</span>
+                        </div>
+                        <span class="kh-admin-panel-icon"><i class="bi bi-geo-alt-fill"></i></span>
+                    </div>
                     <div class="kh-admin-chart-wrap"><canvas id="geoChart"></canvas></div>
                 </div>
             </div>
         </div>
-        <div class="col-12 col-xl-6">
-            <div class="card border-0 shadow-sm h-100">
+        <div class="col-12 col-xl-7">
+            <div class="card kh-admin-panel border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <h5 class="card-title mb-2">Kepatuhan per Employer</h5>
+                    <div class="kh-admin-panel-head">
+                        <div>
+                            <h5 class="kh-admin-panel-title">Kepatuhan per Employer</h5>
+                            <span class="kh-admin-panel-sub">Tingkat pembaruan status lowongan</span>
+                        </div>
+                        <span class="kh-admin-panel-icon"><i class="bi bi-building-check"></i></span>
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-sm table-bordered align-middle mb-0">
-                            <thead class="table-light">
+                        <table class="table table-sm kh-admin-table align-middle mb-0">
+                            <thead>
                                 <tr>
                                     <th>Employer</th>
                                     <th>Total</th>
@@ -543,7 +841,14 @@ $baseFilterParams = [
                                         <td><?php echo h((string)$row['total']); ?></td>
                                         <td><?php echo h((string)$row['terisi']); ?></td>
                                         <td><?php echo h((string)$row['belum_update']); ?></td>
-                                        <td><?php echo h((string)$row['patuh_pct']); ?>%</td>
+                                        <td>
+                                            <div class="kh-compliance-wrap">
+                                                <div class="kh-compliance-value"><?php echo h((string)$row['patuh_pct']); ?>%</div>
+                                                <div class="kh-compliance-track">
+                                                    <div class="kh-compliance-fill" style="width: <?php echo h((string)$row['patuh_pct']); ?>%;"></div>
+                                                </div>
+                                            </div>
+                                        </td>
                                         <td>
                                             <a class="btn btn-outline-primary btn-sm"
                                                href="karirhub_employer_prototype_bukti_lapor?<?php echo h(http_build_query(['status' => 'all', 'unit' => (string)$row['sample_unit'], 'q' => (string)$row['sample_no_reg']])); ?>">
@@ -565,12 +870,18 @@ $baseFilterParams = [
 
     <div class="row g-3 mb-3">
         <div class="col-12 col-xl-7">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card kh-admin-panel border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <h5 class="card-title mb-2">Detail Tren Periode</h5>
+                    <div class="kh-admin-panel-head">
+                        <div>
+                            <h5 class="kh-admin-panel-title">Detail Tren Periode</h5>
+                            <span class="kh-admin-panel-sub">Rincian performa berdasarkan periode</span>
+                        </div>
+                        <span class="kh-admin-panel-icon"><i class="bi bi-calendar3"></i></span>
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-sm table-bordered align-middle mb-0">
-                            <thead class="table-light">
+                        <table class="table table-sm kh-admin-table align-middle mb-0">
+                            <thead>
                                 <tr>
                                     <th>Periode</th>
                                     <th>Total</th>
@@ -604,12 +915,18 @@ $baseFilterParams = [
             </div>
         </div>
         <div class="col-12 col-xl-5">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card kh-admin-panel border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <h5 class="card-title mb-2">Detail Geografis</h5>
+                    <div class="kh-admin-panel-head">
+                        <div>
+                            <h5 class="kh-admin-panel-title">Detail Geografis</h5>
+                            <span class="kh-admin-panel-sub">Sebaran lowongan per provinsi</span>
+                        </div>
+                        <span class="kh-admin-panel-icon"><i class="bi bi-map"></i></span>
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-sm table-bordered align-middle mb-0">
-                            <thead class="table-light">
+                        <table class="table table-sm kh-admin-table align-middle mb-0">
+                            <thead>
                                 <tr>
                                     <th>Provinsi</th>
                                     <th>Total</th>
@@ -642,12 +959,18 @@ $baseFilterParams = [
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm">
+    <div class="card kh-admin-panel border-0 shadow-sm">
         <div class="card-body">
-            <h5 class="card-title mb-2">Rincian Lowongan (Top 10)</h5>
+            <div class="kh-admin-panel-head">
+                <div>
+                    <h5 class="kh-admin-panel-title">Rincian Lowongan</h5>
+                    <span class="kh-admin-panel-sub">10 lowongan terbaru untuk filter saat ini</span>
+                </div>
+                <span class="kh-admin-panel-icon"><i class="bi bi-list-check"></i></span>
+            </div>
             <div class="table-responsive">
-                <table class="table table-sm table-bordered align-middle mb-0">
-                    <thead class="table-light">
+                <table class="table table-sm kh-admin-table align-middle mb-0">
+                    <thead>
                         <tr>
                             <th>No. Reg</th>
                             <th>ID Lowongan</th>
@@ -666,7 +989,7 @@ $baseFilterParams = [
                                 <td><?php echo h((string)$row['employer_nama']); ?></td>
                                 <td><?php echo h((string)$row['unit_nama']); ?></td>
                                 <td><?php echo h((string)$row['jabatan']); ?></td>
-                                <td><span class="badge text-bg-<?php echo h(karirhub_proto_status_badge_class((string)$row['status_keterisian'])); ?>"><?php echo h((string)$row['status_keterisian']); ?></span></td>
+                                <td><span class="kh-admin-status"><?php echo h((string)$row['status_keterisian']); ?></span></td>
                                 <td>
                                     <div class="d-flex gap-1">
                                         <a class="btn btn-outline-primary btn-sm" href="karirhub_employer_prototype_bukti_lapor?<?php echo h(http_build_query(['action' => 'lihat', 'no_reg' => (string)$row['no_reg_bukti'], 'status' => 'all', 'unit' => (string)$row['unit_kode']])); ?>">Bukti</a>
@@ -702,6 +1025,11 @@ $baseFilterParams = [
         const nikMatchLabels = ['Match', 'Unmatch'];
         const nikMatchData = [80, 20];
 
+        Chart.defaults.color = '#6b7f94';
+        Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+        Chart.defaults.plugins.legend.labels.usePointStyle = true;
+        Chart.defaults.plugins.legend.labels.boxWidth = 8;
+
         const trendCtx = document.getElementById('trendChart');
         if (trendCtx) {
             new Chart(trendCtx, {
@@ -712,23 +1040,35 @@ $baseFilterParams = [
                         {
                             label: 'Total Laporan',
                             data: trendTotal,
-                            borderColor: '#0d6efd',
-                            backgroundColor: 'rgba(13,110,253,0.2)',
-                            tension: 0.3
+                            borderColor: '#155eef',
+                            backgroundColor: 'rgba(21,94,239,0.10)',
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#155eef',
+                            fill: true,
+                            tension: 0.35
                         },
                         {
                             label: 'Terisi',
                             data: trendTerisi,
-                            borderColor: '#198754',
-                            backgroundColor: 'rgba(25,135,84,0.2)',
-                            tension: 0.3
+                            borderColor: '#0b8f69',
+                            backgroundColor: 'rgba(11,143,105,0.08)',
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#0b8f69',
+                            fill: true,
+                            tension: 0.35
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom' } }
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, grid: { color: '#edf1f5' } }
+                    }
                 }
             });
         }
@@ -742,14 +1082,19 @@ $baseFilterParams = [
                     datasets: [{
                         label: 'Jumlah',
                         data: funnelData,
-                        backgroundColor: ['#0d6efd', '#0dcaf0', '#198754', '#ffc107']
+                        backgroundColor: ['#155eef', '#28b4d0', '#0b8f69', '#efa13c'],
+                        borderRadius: 7,
+                        borderSkipped: false
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, grid: { color: '#edf1f5' } }
+                    }
                 }
             });
         }
@@ -763,12 +1108,15 @@ $baseFilterParams = [
                     datasets: [{
                         label: 'Total',
                         data: geoData,
-                        backgroundColor: ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#fd7e14', '#198754', '#20c997', '#0dcaf0']
+                        backgroundColor: ['#155eef', '#6e56cf', '#9b51cf', '#d74d86', '#ed8b32', '#0b8f69', '#24aa93', '#28b4d0'],
+                        borderColor: '#ffffff',
+                        borderWidth: 3
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: '58%',
                     plugins: { legend: { position: 'bottom' } }
                 }
             });
@@ -777,17 +1125,20 @@ $baseFilterParams = [
         const nikMatchCtx = document.getElementById('nikMatchChart');
         if (nikMatchCtx) {
             new Chart(nikMatchCtx, {
-                type: 'pie',
+                type: 'doughnut',
                 data: {
                     labels: nikMatchLabels,
                     datasets: [{
                         data: nikMatchData,
-                        backgroundColor: ['#198754', '#dc3545']
+                        backgroundColor: ['#0b8f69', '#e35d6a'],
+                        borderColor: '#ffffff',
+                        borderWidth: 3
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: '62%',
                     plugins: { legend: { position: 'bottom' } }
                 }
             });
