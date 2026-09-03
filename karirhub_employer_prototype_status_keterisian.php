@@ -380,6 +380,12 @@ foreach ($rows as $row) {
         $countByStatus[$row['status_keterisian']]++;
     }
 }
+$statusCardMeta = [
+    'Belum Terisi' => ['tone' => 'orange', 'icon' => 'bi-hourglass-split', 'copy' => 'Belum ada kandidat ditempatkan'],
+    'Proses Seleksi' => ['tone' => 'cyan', 'icon' => 'bi-people-fill', 'copy' => 'Kandidat sedang diseleksi'],
+    'Terisi' => ['tone' => 'green', 'icon' => 'bi-person-check-fill', 'copy' => 'Kebutuhan telah terpenuhi'],
+    'Belum Update' => ['tone' => 'red', 'icon' => 'bi-exclamation-triangle-fill', 'copy' => 'Memerlukan pembaruan status'],
+];
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -390,8 +396,201 @@ foreach ($rows as $row) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <?php kh_proto_render_styles(); ?>
+    <style>
+        .kh-fill-page {
+            --fill-ink: #172b4d;
+            --fill-muted: #6e8196;
+            --fill-line: #dfe8f2;
+            --fill-blue: #155eef;
+        }
+        .kh-fill-page .kh-proto-main { color: var(--fill-ink); }
+        .fill-hero {
+            position: relative;
+            overflow: hidden;
+            padding: clamp(1.2rem, 3vw, 1.8rem);
+            border-radius: 1rem;
+            color: #fff;
+            background:
+                radial-gradient(circle at 88% 12%, rgba(255,255,255,.17), transparent 27%),
+                linear-gradient(125deg, #0e4479 0%, #107f9e 54%, #24a9c4 100%);
+            box-shadow: 0 15px 34px rgba(16, 127, 158, .2);
+        }
+        .fill-hero::after {
+            position: absolute;
+            right: -58px;
+            bottom: -96px;
+            width: 220px;
+            height: 220px;
+            border: 35px solid rgba(255,255,255,.07);
+            border-radius: 50%;
+            content: "";
+        }
+        .fill-hero-content { position: relative; z-index: 1; }
+        .fill-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            margin-bottom: .4rem;
+            padding: .25rem .6rem;
+            border-radius: 999px;
+            color: #dcf7ff;
+            font-size: .68rem;
+            font-weight: 750;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            background: rgba(255,255,255,.12);
+        }
+        .fill-hero h3 { font-size: clamp(1.35rem, 3vw, 1.85rem); font-weight: 760; }
+        .fill-hero-copy { color: #dcf7ff; font-size: .82rem; }
+        .fill-hero .btn { border-color: rgba(255,255,255,.7); color: #fff; }
+        .fill-hero .btn:hover { border-color: #fff; color: #107f9e; background: #fff; }
+        .fill-summary-card {
+            height: 100%;
+            padding: 1rem;
+            border: 1px solid var(--fill-line);
+            border-radius: .9rem;
+            background: #fff;
+            box-shadow: 0 8px 22px rgba(36,67,104,.06);
+            transition: transform 180ms ease, box-shadow 180ms ease;
+        }
+        .fill-summary-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 13px 28px rgba(36,67,104,.11);
+        }
+        .fill-summary-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem; }
+        .fill-summary-label {
+            color: #64778b;
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+        .fill-summary-value { margin-top: .3rem; color: #142b4b; font-size: 1.6rem; font-weight: 780; line-height: 1; }
+        .fill-summary-copy { margin-top: .6rem; color: #7b8ca0; font-size: .68rem; }
+        .fill-summary-icon { display: grid; width: 40px; height: 40px; place-items: center; border-radius: .72rem; }
+        .fill-summary-icon.orange { color: #c46a16; background: #fff4e8; }
+        .fill-summary-icon.cyan { color: #1689a8; background: #e9f9fc; }
+        .fill-summary-icon.green { color: #087e5b; background: #eaf9f4; }
+        .fill-summary-icon.red { color: #c94c5b; background: #fff0f2; }
+        .fill-filter-card,
+        .fill-table-card {
+            overflow: hidden;
+            border: 1px solid var(--fill-line) !important;
+            border-radius: .95rem !important;
+            box-shadow: 0 8px 24px rgba(36,67,104,.06) !important;
+        }
+        .fill-panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: .9rem 1.1rem;
+            border-bottom: 1px solid #e7edf4;
+            background: linear-gradient(135deg, #f8fbff, #f1fbfd);
+        }
+        .fill-panel-title { color: #1d3c5d; font-size: .87rem; font-weight: 750; }
+        .fill-panel-copy { margin-top: .12rem; color: #8090a2; font-size: .65rem; }
+        .fill-count {
+            display: inline-flex;
+            padding: .22rem .55rem;
+            border-radius: 999px;
+            color: #107f9e;
+            font-size: .65rem;
+            font-weight: 700;
+            background: #e4f7fb;
+        }
+        .fill-filter-card .form-label { color: #526a82; font-size: .7rem; font-weight: 650; }
+        .fill-filter-card .form-control,
+        .fill-filter-card .form-select,
+        .kh-fill-page .modal .form-control,
+        .kh-fill-page .modal .form-select {
+            min-height: 40px;
+            border-color: #cedae7;
+            border-radius: .55rem;
+        }
+        .fill-table { min-width: 1320px; margin: 0; }
+        .fill-table thead th {
+            padding: .75rem .65rem;
+            border: 0;
+            border-bottom: 1px solid #dfe7f0;
+            color: #66788c;
+            font-size: .6rem;
+            font-weight: 750;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            background: #f8fafd !important;
+            white-space: nowrap;
+        }
+        .fill-table tbody td {
+            padding: .78rem .65rem;
+            border-color: #ebf0f5;
+            color: #354f69;
+            font-size: .7rem;
+            vertical-align: middle;
+        }
+        .fill-table tbody tr:hover { background: #fbfdff; }
+        .fill-reg { color: #173b61; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; }
+        .fill-detail-link { display: inline-block; margin-top: .25rem; color: #155eef; font-size: .62rem; font-weight: 700; text-decoration: none; }
+        .fill-detail-link:hover { text-decoration: underline; }
+        .fill-source,
+        .fill-status {
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem;
+            padding: .24rem .5rem;
+            border-radius: 999px;
+            font-size: .62rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .fill-source.karirhub { color: #137f9a; background: #e8f8fc; }
+        .fill-source.other { color: #657286; background: #f0f2f5; }
+        .fill-status { color: #526579; background: #f0f3f6; }
+        .fill-status.terisi { color: #087e5b; background: #eaf9f4; }
+        .fill-status.seleksi { color: #137f9a; background: #e8f8fc; }
+        .fill-progress { min-width: 95px; }
+        .fill-progress-meta { display: flex; justify-content: space-between; margin-bottom: .25rem; font-size: .62rem; font-weight: 700; }
+        .fill-progress-track { height: 5px; overflow: hidden; border-radius: 999px; background: #e9eef4; }
+        .fill-progress-bar { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #efa13c, #f1bf72); }
+        .fill-progress-bar.complete { background: linear-gradient(90deg, #0b8f69, #3fc39a); }
+        .fill-update-actions { display: inline-flex; gap: .28rem; }
+        .fill-update-action {
+            display: inline-grid;
+            width: 30px;
+            height: 30px;
+            place-items: center;
+            border: 1px solid #d8e2ed;
+            border-radius: .46rem;
+            color: #60758b;
+            background: #fff;
+            text-decoration: none;
+        }
+        .fill-update-action:hover { border-color: #8eb9c8; color: #107f9e; background: #f0fafc; }
+        .fill-update-action.success { color: #087e5b; }
+        .fill-empty { padding: 3rem 1rem !important; color: #7d8ea1 !important; }
+        .kh-fill-page .modal-content {
+            overflow: hidden;
+            border: 0;
+            border-radius: 1rem;
+            box-shadow: 0 25px 70px rgba(16,42,76,.25);
+        }
+        .kh-fill-page .modal-header {
+            color: #fff;
+            border: 0;
+            background: linear-gradient(125deg, #0e4479, #107f9e);
+        }
+        .kh-fill-page .modal-header .btn-close { filter: invert(1); }
+        .kh-fill-page .modal-footer { border-top-color: #e6edf5; background: #f8fafd; }
+        .fill-modal-card { border: 1px solid #e0e9f2 !important; border-radius: .8rem !important; box-shadow: none !important; }
+        .fill-modal-card .card-header { border-bottom-color: #e4ebf3; color: #294966; background: #f6f9fd !important; }
+        .fill-employee-card { border: 1px solid #dfe8f2 !important; border-radius: .8rem !important; background: #fbfdff; }
+        @media (max-width: 767px) {
+            .fill-hero-actions { width: 100%; }
+            .fill-hero-actions .btn { width: 100%; }
+        }
+    </style>
 </head>
-<body class="kh-proto-page">
+<body class="kh-proto-page kh-fill-page">
 <?php include 'navbar.php'; ?>
 <?php kh_proto_render_hero('Daftar Lowongan Kerja', 'Pantau dan simulasikan status keterisian lowongan seperti dashboard employer.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_dashboard_wllp', false); ?>
 
@@ -400,17 +599,20 @@ foreach ($rows as $row) {
     <div class="kh-proto-shell">
     <?php kh_proto_render_sidebar('wllp_status_keterisian'); ?>
     <main class="kh-proto-main">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <div>
-            <h3 class="mb-0">Status Keterisian</h3>
-            <div class="text-muted small">Simulasi update status lowongan WLLP</div>
+    <section class="fill-hero mb-3">
+        <div class="fill-hero-content d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="fill-eyebrow"><i class="bi bi-people-fill"></i> Pemantauan Penempatan</div>
+                <h3 class="mb-1">Status Keterisian</h3>
+                <div class="fill-hero-copy">Pantau progres seleksi dan perbarui data penempatan tenaga kerja untuk setiap lowongan.</div>
+            </div>
+            <div class="fill-hero-actions">
+                <a class="btn btn-outline-light btn-sm" href="karirhub_employer_prototype_dashboard_wllp">
+                    <i class="bi bi-arrow-left me-1"></i>Kembali ke Dashboard WLLP
+                </a>
+            </div>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a class="btn btn-outline-primary btn-sm" href="karirhub_employer_prototype_dashboard_wllp">
-                <i class="bi bi-arrow-left me-1"></i>Kembali ke Dashboard WLLP
-            </a>
-        </div>
-    </div>
+    </section>
 
     <?php if ($successMessage !== null): ?>
         <div class="alert alert-success py-2"><?php echo h($successMessage); ?></div>
@@ -428,19 +630,31 @@ foreach ($rows as $row) {
 
     <div class="row g-3 mb-3">
         <?php foreach ($countByStatus as $statusName => $statusCount): ?>
+            <?php $cardMeta = $statusCardMeta[$statusName]; ?>
             <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
-                        <div class="text-muted small"><?php echo h($statusName); ?></div>
-                        <div class="fs-4 fw-semibold text-<?php echo h(karirhub_proto_status_badge_class($statusName)); ?>"><?php echo h((string)$statusCount); ?></div>
+                <div class="fill-summary-card">
+                    <div class="fill-summary-head">
+                        <div>
+                            <div class="fill-summary-label"><?php echo h($statusName); ?></div>
+                            <div class="fill-summary-value"><?php echo h((string)$statusCount); ?></div>
+                        </div>
+                        <span class="fill-summary-icon <?php echo h($cardMeta['tone']); ?>"><i class="bi <?php echo h($cardMeta['icon']); ?>"></i></span>
                     </div>
+                    <div class="fill-summary-copy"><?php echo h($cardMeta['copy']); ?></div>
                 </div>
             </div>
         <?php endforeach; ?>
     </div>
 
-    <form method="GET" class="card border-0 shadow-sm mb-3">
-        <div class="card-body py-3">
+    <form method="GET" class="card fill-filter-card border-0 shadow-sm mb-3">
+        <div class="fill-panel-head">
+            <div>
+                <div class="fill-panel-title"><i class="bi bi-sliders me-1"></i>Filter Lowongan</div>
+                <div class="fill-panel-copy">Saring data berdasarkan status, unit perusahaan, atau sumber</div>
+            </div>
+            <a class="btn btn-outline-secondary btn-sm" href="karirhub_employer_prototype_status_keterisian"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
+        </div>
+        <div class="card-body p-3">
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
                     <label class="form-label mb-1">Status Keterisian</label>
@@ -475,11 +689,18 @@ foreach ($rows as $row) {
         </div>
     </form>
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body">
+    <div class="card fill-table-card border-0 shadow-sm">
+        <div class="fill-panel-head">
+            <div>
+                <div class="fill-panel-title">Daftar Status Lowongan</div>
+                <div class="fill-panel-copy">Perbarui tahapan dan data pegawai yang ditempatkan</div>
+            </div>
+            <span class="fill-count"><?php echo h((string)count($filteredRows)); ?> lowongan</span>
+        </div>
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-bordered table-sm align-middle mb-0">
-                    <thead class="table-light">
+                <table class="table table-sm fill-table align-middle mb-0">
+                    <thead>
                         <tr>
                             <th>No. Reg Bukti</th>
                             <th>ID Lowongan</th>
@@ -497,7 +718,7 @@ foreach ($rows as $row) {
                     </thead>
                     <tbody>
                     <?php if (empty($filteredRows)): ?>
-                        <tr><td colspan="12" class="text-center text-muted">Tidak ada data.</td></tr>
+                        <tr><td colspan="12" class="fill-empty"><i class="bi bi-inbox fs-3 d-block mb-2"></i>Tidak ada data.</td></tr>
                     <?php else: ?>
                         <?php foreach ($filteredRows as $row): ?>
                             <?php
@@ -509,27 +730,41 @@ foreach ($rows as $row) {
                                 } elseif ($penempatan > 0) {
                                     $progressClass = 'warning';
                                 }
+                                $placementPercentage = $kebutuhan > 0 ? min(100, (int)round(($penempatan / $kebutuhan) * 100)) : 0;
+                                $statusCssClass = strtolower((string)$row['status_keterisian']) === 'terisi'
+                                    ? 'terisi'
+                                    : (strtolower((string)$row['status_keterisian']) === 'proses seleksi' ? 'seleksi' : '');
                             ?>
                             <tr>
-                                <td class="fw-semibold">
-                                    <div><?php echo h($row['no_reg_bukti']); ?></div>
-                                    <a class="btn btn-outline-primary btn-sm mt-1" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>&detail_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&detail_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>">Lihat Detail</a>
+                                <td>
+                                    <div class="fill-reg"><?php echo h($row['no_reg_bukti']); ?></div>
+                                    <a class="fill-detail-link" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>&detail_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&detail_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>"><i class="bi bi-eye me-1"></i>Lihat Detail</a>
                                 </td>
                                 <td><?php echo h($row['id_lowongan']); ?></td>
                                 <td class="small"><?php echo h(strtoupper((string)$row['periode_tipe']) . ' (' . (string)$row['periode_mulai'] . ' s.d. ' . (string)$row['periode_selesai'] . ')'); ?></td>
                                 <td><?php echo h($row['jabatan']); ?></td>
                                 <td><?php echo h($units[$row['unit_kode']]['nama'] ?? $row['unit_kode']); ?></td>
-                                <td><span class="badge text-bg-<?php echo strtolower((string)$row['sumber']) === 'karirhub' ? 'info' : 'secondary'; ?>"><?php echo h((string)$row['sumber']); ?></span></td>
+                                <td>
+                                    <?php $isKarirhubSource = strtolower((string)$row['sumber']) === 'karirhub'; ?>
+                                    <span class="fill-source <?php echo $isKarirhubSource ? 'karirhub' : 'other'; ?>">
+                                        <i class="bi <?php echo $isKarirhubSource ? 'bi-link-45deg' : 'bi-file-earmark'; ?>"></i><?php echo h((string)$row['sumber']); ?>
+                                    </span>
+                                </td>
                                 <td><?php echo h((string)($row['jumlah_kebutuhan'] ?? 0)); ?></td>
-                                <td><span class="badge text-bg-<?php echo h($progressClass); ?>"><?php echo h((string)$penempatan . ' / ' . (string)$kebutuhan); ?></span></td>
-                                <td><span class="badge text-bg-<?php echo h(karirhub_proto_status_badge_class($row['status_keterisian'])); ?>"><?php echo h($row['status_keterisian']); ?></span></td>
+                                <td>
+                                    <div class="fill-progress">
+                                        <div class="fill-progress-meta"><span><?php echo h((string)$penempatan . ' / ' . (string)$kebutuhan); ?></span><span><?php echo h((string)$placementPercentage); ?>%</span></div>
+                                        <div class="fill-progress-track"><div class="fill-progress-bar<?php echo $progressClass === 'success' ? ' complete' : ''; ?>" style="width: <?php echo h((string)$placementPercentage); ?>%;"></div></div>
+                                    </div>
+                                </td>
+                                <td><span class="fill-status <?php echo h($statusCssClass); ?>"><?php echo h($row['status_keterisian']); ?></span></td>
                                 <td><?php echo h($row['tanggal_lapor']); ?></td>
                                 <td><?php echo h((string)($row['tanggal_terisi'] ?? '-')); ?></td>
                                 <td>
-                                    <div class="btn-group btn-group-sm flex-wrap" role="group">
-                                        <a class="btn btn-outline-secondary" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>&simulate_status=Belum%20Terisi">Belum</a>
-                                        <a class="btn btn-outline-info" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>&simulate_status=Proses%20Seleksi">Seleksi</a>
-                                        <a class="btn btn-outline-success" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>&open_terisi_for=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&open_terisi_id=<?php echo h(urlencode($row['id_lowongan'])); ?>">Terisi</a>
+                                    <div class="fill-update-actions">
+                                        <a class="fill-update-action" title="Set Belum Terisi" aria-label="Set Belum Terisi" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>&simulate_status=Belum%20Terisi"><i class="bi bi-hourglass"></i></a>
+                                        <a class="fill-update-action" title="Set Proses Seleksi" aria-label="Set Proses Seleksi" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>&simulate_no_reg=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&simulate_id_lowongan=<?php echo h(urlencode($row['id_lowongan'])); ?>&simulate_status=Proses%20Seleksi"><i class="bi bi-people"></i></a>
+                                        <a class="fill-update-action success" title="Lengkapi dan Set Terisi" aria-label="Lengkapi dan Set Terisi" href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>&open_terisi_for=<?php echo h(urlencode($row['no_reg_bukti'])); ?>&open_terisi_id=<?php echo h(urlencode($row['id_lowongan'])); ?>"><i class="bi bi-person-check"></i></a>
                                     </div>
                                 </td>
                             </tr>
@@ -549,7 +784,7 @@ foreach ($rows as $row) {
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Bulk Import Data Pegawai Ditempatkan</h5>
+                <h5 class="modal-title"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Bulk Import Data Pegawai Ditempatkan</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body">
@@ -585,7 +820,7 @@ foreach ($rows as $row) {
     <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-height: calc(100vh - 2rem);">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Detail WLLP</h5>
+                <h5 class="modal-title"><i class="bi bi-briefcase-fill me-2"></i>Detail WLLP</h5>
                 <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>" class="btn-close"></a>
             </div>
             <div class="modal-body" style="max-height: calc(100vh - 220px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
@@ -606,7 +841,7 @@ foreach ($rows as $row) {
                         </button>
                     </div>
                 </div>
-                <div class="card border-0 shadow-sm mb-3">
+                <div class="card fill-modal-card border-0 shadow-sm mb-3">
                     <div class="card-header bg-light fw-semibold">Informasi Lowongan Pekerjaan</div>
                     <div class="card-body">
                         <?php if ($detailLowonganInfo === null): ?>
@@ -630,7 +865,7 @@ foreach ($rows as $row) {
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm">
+                <div class="card fill-modal-card border-0 shadow-sm">
                     <div class="card-header bg-light fw-semibold">Data Pegawai yang Ditempatkan</div>
                     <div class="card-body">
                         <?php if (empty($detailPegawaiRows)): ?>
@@ -685,7 +920,7 @@ foreach ($rows as $row) {
     <div class="modal-dialog modal-lg modal-dialog-scrollable" style="max-height: calc(100vh - 2rem);">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Lengkapi Data Pegawai yang ditempatkan</h5>
+                <h5 class="modal-title"><i class="bi bi-person-check-fill me-2"></i>Lengkapi Data Pegawai yang Ditempatkan</h5>
                 <a href="?status=<?php echo h(urlencode($statusFilter)); ?>&unit=<?php echo h(urlencode($unitFilter)); ?>&sumber=<?php echo h(urlencode($sumberFilter)); ?>" class="btn-close"></a>
             </div>
             <form method="POST">
@@ -704,8 +939,8 @@ foreach ($rows as $row) {
                     <input type="hidden" name="unit" value="<?php echo h($unitFilter); ?>">
                     <input type="hidden" name="sumber" value="<?php echo h($sumberFilter); ?>">
                     <?php foreach ($pegawaiFormRows as $pegawaiIndex => $pegawaiForm): ?>
-                    <div class="border rounded p-3 mb-3">
-                        <div class="fw-semibold small mb-2">Data Pegawai <?php echo h((string)($pegawaiIndex + 1)); ?> dari <?php echo h((string)$openTerisiJumlahKebutuhan); ?></div>
+                    <div class="fill-employee-card border rounded p-3 mb-3">
+                        <div class="fw-semibold small mb-2"><i class="bi bi-person-badge text-primary me-1"></i>Data Pegawai <?php echo h((string)($pegawaiIndex + 1)); ?> dari <?php echo h((string)$openTerisiJumlahKebutuhan); ?></div>
                         <div class="row g-3">
                             <div class="col-12 col-md-6">
                                 <label class="form-label mb-1">NIK</label>
