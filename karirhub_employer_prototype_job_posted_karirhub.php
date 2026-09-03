@@ -34,7 +34,11 @@ $statusFilter = trim((string)($_GET['status'] ?? 'all'));
 if (!in_array($statusFilter, ['all', 'aktif', 'ditutup'], true)) {
     $statusFilter = 'all';
 }
-$lokerTerbatas = trim((string)($_GET['loker_terbatas'] ?? '0')) === '1';
+$searchQuery = trim((string)($_GET['q'] ?? ''));
+$sortOrder = trim((string)($_GET['sort'] ?? 'newest'));
+if (!in_array($sortOrder, ['newest', 'oldest', 'title'], true)) {
+    $sortOrder = 'newest';
+}
 
 $jobs = [
     [
@@ -305,12 +309,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
 }
 finalize_add_to_wllp:
 
-$filteredJobs = array_values(array_filter($jobs, static function (array $job) use ($statusFilter): bool {
-    if ($statusFilter === 'all') {
-        return true;
+$filteredJobs = array_values(array_filter($jobs, static function (array $job) use ($statusFilter, $searchQuery): bool {
+    if ($statusFilter !== 'all' && (string)$job['status'] !== $statusFilter) {
+        return false;
     }
-    return (string)$job['status'] === $statusFilter;
+    if ($searchQuery !== '') {
+        $haystack = strtolower((string)$job['judul'] . ' ' . (string)$job['lokasi']);
+        if (strpos($haystack, strtolower($searchQuery)) === false) {
+            return false;
+        }
+    }
+    return true;
 }));
+if ($sortOrder === 'oldest') {
+    $filteredJobs = array_reverse($filteredJobs);
+} elseif ($sortOrder === 'title') {
+    usort($filteredJobs, static fn (array $a, array $b): int => strcasecmp((string)$a['judul'], (string)$b['judul']));
+}
+
+$activeJobCount = count(array_filter($jobs, static fn (array $job): bool => (string)$job['status'] === 'aktif'));
+$wllpJobCount = count($wllpAddedByJob);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -322,34 +340,264 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <?php kh_proto_render_styles(); ?>
     <style>
-        .job-posted-note { background: #ffffff; border: 1px solid #e8eef5; border-radius: 6px; padding: 10px 12px; color: #61758b; font-size: 13px; }
-        .job-posted-card { border: 1px solid #edf2f8; border-radius: 10px; background: #fff; overflow: hidden; margin-bottom: 12px; }
-        .job-posted-card-head { padding: 14px 16px 10px; display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
-        .job-posted-title { font-size: 22px; font-weight: 700; color: #23415f; margin-bottom: 2px; }
-        .job-posted-title-link { color: #23415f; text-decoration: none; }
-        .job-posted-title-link:hover { color: #0a8f8a; text-decoration: underline; }
-        .job-posted-loc { color: #8596a8; font-size: 13px; }
-        .job-posted-status { border-radius: 999px; padding: 6px 14px; font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; }
-        .job-posted-status.ditutup { background: #ea3f51; }
-        .job-posted-status.aktif { background: #18a365; }
-        .job-posted-status.wllp-added { background: #0d6efd; }
-        .job-posted-status.penempatan-incomplete { background: #fd7e14; }
-        .job-posted-side-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
-        .job-posted-wllp-added-wrap { display: inline-flex; align-items: center; gap: 6px; }
-        .job-posted-tooltip-btn { border: 0; background: transparent; color: #6c7f95; padding: 0; line-height: 1; }
-        .job-posted-tooltip-btn:hover { color: #0d6efd; }
-        .job-posted-metrics { border-top: 1px solid #edf2f8; background: #fbfcfe; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
-        .job-metric { padding: 10px 8px; text-align: center; border-right: 1px solid #edf2f8; }
-        .job-metric:last-child { border-right: none; }
-        .job-metric-value { font-weight: 800; color: #24476a; font-size: 19px; line-height: 1.1; }
-        .job-metric-label { color: #8a99aa; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
-        @media (max-width: 991px) {
-            .job-posted-title { font-size: 18px; }
-            .job-posted-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .kh-jobs-page {
+            --jobs-ink: #17233c;
+            --jobs-muted: #728096;
+            --jobs-line: #e3e8ef;
+            --jobs-blue: #22aeca;
+            --jobs-blue-dark: #138ca8;
+        }
+        .kh-jobs-page .kh-proto-main {
+            color: var(--jobs-ink);
+        }
+        .jobs-page-head h3 {
+            color: #111d32;
+            font-size: 1.55rem;
+            font-weight: 750;
+        }
+        .jobs-add-btn {
+            padding: 0.55rem 1rem;
+            border: 0;
+            border-radius: 0.65rem;
+            color: #fff;
+            background: linear-gradient(135deg, #35bdd7, #1ca4c1);
+            box-shadow: 0 7px 16px rgba(28, 164, 193, 0.22);
+        }
+        .jobs-add-btn:hover {
+            color: #fff;
+            background: linear-gradient(135deg, #24aec9, #138ca8);
+        }
+        .jobs-summary-card {
+            height: 100%;
+            padding: 1rem;
+            border: 1px solid var(--jobs-line);
+            border-radius: 0.85rem;
+            background: #fff;
+            box-shadow: 0 4px 14px rgba(38, 55, 82, 0.04);
+        }
+        .jobs-summary-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+        .jobs-summary-label {
+            color: #4f596a;
+            font-size: 0.67rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .jobs-summary-value {
+            margin-top: 0.3rem;
+            color: #111827;
+            font-size: 1.45rem;
+            font-weight: 750;
+            line-height: 1;
+        }
+        .jobs-summary-copy {
+            margin-top: 0.55rem;
+            color: var(--jobs-muted);
+            font-size: 0.7rem;
+        }
+        .jobs-summary-icon {
+            display: grid;
+            width: 34px;
+            height: 34px;
+            place-items: center;
+            border-radius: 0.65rem;
+            color: #667085;
+            background: #f2f4f7;
+        }
+        .jobs-summary-icon.sent { color: #c68c16; background: #fff8e8; }
+        .jobs-summary-icon.revision { color: #d95063; background: #fff0f2; }
+        .jobs-summary-icon.active { color: #13956c; background: #eaf9f4; }
+        .jobs-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .jobs-search {
+            position: relative;
+            width: min(320px, 100%);
+        }
+        .jobs-search i {
+            position: absolute;
+            top: 50%;
+            left: 0.8rem;
+            z-index: 2;
+            color: #7f8b9d;
+            transform: translateY(-50%);
+        }
+        .jobs-search .form-control {
+            min-height: 40px;
+            padding-left: 2.25rem;
+            border-color: var(--jobs-line);
+            border-radius: 0.65rem;
+            font-size: 0.82rem;
+        }
+        .jobs-filter {
+            min-height: 40px;
+            border-color: var(--jobs-line);
+            border-radius: 0.65rem;
+            color: #344054;
+            font-size: 0.78rem;
+            background-color: #fff;
+        }
+        .jobs-count {
+            color: var(--jobs-muted);
+            font-size: 0.75rem;
+        }
+        .jobs-table-card {
+            overflow: hidden;
+            border: 1px solid var(--jobs-line);
+            border-radius: 0.85rem;
+            background: #fff;
+        }
+        .jobs-table {
+            min-width: 1000px;
+            margin: 0;
+        }
+        .jobs-table thead th {
+            padding: 0.8rem 0.75rem;
+            border-bottom: 1px solid var(--jobs-line);
+            color: #667085;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            background: #fbfcfd !important;
+        }
+        .jobs-table tbody td {
+            padding: 0.8rem 0.75rem;
+            border-color: #edf0f4;
+            color: #344054;
+            font-size: 0.76rem;
+            vertical-align: middle;
+        }
+        .jobs-table tbody tr {
+            transition: background 150ms ease;
+        }
+        .jobs-table tbody tr:hover {
+            background: #fbfdff;
+        }
+        .job-identity {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            min-width: 230px;
+        }
+        .job-avatar {
+            display: grid;
+            flex: 0 0 34px;
+            width: 34px;
+            height: 34px;
+            place-items: center;
+            border-radius: 50%;
+            color: #159bb7;
+            font-size: 0.68rem;
+            font-weight: 750;
+            background: #edfafd;
+        }
+        .job-title-link {
+            display: inline-block;
+            margin-bottom: 0.12rem;
+            color: #26364f;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .job-title-link:hover {
+            color: var(--jobs-blue-dark);
+        }
+        .job-meta,
+        .job-subvalue {
+            color: #8b95a5;
+            font-size: 0.66rem;
+        }
+        .job-location {
+            display: block;
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .job-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.55rem;
+            border: 1px solid #d9dee6;
+            border-radius: 999px;
+            color: #667085;
+            font-size: 0.67rem;
+            font-weight: 650;
+            background: #f7f8fa;
+            white-space: nowrap;
+        }
+        .job-status.aktif {
+            border-color: #b9ead9;
+            color: #087e5b;
+            background: #effbf7;
+        }
+        .job-wllp-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.28rem 0.55rem;
+            border-radius: 999px;
+            color: #157c63;
+            font-size: 0.66rem;
+            font-weight: 700;
+            background: #e9f9f3;
+            white-space: nowrap;
+        }
+        .job-wllp-status.pending {
+            color: #8a6513;
+            background: #fff7e5;
+        }
+        .job-placement-warning {
+            display: block;
+            margin-top: 0.3rem;
+            color: #c66117;
+            font-size: 0.63rem;
+        }
+        .job-action-btn {
+            display: inline-grid;
+            width: 30px;
+            height: 30px;
+            place-items: center;
+            border: 0;
+            border-radius: 0.45rem;
+            color: #7d8797;
+            text-decoration: none;
+            background: transparent;
+        }
+        .job-action-btn:hover {
+            color: var(--jobs-blue-dark);
+            background: #eaf8fb;
+        }
+        .jobs-empty {
+            padding: 3.5rem 1rem;
+            color: var(--jobs-muted);
+            text-align: center;
+        }
+        @media (max-width: 767px) {
+            .jobs-toolbar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+            .jobs-search {
+                width: 100%;
+            }
+            .jobs-toolbar-filters {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+            }
         }
     </style>
 </head>
-<body class="kh-proto-page">
+<body class="kh-proto-page kh-jobs-page">
 <?php include 'navbar.php'; ?>
 <?php kh_proto_render_hero('Daftar Pekerjaan', 'Pantau lowongan yang sudah diposting ke Karirhub.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_job_posted_karirhub', false); ?>
 
@@ -358,13 +606,13 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
     <div class="kh-proto-shell">
     <?php kh_proto_render_sidebar('wllp_job_posted'); ?>
     <main class="kh-proto-main">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="jobs-page-head d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
-            <h3 class="mb-0">Job Posted Karirhub</h3>
-            <div class="text-muted small">Tampilan daftar lowongan posted seperti Karirhub Employer.</div>
+            <h3 class="mb-1">Lowongan</h3>
+            <div class="text-muted small">Kelola lowongan dan pantau status integrasinya dengan WLLP.</div>
         </div>
-        <a class="btn btn-outline-primary btn-sm" href="karirhub_employer_prototype_dashboard_wllp">
-            <i class="bi bi-arrow-left me-1"></i>Kembali ke Dashboard WLLP
+        <a class="btn btn-sm jobs-add-btn" href="karirhub_employer_prototype_pelaporan_lowongan?mode=form">
+            <i class="bi bi-plus-circle me-1"></i>Tambah
         </a>
     </div>
 
@@ -394,117 +642,195 @@ $filteredJobs = array_values(array_filter($jobs, static function (array $job) us
         </div>
     <?php endif; ?>
 
-    <form method="GET" class="card border-0 shadow-sm mb-3">
-        <div class="card-body py-2 d-flex flex-wrap align-items-center gap-3">
-            <div class="small fw-semibold text-muted">Status Lowongan:</div>
-            <select name="status" class="form-select form-select-sm" style="width:auto;">
-                <option value="all"<?php echo $statusFilter === 'all' ? ' selected' : ''; ?>>Semua</option>
-                <option value="aktif"<?php echo $statusFilter === 'aktif' ? ' selected' : ''; ?>>Lowongan Aktif</option>
-                <option value="ditutup"<?php echo $statusFilter === 'ditutup' ? ' selected' : ''; ?>>Lowongan Ditutup</option>
-            </select>
-            <div class="form-check m-0">
-                <input class="form-check-input" type="checkbox" value="1" id="lokerTerbatas" name="loker_terbatas"<?php echo $lokerTerbatas ? ' checked' : ''; ?>>
-                <label class="form-check-label small" for="lokerTerbatas">Loker Terbatas</label>
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-xl-3">
+            <div class="jobs-summary-card">
+                <div class="jobs-summary-head">
+                    <div>
+                        <div class="jobs-summary-label">Draft</div>
+                        <div class="jobs-summary-value">0</div>
+                    </div>
+                    <span class="jobs-summary-icon"><i class="bi bi-file-earmark-text"></i></span>
+                </div>
+                <div class="jobs-summary-copy">Belum diajukan</div>
             </div>
-            <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-funnel me-1"></i>Terapkan</button>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="jobs-summary-card">
+                <div class="jobs-summary-head">
+                    <div>
+                        <div class="jobs-summary-label">Dikirim</div>
+                        <div class="jobs-summary-value"><?php echo h((string)$wllpJobCount); ?></div>
+                    </div>
+                    <span class="jobs-summary-icon sent"><i class="bi bi-clock-history"></i></span>
+                </div>
+                <div class="jobs-summary-copy">Berhasil dikirim ke WLLP</div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="jobs-summary-card">
+                <div class="jobs-summary-head">
+                    <div>
+                        <div class="jobs-summary-label">Perlu Direvisi</div>
+                        <div class="jobs-summary-value">0</div>
+                    </div>
+                    <span class="jobs-summary-icon revision"><i class="bi bi-archive"></i></span>
+                </div>
+                <div class="jobs-summary-copy">Perlu perbaikan</div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="jobs-summary-card">
+                <div class="jobs-summary-head">
+                    <div>
+                        <div class="jobs-summary-label">Lowongan Aktif</div>
+                        <div class="jobs-summary-value"><?php echo h((string)$activeJobCount); ?></div>
+                    </div>
+                    <span class="jobs-summary-icon active"><i class="bi bi-check-circle"></i></span>
+                </div>
+                <div class="jobs-summary-copy">Sedang tayang</div>
+            </div>
+        </div>
+    </div>
+
+    <form method="GET" class="mb-2">
+        <div class="jobs-toolbar">
+            <div class="jobs-search">
+                <i class="bi bi-search"></i>
+                <input
+                    type="search"
+                    name="q"
+                    class="form-control form-control-sm"
+                    value="<?php echo h($searchQuery); ?>"
+                    placeholder="Cari berdasarkan judul atau lokasi"
+                    aria-label="Cari lowongan"
+                >
+            </div>
+            <div class="jobs-toolbar-filters d-flex gap-2">
+                <select name="status" class="form-select form-select-sm jobs-filter" aria-label="Filter status" onchange="this.form.submit()">
+                    <option value="all"<?php echo $statusFilter === 'all' ? ' selected' : ''; ?>>Semua Status</option>
+                    <option value="aktif"<?php echo $statusFilter === 'aktif' ? ' selected' : ''; ?>>Lowongan Aktif</option>
+                    <option value="ditutup"<?php echo $statusFilter === 'ditutup' ? ' selected' : ''; ?>>Lowongan Ditutup</option>
+                </select>
+                <select name="sort" class="form-select form-select-sm jobs-filter" aria-label="Urutkan lowongan" onchange="this.form.submit()">
+                    <option value="newest"<?php echo $sortOrder === 'newest' ? ' selected' : ''; ?>>↕ Terbaru</option>
+                    <option value="oldest"<?php echo $sortOrder === 'oldest' ? ' selected' : ''; ?>>↕ Terlama</option>
+                    <option value="title"<?php echo $sortOrder === 'title' ? ' selected' : ''; ?>>A–Z Judul</option>
+                </select>
+            </div>
         </div>
     </form>
 
-    <div class="job-posted-note mb-3">
-        Perhatian: Data lowongan pekerjaan yang kamu input, akan masuk ke rencana penggunaan tenaga kerja pada layanan <strong>Wajib Lapor Ketenagakerjaan</strong>
+    <div class="jobs-count mb-2">
+        Menampilkan <strong><?php echo h((string)count($filteredJobs)); ?></strong> dari <strong><?php echo h((string)count($jobs)); ?></strong> lowongan
     </div>
 
-    <?php if (empty($filteredJobs)): ?>
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-muted text-center py-4">Tidak ada lowongan sesuai filter saat ini.</div>
-        </div>
-    <?php else: ?>
-        <?php foreach ($filteredJobs as $job): ?>
-            <?php $addedInfo = $wllpAddedByJob[(string)$job['judul']] ?? null; ?>
-            <div class="job-posted-card">
-                <div class="job-posted-card-head">
-                    <div>
-                        <div class="job-posted-title">
-                            <a class="job-posted-title-link" href="karirhub_employer_prototype_job_posted_karirhub_detail?job=<?php echo rawurlencode((string)$job['judul']); ?>">
-                                <?php echo h((string)$job['judul']); ?>
-                            </a>
-                        </div>
-                        <div class="job-posted-loc"><i class="bi bi-geo-alt-fill me-1"></i><?php echo h((string)$job['lokasi']); ?></div>
-                    </div>
-                    <div class="job-posted-side-actions">
-                        <span class="job-posted-status <?php echo h((string)$job['status']); ?>">
-                            <?php echo (string)$job['status'] === 'ditutup' ? 'Lowongan Ditutup' : 'Lowongan Aktif'; ?>
-                        </span>
-                        <?php if ($addedInfo !== null): ?>
-                            <span class="job-posted-wllp-added-wrap">
-                                <span class="job-posted-status wllp-added">Berhasil ditambahkan ke WLLP</span>
-                                <?php
-                                    $isPenempatanTidakLengkap = (
-                                        (string)($addedInfo['status_keterisian'] ?? '') === 'Terisi'
-                                        && (int)($addedInfo['jumlah_penempatan'] ?? 0) < (int)($addedInfo['jumlah_kebutuhan'] ?? 0)
-                                    );
-                                ?>
-                                <?php if ($isPenempatanTidakLengkap): ?>
-                                    <span class="job-posted-status penempatan-incomplete">Data Penempatan Tidak Lengkap</span>
-                                <?php endif; ?>
-                                <button
-                                    type="button"
-                                    class="job-posted-tooltip-btn"
-                                    data-bs-toggle="tooltip"
-                                    data-bs-placement="left"
-                                    title="Lowongan Pekerjaan Ini Telah ditambahkan secara Otomatis ke dalam Wajib Lapor Lowongan Pekerjaan"
-                                    aria-label="Informasi status WLLP"
-                                >
-                                    <i class="bi bi-info-circle-fill"></i>
-                                </button>
-                            </span>
-                        <?php endif; ?>
-                        <?php if ($addedInfo === null): ?>
-                        <button
-                            type="button"
-                            class="btn btn-outline-primary btn-sm js-add-to-wllp-btn"
-                            data-job-title="<?php echo h((string)$job['judul']); ?>"
-                            data-bs-toggle="modal"
-                            data-bs-target="#addToWllpModal"
-                        >
-                            <i class="bi bi-plus-circle me-1"></i>Tambahkan ke dalam WLLP
-                        </button>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <div class="job-posted-metrics">
-                    <div class="job-metric">
-                        <div class="job-metric-value"><?php echo h((string)$job['metrics']['leads']); ?></div>
-                        <div class="job-metric-label">Leads</div>
-                    </div>
-                    <div class="job-metric">
-                        <div class="job-metric-value"><?php echo h((string)$job['metrics']['lamaran']); ?></div>
-                        <div class="job-metric-label">Lamaran</div>
-                    </div>
-                    <div class="job-metric">
-                        <div class="job-metric-value"><?php echo h((string)$job['metrics']['bookmark']); ?></div>
-                        <div class="job-metric-label">Bookmark</div>
-                    </div>
-                    <div class="job-metric">
-                        <div class="job-metric-value"><?php echo h((string)$job['metrics']['ditawarkan']); ?></div>
-                        <div class="job-metric-label">Ditawarkan</div>
-                    </div>
-                    <div class="job-metric">
-                        <div class="job-metric-value"><?php echo h((string)$job['metrics']['wawancara']); ?></div>
-                        <div class="job-metric-label">Wawancara</div>
-                    </div>
-                    <div class="job-metric">
-                        <div class="job-metric-value"><?php echo h((string)$job['metrics']['diterima']); ?></div>
-                        <div class="job-metric-label">Diterima</div>
-                    </div>
-                    <div class="job-metric">
-                        <div class="job-metric-value"><?php echo h((string)$job['metrics']['arsip']); ?></div>
-                        <div class="job-metric-label">Arsip</div>
-                    </div>
-                </div>
+    <div class="jobs-table-card">
+        <?php if (empty($filteredJobs)): ?>
+            <div class="jobs-empty">
+                <i class="bi bi-search fs-3 d-block mb-2"></i>
+                Tidak ada lowongan yang sesuai dengan pencarian atau filter.
             </div>
-        <?php endforeach; ?>
-    <?php endif; ?>
+        <?php else: ?>
+            <div class="table-responsive">
+                <table class="table jobs-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Lowongan</th>
+                            <th>Penempatan</th>
+                            <th>Kuota Tersedia</th>
+                            <th>Pelamar</th>
+                            <th>Status</th>
+                            <th>Status WLLP</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($filteredJobs as $jobIndex => $job): ?>
+                            <?php
+                                $addedInfo = $wllpAddedByJob[(string)$job['judul']] ?? null;
+                                $jumlahKebutuhan = max(1, (int)($addedInfo['jumlah_kebutuhan'] ?? 1));
+                                $jumlahDiterima = (int)($job['metrics']['diterima'] ?? 0);
+                                $kuotaTersedia = max(0, $jumlahKebutuhan - $jumlahDiterima);
+                                $initials = implode('', array_map(
+                                    static fn (string $part): string => strtoupper(substr($part, 0, 1)),
+                                    array_slice(array_values(array_filter(explode(' ', (string)$job['judul']))), 0, 2)
+                                ));
+                                $isPenempatanTidakLengkap = $addedInfo !== null
+                                    && (string)($addedInfo['status_keterisian'] ?? '') === 'Terisi'
+                                    && (int)($addedInfo['jumlah_penempatan'] ?? 0) < (int)($addedInfo['jumlah_kebutuhan'] ?? 0);
+                            ?>
+                            <tr>
+                                <td>
+                                    <div class="job-identity">
+                                        <span class="job-avatar"><?php echo h($initials !== '' ? $initials : 'L'); ?></span>
+                                        <span>
+                                            <a class="job-title-link" href="karirhub_employer_prototype_job_posted_karirhub_detail?job=<?php echo rawurlencode((string)$job['judul']); ?>">
+                                                <?php echo h((string)$job['judul']); ?>
+                                            </a>
+                                            <span class="job-meta d-block">Diposting dari Karirhub</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="job-location" title="<?php echo h((string)$job['lokasi']); ?>">
+                                        <?php echo h((string)$job['lokasi']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div><strong><?php echo h((string)$kuotaTersedia); ?></strong>/<?php echo h((string)$jumlahKebutuhan); ?> tersedia</div>
+                                    <div class="job-subvalue"><?php echo h((string)$jumlahDiterima); ?> diterima</div>
+                                </td>
+                                <td>
+                                    <div><strong><?php echo h((string)$job['metrics']['lamaran']); ?></strong> pelamar</div>
+                                    <div class="job-subvalue"><?php echo h((string)$jumlahDiterima); ?> diterima</div>
+                                </td>
+                                <td>
+                                    <span class="job-status <?php echo h((string)$job['status']); ?>">
+                                        <?php echo (string)$job['status'] === 'ditutup' ? 'Ditutup' : 'Aktif'; ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <?php if ($addedInfo !== null): ?>
+                                        <span
+                                            class="job-wllp-status"
+                                            data-bs-toggle="tooltip"
+                                            title="Lowongan pekerjaan ini telah ditambahkan ke Wajib Lapor Lowongan Pekerjaan"
+                                        >
+                                            <i class="bi bi-check-circle-fill"></i>Berhasil ditambahkan ke WLLP
+                                        </span>
+                                        <?php if ($isPenempatanTidakLengkap): ?>
+                                            <span class="job-placement-warning"><i class="bi bi-exclamation-triangle me-1"></i>Data penempatan belum lengkap</span>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <button
+                                            type="button"
+                                            class="job-wllp-status pending border-0 js-add-to-wllp-btn"
+                                            data-job-title="<?php echo h((string)$job['judul']); ?>"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#addToWllpModal"
+                                        >
+                                            <i class="bi bi-plus-circle"></i>Belum ditambahkan
+                                        </button>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="text-center">
+                                    <a
+                                        class="job-action-btn"
+                                        href="karirhub_employer_prototype_job_posted_karirhub_detail?job=<?php echo rawurlencode((string)$job['judul']); ?>"
+                                        title="Lihat detail"
+                                        aria-label="Lihat detail <?php echo h((string)$job['judul']); ?>"
+                                    >
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </div>
     </main>
     </div>
 </div>
