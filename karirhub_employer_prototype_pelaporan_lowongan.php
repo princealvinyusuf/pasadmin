@@ -484,36 +484,330 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <?php kh_proto_render_styles(); ?>
     <style>
+        .kh-report-page {
+            --kh-report-primary: #155eef;
+            --kh-report-primary-dark: #0b47bd;
+            --kh-report-ink: #172b4d;
+            --kh-report-muted: #61758a;
+            --kh-report-line: #dce6f1;
+            --kh-report-surface: #f6f9fd;
+            --kh-report-success: #087e5b;
+        }
+        .kh-report-page .kh-proto-main {
+            color: var(--kh-report-ink);
+        }
+        .kh-report-page .kh-page-intro {
+            padding: 1.15rem 1.25rem;
+            border: 1px solid #dbe8f7;
+            border-radius: 1rem;
+            background:
+                radial-gradient(circle at 92% 10%, rgba(21, 94, 239, 0.13), transparent 30%),
+                linear-gradient(135deg, #ffffff 0%, #f4f8ff 100%);
+            box-shadow: 0 10px 30px rgba(43, 74, 115, 0.08);
+        }
+        .kh-report-page .kh-page-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.35rem;
+            color: var(--kh-report-primary);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .kh-report-page .kh-page-intro h3 {
+            color: #102a4c;
+            font-size: clamp(1.25rem, 2vw, 1.65rem);
+            font-weight: 750;
+        }
+        .kh-report-page .kh-page-intro .text-muted {
+            color: var(--kh-report-muted) !important;
+        }
+        .kh-report-page .kh-method-shell,
+        .kh-report-page .kh-bulk-shell,
+        .kh-report-page .kh-report-form-card {
+            overflow: hidden;
+            border: 1px solid var(--kh-report-line) !important;
+            border-radius: 1rem !important;
+            box-shadow: 0 12px 32px rgba(31, 58, 95, 0.08) !important;
+        }
+        .kh-report-page .kh-method-shell .card-body,
+        .kh-report-page .kh-bulk-shell .card-body {
+            padding: clamp(1.15rem, 3vw, 2rem);
+        }
+        .kh-report-page .kh-section-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--kh-report-primary);
+            font-size: 0.76rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .kh-report-page .kh-method-option {
+            position: relative;
+            display: flex;
+            width: 100%;
+            min-height: 176px;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1.35rem;
+            overflow: hidden;
+            border: 1px solid #d7e3f0;
+            border-radius: 0.9rem;
+            color: var(--kh-report-ink);
+            text-align: left;
+            background: #fff;
+            transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+        }
+        .kh-report-page .kh-method-option::after {
+            position: absolute;
+            right: -28px;
+            bottom: -45px;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(21, 94, 239, 0.05);
+            content: "";
+        }
+        .kh-report-page .kh-method-option:hover,
+        .kh-report-page .kh-method-option:focus-visible {
+            transform: translateY(-3px);
+            border-color: #8ab4ff;
+            color: var(--kh-report-ink);
+            background: #fff;
+            box-shadow: 0 14px 28px rgba(21, 94, 239, 0.13);
+        }
+        .kh-report-page .kh-method-option--bulk:hover,
+        .kh-report-page .kh-method-option--bulk:focus-visible {
+            border-color: #75c9ae;
+            box-shadow: 0 14px 28px rgba(8, 126, 91, 0.13);
+        }
+        .kh-report-page .kh-method-icon {
+            display: grid;
+            flex: 0 0 52px;
+            width: 52px;
+            height: 52px;
+            place-items: center;
+            border-radius: 0.85rem;
+            color: #fff;
+            font-size: 1.45rem;
+            background: linear-gradient(135deg, #3478f6, #155eef);
+            box-shadow: 0 8px 18px rgba(21, 94, 239, 0.24);
+        }
+        .kh-report-page .kh-method-option--bulk .kh-method-icon {
+            background: linear-gradient(135deg, #16a179, #087e5b);
+            box-shadow: 0 8px 18px rgba(8, 126, 91, 0.22);
+        }
+        .kh-report-page .kh-method-title {
+            display: block;
+            margin-bottom: 0.35rem;
+            color: #132f53;
+            font-size: 1rem;
+            font-weight: 750;
+        }
+        .kh-report-page .kh-method-copy {
+            display: block;
+            color: var(--kh-report-muted);
+            font-size: 0.84rem;
+            line-height: 1.55;
+        }
+        .kh-report-page .kh-method-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-top: 0.85rem;
+            color: var(--kh-report-primary);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .kh-report-page .kh-method-option--bulk .kh-method-cta {
+            color: var(--kh-report-success);
+        }
+        .kh-report-page .kh-bulk-guide {
+            border: 1px solid #b9dcf7;
+            border-radius: 0.8rem;
+            color: #23415f;
+            background: linear-gradient(135deg, #eef8ff, #f8fcff);
+        }
+        .kh-report-page .kh-report-form-card > .card-body {
+            padding: clamp(1rem, 2.5vw, 1.6rem);
+        }
         #wizardSummaryBar {
-            border: 1px solid #cfe2ff;
-            border-left: 4px solid #0d6efd;
-            background: #f8fbff;
+            position: relative;
+            overflow: hidden;
+            padding: 0.9rem 1rem !important;
+            border: 0;
+            border-radius: 0.85rem;
+            color: #fff;
+            background: linear-gradient(120deg, #114bbf 0%, #155eef 58%, #3a7df6 100%);
+            box-shadow: 0 10px 22px rgba(21, 94, 239, 0.2);
+        }
+        #wizardSummaryBar::after {
+            position: absolute;
+            top: -55px;
+            right: -30px;
+            width: 140px;
+            height: 140px;
+            border: 24px solid rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+            content: "";
         }
         #wizardSummaryBar .wizard-meta-pill {
             display: inline-block;
-            padding: 0.2rem 0.55rem;
+            position: relative;
+            z-index: 1;
+            padding: 0.3rem 0.65rem;
             border-radius: 999px;
-            background: #e7f1ff;
-            color: #0a58ca;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.15);
             font-weight: 600;
             margin-right: 0.35rem;
+        }
+        #wizardSummaryBar .btn {
+            position: relative;
+            z-index: 1;
+            border-color: rgba(255, 255, 255, 0.7);
+            color: #fff;
+        }
+        #wizardSummaryBar .btn:hover {
+            border-color: #fff;
+            color: #124dbf;
+            background: #fff;
+        }
+        .kh-report-page .kh-report-context {
+            padding: 1rem;
+            border: 1px solid var(--kh-report-line);
+            border-radius: 0.85rem;
+            background: var(--kh-report-surface);
+        }
+        .kh-report-page .kh-tabs-workspace {
+            overflow: hidden;
+            padding: 0 !important;
+            border: 1px solid var(--kh-report-line) !important;
+            border-radius: 0.9rem !important;
+            background: #fff !important;
+        }
+        .kh-report-page .kh-tabs-toolbar {
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid var(--kh-report-line);
+            background: #f7faff;
+        }
+        .kh-report-page .kh-progress-track {
+            width: min(220px, 40vw);
+            height: 7px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: #dfe8f3;
+        }
+        .kh-report-page .kh-progress-bar {
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #1d6df2, #12a57e);
+            transition: width 250ms ease;
+        }
+        #lowonganTabsNav {
+            flex-wrap: nowrap;
+            gap: 0.4rem;
+            padding: 0.75rem 1rem 0;
+            overflow-x: auto;
+            border-bottom: 1px solid var(--kh-report-line);
+            scrollbar-color: #a9bdd3 transparent;
+            scrollbar-width: thin;
+        }
+        #lowonganTabsNav .nav-item {
+            flex: 0 0 auto;
         }
         #lowonganTabsNav .nav-link {
             display: flex;
             align-items: center;
             gap: 0.4rem;
+            padding: 0.65rem 0.8rem;
+            border: 1px solid transparent;
+            border-radius: 0.65rem 0.65rem 0 0;
+            color: #526b84;
             font-weight: 600;
+            white-space: nowrap;
         }
         #lowonganTabsNav .nav-link.active {
-            background: #0d6efd;
-            border-color: #0d6efd;
+            border-color: #cbdcf0 #cbdcf0 #155eef;
+            border-bottom-width: 3px;
             color: #fff;
+            background: #155eef;
+            box-shadow: 0 5px 12px rgba(21, 94, 239, 0.16);
         }
         .wizard-tab-badge {
             min-width: 88px;
         }
+        #lowonganTabsContent {
+            padding: 1rem !important;
+            border: 0 !important;
+        }
+        .kh-report-page .kh-form-section {
+            height: 100%;
+            padding: clamp(1rem, 2vw, 1.25rem) !important;
+            border: 1px solid var(--kh-report-line) !important;
+            border-radius: 0.85rem !important;
+            background: #fff !important;
+            box-shadow: 0 6px 18px rgba(35, 66, 103, 0.05);
+        }
+        .kh-report-page .kh-form-section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            margin-bottom: 1rem !important;
+            color: #16385f;
+            font-size: 0.96rem;
+            font-weight: 750 !important;
+        }
+        .kh-report-page .kh-form-section-icon {
+            display: grid;
+            width: 34px;
+            height: 34px;
+            place-items: center;
+            border-radius: 0.65rem;
+            color: #155eef;
+            background: #eaf2ff;
+        }
+        .kh-report-page .form-label {
+            color: #344f6c;
+            font-size: 0.8rem;
+            font-weight: 650;
+        }
+        .kh-report-page .form-control,
+        .kh-report-page .form-select {
+            min-height: 40px;
+            border-color: #cdd9e7;
+            border-radius: 0.55rem;
+            color: #183453;
+            background-color: #fff;
+        }
+        .kh-report-page textarea.form-control {
+            min-height: 78px;
+        }
+        .kh-report-page .form-control:hover,
+        .kh-report-page .form-select:hover {
+            border-color: #9db3ca;
+        }
+        .kh-report-page .form-control:focus,
+        .kh-report-page .form-select:focus {
+            border-color: #4d8af7;
+            box-shadow: 0 0 0 0.2rem rgba(21, 94, 239, 0.12);
+        }
+        .kh-report-page .wizard-kondisi-group,
+        .kh-report-page .wizard-platform-group,
+        .kh-report-page .wizard-online-only > .border,
+        .kh-report-page .wizard-offline-only > .border {
+            border-color: #dbe5ef !important;
+            border-radius: 0.65rem !important;
+            background: #f8fafd !important;
+        }
         #wizardValidationSummary {
             border-left: 4px solid #ffc107;
+            border-radius: 0.65rem;
         }
         .wizard-url-row .btn {
             min-width: 2.25rem;
@@ -532,11 +826,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-bottom: 1px solid #ced4da;
         }
         .wizard-url-section {
-            border: 1px solid #e2e8f0;
-            border-radius: 0.5rem;
-            padding: 0.65rem;
+            border: 1px solid #dbe5ef;
+            border-radius: 0.7rem;
+            padding: 0.8rem;
             margin-bottom: 0.5rem;
-            background: #fff;
+            background: #f8fafd;
         }
         .wizard-url-section-head {
             display: flex;
@@ -575,14 +869,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 0.75rem;
             font-weight: 500;
         }
+        .kh-report-page .kh-notes-panel {
+            padding: 1rem;
+            border: 1px dashed #bdcde0;
+            border-radius: 0.8rem;
+            background: #f9fbfe;
+        }
+        .kh-report-page .kh-form-actions {
+            position: sticky;
+            bottom: 0.75rem;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin: 1.25rem -0.35rem -0.35rem;
+            padding: 0.85rem 1rem;
+            border: 1px solid #d5e2f0;
+            border-radius: 0.85rem;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 12px 30px rgba(27, 54, 88, 0.14);
+            backdrop-filter: blur(10px);
+        }
+        .kh-report-page .kh-form-actions .btn-primary {
+            border-color: #155eef;
+            background: linear-gradient(135deg, #246df0, #155eef);
+            box-shadow: 0 6px 14px rgba(21, 94, 239, 0.2);
+        }
+        .kh-report-page .kh-action-hint {
+            color: var(--kh-report-muted);
+            font-size: 0.78rem;
+        }
+        .kh-report-page .modal-content {
+            overflow: hidden;
+            border: 0;
+            border-radius: 1rem;
+            box-shadow: 0 24px 70px rgba(16, 42, 76, 0.22);
+        }
+        .kh-report-page .modal-header {
+            border-bottom-color: #e3ebf4;
+            background: linear-gradient(135deg, #f7faff, #edf4ff);
+        }
+        .kh-report-page .modal-title {
+            color: #15365c;
+            font-weight: 750;
+        }
         @media (max-width: 991px) {
             .wizard-url-row {
                 grid-template-columns: 1fr;
             }
         }
+        @media (max-width: 767px) {
+            .kh-report-page .kh-page-intro {
+                padding: 1rem;
+            }
+            .kh-report-page .kh-method-option {
+                min-height: auto;
+            }
+            .kh-report-page .kh-progress-track {
+                width: 130px;
+            }
+            #lowonganTabsContent {
+                padding: 0.75rem !important;
+            }
+            .kh-report-page .kh-form-actions {
+                align-items: stretch;
+                flex-direction: column;
+                bottom: 0.4rem;
+            }
+            .kh-report-page .kh-form-actions .d-flex {
+                display: grid !important;
+                grid-template-columns: 1fr 1.6fr;
+            }
+            .kh-report-page .kh-form-actions .btn {
+                width: 100%;
+            }
+        }
     </style>
 </head>
-<body class="kh-proto-page" data-wizard-force-open="<?php echo $wizardForceOpen; ?>" data-initial-landing-mode="<?php echo h($initialLandingMode); ?>">
+<body class="kh-proto-page kh-report-page" data-wizard-force-open="<?php echo $wizardForceOpen; ?>" data-initial-landing-mode="<?php echo h($initialLandingMode); ?>">
 <?php include 'navbar.php'; ?>
 <?php kh_proto_render_hero('Daftar Lowongan Kerja', 'Buat lowongan kerja melalui alur pelaporan WLLP prototipe.', 'Lowongan Kerja', 'karirhub_employer_prototype_pelaporan_lowongan', 'Proyek', 'karirhub_employer_prototype_dashboard_wllp', false); ?>
 <div class="kh-content-wrap">
@@ -590,10 +955,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="kh-proto-shell">
     <?php kh_proto_render_sidebar('wllp_pelaporan'); ?>
     <main class="kh-proto-main">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="kh-page-intro d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
         <div>
-            <h3 class="mb-0">Pelaporan Lowongan</h3>
-            <div class="text-muted small">Simulasi form WLLP lengkap (dummy data only)</div>
+            <div class="kh-page-eyebrow"><i class="bi bi-briefcase-fill"></i> Wajib Lapor Lowongan Pekerjaan</div>
+            <h3 class="mb-1">Buat Laporan Lowongan</h3>
+            <div class="text-muted small">Laporkan kebutuhan tenaga kerja dengan alur yang cepat dan terstruktur.</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a class="btn btn-outline-primary btn-sm" href="karirhub_employer_prototype_dashboard_wllp">
@@ -602,31 +968,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
-    <div id="landingChoiceSection" class="card border-0 shadow-sm mb-3" style="display:none;">
+    <div id="landingChoiceSection" class="card kh-method-shell border-0 shadow-sm mb-3" style="display:none;">
         <div class="card-body">
-            <h5 class="mb-2">Pilih Metode Pelaporan</h5>
-            <div class="text-muted small mb-3">Silakan pilih salah satu alur pelaporan lowongan yang ingin digunakan.</div>
-            <div class="row g-2">
+            <div class="kh-section-kicker mb-2"><i class="bi bi-signpost-split-fill"></i> Mulai Pelaporan</div>
+            <h5 class="mb-1">Bagaimana Anda ingin melaporkan lowongan?</h5>
+            <div class="text-muted small mb-4">Pilih metode yang paling sesuai dengan jumlah lowongan yang akan dilaporkan.</div>
+            <div class="row g-3">
                 <div class="col-12 col-md-6">
-                    <button type="button" class="btn btn-outline-success w-100 py-3" id="btnLandingBulk">
-                        <i class="bi bi-file-earmark-spreadsheet me-1"></i>
-                        Laporkan Lowongan Kerja dalam Jumlah Banyak sekaligus
+                    <button type="button" class="btn kh-method-option kh-method-option--bulk" id="btnLandingBulk">
+                        <span class="kh-method-icon"><i class="bi bi-file-earmark-spreadsheet"></i></span>
+                        <span>
+                            <span class="kh-method-title">Import banyak lowongan</span>
+                            <span class="kh-method-copy">Gunakan template Excel untuk mengunggah banyak lowongan sekaligus secara efisien.</span>
+                            <span class="kh-method-cta">Pilih bulk import <i class="bi bi-arrow-right"></i></span>
+                        </span>
                     </button>
                 </div>
                 <div class="col-12 col-md-6">
-                    <button type="button" class="btn btn-primary w-100 py-3" id="btnLandingForm">
-                        <i class="bi bi-ui-checks-grid me-1"></i>
-                        Laporkan Lowongan Kerja dengan Isian Form
+                    <button type="button" class="btn kh-method-option" id="btnLandingForm">
+                        <span class="kh-method-icon"><i class="bi bi-ui-checks-grid"></i></span>
+                        <span>
+                            <span class="kh-method-title">Isi melalui formulir</span>
+                            <span class="kh-method-copy">Isi detail setiap lowongan dengan panduan dan validasi langsung pada formulir.</span>
+                            <span class="kh-method-cta">Mulai isi formulir <i class="bi bi-arrow-right"></i></span>
+                        </span>
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="bulkToolsSection" class="card border-0 shadow-sm mb-3" style="display:none;">
+    <div id="bulkToolsSection" class="card kh-bulk-shell border-0 shadow-sm mb-3" style="display:none;">
         <div class="card-body">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                 <div>
+                    <div class="kh-section-kicker mb-1"><i class="bi bi-file-earmark-spreadsheet"></i> Bulk Import</div>
                     <h5 class="mb-0">Pelaporan Massal Lowongan</h5>
                     <div class="text-muted small">Gunakan template Excel untuk lapor banyak lowongan sekaligus.</div>
                 </div>
@@ -634,7 +1010,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <i class="bi bi-arrow-left-right me-1"></i>Ubah Metode
                 </button>
             </div>
-            <div class="alert alert-info py-2 px-3 mb-3 small" role="alert">
+            <div class="alert alert-info kh-bulk-guide py-3 px-3 mb-3 small" role="alert">
                 <div class="fw-semibold mb-1">Panduan Singkat Bulk Import</div>
                 <ul class="mb-0 ps-3">
                     <li>Langkah 1: Klik <strong>Download Template</strong> untuk mendapatkan format kolom terbaru.</li>
@@ -678,7 +1054,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     <?php endif; ?>
 
-    <form method="POST" class="card border-0 shadow-sm">
+    <form method="POST" class="card kh-report-form-card border-0 shadow-sm">
         <div class="card-body">
             <div class="d-flex justify-content-end mb-2">
                 <button type="button" class="btn btn-outline-secondary btn-sm" id="btnFormToChooseMode">
@@ -702,8 +1078,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </button>
             </div>
 
-            <div class="row g-3">
-                <div class="col-12 col-md-6">
+            <div class="kh-report-context mb-3">
+                <div class="row align-items-end g-3">
+                <div class="col-12 col-lg-7">
                     <label class="form-label mb-1">Unit Perusahaan/ Usaha</label>
                     <select name="unit_kode" class="form-select form-select-sm">
                         <?php foreach ($units as $unitCode => $unit): ?>
@@ -711,11 +1088,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <div class="col-12 col-lg-5">
+                    <div class="small text-muted"><i class="bi bi-info-circle me-1"></i>Unit ini akan tercantum sebagai pihak yang melaporkan seluruh lowongan di bawah.</div>
+                </div>
+                </div>
+            </div>
+            <div class="row g-3">
                 <div class="col-12">
-                    <div class="border rounded p-2 bg-light">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="fw-semibold small">Form Pelaporan Lowongan per ID</div>
-                            <div class="small text-muted" id="wizardTabProgressText">Lengkapi semua tab lowongan.</div>
+                    <div class="kh-tabs-workspace border rounded p-2 bg-light">
+                        <div class="kh-tabs-toolbar d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
+                                <div class="fw-semibold">Detail Lowongan</div>
+                                <div class="small text-muted">Lengkapi informasi pada setiap tab lowongan.</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="small text-muted text-end" id="wizardTabProgressText">Lengkapi semua tab lowongan.</div>
+                                <div class="kh-progress-track" role="progressbar" aria-label="Kelengkapan lowongan" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="wizardOverallProgress">
+                                    <div class="kh-progress-bar" id="wizardOverallProgressBar"></div>
+                                </div>
+                            </div>
                         </div>
                         <ul class="nav nav-tabs" id="lowonganTabsNav" role="tablist">
                             <?php foreach ($wizardLowonganTabs as $index => $tab): ?>
@@ -742,8 +1133,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="tab-pane fade<?php echo $index === 0 ? ' show active' : ''; ?>" id="lowongan-pane-<?php echo $index; ?>" role="tabpanel" aria-labelledby="lowongan-tab-<?php echo $index; ?>">
                                     <div class="row g-3">
                                         <div class="col-12">
-                                            <div class="border rounded p-3 bg-light-subtle">
-                                                <div class="fw-semibold mb-2">Informasi Jabatan</div>
+                                            <div class="kh-form-section border rounded p-3 bg-light-subtle">
+                                                <div class="kh-form-section-title fw-semibold mb-2">
+                                                    <span class="kh-form-section-icon"><i class="bi bi-person-workspace"></i></span>
+                                                    <span>Informasi Jabatan</span>
+                                                </div>
                                                 <div class="row g-2">
                                                     <div class="col-12 col-md-6">
                                                         <label class="form-label mb-1">Jabatan (Lowongan <?php echo $index + 1; ?>)</label>
@@ -870,8 +1264,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </div>
 
                                         <div class="col-12">
-                                            <div class="border rounded p-3 bg-light-subtle">
-                                                <div class="fw-semibold mb-2">Lokasi Penempatan</div>
+                                            <div class="kh-form-section border rounded p-3 bg-light-subtle">
+                                                <div class="kh-form-section-title fw-semibold mb-2">
+                                                    <span class="kh-form-section-icon"><i class="bi bi-geo-alt-fill"></i></span>
+                                                    <span>Lokasi Penempatan</span>
+                                                </div>
                                                 <div class="row g-2">
                                                     <div class="col-12 col-md-6">
                                                         <label class="form-label mb-1">Apakah lokasi penempatan sama dengan lokasi yang tercantum pada Profil Perusahaan</label>
@@ -902,8 +1299,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </div>
 
                                         <div class="col-12">
-                                            <div class="border rounded p-3 bg-light-subtle">
-                                                <div class="fw-semibold mb-2">Sarana Penyebaran Loker</div>
+                                            <div class="kh-form-section border rounded p-3 bg-light-subtle">
+                                                <div class="kh-form-section-title fw-semibold mb-2">
+                                                    <span class="kh-form-section-icon"><i class="bi bi-megaphone-fill"></i></span>
+                                                    <span>Sarana Penyebaran Loker</span>
+                                                </div>
                                                 <div class="row g-2">
                                                     <div class="col-12 col-md-6">
                                                         <label class="form-label mb-1">Metode publikasi loker</label>
@@ -975,19 +1375,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-md-6">
+                <div class="col-12">
+                    <div class="kh-notes-panel">
                     <label class="form-label mb-1">Catatan</label>
-                    <input type="text" name="catatan" class="form-control form-control-sm" value="<?php echo h($form['catatan']); ?>">
+                    <input type="text" name="catatan" class="form-control form-control-sm" value="<?php echo h($form['catatan']); ?>" placeholder="Tambahkan catatan untuk laporan ini bila diperlukan">
+                    </div>
                 </div>
             </div>
 
-            <div class="mt-3 d-flex gap-2">
-                <button type="submit" class="btn btn-primary btn-sm" id="btnSubmitPelaporan">
-                    <i class="bi bi-send-check me-1"></i>Simulasikan Buat Laporan
-                </button>
-                <a class="btn btn-outline-secondary btn-sm" href="karirhub_employer_prototype_pelaporan_lowongan">
-                    Reset Form
-                </a>
+            <div class="kh-form-actions">
+                <div>
+                    <div class="fw-semibold small"><i class="bi bi-shield-check text-success me-1"></i>Data diperiksa sebelum dikirim</div>
+                    <div class="kh-action-hint">Tombol kirim aktif setelah seluruh tab lowongan lengkap.</div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a class="btn btn-outline-secondary btn-sm" href="karirhub_employer_prototype_pelaporan_lowongan">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-sm" id="btnSubmitPelaporan">
+                        <i class="bi bi-send-check me-1"></i>Simulasikan Buat Laporan
+                    </button>
+                </div>
             </div>
         </div>
     </form>
@@ -1239,6 +1647,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const wizardSummaryPeriode = document.getElementById('wizardSummaryPeriode');
         const wizardSummaryJumlah = document.getElementById('wizardSummaryJumlah');
         const wizardTabProgressText = document.getElementById('wizardTabProgressText');
+        const wizardOverallProgress = document.getElementById('wizardOverallProgress');
+        const wizardOverallProgressBar = document.getElementById('wizardOverallProgressBar');
         const wizardValidationSummary = document.getElementById('wizardValidationSummary');
         const btnEditWizardFlow = document.getElementById('btnEditWizardFlow');
         const submitBtn = document.getElementById('btnSubmitPelaporan');
@@ -2100,6 +2510,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 wizardTabProgressText.textContent = complete === panes.length
                     ? 'Semua tab lengkap. Siap submit.'
                     : 'Tab lengkap: ' + complete + '/' + panes.length;
+            }
+            const completionPercentage = panes.length > 0 ? Math.round((complete / panes.length) * 100) : 0;
+            if (wizardOverallProgressBar) {
+                wizardOverallProgressBar.style.width = completionPercentage + '%';
+            }
+            if (wizardOverallProgress) {
+                wizardOverallProgress.setAttribute('aria-valuenow', String(completionPercentage));
+                wizardOverallProgress.setAttribute('aria-valuetext', complete + ' dari ' + panes.length + ' lowongan lengkap');
             }
             if (submitBtn) {
                 submitBtn.disabled = complete !== panes.length;
