@@ -1386,7 +1386,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="kh-form-actions">
                 <div>
                     <div class="fw-semibold small"><i class="bi bi-shield-check text-success me-1"></i>Data diperiksa sebelum dikirim</div>
-                    <div class="kh-action-hint">Tombol kirim aktif setelah seluruh tab lowongan lengkap.</div>
+                    <div class="kh-action-hint">Jika masih ada data yang belum sesuai, sistem akan menunjukkan field yang perlu diperbaiki.</div>
                 </div>
                 <div class="d-flex gap-2">
                     <a class="btn btn-outline-secondary btn-sm" href="karirhub_employer_prototype_pelaporan_lowongan">
@@ -2520,7 +2520,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 wizardOverallProgress.setAttribute('aria-valuetext', complete + ' dari ' + panes.length + ' lowongan lengkap');
             }
             if (submitBtn) {
-                submitBtn.disabled = complete !== panes.length;
+                const allComplete = complete === panes.length && panes.length > 0;
+                submitBtn.classList.toggle('kh-submit-ready', allComplete);
+                submitBtn.setAttribute(
+                    'aria-label',
+                    allComplete
+                        ? 'Simulasikan buat laporan'
+                        : 'Periksa kelengkapan dan simulasikan buat laporan'
+                );
             }
             if (wizardDaftarJabatan) {
                 const jabatanValues = Array.from(document.querySelectorAll('.wizard-lowongan-field[data-field="jabatan"]'))
