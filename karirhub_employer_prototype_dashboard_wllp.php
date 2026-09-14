@@ -449,9 +449,6 @@ $unfilledPercentage = $totalReported > 0 ? min(100, (int)round(((int)$metrics['p
                 </div>
             </div>
             <div class="wllp-welcome-actions d-flex flex-wrap gap-2">
-                <a class="btn btn-sm btn-outline-light" href="karirhub_employer_prototype_dashboard_pengembangan">
-                    <i class="bi bi-kanban me-1"></i>Dashboard Pengembangan
-                </a>
                 <a class="btn btn-sm wllp-primary-action" href="karirhub_employer_prototype_pelaporan_lowongan">
                     <i class="bi bi-plus-circle me-1"></i>Buat Laporan Lowongan
                 </a>
