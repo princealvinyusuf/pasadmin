@@ -15,12 +15,12 @@ function ews_h(string $value): string
 }
 
 $summary = [
-    ['label' => 'Pemberi Kerja Berisiko', 'value' => 18, 'meta' => 'Level Low–Urgent', 'icon' => 'bi-buildings', 'tone' => 'indigo'],
-    ['label' => 'Lowongan Berisiko', 'value' => 31, 'meta' => 'Level Low–Urgent', 'icon' => 'bi-briefcase', 'tone' => 'cyan'],
-    ['label' => 'Sinyal Baru 24 Jam', 'value' => 42, 'meta' => '+8 dari periode sebelumnya', 'icon' => 'bi-broadcast', 'tone' => 'blue'],
-    ['label' => 'High', 'value' => 14, 'meta' => '9 lowongan · 5 employer', 'icon' => 'bi-exclamation-diamond', 'tone' => 'amber'],
-    ['label' => 'Urgent', 'value' => 6, 'meta' => '5 lowongan · 1 employer', 'icon' => 'bi-shield-exclamation', 'tone' => 'red'],
-    ['label' => 'Data Freshness', 'value' => '09:45', 'meta' => 'Scan terakhir 09:42', 'icon' => 'bi-arrow-clockwise', 'tone' => 'green'],
+    ['key' => 'kpi-employer', 'label' => 'Pemberi Kerja Berisiko', 'value' => 18, 'meta' => 'Level Low–Urgent', 'icon' => 'bi-buildings', 'tone' => 'indigo'],
+    ['key' => 'kpi-vacancy', 'label' => 'Lowongan Berisiko', 'value' => 31, 'meta' => 'Level Low–Urgent', 'icon' => 'bi-briefcase', 'tone' => 'cyan'],
+    ['key' => 'kpi-new-signal', 'label' => 'Sinyal Baru 24 Jam', 'value' => 42, 'meta' => '+8 dari periode sebelumnya', 'icon' => 'bi-broadcast', 'tone' => 'blue'],
+    ['key' => 'risk-High', 'label' => 'High', 'value' => 14, 'meta' => '9 lowongan · 5 employer', 'icon' => 'bi-exclamation-diamond', 'tone' => 'amber'],
+    ['key' => 'risk-Urgent', 'label' => 'Urgent', 'value' => 6, 'meta' => '5 lowongan · 1 employer', 'icon' => 'bi-shield-exclamation', 'tone' => 'red'],
+    ['key' => 'kpi-freshness', 'label' => 'Data Freshness', 'value' => '09:45', 'meta' => 'Scan terakhir 09:42', 'icon' => 'bi-arrow-clockwise', 'tone' => 'green'],
 ];
 
 $riskDistribution = [
@@ -137,6 +137,9 @@ $employers = [
         .ews-subtitle { margin: 5px 0 0; color: #688097; font-size: 14px; }
         .ews-freshness { color: #71869b; font-size: 12px; }
         .ews-kpi { height: 100%; padding: 14px; border: 1px solid #e2eaf3; border-radius: 12px; background: #fff; }
+        .ews-clickable { cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+        .ews-clickable:hover { border-color: #67aaa7; box-shadow: 0 5px 16px rgba(36, 74, 105, .1); transform: translateY(-1px); }
+        .ews-clickable:focus-visible { outline: 3px solid rgba(13, 126, 121, .25); outline-offset: 2px; }
         .ews-kpi-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
         .ews-kpi-label { color: #70869c; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .025em; }
         .ews-kpi-icon { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9px; font-size: 16px; }
@@ -196,6 +199,10 @@ $employers = [
         .ews-detail-card { padding: 13px; border: 1px solid #e2eaf3; border-radius: 9px; }
         .ews-detail-card h3 { margin: 0 0 7px; color: #62778c; font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .ews-detail-card p { margin: 0; color: #344f68; font-size: 12px; }
+        .ews-insight-list { margin: 0; padding: 0; list-style: none; }
+        .ews-insight-list li { display: flex; justify-content: space-between; gap: 16px; padding: 11px 0; border-bottom: 1px solid #e7edf4; color: #3d576f; font-size: 13px; }
+        .ews-insight-list li:last-child { border-bottom: 0; }
+        .ews-insight-list strong { color: #263f58; }
         @media (max-width: 767px) {
             .ews-shell { padding: 15px; }
             .ews-title { font-size: 22px; }
@@ -276,7 +283,7 @@ $employers = [
             <div class="row g-3 mb-3">
                 <?php foreach ($summary as $item): ?>
                     <div class="col-6 col-md-4 col-xl-2">
-                        <div class="ews-kpi">
+                        <div class="ews-kpi ews-clickable js-insight-detail" role="button" tabindex="0" data-insight="<?php echo ews_h($item['key']); ?>" data-bs-toggle="modal" data-bs-target="#insightDetailModal" aria-label="Lihat detail <?php echo ews_h($item['label']); ?>">
                             <div class="ews-kpi-head">
                                 <span class="ews-kpi-label"><?php echo ews_h($item['label']); ?></span>
                                 <span class="ews-kpi-icon <?php echo ews_h($item['tone']); ?>"><i class="bi <?php echo ews_h($item['icon']); ?>"></i></span>
@@ -303,7 +310,7 @@ $employers = [
                         </div>
                         <div class="ews-trend" aria-label="Grafik tren risiko">
                             <?php foreach ($riskTrend as $point): ?>
-                                <div class="ews-trend-group">
+                                <div class="ews-trend-group ews-clickable js-insight-detail rounded px-1" role="button" tabindex="0" data-insight="trend-<?php echo ews_h($point['label']); ?>" data-bs-toggle="modal" data-bs-target="#insightDetailModal" aria-label="Lihat detail tren <?php echo ews_h($point['label']); ?>">
                                     <div class="ews-trend-bars">
                                         <div class="ews-trend-bar" title="<?php echo (int)$point['employer']; ?> employer" style="height: <?php echo (int)$point['employer'] * 4; ?>px"></div>
                                         <div class="ews-trend-bar vacancy" title="<?php echo (int)$point['vacancy']; ?> lowongan" style="height: <?php echo (int)$point['vacancy'] * 4; ?>px"></div>
@@ -319,7 +326,7 @@ $employers = [
                         <h2 class="ews-panel-title">Distribusi Risk Level</h2>
                         <p class="ews-panel-subtitle">Populasi entity berdasarkan level aktif</p>
                         <?php foreach ($riskDistribution as $risk): ?>
-                            <div class="ews-risk-row">
+                            <div class="ews-risk-row ews-clickable js-insight-detail rounded p-2" role="button" tabindex="0" data-insight="risk-<?php echo ews_h($risk['label']); ?>" data-bs-toggle="modal" data-bs-target="#insightDetailModal" aria-label="Lihat detail risiko <?php echo ews_h($risk['label']); ?>">
                                 <span class="ews-row-label"><?php echo ews_h($risk['label']); ?></span>
                                 <div class="ews-track"><div class="ews-fill <?php echo ews_h($risk['tone']); ?>" style="width: <?php echo (int)$risk['percent']; ?>%"></div></div>
                                 <span class="ews-row-value"><?php echo (int)$risk['value']; ?></span>
@@ -335,7 +342,7 @@ $employers = [
                         <h2 class="ews-panel-title">Primary Signal &amp; Rule Category</h2>
                         <p class="ews-panel-subtitle">Sinyal aktif yang paling sering terdeteksi</p>
                         <?php foreach ($topSignals as $signal): ?>
-                            <div class="ews-signal-row">
+                            <div class="ews-signal-row ews-clickable js-insight-detail rounded p-2" role="button" tabindex="0" data-insight="signal-<?php echo ews_h($signal['code']); ?>" data-bs-toggle="modal" data-bs-target="#insightDetailModal" aria-label="Lihat detail <?php echo ews_h($signal['label']); ?>">
                                 <span class="ews-row-label"><?php echo ews_h($signal['label']); ?><small><?php echo ews_h($signal['code']); ?> · <?php echo ews_h($signal['category']); ?></small></span>
                                 <div class="ews-track"><div class="ews-fill" style="width: <?php echo (int)$signal['percent']; ?>%"></div></div>
                                 <span class="ews-row-value"><?php echo (int)$signal['value']; ?></span>
@@ -348,7 +355,7 @@ $employers = [
                         <h2 class="ews-panel-title">Risk by Region</h2>
                         <p class="ews-panel-subtitle">Sebaran provinsi dan kabupaten/kota</p>
                         <?php foreach ($regions as $region): ?>
-                            <div class="ews-signal-row">
+                            <div class="ews-signal-row ews-clickable js-insight-detail rounded p-2" role="button" tabindex="0" data-insight="region-<?php echo ews_h($region['label']); ?>" data-bs-toggle="modal" data-bs-target="#insightDetailModal" aria-label="Lihat detail wilayah <?php echo ews_h($region['label']); ?>">
                                 <span class="ews-row-label"><?php echo ews_h($region['label']); ?><small class="ews-region-meta"><span>Urgent <?php echo (int)$region['urgent']; ?></span><span>High <?php echo (int)$region['high']; ?></span></small></span>
                                 <div class="ews-track"><div class="ews-fill high" style="width: <?php echo (int)$region['percent']; ?>%"></div></div>
                                 <span class="ews-row-value"><?php echo (int)$region['total']; ?></span>
@@ -412,6 +419,28 @@ $employers = [
                     </table>
                 </div>
             </section>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="insightDetailModal" tabindex="-1" aria-labelledby="insightDetailTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title fs-5" id="insightDetailTitle">Detail Informasi</h2>
+                    <div class="ews-freshness mt-1" id="insightDetailSubtitle">Data contoh sesuai filter dashboard</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body">
+                <div class="ews-note mb-3" id="insightDetailSummary"></div>
+                <ul class="ews-insight-list" id="insightDetailList"></ul>
+            </div>
+            <div class="modal-footer">
+                <span class="ews-freshness me-auto">Dashboard diperbarui 02 Sep 2026 09:45</span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
         </div>
     </div>
 </div>
@@ -534,6 +563,110 @@ $employers = [
         form.reset();
         activeType = 'Vacancy';
         applyFilters();
+    });
+
+    const insightExamples = {
+        'kpi-employer': {
+            title: '18 Pemberi Kerja Berisiko',
+            summary: 'Pemberi kerja dengan risk level Low sampai Urgent pada scope wilayah aktif.',
+            items: [['PT Cahaya Karier Digital', '76 · High'], ['CV Mitra Karya Utama', '55 · Medium'], ['PT Nusantara Daya', '32 · Low']]
+        },
+        'kpi-vacancy': {
+            title: '31 Lowongan Berisiko',
+            summary: 'Lowongan dengan sinyal aktif, diurutkan dari risk score tertinggi.',
+            items: [['Staff Administrasi', '88 · Urgent'], ['Customer Service', '67 · High'], ['Data Entry', '48 · Medium']]
+        },
+        'kpi-new-signal': {
+            title: '42 Sinyal Baru dalam 24 Jam',
+            summary: 'Sinyal yang pertama kali terdeteksi sejak 01 Sep 2026 pukul 09:45.',
+            items: [['EWS-CNT-01 · Permintaan biaya', '16 sinyal'], ['EWS-CNT-03 · Tautan berisiko', '12 sinyal'], ['EWS-ID-03 · Kontak lintas entitas', '7 sinyal']]
+        },
+        'kpi-freshness': {
+            title: 'Data Freshness',
+            summary: 'Informasi waktu pemindaian dan pembaruan agregat dashboard.',
+            items: [['Last scan at', '02 Sep 2026 09:42'], ['Last dashboard refresh at', '02 Sep 2026 09:45'], ['Status cache', 'Mutakhir']]
+        }
+    };
+    const riskExamples = {
+        Normal: ['124 entity', 'Tidak ada kombinasi sinyal yang melewati baseline risiko.'],
+        Low: ['37 entity', 'Weak signal untuk monitoring.'],
+        Medium: ['21 entity', 'Kombinasi sinyal memerlukan perhatian analitis.'],
+        High: ['14 entity', '9 lowongan dan 5 pemberi kerja.'],
+        Urgent: ['6 entity', '5 lowongan dan 1 pemberi kerja; tetap bukan verdict hoaks.']
+    };
+    const signalExamples = {
+        'EWS-CNT-01': ['Permintaan biaya/pembayaran', '16 entity', 'Content · Urgent'],
+        'EWS-CNT-03': ['Tautan/kanal eksternal berisiko', '12 entity', 'Content · High'],
+        'EWS-CNT-04': ['Identitas konten tidak sesuai', '9 entity', 'Content · High'],
+        'EWS-ID-03': ['Kontak digunakan lintas entitas', '7 entity', 'Identity · High'],
+        'EWS-BHV-01': ['Lonjakan posting lowongan', '6 entity', 'Behavior · Medium']
+    };
+    const regionExamples = {
+        'DKI Jakarta': ['18 total entity', '3 Urgent', '8 High'],
+        'Jawa Barat': ['13 total entity', '2 Urgent', '4 High'],
+        'Jawa Timur': ['9 total entity', '1 Urgent', '2 High'],
+        'Sulawesi Selatan': ['6 total entity', '0 Urgent', '2 High']
+    };
+    const trendExamples = {
+        '27 Agu': ['8 pemberi kerja', '14 lowongan'],
+        '28 Agu': ['10 pemberi kerja', '18 lowongan'],
+        '29 Agu': ['9 pemberi kerja', '17 lowongan'],
+        '30 Agu': ['13 pemberi kerja', '22 lowongan'],
+        '31 Agu': ['14 pemberi kerja', '25 lowongan'],
+        '01 Sep': ['16 pemberi kerja', '28 lowongan'],
+        '02 Sep': ['18 pemberi kerja', '31 lowongan']
+    };
+
+    function resolveInsight(key) {
+        if (insightExamples[key]) {
+            return insightExamples[key];
+        }
+        if (key.indexOf('risk-') === 0) {
+            const level = key.substring(5);
+            const detail = riskExamples[level] || ['Belum tersedia', 'Tidak ada data contoh.'];
+            return { title: 'Risk Level ' + level, summary: detail[1], items: [['Jumlah entity', detail[0]], ['Urutan prioritas', level === 'Urgent' ? '1' : level === 'High' ? '2' : level === 'Medium' ? '3' : level === 'Low' ? '4' : '-']] };
+        }
+        if (key.indexOf('signal-') === 0) {
+            const code = key.substring(7);
+            const detail = signalExamples[code] || [code, 'Belum tersedia', '-'];
+            return { title: code + ' · ' + detail[0], summary: 'Contoh ringkasan entity yang memenuhi rule aktif.', items: [['Jumlah terdeteksi', detail[1]], ['Kategori / Severity', detail[2]], ['Status sinyal', 'ACTIVE']] };
+        }
+        if (key.indexOf('region-') === 0) {
+            const region = key.substring(7);
+            const detail = regionExamples[region] || ['Belum tersedia', '-', '-'];
+            return { title: 'Risiko di ' + region, summary: 'Distribusi risiko pada scope wilayah terpilih.', items: [['Total', detail[0]], ['Urgent', detail[1]], ['High', detail[2]]] };
+        }
+        if (key.indexOf('trend-') === 0) {
+            const date = key.substring(6);
+            const detail = trendExamples[date] || ['Belum tersedia', 'Belum tersedia'];
+            return { title: 'Risk Trend · ' + date, summary: 'Jumlah entity berisiko pada titik waktu terpilih.', items: [['Pemberi Kerja', detail[0]], ['Lowongan', detail[1]], ['Periode', '7 hari']] };
+        }
+        return { title: 'Detail Informasi', summary: 'Data contoh belum tersedia.', items: [] };
+    }
+
+    document.querySelectorAll('.js-insight-detail').forEach(function (element) {
+        element.addEventListener('click', function () {
+            const insight = resolveInsight(element.dataset.insight || '');
+            document.getElementById('insightDetailTitle').textContent = insight.title;
+            document.getElementById('insightDetailSummary').textContent = insight.summary;
+            const list = document.getElementById('insightDetailList');
+            list.replaceChildren();
+            insight.items.forEach(function (item) {
+                const row = document.createElement('li');
+                const label = document.createElement('strong');
+                const value = document.createElement('span');
+                label.textContent = item[0];
+                value.textContent = item[1];
+                row.append(label, value);
+                list.appendChild(row);
+            });
+        });
+        element.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                element.click();
+            }
+        });
     });
 
     document.querySelectorAll('.js-risk-detail').forEach(function (button) {
