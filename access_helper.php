@@ -87,6 +87,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		['walkin_gallery_manage','Manage Walk-in Gallery','Layanan'],
 		['partner_company_manage','Manage Partner Companies','Layanan'],
 		['walkin_survey_manage','Manage Walk-in Survey','Layanan'],
+		['company_evaluation_survey_manage','Manage Company Evaluation Survey','Layanan'],
 		['walkin_form_manage','Manage Walk-in Form Access','Layanan'],
 		['lapor_loker_manage','Manage Lapor Loker Reports','Layanan'],
 		['kemitraan_monitoring_manage','Manage Dashboard Monitoring & Evaluasi Kemitraan','Layanan'],
