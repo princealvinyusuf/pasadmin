@@ -532,7 +532,7 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
                 <td>
                     <div class="news-content-preview">
                         <?php 
-                            $allowed_tags = '<b><strong><i><em><u><s><strike><p><br><ul><ol><li><a><span>';
+                            $allowed_tags = '<b><strong><i><em><u><s><strike><p><br><ul><ol><li><a><span><h1><h2><h3><h4><h5><h6><blockquote><pre><code>';
                             $preview_content = strip_tags($row['content'], $allowed_tags);
                             if ($preview_content === strip_tags($row['content'])) {
                                 echo nl2br(htmlspecialchars($preview_content));
@@ -590,16 +590,22 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
 
             const contentInput = document.getElementById('content');
             const newsForm = document.querySelector('form');
+            function getEditorHtml() {
+                if (typeof quill.getSemanticHTML === 'function') {
+                    return quill.getSemanticHTML();
+                }
+                return quill.root.innerHTML;
+            }
 
             // Selalu perbarui hidden input saat teks berubah
             quill.on('text-change', function() {
-                contentInput.value = toBase64Unicode(quill.root.innerHTML);
+                contentInput.value = toBase64Unicode(getEditorHtml());
             });
 
             // Sinkronisasi dan validasi sebelum submit form
             if (newsForm) {
                 newsForm.addEventListener('submit', function(e) {
-                    const html = quill.root.innerHTML;
+                    const html = getEditorHtml();
                     const plainText = quill.getText().trim();
 
                     // Periksa apakah konten benar-benar kosong
