@@ -235,6 +235,8 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
     <title>News Settings</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Quill Rich Text Editor Stylesheet -->
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
     <style>
         .navbar-brand { font-weight: bold; letter-spacing: 1px; }
         body {
@@ -251,10 +253,10 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
         form {
             background: #f9fafb;
             border-radius: 8px;
-            padding: 24px 20px 16px 20px;
+            padding: 24px 24px 20px 24px;
             margin-bottom: 32px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-            max-width: 600px;
+            max-width: 860px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -263,6 +265,66 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
             margin-bottom: 14px;
             color: #333;
             font-weight: 500;
+        }
+        .field-group {
+            margin-bottom: 16px;
+        }
+        .field-label {
+            display: block;
+            margin-bottom: 6px;
+            color: #333;
+            font-weight: 500;
+        }
+        #editor-wrapper {
+            background: #fff;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        #editor-wrapper:focus-within {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .ql-toolbar.ql-snow {
+            border: none !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            background: #f8fafc;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            padding: 10px 12px;
+        }
+        .ql-container.ql-snow {
+            border: none !important;
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        .ql-editor {
+            min-height: 280px;
+            max-height: 550px;
+            overflow-y: auto;
+            line-height: 1.65;
+            padding: 14px 16px;
+        }
+        .ql-editor.ql-blank::before {
+            color: #9ca3af;
+            font-style: normal;
+        }
+        .news-content-preview {
+            max-height: 130px;
+            max-width: 320px;
+            overflow-y: auto;
+            font-size: 0.92rem;
+            line-height: 1.45;
+            word-break: break-word;
+        }
+        .news-content-preview p {
+            margin-bottom: 4px;
+        }
+        .news-content-preview p:last-child {
+            margin-bottom: 0;
         }
         input[type="text"], input[type="date"], textarea, input[type="file"] {
             width: 100%;
@@ -382,11 +444,38 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
                 <input type="hidden" name="id" value="<?php echo $edit_news['id']; ?>">
             <?php endif; ?>
             <label>Title:
-                <input type="text" name="title" required value="<?php echo $edit_news['title'] ?? ''; ?>">
+                <input type="text" name="title" required value="<?php echo htmlspecialchars($edit_news['title'] ?? ''); ?>">
             </label>
-            <label>Content:
-                <textarea name="content" required><?php echo $edit_news['content'] ?? ''; ?></textarea>
-            </label>
+            <div class="field-group">
+                <label class="field-label" for="quill-editor">
+                    <i class="bi bi-file-earmark-richtext me-1"></i>Content / Isi Berita:
+                </label>
+                <div id="editor-wrapper">
+                    <div id="quill-editor"><?php 
+                        if ($edit_news) {
+                            $content_to_edit = $edit_news['content'] ?? '';
+                            // Jika data lama berupa teks polos tanpa HTML tag, ubah baris baru menjadi format paragraf
+                            if ($content_to_edit !== '' && strip_tags($content_to_edit) === $content_to_edit) {
+                                $paragraphs = explode("\n", str_replace(["\r\n", "\r"], "\n", $content_to_edit));
+                                $html_paragraphs = '';
+                                foreach ($paragraphs as $p) {
+                                    $p_trimmed = trim($p);
+                                    if ($p_trimmed !== '') {
+                                        $html_paragraphs .= '<p>' . htmlspecialchars($p_trimmed) . '</p>';
+                                    }
+                                }
+                                echo $html_paragraphs ?: '<p>' . htmlspecialchars($content_to_edit) . '</p>';
+                            } else {
+                                echo $content_to_edit;
+                            }
+                        }
+                    ?></div>
+                </div>
+                <input type="hidden" name="content" id="content" value="<?php echo htmlspecialchars($edit_news['content'] ?? ''); ?>">
+                <small class="text-muted d-block mt-1">
+                    <i class="bi bi-info-circle me-1"></i>Gunakan toolbar di atas untuk format teks (<strong>Bold</strong>, <em>Italic</em>, <u>Underline</u>, Strikethrough, Heading, Warna, List, Link, Alignment, dll).
+                </small>
+            </div>
             <label>Image:
                 <input type="file" name="image" accept="image/*">
                 <?php if ($edit_news && $edit_news['image_url']): ?>
@@ -402,7 +491,7 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
                 <input type="date" name="date" required value="<?php echo $edit_news['date'] ?? ''; ?>">
             </label>
             <label>Author:
-                <input type="text" name="author" value="<?php echo $edit_news['author'] ?? ''; ?>">
+                <input type="text" name="author" value="<?php echo htmlspecialchars($edit_news['author'] ?? ''); ?>">
             </label>
             <button type="submit" class="btn" name="<?php echo $edit_news ? 'update' : 'add'; ?>"><?php echo $edit_news ? 'Update' : 'Add'; ?></button>
             <?php if ($edit_news): ?>
@@ -410,6 +499,7 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
             <?php endif; ?>
         </form>
         <h3>All News</h3>
+        <div class="table-responsive">
         <table>
             <tr>
                 <th>ID</th>
@@ -426,7 +516,19 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
             <tr>
                 <td><?php echo $row['id']; ?></td>
                 <td><?php echo htmlspecialchars($row['title']); ?></td>
-                <td><?php echo nl2br(htmlspecialchars($row['content'])); ?></td>
+                <td>
+                    <div class="news-content-preview">
+                        <?php 
+                            $allowed_tags = '<b><strong><i><em><u><s><strike><p><br><ul><ol><li><a><span>';
+                            $preview_content = strip_tags($row['content'], $allowed_tags);
+                            if ($preview_content === strip_tags($row['content'])) {
+                                echo nl2br(htmlspecialchars($preview_content));
+                            } else {
+                                echo $preview_content;
+                            }
+                        ?>
+                    </div>
+                </td>
                 <td>
                     <?php if ($row['image_url']): ?>
                         <img src="<?php echo htmlspecialchars(getImageDisplayUrl($row['image_url'])); ?>" alt="News image" class="news-image">
@@ -446,8 +548,56 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
             </tr>
             <?php endwhile; ?>
         </table>
+        </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Quill Rich Text Editor JS -->
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const quill = new Quill('#quill-editor', {
+                theme: 'snow',
+                placeholder: 'Tulis isi konten berita di sini...',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, 3, 4, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                        [{ 'align': [] }],
+                        ['blockquote', 'code-block', 'link'],
+                        ['clean']
+                    ]
+                }
+            });
+
+            const contentInput = document.getElementById('content');
+            const newsForm = document.querySelector('form');
+
+            // Selalu perbarui hidden input saat teks berubah
+            quill.on('text-change', function() {
+                contentInput.value = quill.root.innerHTML;
+            });
+
+            // Sinkronisasi dan validasi sebelum submit form
+            if (newsForm) {
+                newsForm.addEventListener('submit', function(e) {
+                    const html = quill.root.innerHTML;
+                    const plainText = quill.getText().trim();
+
+                    // Periksa apakah konten benar-benar kosong
+                    if (!plainText && !quill.root.querySelector('img')) {
+                        e.preventDefault();
+                        alert('Mohon isi konten berita terlebih dahulu!');
+                        quill.focus();
+                        return false;
+                    }
+
+                    contentInput.value = html;
+                });
+            }
+        });
+    </script>
 </body>
 </html>
 <?php $conn->close(); ?> 
