@@ -1156,7 +1156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                         </select>
                                                     </div>
                                                     <div class="col-12">
-                                                        <label class="form-label mb-1">Kondisi Fisik</label>
+                                                        <label class="form-label mb-1">Apakah lowongan ini terbuka bagi penyandang disabilitas?</label>
                                                         <?php
                                                         $selectedKondisiFisik = kh_proto_parse_csv_values((string)($tab['kondisi_fisik'] ?? ''), ['Disabilitas', 'Non Disabilitas']);
                                                         $selectedJenisDisabilitas = kh_proto_parse_csv_values(
@@ -1194,7 +1194,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                                                 id="jenis-disabilitas-<?php echo $index; ?>-<?php echo h($jenisDisabilitasKey); ?>"
                                                                                 <?php echo in_array($jenisDisabilitas, $selectedJenisDisabilitas, true) ? ' checked' : ''; ?>
                                                                             >
-                                                                            <label class="form-check-label small" for="jenis-disabilitas-<?php echo $index; ?>-<?php echo h($jenisDisabilitasKey); ?>"><?php echo h($jenisDisabilitas); ?></label>
+                                                                            <span class="d-inline-flex align-items-center gap-1">
+                                                                                <label class="form-check-label small" for="jenis-disabilitas-<?php echo $index; ?>-<?php echo h($jenisDisabilitasKey); ?>"><?php echo h($jenisDisabilitas); ?></label>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    class="btn btn-link border-0 p-0 text-decoration-none kh-tooltip-trigger"
+                                                                                    data-bs-toggle="tooltip"
+                                                                                    data-bs-title="<?php echo h($jenisDisabilitas); ?>"
+                                                                                    aria-label="Info <?php echo h($jenisDisabilitas); ?>"
+                                                                                >
+                                                                                    <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+                                                                                </button>
+                                                                            </span>
                                                                         </div>
                                                                     <?php endforeach; ?>
                                                                 </div>
