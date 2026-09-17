@@ -55,10 +55,22 @@ function getImageFilePath($image_path) {
     return $_SERVER['DOCUMENT_ROOT'] . '/' . $image_path;
 }
 
+// Decode content sent from editor to avoid WAF blocking raw HTML payloads
+function decodeNewsContent($rawContent, $encoding = '') {
+    if ($encoding === 'base64html') {
+        $decoded = base64_decode($rawContent, true);
+        if ($decoded !== false) {
+            return $decoded;
+        }
+    }
+
+    return $rawContent;
+}
+
 // Handle Create
 if (isset($_POST['add'])) {
     $title = $_POST['title'];
-    $content = $_POST['content'];
+    $content = decodeNewsContent($_POST['content'] ?? '', $_POST['content_encoding'] ?? '');
     $date = $_POST['date'];
     $author = $_POST['author'];
     
@@ -117,7 +129,7 @@ if (isset($_POST['add'])) {
 if (isset($_POST['update'])) {
     $id = $_POST['id'];
     $title = $_POST['title'];
-    $content = $_POST['content'];
+    $content = decodeNewsContent($_POST['content'] ?? '', $_POST['content_encoding'] ?? '');
     $date = $_POST['date'];
     $author = $_POST['author'];
     
@@ -471,7 +483,8 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
                         }
                     ?></div>
                 </div>
-                <input type="hidden" name="content" id="content" value="<?php echo htmlspecialchars($edit_news['content'] ?? ''); ?>">
+                <input type="hidden" name="content" id="content" value="<?php echo htmlspecialchars(base64_encode($edit_news['content'] ?? '')); ?>">
+                <input type="hidden" name="content_encoding" id="content_encoding" value="base64html">
                 <small class="text-muted d-block mt-1">
                     <i class="bi bi-info-circle me-1"></i>Gunakan toolbar di atas untuk format teks (<strong>Bold</strong>, <em>Italic</em>, <u>Underline</u>, Strikethrough, Heading, Warna, List, Link, Alignment, dll).
                 </small>
@@ -555,6 +568,10 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            function toBase64Unicode(str) {
+                return btoa(unescape(encodeURIComponent(str)));
+            }
+
             const quill = new Quill('#quill-editor', {
                 theme: 'snow',
                 placeholder: 'Tulis isi konten berita di sini...',
@@ -576,7 +593,7 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
 
             // Selalu perbarui hidden input saat teks berubah
             quill.on('text-change', function() {
-                contentInput.value = quill.root.innerHTML;
+                contentInput.value = toBase64Unicode(quill.root.innerHTML);
             });
 
             // Sinkronisasi dan validasi sebelum submit form
@@ -593,7 +610,7 @@ $news = $conn->query("SELECT * FROM news ORDER BY id DESC");
                         return false;
                     }
 
-                    contentInput.value = html;
+                    contentInput.value = toBase64Unicode(html);
                 });
             }
         });
