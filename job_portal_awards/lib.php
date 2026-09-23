@@ -183,6 +183,205 @@ function jpa_json($value): string
     );
 }
 
+function jpa_participant_field_definitions(): array
+{
+    return [
+        'partner_id' => [
+            'label' => 'Kode Mitra',
+            'description' => 'Kode unik portal atau mitra. Gunakan kode yang sama pada setiap pembaruan dalam satu periode.',
+            'example' => 'PORTAL-001',
+        ],
+        'partner_name' => [
+            'label' => 'Nama Portal',
+            'description' => 'Nama portal lowongan kerja yang menjadi peserta penilaian.',
+            'example' => 'Portal Karier Nusantara',
+        ],
+        'integration_type' => [
+            'label' => 'Jenis Integrasi',
+            'description' => 'Full: data terhubung penuh; Semi: sebagian proses masih manual; Tidak aktif: tidak ada integrasi aktif.',
+            'example' => 'full',
+        ],
+        'partnership_active' => [
+            'label' => 'Kemitraan Aktif',
+            'description' => 'Centang jika kerja sama dengan mitra masih aktif selama periode penilaian.',
+            'example' => 1,
+        ],
+        'critical_violation_resolved' => [
+            'label' => 'Pelanggaran Kritis Selesai',
+            'description' => 'Centang jika seluruh pelanggaran kritis telah diselesaikan oleh mitra.',
+            'example' => 1,
+        ],
+        'data_traceable' => [
+            'label' => 'Data Dapat Ditelusuri',
+            'description' => 'Centang jika sumber dan riwayat data dapat diverifikasi.',
+            'example' => 1,
+        ],
+        'records_sent_unique' => [
+            'label' => 'Data Lowongan Unik Dikirim',
+            'description' => 'Jumlah data lowongan unik yang dikirim mitra sebelum proses validasi dan publikasi.',
+            'example' => 12500,
+        ],
+        'published_unique_count' => [
+            'label' => 'Lowongan Unik Berhasil Tayang',
+            'description' => 'Jumlah lowongan unik dari mitra yang berhasil dipublikasikan.',
+            'example' => 10000,
+        ],
+        'active_months' => [
+            'label' => 'Jumlah Bulan Aktif',
+            'description' => 'Jumlah bulan dalam periode penilaian ketika mitra aktif memasok data.',
+            'example' => 6,
+        ],
+        'complete_vacancy_count' => [
+            'label' => 'Lowongan dengan Data Lengkap',
+            'description' => 'Jumlah lowongan tayang yang seluruh atribut wajibnya terisi.',
+            'example' => 9200,
+        ],
+        'employer_unique_count' => [
+            'label' => 'Pemberi Kerja Unik',
+            'description' => 'Jumlah pemberi kerja unik yang mengirim lowongan melalui mitra.',
+            'example' => 800,
+        ],
+        'employer_valid_legal_count' => [
+            'label' => 'Pemberi Kerja Berlegalitas Valid',
+            'description' => 'Jumlah pemberi kerja unik yang legalitas atau KYB-nya telah dinyatakan valid.',
+            'example' => 760,
+        ],
+        'duplicate_vacancy_count' => [
+            'label' => 'Lowongan Duplikat',
+            'description' => 'Jumlah data lowongan yang teridentifikasi sebagai duplikat dari seluruh data unik yang dikirim.',
+            'example' => 125,
+        ],
+        'valid_complaint_count' => [
+            'label' => 'Aduan Valid',
+            'description' => 'Jumlah aduan terkait lowongan mitra yang telah diverifikasi sebagai aduan valid.',
+            'example' => 2,
+        ],
+        'severe_complaint_count' => [
+            'label' => 'Aduan Berat Terverifikasi',
+            'description' => 'Jumlah aduan valid berkategori berat. Nilai di atas nol akan membuat red flag otomatis.',
+            'example' => 0,
+        ],
+        'applications_from_karirhub' => [
+            'label' => 'Lamaran dari Karirhub',
+            'description' => 'Jumlah lamaran ke lowongan mitra yang berasal dari Karirhub.',
+            'example' => 2400,
+        ],
+        'progressed_candidate_count' => [
+            'label' => 'Kandidat Lolos Tahap Berikutnya',
+            'description' => 'Jumlah pelamar dari Karirhub yang lolos kurasi atau maju ke tahap rekrutmen berikutnya.',
+            'example' => 480,
+        ],
+        'hired_candidate_count' => [
+            'label' => 'Kandidat Diterima Bekerja',
+            'description' => 'Jumlah pelamar dari Karirhub yang akhirnya diterima bekerja.',
+            'example' => 120,
+        ],
+        'eligibility_status' => [
+            'label' => 'Status Kelayakan',
+            'description' => 'Hasil pemeriksaan syarat kelayakan peserta pada periode penilaian.',
+            'example' => 'eligible',
+        ],
+        'final_score' => [
+            'label' => 'Nilai Akhir',
+            'description' => 'Nilai akhir hasil perhitungan seluruh indikator aktif dan bobot periode.',
+            'example' => 90,
+        ],
+    ];
+}
+
+function jpa_participant_field_definition(string $field): array
+{
+    $definitions = jpa_participant_field_definitions();
+    return $definitions[$field] ?? [
+        'label' => ucwords(str_replace('_', ' ', $field)),
+        'description' => 'Data peserta untuk kebutuhan penilaian.',
+        'example' => '',
+    ];
+}
+
+function jpa_field_help_html(string $field, bool $showVariable = false): string
+{
+    $definition = jpa_participant_field_definition($field);
+    $tooltip = $definition['description'] . ' Variabel: ' . $field . '.';
+    $html = '<span class="d-inline-flex align-items-center gap-1">';
+    $html .= '<span>' . htmlspecialchars((string)$definition['label']) . '</span>';
+    $html .= '<button type="button" class="btn btn-link btn-sm p-0 text-secondary lh-1"';
+    $html .= ' data-bs-toggle="tooltip" data-bs-placement="top" title="' . htmlspecialchars($tooltip) . '"';
+    $html .= ' aria-label="Penjelasan ' . htmlspecialchars((string)$definition['label']) . '">';
+    $html .= '<i class="bi bi-info-circle" aria-hidden="true"></i></button></span>';
+    if ($showVariable) {
+        $html .= '<div><code class="small">' . htmlspecialchars($field) . '</code></div>';
+    }
+    return $html;
+}
+
+function jpa_example_participants(int $monthsInPeriod = 6): array
+{
+    $activeMonths = max(1, min(6, $monthsInPeriod));
+    return [
+        [
+            'partner_id' => 'PORTAL-001',
+            'partner_name' => 'Portal Karier Nusantara',
+            'integration_type' => 'full',
+            'partnership_active' => 1,
+            'critical_violation_resolved' => 1,
+            'data_traceable' => 1,
+            'records_sent_unique' => 12500,
+            'published_unique_count' => 10000,
+            'active_months' => $activeMonths,
+            'complete_vacancy_count' => 9200,
+            'employer_unique_count' => 800,
+            'employer_valid_legal_count' => 760,
+            'duplicate_vacancy_count' => 125,
+            'valid_complaint_count' => 2,
+            'severe_complaint_count' => 0,
+            'applications_from_karirhub' => 2400,
+            'progressed_candidate_count' => 480,
+            'hired_candidate_count' => 120,
+        ],
+        [
+            'partner_id' => 'PORTAL-002',
+            'partner_name' => 'Kerja Hebat Indonesia',
+            'integration_type' => 'semi',
+            'partnership_active' => 1,
+            'critical_violation_resolved' => 1,
+            'data_traceable' => 1,
+            'records_sent_unique' => 7200,
+            'published_unique_count' => 6000,
+            'active_months' => max(1, $activeMonths - 1),
+            'complete_vacancy_count' => 5100,
+            'employer_unique_count' => 475,
+            'employer_valid_legal_count' => 420,
+            'duplicate_vacancy_count' => 180,
+            'valid_complaint_count' => 4,
+            'severe_complaint_count' => 0,
+            'applications_from_karirhub' => 1300,
+            'progressed_candidate_count' => 210,
+            'hired_candidate_count' => 45,
+        ],
+        [
+            'partner_id' => 'PORTAL-003',
+            'partner_name' => 'Loker Contoh',
+            'integration_type' => 'inactive',
+            'partnership_active' => 0,
+            'critical_violation_resolved' => 0,
+            'data_traceable' => 0,
+            'records_sent_unique' => 1000,
+            'published_unique_count' => 700,
+            'active_months' => 1,
+            'complete_vacancy_count' => 350,
+            'employer_unique_count' => 80,
+            'employer_valid_legal_count' => 40,
+            'duplicate_vacancy_count' => 150,
+            'valid_complaint_count' => 8,
+            'severe_complaint_count' => 2,
+            'applications_from_karirhub' => 100,
+            'progressed_candidate_count' => 10,
+            'hired_candidate_count' => 1,
+        ],
+    ];
+}
+
 function jpa_audit(
     mysqli $conn,
     ?int $periodId,
@@ -496,6 +695,11 @@ function jpa_render_footer(): void
 {
     ?></main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((element) => {
+    new bootstrap.Tooltip(element);
+});
+</script>
 </body>
 </html><?php
 }

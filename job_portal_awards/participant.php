@@ -67,14 +67,23 @@ jpa_render_header('Detail Peserta', $period);
         </tbody></table></div></div>
     </div>
     <div class="col-lg-4">
-        <div class="card mb-4"><div class="card-header"><strong>Raw Metrics</strong></div><div class="list-group list-group-flush">
-            <?php foreach ($rawFields as $field): ?><div class="list-group-item d-flex justify-content-between gap-3"><span class="small"><?php echo htmlspecialchars($field); ?></span><strong><?php echo htmlspecialchars((string)$participant[$field]); ?></strong></div><?php endforeach; ?>
+        <div class="card mb-4"><div class="card-header"><strong>Data Dasar Penilaian</strong></div><div class="list-group list-group-flush">
+            <?php foreach ($rawFields as $field): ?>
+                <div class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                    <span class="small"><?php echo jpa_field_help_html($field, true); ?></span>
+                    <strong class="text-end"><?php echo htmlspecialchars(
+                        $field === 'integration_type'
+                            ? (['full' => 'Penuh', 'semi' => 'Sebagian', 'inactive' => 'Tidak aktif'][$participant[$field]] ?? $participant[$field])
+                            : number_format((int)$participant[$field], 0, ',', '.')
+                    ); ?></strong>
+                </div>
+            <?php endforeach; ?>
         </div></div>
-        <div class="card"><div class="card-header"><strong>Eligibility</strong></div><div class="card-body">
-            <div class="mb-2">E1 Mitra aktif: <strong><?php echo $participant['partnership_active'] ? 'Ya' : 'Tidak'; ?></strong></div>
-            <div class="mb-2">E2 Bulan aktif: <strong><?php echo intval($participant['active_months']); ?> / <?php echo intval($period['min_active_months']); ?></strong></div>
-            <div class="mb-2">E3 Pelanggaran selesai: <strong><?php echo $participant['critical_violation_resolved'] ? 'Ya' : 'Tidak'; ?></strong></div>
-            <div class="mb-2">E5 Traceable: <strong><?php echo $participant['data_traceable'] ? 'Ya' : 'Tidak'; ?></strong></div>
+        <div class="card"><div class="card-header"><strong>Kelayakan Peserta</strong></div><div class="card-body">
+            <div class="mb-2">E1 <?php echo jpa_field_help_html('partnership_active'); ?>: <strong><?php echo $participant['partnership_active'] ? 'Ya' : 'Tidak'; ?></strong></div>
+            <div class="mb-2">E2 <?php echo jpa_field_help_html('active_months'); ?>: <strong><?php echo intval($participant['active_months']); ?> / <?php echo intval($period['min_active_months']); ?></strong></div>
+            <div class="mb-2">E3 <?php echo jpa_field_help_html('critical_violation_resolved'); ?>: <strong><?php echo $participant['critical_violation_resolved'] ? 'Ya' : 'Tidak'; ?></strong></div>
+            <div class="mb-2">E5 <?php echo jpa_field_help_html('data_traceable'); ?>: <strong><?php echo $participant['data_traceable'] ? 'Ya' : 'Tidak'; ?></strong></div>
             <?php if ($participant['eligibility_reasons']): ?><div class="alert alert-warning mb-0"><?php echo nl2br(htmlspecialchars($participant['eligibility_reasons'])); ?></div><?php endif; ?>
         </div></div>
     </div>

@@ -368,6 +368,10 @@ if ($period) {
 }
 
 $headers = jpa_import_headers();
+$fieldDefinitions = jpa_participant_field_definitions();
+$exampleParticipants = jpa_example_participants(
+    $period ? jpa_months_in_period($period['period_start'], $period['period_end']) : 6
+);
 
 jpa_render_header('Peserta & Data Import', $period);
 ?>
@@ -386,6 +390,9 @@ jpa_render_header('Peserta & Data Import', $period);
             <div class="card">
                 <div class="card-header d-flex justify-content-between"><strong>Import Excel</strong><button type="button" id="downloadTemplate" class="btn btn-sm btn-outline-primary">Download Template</button></div>
                 <div class="card-body">
+                    <div class="alert alert-info small py-2">
+                        Template berisi tiga contoh peserta. Nama kolom tetap menggunakan nama variabel agar dapat diproses sistem; arahkan kursor ke label pada formulir atau tabel untuk membaca penjelasannya.
+                    </div>
                     <form method="post" id="importForm">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(jpa_csrf_token()); ?>">
                         <input type="hidden" name="action" value="import">
@@ -410,17 +417,47 @@ jpa_render_header('Peserta & Data Import', $period);
                         <input type="hidden" name="period_id" value="<?php echo intval($period['id']); ?>">
                         <input type="hidden" name="edit_id" value="<?php echo intval($edit['id'] ?? 0); ?>">
                         <div class="row g-2">
-                            <div class="col-5"><input class="form-control" name="partner_id" required placeholder="partner_id" value="<?php echo htmlspecialchars($edit['partner_id'] ?? ''); ?>" <?php echo $edit ? 'readonly' : ''; ?>></div>
-                            <div class="col-7"><input class="form-control" name="partner_name" required placeholder="Nama portal" value="<?php echo htmlspecialchars($edit['partner_name'] ?? ''); ?>"></div>
-                            <div class="col-6"><select class="form-select" name="integration_type"><?php foreach (['full','semi','inactive'] as $type): ?><option <?php echo ($edit['integration_type'] ?? '') === $type ? 'selected' : ''; ?>><?php echo $type; ?></option><?php endforeach; ?></select></div>
-                            <?php foreach (['partnership_active'=>'Mitra aktif','critical_violation_resolved'=>'Pelanggaran selesai','data_traceable'=>'Data terlacak'] as $field=>$label): ?>
-                                <div class="col-6"><label class="form-check"><input class="form-check-input" type="checkbox" name="<?php echo $field; ?>" value="1" <?php echo !empty($edit[$field]) ? 'checked' : ''; ?>> <?php echo $label; ?></label></div>
+                            <?php foreach (['partner_id' => 'col-5', 'partner_name' => 'col-7'] as $field => $columnClass): ?>
+                                <div class="<?php echo $columnClass; ?>">
+                                    <label class="form-label small mb-1" for="<?php echo $field; ?>"><?php echo jpa_field_help_html($field); ?></label>
+                                    <input class="form-control" id="<?php echo $field; ?>" name="<?php echo $field; ?>" required
+                                        placeholder="Contoh: <?php echo htmlspecialchars((string)$fieldDefinitions[$field]['example']); ?>"
+                                        value="<?php echo htmlspecialchars($edit[$field] ?? ''); ?>" <?php echo $edit && $field === 'partner_id' ? 'readonly' : ''; ?>>
+                                </div>
+                            <?php endforeach; ?>
+                            <div class="col-6">
+                                <label class="form-label small mb-1" for="integration_type"><?php echo jpa_field_help_html('integration_type'); ?></label>
+                                <select class="form-select" id="integration_type" name="integration_type">
+                                    <?php foreach (['full' => 'Penuh (full)', 'semi' => 'Sebagian (semi)', 'inactive' => 'Tidak aktif'] as $value => $label): ?>
+                                        <option value="<?php echo $value; ?>" <?php echo ($edit['integration_type'] ?? 'full') === $value ? 'selected' : ''; ?>><?php echo $label; ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <?php foreach (['partnership_active','critical_violation_resolved','data_traceable'] as $field): ?>
+                                <div class="col-6">
+                                    <label class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" name="<?php echo $field; ?>" value="1" <?php echo !empty($edit[$field]) ? 'checked' : ''; ?>>
+                                        <?php echo jpa_field_help_html($field); ?>
+                                    </label>
+                                </div>
                             <?php endforeach; ?>
                             <?php foreach (array_slice($headers, 6) as $field): ?>
-                                <div class="col-6"><label class="form-label small mb-0"><?php echo htmlspecialchars($field); ?></label><input type="number" min="0" class="form-control form-control-sm" name="<?php echo $field; ?>" value="<?php echo intval($edit[$field] ?? 0); ?>"></div>
+                                <div class="col-6">
+                                    <label class="form-label small mb-1" for="<?php echo $field; ?>"><?php echo jpa_field_help_html($field); ?></label>
+                                    <input type="number" min="0" class="form-control form-control-sm" id="<?php echo $field; ?>" name="<?php echo $field; ?>"
+                                        placeholder="Contoh: <?php echo intval($fieldDefinitions[$field]['example']); ?>"
+                                        value="<?php echo intval($edit[$field] ?? 0); ?>">
+                                </div>
                             <?php endforeach; ?>
-                            <div class="col-12"><input class="form-control" name="reason" required placeholder="Alasan penambahan/koreksi"></div>
-                            <div class="col-12 d-flex gap-2"><button class="btn btn-primary">Simpan &amp; Hitung</button><?php if ($edit): ?><a class="btn btn-outline-secondary" href="participants?period_id=<?php echo intval($period['id']); ?>">Batal</a><?php endif; ?></div>
+                            <div class="col-12">
+                                <label class="form-label small mb-1" for="reason">Alasan Penambahan/Koreksi</label>
+                                <input class="form-control" id="reason" name="reason" required placeholder="Contoh: Data simulasi untuk memahami perhitungan">
+                            </div>
+                            <div class="col-12 d-flex flex-wrap gap-2">
+                                <button class="btn btn-primary">Simpan &amp; Hitung</button>
+                                <?php if (!$edit): ?><button type="button" class="btn btn-outline-secondary" id="fillExample">Isi Data Contoh</button><?php endif; ?>
+                                <?php if ($edit): ?><a class="btn btn-outline-secondary" href="participants?period_id=<?php echo intval($period['id']); ?>">Batal</a><?php endif; ?>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -432,10 +469,16 @@ jpa_render_header('Peserta & Data Import', $period);
     <div class="card mb-4">
         <div class="card-header"><strong>Daftar Peserta (<?php echo count($participants); ?>)</strong></div>
         <div class="table-responsive">
-            <table class="table table-sm table-striped mb-0"><thead><tr><th>Partner ID</th><th>Portal</th><th>Integrasi</th><th>Eligibility</th><th>Nilai</th><th></th></tr></thead><tbody>
+            <table class="table table-sm table-striped align-middle mb-0"><thead><tr>
+                <?php foreach (['partner_id','partner_name','integration_type','eligibility_status','final_score'] as $field): ?>
+                    <th><?php echo jpa_field_help_html($field, true); ?></th>
+                <?php endforeach; ?>
+                <th><span class="visually-hidden">Tindakan</span></th>
+            </tr></thead><tbody>
                 <?php foreach ($participants as $row): ?><tr>
                     <td><?php echo htmlspecialchars($row['partner_id']); ?></td><td><?php echo htmlspecialchars($row['partner_name']); ?></td>
-                    <td><?php echo htmlspecialchars($row['integration_type']); ?></td><td><?php echo htmlspecialchars($row['eligibility_status']); ?></td>
+                    <td><?php echo htmlspecialchars(['full' => 'Penuh', 'semi' => 'Sebagian', 'inactive' => 'Tidak aktif'][$row['integration_type']] ?? $row['integration_type']); ?></td>
+                    <td><?php echo htmlspecialchars(['eligible' => 'Layak', 'ineligible' => 'Tidak layak', 'pending' => 'Menunggu'][$row['eligibility_status']] ?? $row['eligibility_status']); ?></td>
                     <td class="jpa-score"><?php echo number_format((float)$row['final_score'], 2); ?></td>
                     <td><?php if ($period['status'] === 'locked'): ?><a class="btn btn-sm btn-outline-primary" href="participants?period_id=<?php echo intval($period['id']); ?>&edit_id=<?php echo intval($row['id']); ?>">Koreksi</a><?php endif; ?> <a class="btn btn-sm btn-outline-secondary" href="participant?participant_id=<?php echo intval($row['id']); ?>">Detail</a></td>
                 </tr><?php endforeach; ?>
@@ -454,13 +497,24 @@ jpa_render_header('Peserta & Data Import', $period);
 <?php endif; ?>
 <script>
 const templateHeaders = <?php echo jpa_json($headers); ?>;
+const exampleParticipants = <?php echo jpa_json($exampleParticipants); ?>;
 document.getElementById('downloadTemplate')?.addEventListener('click', () => {
-    const example = {};
-    templateHeaders.forEach(h => example[h] = h.includes('name') ? 'Contoh Portal' : (h === 'partner_id' ? 'JOSS-001' : (h === 'integration_type' ? 'full' : 0)));
-    example.partnership_active = 1; example.critical_violation_resolved = 1; example.data_traceable = 1;
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([example], {header: templateHeaders}), 'Participants');
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(exampleParticipants, {header: templateHeaders}), 'Contoh Peserta');
     XLSX.writeFile(workbook, 'job_portal_awards_import_template.xlsx');
+});
+document.getElementById('fillExample')?.addEventListener('click', () => {
+    const example = exampleParticipants[0];
+    Object.entries(example).forEach(([field, value]) => {
+        const input = document.querySelector(`[name="${field}"]`);
+        if (!input) return;
+        if (input.type === 'checkbox') {
+            input.checked = Boolean(Number(value));
+        } else {
+            input.value = value;
+        }
+    });
+    document.getElementById('reason').value = 'Data contoh untuk simulasi dan pemahaman perhitungan';
 });
 document.getElementById('excelFile')?.addEventListener('change', async function () {
     const file = this.files[0];
