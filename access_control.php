@@ -9,16 +9,24 @@ require_once __DIR__ . '/access_helper.php';
 
 // Only allow users with permission or Super Admin
 if (!current_user_can('manage_access_control')) {
-	// If no groups existed yet, bootstrapper in helper will have granted current user super admin
-	if (!current_user_can('manage_access_control')) {
-		http_response_code(403);
-		echo 'Forbidden';
-		exit;
-	}
+	http_response_code(403);
+	echo 'Forbidden';
+	exit;
 }
 
 $tab = $_GET['tab'] ?? 'users';
 $action = $_POST['action'] ?? '';
+if (empty($_SESSION['access_control_csrf'])) {
+	$_SESSION['access_control_csrf'] = bin2hex(random_bytes(32));
+}
+$accessControlCsrf = (string)$_SESSION['access_control_csrf'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action !== '') {
+	$providedToken = (string)($_POST['csrf_token'] ?? '');
+	if ($providedToken === '' || !hash_equals($accessControlCsrf, $providedToken)) {
+		http_response_code(419);
+		exit('Invalid or expired request token.');
+	}
+}
 
 /**
  * Ensure menu permissions are always registered in Access Control.
@@ -73,6 +81,23 @@ register_menu_permission(
 	'View Update Package Menu',
 	'Tools'
 );
+
+// Job Portal Awards permissions
+$jobPortalAwardPermissions = [
+	['job_portal_award_view', 'Job Portal Awards: View Dashboard'],
+	['job_portal_award_manage_config', 'Job Portal Awards: Manage Period and Parameters'],
+	['job_portal_award_manage_data', 'Job Portal Awards: Import and Edit Participant Data'],
+	['job_portal_award_review_eligibility', 'Job Portal Awards: Review Eligibility'],
+	['job_portal_award_view_scores', 'Job Portal Awards: View Scores and Details'],
+	['job_portal_award_recalculate', 'Job Portal Awards: Recalculate Scores'],
+	['job_portal_award_committee', 'Job Portal Awards: Decide Red Flags'],
+	['job_portal_award_approve_winners', 'Job Portal Awards: Approve Winners'],
+	['job_portal_award_view_audit', 'Job Portal Awards: View Domain Audit Trail'],
+	['job_portal_award_export', 'Job Portal Awards: Export Committee Reports'],
+];
+foreach ($jobPortalAwardPermissions as [$permissionCode, $permissionLabel]) {
+	register_menu_permission($conn, $permissionCode, $permissionLabel, 'Job Portal Awards');
+}
 
 // Karirhub Employer Prototype permissions
 register_menu_permission(
@@ -337,6 +362,7 @@ while ($r = $res->fetch_assoc()) { $userAccessRows[] = $r; }
 		<div class="card-body">
 			<h5 class="mb-3">Assign User to Group</h5>
 			<form method="post" class="row g-2 align-items-end">
+				<input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($accessControlCsrf); ?>">
 				<input type="hidden" name="action" value="save_user_access">
 				<div class="col-12 col-md-3">
 					<label class="form-label">User ID</label>
@@ -384,6 +410,7 @@ while ($r = $res->fetch_assoc()) { $userAccessRows[] = $r; }
 						<?php if (current_user_is_super_admin()): ?>
 						<td>
 							<form method="post" class="d-inline" onsubmit="return confirm('Delete this user account and its access mapping?');">
+								<input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($accessControlCsrf); ?>">
 								<input type="hidden" name="action" value="delete_user">
 								<input type="hidden" name="user_id" value="<?php echo intval($row['user_id']); ?>">
 								<button type="submit" class="btn btn-sm btn-outline-danger">Delete User</button>
@@ -405,6 +432,7 @@ while ($r = $res->fetch_assoc()) { $userAccessRows[] = $r; }
 				<div class="card-body">
 					<h5 class="mb-3">Create / Edit Group</h5>
 					<form method="post">
+						<input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($accessControlCsrf); ?>">
 						<input type="hidden" name="action" value="save_group">
 						<input type="hidden" name="group_id" id="group_id" value="">
 						<div class="mb-2">
@@ -455,6 +483,7 @@ while ($r = $res->fetch_assoc()) { $userAccessRows[] = $r; }
 								<button class="btn btn-sm btn-outline-primary" onclick='loadGroup(<?php echo $g['id']; ?>, <?php echo json_encode($g['name']); ?>, <?php echo json_encode($g['description']); ?>, <?php echo json_encode($permIds); ?>)'>Edit</button>
 								<?php if (strtolower($g['name']) !== 'super admin'): ?>
 								<form method="post" class="d-inline" onsubmit="return confirm('Delete this group?');">
+									<input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($accessControlCsrf); ?>">
 									<input type="hidden" name="action" value="delete_group">
 									<input type="hidden" name="group_id" value="<?php echo $g['id']; ?>">
 									<button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
@@ -493,6 +522,7 @@ while ($r = $res->fetch_assoc()) { $userAccessRows[] = $r; }
 				<div class="card-body">
 					<h5 class="mb-3">Add Permission</h5>
 					<form method="post">
+						<input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($accessControlCsrf); ?>">
 						<input type="hidden" name="action" value="add_permission">
 						<div class="mb-2">
 							<label class="form-label">Code</label>

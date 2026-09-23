@@ -131,6 +131,17 @@ function ac_seed_permissions(mysqli $conn): void {
 		['naker_award_manage_weights','Naker Award: Manage Weights','Naker Award'],
 		['naker_award_manage_intervals','Naker Award: Manage Intervals','Naker Award'],
 		['naker_award_backup_nominees','Naker Award: Backup Nominees','Naker Award'],
+		// Job Portal Awards permissions
+		['job_portal_award_view','Job Portal Awards: View Dashboard','Job Portal Awards'],
+		['job_portal_award_manage_config','Job Portal Awards: Manage Period and Parameters','Job Portal Awards'],
+		['job_portal_award_manage_data','Job Portal Awards: Import and Edit Participant Data','Job Portal Awards'],
+		['job_portal_award_review_eligibility','Job Portal Awards: Review Eligibility','Job Portal Awards'],
+		['job_portal_award_view_scores','Job Portal Awards: View Scores and Details','Job Portal Awards'],
+		['job_portal_award_recalculate','Job Portal Awards: Recalculate Scores','Job Portal Awards'],
+		['job_portal_award_committee','Job Portal Awards: Decide Red Flags','Job Portal Awards'],
+		['job_portal_award_approve_winners','Job Portal Awards: Approve Winners','Job Portal Awards'],
+		['job_portal_award_view_audit','Job Portal Awards: View Domain Audit Trail','Job Portal Awards'],
+		['job_portal_award_export','Job Portal Awards: Export Committee Reports','Job Portal Awards'],
 		// AsMen (Asset Management) permissions
 		['asmen_manage_assets','AsMen: Manage Assets','AsMen'],
 		['asmen_view_services','AsMen: View Services','AsMen'],
@@ -175,10 +186,9 @@ function ac_bootstrap_for_current_user(mysqli $conn): void {
 	$stmt->store_result();
 	if ($stmt->num_rows === 0) {
 		$stmt->close();
-		$ins = $conn->prepare("INSERT INTO user_access (user_id, account_type, group_id) VALUES (?, 'super_admin', 1)");
-		$ins->bind_param('i', $userId);
-		$ins->execute();
-		$ins->close();
+		// Never grant privileged access during a normal request. Initial
+		// administrators must be provisioned explicitly in user_access.
+		return;
 	} else {
 		$stmt->close();
 	}
@@ -211,13 +221,14 @@ function current_user_is_super_admin(): bool {
 	if (empty($_SESSION['user_id'])) { return false; }
 	global $ac_conn;
 	$userId = intval($_SESSION['user_id']);
+	$gname = null;
 	$q = $ac_conn->prepare('SELECT LOWER(g.name) FROM user_access ua JOIN access_groups g ON g.id=ua.group_id WHERE ua.user_id=?');
 	$q->bind_param('i', $userId);
 	$q->execute();
 	$q->bind_result($gname);
 	$q->fetch();
 	$q->close();
-	return $gname === 'super admin';
+	return is_string($gname) && $gname === 'super admin';
 }
 
 function current_user_walkin_location_id(): ?int {

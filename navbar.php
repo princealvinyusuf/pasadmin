@@ -208,6 +208,19 @@
         $canNakerFinal ||
         $canManageSettings
     );
+    // Job Portal Awards flags
+    $canJpaDashboard = current_user_can('job_portal_award_view');
+    $canJpaConfig = current_user_can('job_portal_award_manage_config');
+    $canJpaData = current_user_can('job_portal_award_manage_data');
+    $canJpaEligibility = current_user_can('job_portal_award_review_eligibility');
+    $canJpaScores = current_user_can('job_portal_award_view_scores') || current_user_can('job_portal_award_recalculate');
+    $canJpaCommittee = current_user_can('job_portal_award_committee');
+    $canJpaRanking = current_user_can('job_portal_award_approve_winners') || current_user_can('job_portal_award_view_scores');
+    $canJpaAuditExport = current_user_can('job_portal_award_view_audit') || current_user_can('job_portal_award_export');
+    $hasJobPortalAwards = (
+        $canJpaDashboard || $canJpaConfig || $canJpaData || $canJpaEligibility ||
+        $canJpaScores || $canJpaCommittee || $canJpaRanking || $canJpaAuditExport
+    );
 ?>
 <?php // context already computed above ?>
             <ul class="navbar-nav ms-auto">
@@ -427,6 +440,23 @@
                         <?php if ($canNakerVerify): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_verification">Verification</a></li><?php endif; ?>
                         <?php if ($canNakerFinal): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_final_nominees">Final Nominees</a></li><?php endif; ?>
                         <?php if (current_user_can('naker_award_backup_nominees')): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>naker_award/naker_award_backup_nominees">Backup Data Nominees</a></li><?php endif; ?>
+                    </ul>
+                </li>
+                <?php endif; ?>
+                <?php if ($hasJobPortalAwards): ?>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="jobPortalAwardsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Job Portal Awards
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="jobPortalAwardsDropdown">
+                        <?php if ($canJpaDashboard): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>job_portal_awards/dashboard">Dashboard</a></li><?php endif; ?>
+                        <?php if ($canJpaConfig): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>job_portal_awards/periods">Periode &amp; Parameter</a></li><?php endif; ?>
+                        <?php if ($canJpaData): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>job_portal_awards/participants">Peserta &amp; Data Import</a></li><?php endif; ?>
+                        <?php if ($canJpaEligibility): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>job_portal_awards/eligibility">Eligibility Review</a></li><?php endif; ?>
+                        <?php if ($canJpaScores): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>job_portal_awards/scoring">Scoring &amp; Detail</a></li><?php endif; ?>
+                        <?php if ($canJpaCommittee): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>job_portal_awards/red_flags">Red Flags &amp; Committee Review</a></li><?php endif; ?>
+                        <?php if ($canJpaRanking): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>job_portal_awards/ranking">Final Ranking &amp; Winners</a></li><?php endif; ?>
+                        <?php if ($canJpaAuditExport): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>job_portal_awards/audit">Audit Trail &amp; Exports</a></li><?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
