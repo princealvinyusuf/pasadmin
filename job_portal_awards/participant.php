@@ -48,7 +48,13 @@ jpa_render_header('Detail Peserta', $period);
 ?>
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div><h1 class="h3 mb-1"><?php echo htmlspecialchars($participant['partner_name']); ?></h1><div class="text-muted"><?php echo htmlspecialchars($participant['partner_id']); ?> · <?php echo htmlspecialchars($period['name']); ?></div></div>
-    <div class="text-end"><div class="display-6 jpa-score"><?php echo number_format((float)$participant['final_score'], 2); ?></div><span class="badge text-bg-<?php echo $participant['eligibility_status'] === 'eligible' ? 'success' : 'secondary'; ?>"><?php echo htmlspecialchars($participant['eligibility_status']); ?></span></div>
+    <div class="text-end">
+        <div class="display-6 jpa-score"><?php echo number_format((float)$participant['final_score'], 2); ?></div>
+        <span class="badge text-bg-<?php echo $participant['eligibility_status'] === 'eligible' ? 'success' : 'secondary'; ?>"><?php echo htmlspecialchars($participant['eligibility_status']); ?></span>
+        <?php if (current_user_can('job_portal_award_manage_data') && in_array($period['status'], ['draft', 'locked'], true)): ?>
+            <div class="mt-2"><a class="btn btn-sm btn-outline-primary" href="participants?period_id=<?php echo intval($period['id']); ?>&edit_id=<?php echo intval($participant['id']); ?>"><i class="bi bi-pencil"></i> Edit Data</a></div>
+        <?php endif; ?>
+    </div>
 </div>
 <div class="row g-4">
     <div class="col-lg-8">

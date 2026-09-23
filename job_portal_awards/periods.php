@@ -49,17 +49,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn->begin_transaction();
             try {
                 $before = jpa_lock_period($conn, $periodId);
-                if (!$before || $before['status'] !== 'draft') {
-                    throw new RuntimeException('Hanya periode draft yang dapat diubah.');
+                if (!$before || $before['status'] === 'finalized') {
+                    throw new RuntimeException('Periode final harus dibuka kembali sebelum parameternya dapat diubah.');
                 }
                 $stmt = $conn->prepare("UPDATE job_portal_award_periods SET
                     name=?,period_start=?,period_end=?,min_active_months=?,target_volume=?,
                     mandatory_vacancy_fields=?,complaint_penalty_factor=?,target_progression_rate=?,
-                    target_placement_rate=?,impact_module_enabled=?,weights_json=? WHERE id=? AND status='draft'");
+                    target_placement_rate=?,impact_module_enabled=?,weights_json=? WHERE id=? AND status<>'finalized'");
                 $stmt->bind_param('sssiisdddisi', $name, $start, $end, $minMonths, $targetVolume, $fieldsJson, $penalty, $progression, $placement, $impactEnabled, $weightsJson, $periodId);
                 $stmt->execute();
                 $stmt->close();
                 $after = jpa_get_period($conn, $periodId);
+                jpa_recalculate_period($conn, $periodId, false);
                 jpa_audit($conn, $periodId, 'period.updated', 'period', $periodId, $before, $after, $reason);
                 $conn->commit();
             } catch (Throwable $e) {
@@ -158,7 +159,7 @@ jpa_render_header('Periode & Parameter', $period);
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h1 class="h3 mb-1">Periode &amp; Parameter Penilaian</h1>
-        <p class="text-muted mb-0">Parameter tidak dapat diubah setelah periode dikunci.</p>
+        <p class="text-muted mb-0">Parameter dapat dikoreksi sampai periode difinalisasi. Setiap perubahan akan menghitung ulang nilai peserta.</p>
     </div>
     <?php jpa_render_period_selector($conn, $period, 'periods'); ?>
 </div>
@@ -171,7 +172,7 @@ jpa_render_header('Periode & Parameter', $period);
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(jpa_csrf_token()); ?>">
                     <input type="hidden" name="action" value="save">
                     <input type="hidden" name="period_id" value="<?php echo intval($period['id'] ?? 0); ?>">
-                    <?php $editable = !$period || $period['status'] === 'draft'; ?>
+                    <?php $editable = !$period || $period['status'] !== 'finalized'; ?>
                     <fieldset <?php echo $editable ? '' : 'disabled'; ?>>
                         <div class="mb-3">
                             <label class="form-label">Nama periode</label>

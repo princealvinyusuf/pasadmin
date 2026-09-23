@@ -204,9 +204,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
     $periodId = intval($_POST['period_id'] ?? 0);
     $period = jpa_get_period($conn, $periodId);
-    if (!$period || $period['status'] !== 'locked') {
+    if (!$period || !in_array($period['status'], ['draft', 'locked'], true)) {
         http_response_code(409);
-        exit('Data peserta hanya dapat diubah pada periode berstatus locked.');
+        exit('Data peserta tidak dapat diubah setelah periode difinalisasi.');
     }
     $userId = intval($_SESSION['user_id'] ?? 0);
 
@@ -225,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn->begin_transaction();
         try {
             $lockedPeriod = jpa_lock_period($conn, $periodId);
-            if (!$lockedPeriod || $lockedPeriod['status'] !== 'locked') {
+            if (!$lockedPeriod || !in_array($lockedPeriod['status'], ['draft', 'locked'], true)) {
                 throw new RuntimeException('Periode tidak lagi dapat diubah.');
             }
             $editId = intval($_POST['edit_id'] ?? 0);
@@ -295,7 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn->begin_transaction();
         try {
             $lockedPeriod = jpa_lock_period($conn, $periodId);
-            if (!$lockedPeriod || $lockedPeriod['status'] !== 'locked') {
+            if (!$lockedPeriod || !in_array($lockedPeriod['status'], ['draft', 'locked'], true)) {
                 throw new RuntimeException('Periode tidak lagi dapat diubah.');
             }
             $status = 'processing';
@@ -372,19 +372,23 @@ $fieldDefinitions = jpa_participant_field_definitions();
 $exampleParticipants = jpa_example_participants(
     $period ? jpa_months_in_period($period['period_start'], $period['period_end']) : 6
 );
+$participantDataEditable = $period && in_array($period['status'], ['draft', 'locked'], true);
 
 jpa_render_header('Peserta & Data Import', $period);
 ?>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <div><h1 class="h3 mb-1">Peserta &amp; Data Import</h1><p class="text-muted mb-0">Kunci parameter periode sebelum mengubah data peserta.</p></div>
+    <div><h1 class="h3 mb-1">Peserta &amp; Data Import</h1><p class="text-muted mb-0">Data peserta dapat dikoreksi sampai periode difinalisasi.</p></div>
     <?php jpa_render_period_selector($conn, $period, 'participants'); ?>
 </div>
 <?php if (!$period): ?>
     <div class="alert alert-info">Buat periode penilaian terlebih dahulu.</div>
 <?php else: ?>
-    <div class="alert alert-<?php echo $period['status'] === 'locked' ? 'success' : 'warning'; ?>">Status periode: <strong><?php echo htmlspecialchars($period['status']); ?></strong></div>
-    <?php if ($period['status'] === 'locked'): ?>
+    <div class="alert alert-<?php echo $participantDataEditable ? 'success' : 'warning'; ?>">
+        Status periode: <strong><?php echo htmlspecialchars($period['status']); ?></strong>.
+        <?php echo $participantDataEditable ? 'Data masih dapat ditambah atau dikoreksi.' : 'Buka kembali periode final untuk melakukan koreksi.'; ?>
+    </div>
+    <?php if ($participantDataEditable): ?>
     <div class="row g-4 mb-4">
         <div class="col-lg-7">
             <div class="card">
@@ -480,7 +484,7 @@ jpa_render_header('Peserta & Data Import', $period);
                     <td><?php echo htmlspecialchars(['full' => 'Penuh', 'semi' => 'Sebagian', 'inactive' => 'Tidak aktif'][$row['integration_type']] ?? $row['integration_type']); ?></td>
                     <td><?php echo htmlspecialchars(['eligible' => 'Layak', 'ineligible' => 'Tidak layak', 'pending' => 'Menunggu'][$row['eligibility_status']] ?? $row['eligibility_status']); ?></td>
                     <td class="jpa-score"><?php echo number_format((float)$row['final_score'], 2); ?></td>
-                    <td><?php if ($period['status'] === 'locked'): ?><a class="btn btn-sm btn-outline-primary" href="participants?period_id=<?php echo intval($period['id']); ?>&edit_id=<?php echo intval($row['id']); ?>">Koreksi</a><?php endif; ?> <a class="btn btn-sm btn-outline-secondary" href="participant?participant_id=<?php echo intval($row['id']); ?>">Detail</a></td>
+                    <td><?php if ($participantDataEditable): ?><a class="btn btn-sm btn-outline-primary" href="participants?period_id=<?php echo intval($period['id']); ?>&edit_id=<?php echo intval($row['id']); ?>">Koreksi</a><?php endif; ?> <a class="btn btn-sm btn-outline-secondary" href="participant?participant_id=<?php echo intval($row['id']); ?>">Detail</a></td>
                 </tr><?php endforeach; ?>
                 <?php if (!$participants): ?><tr><td colspan="6" class="text-center text-muted py-4">Belum ada peserta.</td></tr><?php endif; ?>
             </tbody></table>
