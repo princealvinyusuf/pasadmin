@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn->begin_transaction();
         try {
             $lockedPeriod = jpa_lock_period($conn, $periodId);
-            if (!$lockedPeriod || $lockedPeriod['status'] !== 'locked') {
+            if (!$lockedPeriod || !in_array($lockedPeriod['status'], ['draft', 'locked'], true)) {
                 throw new RuntimeException('Periode tidak tersedia untuk perubahan red flag.');
             }
             $stmt = $conn->prepare("INSERT INTO job_portal_award_red_flags
@@ -60,11 +60,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $before = $stmt->get_result()->fetch_assoc() ?: null;
         $stmt->close();
-        if (!$before || intval($before['period_id']) !== $periodId || !in_array($status, ['confirmed','dismissed'], true) || !in_array($consequence, ['review','disqualified','score_held'], true) || $notes === '') {
+        if (!$before || intval($before['period_id']) !== $periodId || !in_array($status, ['pending','confirmed','dismissed'], true) || !in_array($consequence, ['review','disqualified','score_held'], true) || $notes === '') {
             jpa_set_flash('danger', 'Keputusan, konsekuensi, dan catatan komite wajib valid.');
             jpa_redirect('red_flags?period_id=' . $periodId);
         }
-        if ($status === 'dismissed') {
+        if (in_array($status, ['pending', 'dismissed'], true)) {
             $consequence = 'review';
         } elseif ($consequence === 'review') {
             jpa_set_flash('danger', 'Red flag confirmed harus menghasilkan disqualified atau score_held.');
@@ -77,18 +77,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn->begin_transaction();
         try {
             $lockedPeriod = jpa_lock_period($conn, $periodId);
-            if (!$lockedPeriod || $lockedPeriod['status'] !== 'locked') {
+            if (!$lockedPeriod || !in_array($lockedPeriod['status'], ['draft', 'locked'], true)) {
                 throw new RuntimeException('Periode tidak tersedia untuk keputusan komite.');
             }
-            $stmt = $conn->prepare("UPDATE job_portal_award_red_flags SET
-                status=?,consequence=?,committee_notes=?,decided_by=?,decided_at=NOW() WHERE id=? AND status='pending'");
-            $stmt->bind_param('sssii', $status, $consequence, $notes, $userId, $flagId);
+            $stmt = $status === 'pending'
+                ? $conn->prepare("UPDATE job_portal_award_red_flags SET
+                    status=?,consequence=?,committee_notes=?,decided_by=NULL,decided_at=NULL WHERE id=? AND status=?")
+                : $conn->prepare("UPDATE job_portal_award_red_flags SET
+                    status=?,consequence=?,committee_notes=?,decided_by=?,decided_at=NOW() WHERE id=? AND status=?");
+            if ($status === 'pending') {
+                $stmt->bind_param('sssis', $status, $consequence, $notes, $flagId, $before['status']);
+            } else {
+                $stmt->bind_param('sssiis', $status, $consequence, $notes, $userId, $flagId, $before['status']);
+            }
             $stmt->execute();
             if ($stmt->affected_rows !== 1) {
-                throw new RuntimeException('Red flag sudah diputuskan oleh proses lain.');
+                throw new RuntimeException('Keputusan red flag tidak berubah atau telah diperbarui oleh proses lain.');
             }
             $stmt->close();
-            jpa_audit($conn, $periodId, 'red_flag.decided', 'red_flag', $flagId, $before, ['status' => $status, 'consequence' => $consequence, 'committee_notes' => $notes], $notes);
+            $actionName = $before['status'] === 'pending' ? 'red_flag.decided' : 'red_flag.decision_updated';
+            jpa_audit($conn, $periodId, $actionName, 'red_flag', $flagId, $before, ['status' => $status, 'consequence' => $consequence, 'committee_notes' => $notes], $notes);
             jpa_recalculate_period($conn, $periodId, false);
             $conn->commit();
         } catch (Throwable $e) {
@@ -153,13 +161,21 @@ jpa_render_header('Red Flags & Committee Review', $period);
             <td class="small"><?php echo htmlspecialchars($flag['evidence_reference']); ?></td>
             <td><span class="badge text-bg-<?php echo $flag['status'] === 'pending' ? 'warning' : ($flag['status'] === 'confirmed' ? 'danger' : 'secondary'); ?>"><?php echo htmlspecialchars($flag['status']); ?></span><br><small><?php echo htmlspecialchars($flag['consequence']); ?></small></td>
             <td>
-                <?php if ($flag['status'] === 'pending' && $period['status'] !== 'finalized'): ?>
-                <form method="post" class="row g-2">
+                <?php if ($period['status'] !== 'finalized'): ?>
+                <form method="post" class="row g-2 red-flag-decision-form">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(jpa_csrf_token()); ?>"><input type="hidden" name="action" value="decide"><input type="hidden" name="period_id" value="<?php echo intval($period['id']); ?>"><input type="hidden" name="flag_id" value="<?php echo intval($flag['id']); ?>">
-                    <div class="col-5"><select class="form-select form-select-sm" name="status"><option value="confirmed">Confirmed</option><option value="dismissed">Dismissed</option></select></div>
-                    <div class="col-7"><select class="form-select form-select-sm" name="consequence"><option value="disqualified">Disqualified</option><option value="score_held">Score Held</option><option value="review">No Consequence</option></select></div>
-                    <div class="col-12"><textarea class="form-control form-control-sm" name="committee_notes" required placeholder="Catatan/nomor keputusan komite"></textarea></div>
-                    <div class="col-12"><button class="btn btn-sm btn-primary">Simpan Keputusan</button></div>
+                    <div class="col-5"><select class="form-select form-select-sm red-flag-status" name="status">
+                        <?php foreach (['pending' => 'Pending', 'confirmed' => 'Confirmed', 'dismissed' => 'Dismissed'] as $value => $label): ?>
+                            <option value="<?php echo $value; ?>" <?php echo $flag['status'] === $value ? 'selected' : ''; ?>><?php echo $label; ?></option>
+                        <?php endforeach; ?>
+                    </select></div>
+                    <div class="col-7"><select class="form-select form-select-sm red-flag-consequence" name="consequence">
+                        <?php foreach (['disqualified' => 'Disqualified', 'score_held' => 'Score Held', 'review' => 'No Consequence'] as $value => $label): ?>
+                            <option value="<?php echo $value; ?>" <?php echo $flag['consequence'] === $value ? 'selected' : ''; ?>><?php echo $label; ?></option>
+                        <?php endforeach; ?>
+                    </select></div>
+                    <div class="col-12"><textarea class="form-control form-control-sm" name="committee_notes" required placeholder="Catatan/alasan perubahan keputusan"><?php echo htmlspecialchars($flag['committee_notes'] ?? ''); ?></textarea></div>
+                    <div class="col-12"><button class="btn btn-sm btn-primary"><?php echo $flag['status'] === 'pending' ? 'Simpan Keputusan' : 'Perbarui Keputusan'; ?></button></div>
                 </form>
                 <?php else: ?><?php echo nl2br(htmlspecialchars($flag['committee_notes'] ?? '-')); ?><?php endif; ?>
             </td>
@@ -168,5 +184,22 @@ jpa_render_header('Red Flags & Committee Review', $period);
         </tbody>
     </table></div></div>
 <?php endif; ?>
+<script>
+document.querySelectorAll('.red-flag-decision-form').forEach((form) => {
+    const status = form.querySelector('.red-flag-status');
+    const consequence = form.querySelector('.red-flag-consequence');
+    const syncConsequence = () => {
+        const isConfirmed = status.value === 'confirmed';
+        consequence.querySelector('option[value="review"]').disabled = isConfirmed;
+        consequence.querySelectorAll('option[value="disqualified"], option[value="score_held"]').forEach((option) => {
+            option.disabled = !isConfirmed;
+        });
+        if (isConfirmed && consequence.value === 'review') consequence.value = 'disqualified';
+        if (!isConfirmed) consequence.value = 'review';
+    };
+    status.addEventListener('change', syncConsequence);
+    syncConsequence();
+});
+</script>
 <?php jpa_render_footer(); ?>
 
