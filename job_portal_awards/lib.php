@@ -12,6 +12,13 @@ const JPA_DEFAULT_WEIGHTS = [
     'placement' => 5,
 ];
 
+const JPA_ELIGIBILITY_GATES = [
+    'partnership_active' => 'E1',
+    'active_months' => 'E2',
+    'critical_violation_resolved' => 'E3',
+    'data_traceable' => 'E4',
+];
+
 function jpa_clamp(float $value, float $minimum = 0.0, float $maximum = 100.0): float
 {
     return max($minimum, min($maximum, $value));
@@ -106,16 +113,16 @@ function jpa_evaluate_eligibility(array $participant, array $period): array
 {
     $reasons = [];
     if (empty($participant['partnership_active'])) {
-        $reasons[] = 'E1: Status kemitraan tidak aktif.';
+        $reasons[] = JPA_ELIGIBILITY_GATES['partnership_active'] . ': Status kemitraan tidak aktif.';
     }
     if (intval($participant['active_months'] ?? 0) < intval($period['min_active_months'] ?? 3)) {
-        $reasons[] = 'E2: Bulan aktif kurang dari minimum.';
+        $reasons[] = JPA_ELIGIBILITY_GATES['active_months'] . ': Bulan aktif kurang dari minimum.';
     }
     if (empty($participant['critical_violation_resolved'])) {
-        $reasons[] = 'E3: Pelanggaran kritis belum diselesaikan.';
+        $reasons[] = JPA_ELIGIBILITY_GATES['critical_violation_resolved'] . ': Pelanggaran kritis belum diselesaikan.';
     }
     if (empty($participant['data_traceable'])) {
-        $reasons[] = 'E5: Data tidak dapat ditelusuri secara memadai.';
+        $reasons[] = JPA_ELIGIBILITY_GATES['data_traceable'] . ': Data tidak dapat ditelusuri secara memadai.';
     }
     return [
         'status' => empty($reasons) ? 'eligible' : 'ineligible',

@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn->rollback();
         throw $e;
     }
-    jpa_set_flash('success', 'Eligibility seluruh peserta dihitung ulang dari E1, E2, E3, dan E5.');
+    jpa_set_flash('success', 'Eligibility seluruh peserta dihitung ulang dari E1 sampai E4.');
     jpa_redirect('eligibility?period_id=' . $periodId);
 }
 
@@ -53,7 +53,7 @@ if ($period) {
 jpa_render_header('Eligibility Review', $period);
 ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <div><h1 class="h3 mb-1">Eligibility Review</h1><p class="text-muted mb-0">Gate objektif E1, E2, E3, dan E5 sebelum peserta masuk ranking.</p></div>
+    <div><h1 class="h3 mb-1">Eligibility Review</h1><p class="text-muted mb-0">Gate objektif E1 sampai E4 harus dipenuhi sebelum peserta masuk ranking.</p></div>
     <?php jpa_render_period_selector($conn, $period, 'eligibility'); ?>
 </div>
 <?php if (!$period): ?>
@@ -72,7 +72,14 @@ jpa_render_header('Eligibility Review', $period);
         <?php endif; ?>
     </div>
     <div class="card"><div class="table-responsive"><table class="table table-striped align-middle mb-0">
-        <thead><tr><th>Partner</th><th>E1 Mitra Aktif</th><th>E2 Bulan Aktif</th><th>E3 Pelanggaran</th><th>E5 Traceable</th><th>Status / Alasan</th></tr></thead>
+        <thead><tr>
+            <th>Partner</th>
+            <th><?php echo JPA_ELIGIBILITY_GATES['partnership_active']; ?> Mitra Aktif</th>
+            <th><?php echo JPA_ELIGIBILITY_GATES['active_months']; ?> Bulan Aktif</th>
+            <th><?php echo JPA_ELIGIBILITY_GATES['critical_violation_resolved']; ?> Pelanggaran</th>
+            <th><?php echo JPA_ELIGIBILITY_GATES['data_traceable']; ?> Data Terlacak</th>
+            <th>Status / Alasan</th>
+        </tr></thead>
         <tbody>
         <?php foreach ($rows as $row): ?>
             <tr>

@@ -81,6 +81,8 @@ $ineligible = jpa_evaluate_eligibility([
     'data_traceable' => 0,
 ], ['min_active_months' => 3]);
 expect_true('all eligibility failures recorded', $ineligible['status'] === 'ineligible' && count($ineligible['reasons']) === 4);
+expect_true('eligibility gates use continuous E1-E4 sequence', array_values(JPA_ELIGIBILITY_GATES) === ['E1', 'E2', 'E3', 'E4']);
+expect_true('traceability failure is E4', ($ineligible['reasons'][3] ?? '') === 'E4: Data tidak dapat ditelusuri secara memadai.');
 
 $ranked = jpa_rank_rows([
     ['id' => 1, 'partner_name' => 'Portal A', 'eligibility_status' => 'eligible', 'ranking_blocked' => 0, 'final_score' => 90.0, 'score_complaint' => 80, 'score_completeness' => 90, 'published_unique_count' => 100],

@@ -148,6 +148,11 @@ function jpa_ensure_schema(mysqli $conn): void
         INDEX idx_jpa_participant_name (partner_name)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+    // Keep previously calculated eligibility reasons aligned with the continuous E1-E4 gate sequence.
+    $conn->query("UPDATE job_portal_award_participants
+        SET eligibility_reasons=REPLACE(eligibility_reasons,'E5:','E4:')
+        WHERE eligibility_reasons LIKE '%E5:%'");
+
     $conn->query("CREATE TABLE IF NOT EXISTS job_portal_award_red_flags (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         participant_id BIGINT NOT NULL,

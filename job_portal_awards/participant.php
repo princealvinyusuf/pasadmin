@@ -86,10 +86,10 @@ jpa_render_header('Detail Peserta', $period);
             <?php endforeach; ?>
         </div></div>
         <div class="card"><div class="card-header"><strong>Kelayakan Peserta</strong></div><div class="card-body">
-            <div class="mb-2">E1 <?php echo jpa_field_help_html('partnership_active'); ?>: <strong><?php echo $participant['partnership_active'] ? 'Ya' : 'Tidak'; ?></strong></div>
-            <div class="mb-2">E2 <?php echo jpa_field_help_html('active_months'); ?>: <strong><?php echo intval($participant['active_months']); ?> / <?php echo intval($period['min_active_months']); ?></strong></div>
-            <div class="mb-2">E3 <?php echo jpa_field_help_html('critical_violation_resolved'); ?>: <strong><?php echo $participant['critical_violation_resolved'] ? 'Ya' : 'Tidak'; ?></strong></div>
-            <div class="mb-2">E5 <?php echo jpa_field_help_html('data_traceable'); ?>: <strong><?php echo $participant['data_traceable'] ? 'Ya' : 'Tidak'; ?></strong></div>
+            <div class="mb-2"><?php echo JPA_ELIGIBILITY_GATES['partnership_active']; ?> <?php echo jpa_field_help_html('partnership_active'); ?>: <strong><?php echo $participant['partnership_active'] ? 'Ya' : 'Tidak'; ?></strong></div>
+            <div class="mb-2"><?php echo JPA_ELIGIBILITY_GATES['active_months']; ?> <?php echo jpa_field_help_html('active_months'); ?>: <strong><?php echo intval($participant['active_months']); ?> / <?php echo intval($period['min_active_months']); ?></strong></div>
+            <div class="mb-2"><?php echo JPA_ELIGIBILITY_GATES['critical_violation_resolved']; ?> <?php echo jpa_field_help_html('critical_violation_resolved'); ?>: <strong><?php echo $participant['critical_violation_resolved'] ? 'Ya' : 'Tidak'; ?></strong></div>
+            <div class="mb-2"><?php echo JPA_ELIGIBILITY_GATES['data_traceable']; ?> <?php echo jpa_field_help_html('data_traceable'); ?>: <strong><?php echo $participant['data_traceable'] ? 'Ya' : 'Tidak'; ?></strong></div>
             <?php if ($participant['eligibility_reasons']): ?><div class="alert alert-warning mb-0"><?php echo nl2br(htmlspecialchars($participant['eligibility_reasons'])); ?></div><?php endif; ?>
         </div></div>
     </div>
