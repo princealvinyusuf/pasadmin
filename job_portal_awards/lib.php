@@ -312,10 +312,10 @@ function jpa_field_help_html(string $field, bool $showVariable = false): string
     $tooltip = $definition['description'] . ' Variabel: ' . $field . '.';
     $html = '<span class="d-inline-flex align-items-center gap-1">';
     $html .= '<span>' . htmlspecialchars((string)$definition['label']) . '</span>';
-    $html .= '<button type="button" class="btn btn-link btn-sm p-0 text-secondary lh-1"';
+    $html .= '<span role="button" tabindex="0" class="text-secondary lh-1"';
     $html .= ' data-bs-toggle="tooltip" data-bs-placement="top" title="' . htmlspecialchars($tooltip) . '"';
     $html .= ' aria-label="Penjelasan ' . htmlspecialchars((string)$definition['label']) . '">';
-    $html .= '<i class="bi bi-info-circle" aria-hidden="true"></i></button></span>';
+    $html .= '<i class="bi bi-info-circle" aria-hidden="true"></i></span></span>';
     if ($showVariable) {
         $html .= '<div><code class="small">' . htmlspecialchars($field) . '</code></div>';
     }
@@ -628,19 +628,124 @@ function jpa_redirect(string $path): void
     exit;
 }
 
+function jpa_status_label(string $group, string $value): string
+{
+    $labels = [
+        'period' => ['draft' => 'Draf', 'locked' => 'Terkunci', 'finalized' => 'Final'],
+        'eligibility' => ['pending' => 'Menunggu', 'eligible' => 'Layak', 'ineligible' => 'Tidak layak'],
+        'red_flag' => ['pending' => 'Menunggu', 'confirmed' => 'Dikonfirmasi', 'dismissed' => 'Ditutup'],
+        'consequence' => ['review' => 'Tanpa konsekuensi', 'disqualified' => 'Diskualifikasi', 'score_held' => 'Nilai ditahan'],
+        'integration' => ['full' => 'Penuh', 'semi' => 'Sebagian', 'inactive' => 'Tidak aktif'],
+        'import' => ['processing' => 'Diproses', 'completed' => 'Selesai', 'failed' => 'Gagal'],
+    ];
+    return $labels[$group][$value] ?? ucwords(str_replace('_', ' ', $value));
+}
+
+function jpa_status_badge(string $group, string $value): string
+{
+    $colors = [
+        'period' => ['draft' => 'secondary', 'locked' => 'warning', 'finalized' => 'success'],
+        'eligibility' => ['pending' => 'warning', 'eligible' => 'success', 'ineligible' => 'secondary'],
+        'red_flag' => ['pending' => 'warning', 'confirmed' => 'danger', 'dismissed' => 'secondary'],
+        'consequence' => ['review' => 'secondary', 'disqualified' => 'danger', 'score_held' => 'warning'],
+        'import' => ['processing' => 'info', 'completed' => 'success', 'failed' => 'danger'],
+    ];
+    $color = $colors[$group][$value] ?? 'secondary';
+    return '<span class="badge text-bg-' . $color . '">' . htmlspecialchars(jpa_status_label($group, $value)) . '</span>';
+}
+
+function jpa_score_fields(): array
+{
+    return [
+        'score_integration' => 'Integrasi',
+        'score_volume' => 'Volume',
+        'score_consistency' => 'Konsistensi',
+        'score_completeness' => 'Kelengkapan',
+        'score_kyb' => 'KYB',
+        'score_duplicate' => 'Duplikasi',
+        'score_complaint' => 'Aduan',
+        'score_progression' => 'Progres Kandidat',
+        'score_placement' => 'Penempatan',
+    ];
+}
+
+function jpa_render_page_header(
+    string $title,
+    string $subtitle,
+    mysqli $conn,
+    ?array $period,
+    string $action
+): void {
+    ?>
+    <header class="jpa-page-header">
+        <div>
+            <h1 class="h3 mb-1"><?php echo htmlspecialchars($title); ?></h1>
+            <p class="text-muted mb-0"><?php echo htmlspecialchars($subtitle); ?></p>
+        </div>
+        <?php jpa_render_period_selector($conn, $period, $action); ?>
+    </header>
+    <?php
+}
+
+function jpa_render_no_period(string $message = 'Pilih periode penilaian untuk menampilkan data.'): void
+{
+    ?>
+    <div class="card"><div class="jpa-empty">
+        <i class="bi bi-calendar2-week" aria-hidden="true"></i>
+        <div><?php echo htmlspecialchars($message); ?></div>
+    </div></div>
+    <?php
+}
+
+function jpa_render_period_banner(array $period): void
+{
+    ?>
+    <div class="card jpa-period-banner mb-4">
+        <div class="card-body d-flex flex-wrap gap-3 justify-content-between align-items-center">
+            <div>
+                <h2 class="h5 mb-1"><?php echo htmlspecialchars($period['name']); ?></h2>
+                <span class="text-muted"><i class="bi bi-calendar3 me-1" aria-hidden="true"></i><?php echo htmlspecialchars($period['period_start'] . ' – ' . $period['period_end']); ?></span>
+            </div>
+            <?php echo jpa_status_badge('period', (string)$period['status']); ?>
+        </div>
+    </div>
+    <?php
+}
+
+function jpa_render_partner_cell(array $row, bool $linked = true): void
+{
+    $name = htmlspecialchars((string)($row['partner_name'] ?? ''));
+    $participantId = intval($row['participant_id'] ?? $row['id'] ?? 0);
+    if ($linked && $participantId > 0) {
+        echo '<a class="fw-semibold text-decoration-none" href="participant?participant_id=' . $participantId . '">' . $name . '</a>';
+    } else {
+        echo '<span class="fw-semibold">' . $name . '</span>';
+    }
+    if (!empty($row['partner_id'])) {
+        echo '<br><small class="text-muted">' . htmlspecialchars((string)$row['partner_id']) . '</small>';
+    }
+}
+
+function jpa_render_empty_row(int $colspan, string $message): void
+{
+    echo '<tr><td colspan="' . $colspan . '"><div class="jpa-empty"><i class="bi bi-inbox" aria-hidden="true"></i>'
+        . htmlspecialchars($message) . '</div></td></tr>';
+}
+
 function jpa_render_header(string $title, ?array $period = null): void
 {
     $periodQuery = $period ? '?period_id=' . intval($period['id']) : '';
     $items = [
-        ['Dashboard', 'dashboard' . $periodQuery, ['job_portal_award_view']],
-        ['Periode & Parameter', 'periods' . $periodQuery, ['job_portal_award_manage_config']],
-        ['Peserta & Import', 'participants' . $periodQuery, ['job_portal_award_manage_data']],
-        ['Eligibility', 'eligibility' . $periodQuery, ['job_portal_award_review_eligibility']],
-        ['Scoring', 'scoring' . $periodQuery, ['job_portal_award_view_scores', 'job_portal_award_recalculate']],
-        ['Red Flags', 'red_flags' . $periodQuery, ['job_portal_award_committee']],
-        ['Ranking & Pemenang', 'ranking' . $periodQuery, ['job_portal_award_approve_winners', 'job_portal_award_view_scores']],
-        ['Audit & Export', 'audit' . $periodQuery, ['job_portal_award_view_audit', 'job_portal_award_export']],
+        ['Dashboard', 'dashboard', 'dashboard' . $periodQuery, ['job_portal_award_view']],
+        ['Periode & Parameter', 'periods', 'periods' . $periodQuery, ['job_portal_award_manage_config']],
+        ['Peserta & Import', 'participants', 'participants' . $periodQuery, ['job_portal_award_manage_data']],
+        ['Kelayakan', 'eligibility', 'eligibility' . $periodQuery, ['job_portal_award_review_eligibility']],
+        ['Penilaian', 'scoring', 'scoring' . $periodQuery, ['job_portal_award_view_scores', 'job_portal_award_recalculate']],
+        ['Red Flags', 'red_flags', 'red_flags' . $periodQuery, ['job_portal_award_committee']],
+        ['Peringkat & Pemenang', 'ranking', 'ranking' . $periodQuery, ['job_portal_award_approve_winners', 'job_portal_award_view_scores']],
+        ['Audit & Ekspor', 'audit', 'audit' . $periodQuery, ['job_portal_award_view_audit', 'job_portal_award_export']],
     ];
+    $currentPage = pathinfo((string)($_SERVER['SCRIPT_NAME'] ?? ''), PATHINFO_FILENAME);
     ?><!DOCTYPE html>
 <html lang="id">
 <head>
@@ -649,30 +754,27 @@ function jpa_render_header(string $title, ?array $period = null): void
     <title><?php echo htmlspecialchars($title); ?> - Job Portal Awards</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-        body { background:#f6f8fa; }
-        .jpa-score { font-variant-numeric: tabular-nums; }
-        .jpa-subnav { overflow-x:auto; white-space:nowrap; }
-        @media print { .navbar,.jpa-subnav,.no-print { display:none!important; } body { background:#fff; } }
-    </style>
+    <link rel="stylesheet" href="assets/jpa.css">
 </head>
 <body>
 <?php include __DIR__ . '/../navbar.php'; ?>
-<div class="bg-white border-bottom jpa-subnav">
-    <div class="container py-2 d-flex gap-2">
-        <?php foreach ($items as [$label, $href, $permissions]): ?>
+<nav class="bg-white border-bottom jpa-subnav" aria-label="Navigasi Job Portal Awards">
+    <div class="container py-2 d-flex gap-1">
+        <?php foreach ($items as [$label, $page, $href, $permissions]): ?>
             <?php if (jpa_can_any($permissions)): ?>
-                <a class="btn btn-sm btn-outline-primary" href="<?php echo htmlspecialchars($href); ?>"><?php echo htmlspecialchars($label); ?></a>
+                <a class="nav-link <?php echo $currentPage === $page ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($href); ?>" <?php echo $currentPage === $page ? 'aria-current="page"' : ''; ?>><?php echo htmlspecialchars($label); ?></a>
             <?php endif; ?>
         <?php endforeach; ?>
     </div>
-</div>
+</nav>
 <main class="container py-4">
 <?php
     if (!empty($_SESSION['jpa_flash'])) {
         $flash = $_SESSION['jpa_flash'];
         unset($_SESSION['jpa_flash']);
-        echo '<div class="alert alert-' . htmlspecialchars($flash['type']) . '">' . htmlspecialchars($flash['message']) . '</div>';
+        echo '<div class="alert alert-' . htmlspecialchars($flash['type']) . ' alert-dismissible fade show" role="alert">'
+            . htmlspecialchars($flash['message'])
+            . '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button></div>';
     }
 }
 
@@ -685,12 +787,12 @@ function jpa_render_period_selector(mysqli $conn, ?array $period, string $action
     }
     ?>
     <form method="get" action="<?php echo htmlspecialchars($action); ?>" class="no-print d-flex gap-2 align-items-center">
-        <label class="form-label mb-0" for="period_id">Periode</label>
-        <select class="form-select form-select-sm" id="period_id" name="period_id" onchange="this.form.submit()">
+        <label class="form-label mb-0 text-nowrap" for="period_id">Periode</label>
+        <select class="form-select form-select-sm" id="period_id" name="period_id" onchange="this.form.submit()" aria-label="Pilih periode penilaian">
             <option value="">Pilih periode</option>
             <?php foreach ($periods as $item): ?>
                 <option value="<?php echo intval($item['id']); ?>" <?php echo $period && intval($period['id']) === intval($item['id']) ? 'selected' : ''; ?>>
-                    <?php echo htmlspecialchars($item['name'] . ' [' . $item['status'] . ']'); ?>
+                    <?php echo htmlspecialchars($item['name'] . ' [' . jpa_status_label('period', $item['status']) . ']'); ?>
                 </option>
             <?php endforeach; ?>
         </select>

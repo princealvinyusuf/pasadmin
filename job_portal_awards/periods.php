@@ -156,13 +156,7 @@ $fieldsValue = $period ? implode(', ', json_decode((string)$period['mandatory_va
 
 jpa_render_header('Periode & Parameter', $period);
 ?>
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h1 class="h3 mb-1">Periode &amp; Parameter Penilaian</h1>
-        <p class="text-muted mb-0">Parameter dapat dikoreksi sampai periode difinalisasi. Setiap perubahan akan menghitung ulang nilai peserta.</p>
-    </div>
-    <?php jpa_render_period_selector($conn, $period, 'periods'); ?>
-</div>
+<?php jpa_render_page_header('Periode & Parameter Penilaian', 'Parameter dapat dikoreksi sampai periode difinalisasi; perubahan akan menghitung ulang nilai peserta.', $conn, $period, 'periods'); ?>
 
 <div class="row g-4">
     <div class="col-lg-8">
@@ -228,7 +222,7 @@ jpa_render_header('Periode & Parameter', $period);
                 <?php foreach ($periods as $item): ?>
                     <a class="list-group-item list-group-item-action" href="periods?period_id=<?php echo intval($item['id']); ?>">
                         <strong><?php echo htmlspecialchars($item['name']); ?></strong><br>
-                        <small><?php echo htmlspecialchars($item['period_start'] . ' – ' . $item['period_end']); ?> · <?php echo htmlspecialchars($item['status']); ?></small>
+                        <small><?php echo htmlspecialchars($item['period_start'] . ' – ' . $item['period_end']); ?> · <?php echo htmlspecialchars(jpa_status_label('period', $item['status'])); ?></small>
                     </a>
                 <?php endforeach; ?>
                 <?php if (empty($periods)): ?><div class="list-group-item text-muted">Belum ada periode.</div><?php endif; ?>

@@ -46,19 +46,30 @@ $rawFields = [
 
 jpa_render_header('Detail Peserta', $period);
 ?>
-<div class="d-flex justify-content-between align-items-start mb-4">
+<nav aria-label="breadcrumb" class="no-print">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="participants?period_id=<?php echo intval($period['id']); ?>">Peserta</a></li>
+        <li class="breadcrumb-item active" aria-current="page"><?php echo htmlspecialchars($participant['partner_name']); ?></li>
+    </ol>
+</nav>
+<div class="d-flex flex-wrap gap-3 justify-content-between align-items-start mb-4">
     <div><h1 class="h3 mb-1"><?php echo htmlspecialchars($participant['partner_name']); ?></h1><div class="text-muted"><?php echo htmlspecialchars($participant['partner_id']); ?> · <?php echo htmlspecialchars($period['name']); ?></div></div>
     <div class="text-end">
         <div class="display-6 jpa-score"><?php echo number_format((float)$participant['final_score'], 2); ?></div>
-        <span class="badge text-bg-<?php echo $participant['eligibility_status'] === 'eligible' ? 'success' : 'secondary'; ?>"><?php echo htmlspecialchars($participant['eligibility_status']); ?></span>
+        <?php echo jpa_status_badge('eligibility', $participant['eligibility_status']); ?>
         <?php if (current_user_can('job_portal_award_manage_data') && in_array($period['status'], ['draft', 'locked'], true)): ?>
             <div class="mt-2"><a class="btn btn-sm btn-outline-primary" href="participants?period_id=<?php echo intval($period['id']); ?>&edit_id=<?php echo intval($participant['id']); ?>"><i class="bi bi-pencil"></i> Edit Data</a></div>
         <?php endif; ?>
     </div>
 </div>
+<div class="jpa-mobile-actions mb-4 no-print">
+    <a class="btn btn-sm btn-outline-secondary" href="eligibility?period_id=<?php echo intval($period['id']); ?>"><i class="bi bi-shield-check"></i> Lihat Kelayakan</a>
+    <?php if (current_user_can('job_portal_award_committee')): ?><a class="btn btn-sm btn-outline-danger" href="red_flags?period_id=<?php echo intval($period['id']); ?>&participant_id=<?php echo intval($participant['id']); ?>"><i class="bi bi-flag"></i> Kelola Red Flag</a><?php endif; ?>
+</div>
 <div class="row g-4">
     <div class="col-lg-8">
-        <div class="card mb-4"><div class="card-header"><strong>Breakdown Formula dan Kontribusi</strong></div><div class="table-responsive"><table class="table align-middle mb-0">
+        <div class="card mb-4"><div class="card-header"><strong>Rincian Nilai dan Kontribusi</strong></div><div class="table-responsive"><table class="table align-middle mb-0 jpa-table">
+            <caption class="visually-hidden">Rincian indikator, formula, skor, bobot, dan kontribusi nilai peserta</caption>
             <thead><tr><th>Indikator</th><th>Formula</th><th>Skor</th><th>Bobot</th><th>Kontribusi</th></tr></thead><tbody>
             <?php foreach ($indicators as $key => [$label,$formula]): ?><tr class="<?php echo (!$period['impact_module_enabled'] && in_array($key, ['progression','placement'], true)) ? 'table-secondary' : ''; ?>">
                 <td><?php echo htmlspecialchars($label); ?></td><td><code><?php echo htmlspecialchars($formula); ?></code></td>
@@ -67,9 +78,9 @@ jpa_render_header('Detail Peserta', $period);
             </tr><?php endforeach; ?>
             </tbody><tfoot><tr><th colspan="4">Nilai Akhir<?php echo $period['impact_module_enabled'] ? '' : ' (core dinormalisasi)'; ?></th><th class="jpa-score"><?php echo number_format((float)$calculation['final_score'], 2); ?></th></tr></tfoot>
         </table></div></div>
-        <div class="card"><div class="card-header"><strong>Red Flags</strong></div><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Kode</th><th>Deskripsi</th><th>Status</th><th>Konsekuensi</th><th>Keputusan</th></tr></thead><tbody>
-            <?php foreach ($flags as $flag): ?><tr><td><?php echo htmlspecialchars($flag['code']); ?></td><td><?php echo htmlspecialchars($flag['description']); ?></td><td><?php echo htmlspecialchars($flag['status']); ?></td><td><?php echo htmlspecialchars($flag['consequence']); ?></td><td><?php echo nl2br(htmlspecialchars($flag['committee_notes'] ?? '')); ?></td></tr><?php endforeach; ?>
-            <?php if (!$flags): ?><tr><td colspan="5" class="text-center text-muted">Tidak ada red flag.</td></tr><?php endif; ?>
+        <div class="card"><div class="card-header"><strong>Red Flags</strong></div><div class="table-responsive"><table class="table table-sm mb-0 jpa-table"><thead><tr><th>Kode</th><th>Deskripsi</th><th>Status</th><th>Konsekuensi</th><th>Keputusan</th></tr></thead><tbody>
+            <?php foreach ($flags as $flag): ?><tr><td><?php echo htmlspecialchars($flag['code']); ?></td><td><?php echo htmlspecialchars($flag['description']); ?></td><td><?php echo jpa_status_badge('red_flag', $flag['status']); ?></td><td><?php echo jpa_status_badge('consequence', $flag['consequence']); ?></td><td><?php echo nl2br(htmlspecialchars($flag['committee_notes'] ?? '')); ?></td></tr><?php endforeach; ?>
+            <?php if (!$flags): ?><?php jpa_render_empty_row(5, 'Tidak ada red flag untuk peserta ini.'); ?><?php endif; ?>
         </tbody></table></div></div>
     </div>
     <div class="col-lg-4">

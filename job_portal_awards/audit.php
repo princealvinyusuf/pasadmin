@@ -7,6 +7,21 @@ $audits = [];
 $exportRows = [];
 $winnerRows = [];
 $redFlagRows = [];
+$userLabels = [];
+if (current_user_can('job_portal_award_view_audit')) {
+    $availableUserColumns = [];
+    $columnResult = $conn->query('SHOW COLUMNS FROM users');
+    while ($columnResult && ($column = $columnResult->fetch_assoc())) {
+        $availableUserColumns[] = $column['Field'];
+    }
+    $userLabelColumn = in_array('username', $availableUserColumns, true)
+        ? 'username'
+        : (in_array('name', $availableUserColumns, true) ? 'name' : (in_array('email', $availableUserColumns, true) ? 'email' : 'id'));
+    $userResult = $conn->query("SELECT id,{$userLabelColumn} AS label FROM users");
+    while ($userResult && ($user = $userResult->fetch_assoc())) {
+        $userLabels[intval($user['id'])] = (string)$user['label'];
+    }
+}
 if ($period) {
     if (current_user_can('job_portal_award_view_audit')) {
         $stmt = $conn->prepare('SELECT * FROM job_portal_award_audit WHERE period_id=? ORDER BY created_at DESC,id DESC LIMIT 250');
@@ -60,13 +75,11 @@ if ($period) {
 jpa_render_header('Audit Trail & Exports', $period);
 ?>
 <?php if (current_user_can('job_portal_award_export')): ?><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><?php endif; ?>
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div><h1 class="h3 mb-1">Audit Trail &amp; Exports</h1><p class="text-muted mb-0">Jejak perubahan domain terpisah dari access log umum.</p></div>
-    <?php jpa_render_period_selector($conn, $period, 'audit'); ?>
-</div>
+<?php jpa_render_page_header('Audit Trail & Ekspor', 'Jejak perubahan data dan bahan rapat komite dalam satu tempat.', $conn, $period, 'audit'); ?>
 <?php if (!$period): ?>
-    <div class="alert alert-info">Pilih periode penilaian.</div>
+    <?php jpa_render_no_period(); ?>
 <?php else: ?>
+    <?php jpa_render_period_banner($period); ?>
     <?php if (current_user_can('job_portal_award_export')): ?>
     <div class="card mb-4 no-print"><div class="card-body d-flex flex-wrap gap-2 align-items-center"><strong class="me-auto">Bahan Rapat Komite</strong>
         <button class="btn btn-success" id="exportExcel"><i class="bi bi-file-earmark-excel"></i> Export Excel</button>
@@ -74,13 +87,13 @@ jpa_render_header('Audit Trail & Exports', $period);
     </div></div>
     <?php endif; ?>
     <?php if (current_user_can('job_portal_award_view_audit')): ?>
-    <div class="card"><div class="card-header"><strong>250 Aktivitas Terbaru</strong></div><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <div class="card"><div class="card-header"><strong>250 Aktivitas Terbaru</strong></div><div class="table-responsive"><table class="table table-sm align-middle mb-0 jpa-table">
         <thead><tr><th>Waktu</th><th>Aktor</th><th>Aksi</th><th>Entitas</th><th>Alasan</th><th>Snapshot</th></tr></thead><tbody>
         <?php foreach ($audits as $item): ?><tr>
-            <td><?php echo htmlspecialchars($item['created_at']); ?></td><td><?php echo intval($item['actor_user_id']); ?></td><td><code><?php echo htmlspecialchars($item['action']); ?></code></td><td><?php echo htmlspecialchars($item['entity_type'] . ' #' . $item['entity_id']); ?></td><td><?php echo htmlspecialchars($item['reason'] ?? ''); ?></td>
+            <td><?php echo htmlspecialchars($item['created_at']); ?></td><td><?php echo htmlspecialchars($userLabels[intval($item['actor_user_id'])] ?? ('Pengguna #' . intval($item['actor_user_id']))); ?></td><td><code><?php echo htmlspecialchars($item['action']); ?></code></td><td><?php echo htmlspecialchars($item['entity_type'] . ' #' . $item['entity_id']); ?></td><td><?php echo htmlspecialchars($item['reason'] ?? ''); ?></td>
             <td><details><summary>Before / After</summary><div class="row g-2"><div class="col-md-6"><strong>Before</strong><pre class="small text-wrap"><?php echo htmlspecialchars($item['before_json'] ?: 'null'); ?></pre></div><div class="col-md-6"><strong>After</strong><pre class="small text-wrap"><?php echo htmlspecialchars($item['after_json'] ?: 'null'); ?></pre></div></div></details></td>
         </tr><?php endforeach; ?>
-        <?php if (!$audits): ?><tr><td colspan="6" class="text-center text-muted py-4">Belum ada aktivitas audit.</td></tr><?php endif; ?>
+        <?php if (!$audits): ?><?php jpa_render_empty_row(6, 'Belum ada aktivitas audit.'); ?><?php endif; ?>
         </tbody>
     </table></div></div>
     <?php endif; ?>

@@ -109,27 +109,25 @@ if ($period) {
 
 jpa_render_header('Final Ranking & Winners', $period);
 ?>
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div><h1 class="h3 mb-1">Final Ranking &amp; Winners</h1><p class="text-muted mb-0">Tie-breaker: Complaint Score, Completeness Score, lalu volume published untuk selisih &lt; 0,50.</p></div>
-    <?php jpa_render_period_selector($conn, $period, 'ranking'); ?>
-</div>
+<?php jpa_render_page_header('Peringkat & Pemenang', 'Pemecah seri: nilai aduan, kelengkapan, lalu volume tayang untuk selisih di bawah 0,50.', $conn, $period, 'ranking'); ?>
 <?php if (!$period): ?>
-    <div class="alert alert-info">Pilih periode penilaian.</div>
+    <?php jpa_render_no_period(); ?>
 <?php else: ?>
+    <?php jpa_render_period_banner($period); ?>
     <?php if ($winners): ?>
     <div class="row g-3 mb-4">
-        <?php foreach ($winners as $winner): ?><div class="col-md-4"><div class="card border-success h-100"><div class="card-body text-center"><div class="text-muted">Rank <?php echo intval($winner['award_rank']); ?></div><h2 class="h4"><?php echo htmlspecialchars($winner['partner_name']); ?></h2><div class="display-6"><?php echo number_format((float)$winner['final_score'], 2); ?></div><small>Disahkan <?php echo htmlspecialchars($winner['approved_at']); ?></small></div></div></div><?php endforeach; ?>
+        <?php foreach ($winners as $winner): ?><div class="col-md-4"><div class="card jpa-winner-card h-100" data-rank="<?php echo intval($winner['award_rank']); ?>"><div class="card-body text-center"><div class="jpa-winner-rank text-muted"><i class="bi bi-trophy-fill me-1"></i> Peringkat <?php echo intval($winner['award_rank']); ?></div><h2 class="h4 mt-2"><?php echo htmlspecialchars($winner['partner_name']); ?></h2><div class="display-6 jpa-score"><?php echo number_format((float)$winner['final_score'], 2); ?></div><small class="text-muted">Disahkan <?php echo htmlspecialchars($winner['approved_at']); ?></small></div></div></div><?php endforeach; ?>
     </div>
     <?php endif; ?>
-    <div class="card mb-4"><div class="table-responsive"><table class="table table-striped align-middle mb-0">
-        <thead><tr><th>Rank</th><th>Partner</th><th>Nilai Akhir</th><th>Complaint</th><th>Completeness</th><th>Volume</th><th>Status Ranking</th></tr></thead><tbody>
+    <div class="card mb-4"><div class="table-responsive"><table class="table table-striped align-middle mb-0 jpa-table">
+        <thead><tr><th>Peringkat</th><th class="jpa-sticky-column">Partner</th><th>Nilai Akhir</th><th>Aduan</th><th>Kelengkapan</th><th>Volume</th><th>Status Peringkat</th></tr></thead><tbody>
         <?php foreach ($rows as $row): ?><tr>
             <td><?php echo $row['award_rank'] ? '#' . intval($row['award_rank']) : '-'; ?></td>
-            <td><a href="participant?participant_id=<?php echo intval($row['id']); ?>"><?php echo htmlspecialchars($row['partner_name']); ?></a><br><small><?php echo htmlspecialchars($row['partner_id']); ?></small></td>
+            <td class="jpa-sticky-column"><?php jpa_render_partner_cell($row); ?></td>
             <td class="jpa-score"><strong><?php echo number_format((float)$row['final_score'], 2); ?></strong></td><td><?php echo number_format((float)$row['score_complaint'], 2); ?></td><td><?php echo number_format((float)$row['score_completeness'], 2); ?></td><td><?php echo number_format((int)$row['published_unique_count']); ?></td>
-            <td><?php if ($row['eligibility_status'] !== 'eligible'): ?><span class="badge text-bg-secondary">Ineligible</span><?php elseif ($row['pending_flag']): ?><span class="badge text-bg-warning">Pending Review</span><?php elseif ($row['disqualified']): ?><span class="badge text-bg-danger">Disqualified</span><?php elseif ($row['score_held']): ?><span class="badge text-bg-warning">Score Held</span><?php else: ?><span class="badge text-bg-success">Ranked</span><?php endif; ?></td>
+            <td><?php if ($row['eligibility_status'] !== 'eligible'): ?><span class="badge text-bg-secondary">Tidak Layak</span><?php elseif ($row['pending_flag']): ?><span class="badge text-bg-warning">Menunggu Review</span><?php elseif ($row['disqualified']): ?><span class="badge text-bg-danger">Diskualifikasi</span><?php elseif ($row['score_held']): ?><span class="badge text-bg-warning">Nilai Ditahan</span><?php else: ?><span class="badge text-bg-success">Masuk Peringkat</span><?php endif; ?></td>
         </tr><?php endforeach; ?>
-        <?php if (!$rows): ?><tr><td colspan="7" class="text-center text-muted py-4">Belum ada peserta.</td></tr><?php endif; ?>
+        <?php if (!$rows): ?><?php jpa_render_empty_row(7, 'Belum ada peserta untuk diperingkat.'); ?><?php endif; ?>
         </tbody>
     </table></div></div>
     <?php if ($period['status'] === 'locked' && current_user_can('job_portal_award_approve_winners')): ?>

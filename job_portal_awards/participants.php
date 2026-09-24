@@ -377,25 +377,22 @@ $participantDataEditable = $period && in_array($period['status'], ['draft', 'loc
 jpa_render_header('Peserta & Data Import', $period);
 ?>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div><h1 class="h3 mb-1">Peserta &amp; Data Import</h1><p class="text-muted mb-0">Data peserta dapat dikoreksi sampai periode difinalisasi.</p></div>
-    <?php jpa_render_period_selector($conn, $period, 'participants'); ?>
-</div>
+<?php jpa_render_page_header('Peserta & Data Import', 'Kelola data peserta secara manual atau melalui template Excel.', $conn, $period, 'participants'); ?>
 <?php if (!$period): ?>
-    <div class="alert alert-info">Buat periode penilaian terlebih dahulu.</div>
+    <?php jpa_render_no_period('Buat atau pilih periode penilaian sebelum mengelola peserta.'); ?>
 <?php else: ?>
+    <?php jpa_render_period_banner($period); ?>
     <div class="alert alert-<?php echo $participantDataEditable ? 'success' : 'warning'; ?>">
-        Status periode: <strong><?php echo htmlspecialchars($period['status']); ?></strong>.
         <?php echo $participantDataEditable ? 'Data masih dapat ditambah atau dikoreksi.' : 'Buka kembali periode final untuk melakukan koreksi.'; ?>
     </div>
     <?php if ($participantDataEditable): ?>
     <div class="row g-4 mb-4">
         <div class="col-lg-7">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between"><strong>Import Excel</strong><button type="button" id="downloadTemplate" class="btn btn-sm btn-outline-primary">Download Template</button></div>
+            <div class="card h-100" id="import-data">
+                <div class="card-header jpa-section-heading"><strong><i class="bi bi-file-earmark-spreadsheet me-1"></i> Import Excel</strong><button type="button" id="downloadTemplate" class="btn btn-sm btn-outline-primary"><i class="bi bi-download me-1"></i> Unduh Template</button></div>
                 <div class="card-body">
                     <div class="alert alert-info small py-2">
-                        Template berisi tiga contoh peserta. Nama kolom tetap menggunakan nama variabel agar dapat diproses sistem; arahkan kursor ke label pada formulir atau tabel untuk membaca penjelasannya.
+                        Template berisi contoh peserta dan lembar panduan berbahasa Indonesia. Jangan mengubah nama kolom variabel pada lembar data.
                     </div>
                     <form method="post" id="importForm">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(jpa_csrf_token()); ?>">
@@ -403,17 +400,19 @@ jpa_render_header('Peserta & Data Import', $period);
                         <input type="hidden" name="period_id" value="<?php echo intval($period['id']); ?>">
                         <input type="hidden" name="filename" id="filename">
                         <input type="hidden" name="import_payload" id="importPayload">
+                        <label class="form-label" for="excelFile">File peserta</label>
                         <input type="file" class="form-control mb-3" id="excelFile" accept=".xlsx,.xls,.csv" required>
-                        <input class="form-control mb-3" name="reason" required placeholder="Alasan / sumber import dan nomor berita acara">
-                        <div id="preview" class="small text-muted mb-3">Pilih file untuk melihat validasi awal.</div>
+                        <label class="form-label" for="importReason">Alasan dan sumber data</label>
+                        <input class="form-control mb-3" id="importReason" name="reason" required placeholder="Contoh: Data API bulan September, BA-012/2026">
+                        <div id="preview" class="small text-muted mb-3" aria-live="polite">Pilih file untuk melihat validasi awal.</div>
                         <button class="btn btn-primary" id="importButton" disabled>Import Data</button>
                     </form>
                 </div>
             </div>
         </div>
         <div class="col-lg-5">
-            <div class="card">
-                <div class="card-header"><strong><?php echo $edit ? 'Koreksi Peserta' : 'Tambah Peserta Manual'; ?></strong></div>
+            <div class="card h-100" id="form-peserta">
+                <div class="card-header"><strong><i class="bi bi-person-plus me-1"></i> <?php echo $edit ? 'Koreksi Peserta' : 'Tambah Peserta Manual'; ?></strong></div>
                 <div class="card-body">
                     <form method="post">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(jpa_csrf_token()); ?>">
@@ -421,7 +420,7 @@ jpa_render_header('Peserta & Data Import', $period);
                         <input type="hidden" name="period_id" value="<?php echo intval($period['id']); ?>">
                         <input type="hidden" name="edit_id" value="<?php echo intval($edit['id'] ?? 0); ?>">
                         <div class="row g-2">
-                            <?php foreach (['partner_id' => 'col-5', 'partner_name' => 'col-7'] as $field => $columnClass): ?>
+                            <?php foreach (['partner_id' => 'col-md-5', 'partner_name' => 'col-md-7'] as $field => $columnClass): ?>
                                 <div class="<?php echo $columnClass; ?>">
                                     <label class="form-label small mb-1" for="<?php echo $field; ?>"><?php echo jpa_field_help_html($field); ?></label>
                                     <input class="form-control" id="<?php echo $field; ?>" name="<?php echo $field; ?>" required
@@ -429,7 +428,7 @@ jpa_render_header('Peserta & Data Import', $period);
                                         value="<?php echo htmlspecialchars($edit[$field] ?? ''); ?>" <?php echo $edit && $field === 'partner_id' ? 'readonly' : ''; ?>>
                                 </div>
                             <?php endforeach; ?>
-                            <div class="col-6">
+                            <div class="col-md-6">
                                 <label class="form-label small mb-1" for="integration_type"><?php echo jpa_field_help_html('integration_type'); ?></label>
                                 <select class="form-select" id="integration_type" name="integration_type">
                                     <?php foreach (['full' => 'Penuh (full)', 'semi' => 'Sebagian (semi)', 'inactive' => 'Tidak aktif'] as $value => $label): ?>
@@ -438,7 +437,7 @@ jpa_render_header('Peserta & Data Import', $period);
                                 </select>
                             </div>
                             <?php foreach (['partnership_active','critical_violation_resolved','data_traceable'] as $field): ?>
-                                <div class="col-6">
+                                <div class="col-md-6">
                                     <label class="form-check mt-4">
                                         <input class="form-check-input" type="checkbox" name="<?php echo $field; ?>" value="1" <?php echo !empty($edit[$field]) ? 'checked' : ''; ?>>
                                         <?php echo jpa_field_help_html($field); ?>
@@ -446,7 +445,7 @@ jpa_render_header('Peserta & Data Import', $period);
                                 </div>
                             <?php endforeach; ?>
                             <?php foreach (array_slice($headers, 6) as $field): ?>
-                                <div class="col-6">
+                                <div class="col-md-6">
                                     <label class="form-label small mb-1" for="<?php echo $field; ?>"><?php echo jpa_field_help_html($field); ?></label>
                                     <input type="number" min="0" class="form-control form-control-sm" id="<?php echo $field; ?>" name="<?php echo $field; ?>"
                                         placeholder="Contoh: <?php echo intval($fieldDefinitions[$field]['example']); ?>"
@@ -471,9 +470,9 @@ jpa_render_header('Peserta & Data Import', $period);
     <?php endif; ?>
 
     <div class="card mb-4">
-        <div class="card-header"><strong>Daftar Peserta (<?php echo count($participants); ?>)</strong></div>
+        <div class="card-header jpa-section-heading"><strong>Daftar Peserta</strong><span class="badge text-bg-primary"><?php echo count($participants); ?> peserta</span></div>
         <div class="table-responsive">
-            <table class="table table-sm table-striped align-middle mb-0"><thead><tr>
+            <table class="table table-sm table-striped align-middle mb-0 jpa-table"><thead><tr>
                 <?php foreach (['partner_id','partner_name','integration_type','eligibility_status','final_score'] as $field): ?>
                     <th><?php echo jpa_field_help_html($field, true); ?></th>
                 <?php endforeach; ?>
@@ -481,30 +480,47 @@ jpa_render_header('Peserta & Data Import', $period);
             </tr></thead><tbody>
                 <?php foreach ($participants as $row): ?><tr>
                     <td><?php echo htmlspecialchars($row['partner_id']); ?></td><td><?php echo htmlspecialchars($row['partner_name']); ?></td>
-                    <td><?php echo htmlspecialchars(['full' => 'Penuh', 'semi' => 'Sebagian', 'inactive' => 'Tidak aktif'][$row['integration_type']] ?? $row['integration_type']); ?></td>
-                    <td><?php echo htmlspecialchars(['eligible' => 'Layak', 'ineligible' => 'Tidak layak', 'pending' => 'Menunggu'][$row['eligibility_status']] ?? $row['eligibility_status']); ?></td>
+                    <td><?php echo htmlspecialchars(jpa_status_label('integration', $row['integration_type'])); ?></td>
+                    <td><?php echo jpa_status_badge('eligibility', $row['eligibility_status']); ?></td>
                     <td class="jpa-score"><?php echo number_format((float)$row['final_score'], 2); ?></td>
                     <td><?php if ($participantDataEditable): ?><a class="btn btn-sm btn-outline-primary" href="participants?period_id=<?php echo intval($period['id']); ?>&edit_id=<?php echo intval($row['id']); ?>">Koreksi</a><?php endif; ?> <a class="btn btn-sm btn-outline-secondary" href="participant?participant_id=<?php echo intval($row['id']); ?>">Detail</a></td>
                 </tr><?php endforeach; ?>
-                <?php if (!$participants): ?><tr><td colspan="6" class="text-center text-muted py-4">Belum ada peserta.</td></tr><?php endif; ?>
+                <?php if (!$participants): ?><?php jpa_render_empty_row(6, 'Belum ada peserta pada periode ini.'); ?><?php endif; ?>
             </tbody></table>
         </div>
     </div>
 
     <div class="card">
         <div class="card-header"><strong>Riwayat Import</strong></div>
-        <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Waktu</th><th>File</th><th>Status</th><th>Berhasil</th><th>Ditolak</th><th>Kesalahan</th></tr></thead><tbody>
-            <?php foreach ($imports as $item): ?><tr><td><?php echo htmlspecialchars($item['imported_at']); ?></td><td><?php echo htmlspecialchars($item['original_filename']); ?></td><td><?php echo htmlspecialchars($item['status']); ?></td><td><?php echo intval($item['successful_rows']); ?></td><td><?php echo intval($item['failed_rows']); ?></td><td><details><summary>Lihat</summary><pre class="small"><?php echo htmlspecialchars($item['errors_json'] ?: '[]'); ?></pre></details></td></tr><?php endforeach; ?>
-            <?php if (!$imports): ?><tr><td colspan="6" class="text-center text-muted">Belum ada import.</td></tr><?php endif; ?>
+        <div class="table-responsive"><table class="table table-sm mb-0 jpa-table"><thead><tr><th>Waktu</th><th>File</th><th>Status</th><th>Berhasil</th><th>Ditolak</th><th>Kesalahan</th></tr></thead><tbody>
+            <?php foreach ($imports as $item): ?>
+                <?php $importErrors = json_decode((string)($item['errors_json'] ?? ''), true) ?: []; ?>
+                <tr><td><?php echo htmlspecialchars($item['imported_at']); ?></td><td><?php echo htmlspecialchars($item['original_filename']); ?></td><td><?php echo jpa_status_badge('import', $item['status']); ?></td><td><?php echo intval($item['successful_rows']); ?></td><td><?php echo intval($item['failed_rows']); ?></td><td>
+                    <?php if ($importErrors): ?><details><summary class="text-primary">Lihat <?php echo count($importErrors); ?> baris</summary>
+                        <div class="mt-2">
+                            <?php foreach ($importErrors as $error): ?><div class="border-start border-danger ps-2 mb-2"><strong>Baris <?php echo intval($error['row'] ?? 0); ?></strong><?php if (!empty($error['partner_id'])): ?> · <?php echo htmlspecialchars($error['partner_id']); ?><?php endif; ?><ul class="mb-0"><?php foreach (($error['errors'] ?? []) as $message): ?><li><?php echo htmlspecialchars($message); ?></li><?php endforeach; ?></ul></div><?php endforeach; ?>
+                        </div>
+                    </details><?php else: ?><span class="text-muted">Tidak ada</span><?php endif; ?>
+                </td></tr>
+            <?php endforeach; ?>
+            <?php if (!$imports): ?><?php jpa_render_empty_row(6, 'Belum ada riwayat import.'); ?><?php endif; ?>
         </tbody></table></div>
     </div>
 <?php endif; ?>
 <script>
 const templateHeaders = <?php echo jpa_json($headers); ?>;
 const exampleParticipants = <?php echo jpa_json($exampleParticipants); ?>;
+const fieldDefinitions = <?php echo jpa_json($fieldDefinitions); ?>;
 document.getElementById('downloadTemplate')?.addEventListener('click', () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(exampleParticipants, {header: templateHeaders}), 'Contoh Peserta');
+    const guide = templateHeaders.map(variable => ({
+        variable,
+        label_indonesia: fieldDefinitions[variable]?.label || variable,
+        penjelasan: fieldDefinitions[variable]?.description || '',
+        contoh: fieldDefinitions[variable]?.example ?? ''
+    }));
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(guide), 'Panduan Kolom');
     XLSX.writeFile(workbook, 'job_portal_awards_import_template.xlsx');
 });
 document.getElementById('fillExample')?.addEventListener('click', () => {

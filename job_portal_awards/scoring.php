@@ -43,14 +43,12 @@ if ($period) {
 
 jpa_render_header('Scoring', $period);
 ?>
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div><h1 class="h3 mb-1">Scoring &amp; Breakdown</h1><p class="text-muted mb-0">Seluruh indikator menggunakan skala 0–100 dan bobot framework final.</p></div>
-    <?php jpa_render_period_selector($conn, $period, 'scoring'); ?>
-</div>
+<?php jpa_render_page_header('Penilaian & Rincian Skor', 'Seluruh indikator menggunakan skala 0–100 dan bobot periode aktif.', $conn, $period, 'scoring'); ?>
 <?php if (!$period): ?>
-    <div class="alert alert-info">Pilih periode penilaian.</div>
+    <?php jpa_render_no_period(); ?>
 <?php else: ?>
-    <div class="d-flex align-items-center gap-3 mb-3">
+    <?php jpa_render_period_banner($period); ?>
+    <div class="d-flex align-items-center gap-3 mb-3 jpa-toolbar">
         <span class="badge text-bg-info">Modul Dampak: <?php echo $period['impact_module_enabled'] ? 'Aktif (100%)' : 'Nonaktif (85% dinormalisasi)'; ?></span>
         <?php if ($period['status'] !== 'finalized' && current_user_can('job_portal_award_recalculate')): ?>
         <form method="post" class="d-flex gap-2 ms-auto no-print" onsubmit="return confirm('Hitung ulang seluruh skor?');">
@@ -61,16 +59,16 @@ jpa_render_header('Scoring', $period);
         </form>
         <?php endif; ?>
     </div>
-    <div class="card"><div class="table-responsive"><table class="table table-sm table-striped align-middle mb-0">
-        <thead><tr><th>Rank</th><th>Partner</th><th>Integrasi</th><th>Volume</th><th>Konsistensi</th><th>Completeness</th><th>KYB</th><th>Duplikasi</th><th>Aduan</th><th>Progression</th><th>Placement</th><th>Nilai Akhir</th></tr></thead>
+    <div class="card"><div class="table-responsive"><table class="table table-sm table-striped align-middle mb-0 jpa-table">
+        <thead><tr><th>Peringkat</th><th class="jpa-sticky-column">Partner</th><?php foreach (jpa_score_fields() as $label): ?><th><?php echo htmlspecialchars($label); ?></th><?php endforeach; ?><th>Nilai Akhir</th></tr></thead>
         <tbody>
         <?php foreach ($rows as $row): ?><tr>
             <td><?php echo $row['award_rank'] ? '#' . intval($row['award_rank']) : '-'; ?></td>
-            <td><a href="participant?participant_id=<?php echo intval($row['id']); ?>"><?php echo htmlspecialchars($row['partner_name']); ?></a><br><small class="text-muted"><?php echo htmlspecialchars($row['eligibility_status']); ?></small></td>
-            <?php foreach (['score_integration','score_volume','score_consistency','score_completeness','score_kyb','score_duplicate','score_complaint','score_progression','score_placement'] as $field): ?><td class="jpa-score"><?php echo number_format((float)$row[$field], 2); ?></td><?php endforeach; ?>
+            <td class="jpa-sticky-column"><?php jpa_render_partner_cell($row); ?><br><?php echo jpa_status_badge('eligibility', $row['eligibility_status']); ?></td>
+            <?php foreach (jpa_score_fields() as $field => $label): ?><td class="jpa-score"><?php echo number_format((float)$row[$field], 2); ?></td><?php endforeach; ?>
             <td class="jpa-score"><strong><?php echo number_format((float)$row['final_score'], 2); ?></strong></td>
         </tr><?php endforeach; ?>
-        <?php if (!$rows): ?><tr><td colspan="12" class="text-center text-muted py-4">Belum ada peserta.</td></tr><?php endif; ?>
+        <?php if (!$rows): ?><?php jpa_render_empty_row(12, 'Belum ada peserta untuk dinilai.'); ?><?php endif; ?>
         </tbody>
     </table></div></div>
 <?php endif; ?>
