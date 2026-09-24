@@ -322,6 +322,24 @@ function jpa_field_help_html(string $field, bool $showVariable = false): string
     return $html;
 }
 
+function jpa_help_label_html(string $label, string $description, string $variable = ''): string
+{
+    $tooltip = $description;
+    if ($variable !== '') {
+        $tooltip .= ' Variabel: ' . $variable . '.';
+    }
+    $html = '<span class="d-inline-flex align-items-center gap-1">';
+    $html .= '<span>' . htmlspecialchars($label) . '</span>';
+    $html .= '<span role="button" tabindex="0" class="text-secondary lh-1"';
+    $html .= ' data-bs-toggle="tooltip" data-bs-placement="top" title="' . htmlspecialchars($tooltip) . '"';
+    $html .= ' aria-label="Penjelasan ' . htmlspecialchars($label) . '">';
+    $html .= '<i class="bi bi-info-circle" aria-hidden="true"></i></span></span>';
+    if ($variable !== '') {
+        $html .= '<div><code class="small">' . htmlspecialchars($variable) . '</code></div>';
+    }
+    return $html;
+}
+
 function jpa_example_participants(int $monthsInPeriod = 6): array
 {
     $activeMonths = max(1, min(6, $monthsInPeriod));

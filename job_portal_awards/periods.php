@@ -153,6 +153,19 @@ while ($result && ($row = $result->fetch_assoc())) {
 }
 $defaultFields = 'salary, location, job_description, minimum_requirements';
 $fieldsValue = $period ? implode(', ', json_decode((string)$period['mandatory_vacancy_fields'], true) ?: []) : $defaultFields;
+$parameterHelp = [
+    'name' => ['Nama periode', 'Nama yang digunakan untuk membedakan satu siklus penilaian dari siklus lainnya. Contoh: Job Portal Awards Semester I 2026.', 'name'],
+    'period_start' => ['Tanggal mulai', 'Tanggal pertama yang termasuk dalam periode pengumpulan dan penilaian data.', 'period_start'],
+    'period_end' => ['Tanggal selesai', 'Tanggal terakhir yang termasuk dalam periode pengumpulan dan penilaian data.', 'period_end'],
+    'min_active_months' => ['Minimum bulan aktif', 'Jumlah bulan minimum mitra harus aktif memasok data agar lolos gate kelayakan E2.', 'min_active_months'],
+    'target_volume' => ['Target volume lowongan', 'Target jumlah lowongan unik tayang. Nilai peserta dibandingkan dengan target ini untuk menghitung skor Volume.', 'target_volume'],
+    'complaint_penalty_factor' => ['Faktor penalti aduan', 'Besarnya pengurang skor untuk setiap tingkat aduan valid. Nilai lebih tinggi menghasilkan penalti lebih berat.', 'complaint_penalty_factor'],
+    'target_progression_rate' => ['Target progres kandidat (%)', 'Persentase target pelamar Karirhub yang diharapkan maju ke tahap rekrutmen berikutnya.', 'target_progression_rate'],
+    'target_placement_rate' => ['Target penempatan (%)', 'Persentase target pelamar Karirhub yang diharapkan diterima bekerja.', 'target_placement_rate'],
+    'mandatory_vacancy_fields' => ['Atribut lowongan wajib', 'Daftar atribut yang harus terisi agar sebuah lowongan dihitung lengkap. Pisahkan setiap nama atribut dengan koma.', 'mandatory_vacancy_fields'],
+    'impact_module_enabled' => ['Aktifkan Modul Dampak Terverifikasi 15%', 'Jika aktif, skor progres kandidat dan penempatan ikut dihitung. Jika nonaktif, bobot indikator inti dinormalisasi menjadi 100%.', 'impact_module_enabled'],
+    'reason' => ['Alasan perubahan', 'Catatan wajib untuk menjelaskan dasar perubahan parameter pada jejak audit.', 'reason'],
+];
 
 jpa_render_header('Periode & Parameter', $period);
 ?>
@@ -162,6 +175,10 @@ jpa_render_header('Periode & Parameter', $period);
     <div class="col-lg-8">
         <div class="card">
             <div class="card-body">
+                <div class="alert alert-info d-flex gap-2 align-items-start" role="note">
+                    <i class="bi bi-info-circle-fill mt-1" aria-hidden="true"></i>
+                    <div><strong>Dampak perubahan parameter</strong><br><span class="small">Perubahan target atau faktor akan menghitung ulang seluruh nilai dan peringkat peserta. Arahkan kursor atau fokuskan ikon <i class="bi bi-info-circle"></i> untuk membaca penjelasan setiap kolom.</span></div>
+                </div>
                 <form method="post">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(jpa_csrf_token()); ?>">
                     <input type="hidden" name="action" value="save">
@@ -169,27 +186,28 @@ jpa_render_header('Periode & Parameter', $period);
                     <?php $editable = !$period || $period['status'] !== 'finalized'; ?>
                     <fieldset <?php echo $editable ? '' : 'disabled'; ?>>
                         <div class="mb-3">
-                            <label class="form-label">Nama periode</label>
-                            <input class="form-control" name="name" required value="<?php echo htmlspecialchars($period['name'] ?? 'Job Portal Awards 2026'); ?>">
+                            <label class="form-label" for="periodName"><?php echo jpa_help_label_html(...$parameterHelp['name']); ?></label>
+                            <input class="form-control" id="periodName" name="name" required value="<?php echo htmlspecialchars($period['name'] ?? 'Job Portal Awards 2026'); ?>">
                         </div>
                         <div class="row g-3 mb-3">
-                            <div class="col-md-6"><label class="form-label">Mulai</label><input type="date" class="form-control" name="period_start" required value="<?php echo htmlspecialchars($period['period_start'] ?? ''); ?>"></div>
-                            <div class="col-md-6"><label class="form-label">Selesai</label><input type="date" class="form-control" name="period_end" required value="<?php echo htmlspecialchars($period['period_end'] ?? ''); ?>"></div>
-                            <div class="col-md-6"><label class="form-label">Minimum bulan aktif</label><input type="number" min="1" class="form-control" name="min_active_months" value="<?php echo intval($period['min_active_months'] ?? 3); ?>"></div>
-                            <div class="col-md-6"><label class="form-label">Target volume lowongan</label><input type="number" min="1" class="form-control" name="target_volume" value="<?php echo intval($period['target_volume'] ?? 1); ?>"></div>
-                            <div class="col-md-4"><label class="form-label">Faktor penalti aduan</label><input type="number" min="0" step="0.01" class="form-control" name="complaint_penalty_factor" value="<?php echo htmlspecialchars($period['complaint_penalty_factor'] ?? '25'); ?>"></div>
-                            <div class="col-md-4"><label class="form-label">Target progression (%)</label><input type="number" min="0.01" step="0.01" class="form-control" name="target_progression_rate" value="<?php echo htmlspecialchars($period['target_progression_rate'] ?? '1'); ?>"></div>
-                            <div class="col-md-4"><label class="form-label">Target placement (%)</label><input type="number" min="0.01" step="0.01" class="form-control" name="target_placement_rate" value="<?php echo htmlspecialchars($period['target_placement_rate'] ?? '1'); ?>"></div>
+                            <div class="col-md-6"><label class="form-label" for="periodStart"><?php echo jpa_help_label_html(...$parameterHelp['period_start']); ?></label><input type="date" class="form-control" id="periodStart" name="period_start" required value="<?php echo htmlspecialchars($period['period_start'] ?? ''); ?>"></div>
+                            <div class="col-md-6"><label class="form-label" for="periodEnd"><?php echo jpa_help_label_html(...$parameterHelp['period_end']); ?></label><input type="date" class="form-control" id="periodEnd" name="period_end" required value="<?php echo htmlspecialchars($period['period_end'] ?? ''); ?>"></div>
+                            <div class="col-md-6"><label class="form-label" for="minActiveMonths"><?php echo jpa_help_label_html(...$parameterHelp['min_active_months']); ?></label><input type="number" min="1" class="form-control" id="minActiveMonths" name="min_active_months" value="<?php echo intval($period['min_active_months'] ?? 3); ?>"><div class="form-text">Digunakan pada gate kelayakan E2.</div></div>
+                            <div class="col-md-6"><label class="form-label" for="targetVolume"><?php echo jpa_help_label_html(...$parameterHelp['target_volume']); ?></label><input type="number" min="1" class="form-control" id="targetVolume" name="target_volume" value="<?php echo intval($period['target_volume'] ?? 1); ?>"><div class="form-text">Skor volume = lowongan unik tayang ÷ target volume.</div></div>
+                            <div class="col-md-4"><label class="form-label" for="complaintPenalty"><?php echo jpa_help_label_html(...$parameterHelp['complaint_penalty_factor']); ?></label><input type="number" min="0" step="0.01" class="form-control" id="complaintPenalty" name="complaint_penalty_factor" value="<?php echo htmlspecialchars($period['complaint_penalty_factor'] ?? '25'); ?>"><div class="form-text">Nilai standar: 25.</div></div>
+                            <div class="col-md-4"><label class="form-label" for="progressionTarget"><?php echo jpa_help_label_html(...$parameterHelp['target_progression_rate']); ?></label><div class="input-group"><input type="number" min="0.01" step="0.01" class="form-control" id="progressionTarget" name="target_progression_rate" value="<?php echo htmlspecialchars($period['target_progression_rate'] ?? '1'); ?>"><span class="input-group-text">%</span></div></div>
+                            <div class="col-md-4"><label class="form-label" for="placementTarget"><?php echo jpa_help_label_html(...$parameterHelp['target_placement_rate']); ?></label><div class="input-group"><input type="number" min="0.01" step="0.01" class="form-control" id="placementTarget" name="target_placement_rate" value="<?php echo htmlspecialchars($period['target_placement_rate'] ?? '1'); ?>"><span class="input-group-text">%</span></div></div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Atribut lowongan wajib (pisahkan dengan koma)</label>
-                            <textarea class="form-control" name="mandatory_vacancy_fields" required><?php echo htmlspecialchars($fieldsValue); ?></textarea>
+                            <label class="form-label" for="mandatoryFields"><?php echo jpa_help_label_html(...$parameterHelp['mandatory_vacancy_fields']); ?></label>
+                            <textarea class="form-control" id="mandatoryFields" name="mandatory_vacancy_fields" required><?php echo htmlspecialchars($fieldsValue); ?></textarea>
+                            <div class="form-text">Contoh: salary, location, job_description, minimum_requirements</div>
                         </div>
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" name="impact_module_enabled" value="1" id="impact" <?php echo !empty($period['impact_module_enabled']) ? 'checked' : ''; ?>>
-                            <label class="form-check-label" for="impact">Aktifkan Modul Dampak Terverifikasi 15%</label>
+                            <label class="form-check-label" for="impact"><?php echo jpa_help_label_html(...$parameterHelp['impact_module_enabled']); ?></label>
                         </div>
-                        <?php if ($period): ?><div class="mb-3"><label class="form-label">Alasan perubahan</label><input class="form-control" name="reason" placeholder="Wajib untuk jejak audit perubahan parameter"></div><?php endif; ?>
+                        <?php if ($period): ?><div class="mb-3"><label class="form-label" for="changeReason"><?php echo jpa_help_label_html(...$parameterHelp['reason']); ?></label><input class="form-control" id="changeReason" name="reason" placeholder="Contoh: Penyesuaian target berdasarkan keputusan komite BA-012/2026"><div class="form-text">Alasan disimpan dalam audit trail dan wajib diisi ketika mengubah parameter.</div></div><?php endif; ?>
                         <button class="btn btn-primary" type="submit">Simpan Parameter</button>
                     </fieldset>
                 </form>
