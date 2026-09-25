@@ -318,6 +318,9 @@
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>karirhub_ads_settings">KarirHub Ads Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>split_screen_settings">Split Screen Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canIframe): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>iframe_settings">iFrame Settings</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canIframe): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>iframe/karirhub_iframe1.php">Karirhub iFrame 1</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canIframe): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>iframe/karirhub_iframe2.php">Karirhub iFrame 2</a></li><?php endif; ?>
+                        <?php if ($canManageSettings || $canIframe): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>iframe/karirhub_iframe3.php">Karirhub iFrame 3</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canMaintenanceMessage): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>maintenance_message_settings">Maintenance Message Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canHomePopup): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>home_popup_settings">Home Popup Settings</a></li><?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
