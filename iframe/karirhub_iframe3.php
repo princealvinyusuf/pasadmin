@@ -94,7 +94,7 @@
 <body>
   <div class="card" onclick="window.open('https://karirhub.kemnaker.go.id/lowongan-dalam-negeri/lowongan', '_blank')">
     <div class="card-content">
-      <img src="https://karirhub.kemnaker.go.id/assets/images/logo/products/karirhub-lower.svg"
+      <img src="https://karirhub-cms.oss-ap-southeast-5.aliyuncs.com/karirhub_lower_08c3886bd0_6e9a9ee711.svg"
            alt="Karirhub Kemnaker Logo">
       <strong>Wujudkan karier impianmu bersama Karirhub Kemnaker.</strong>
       <div class="card-footer">Karirhub oleh Kemnaker</div>

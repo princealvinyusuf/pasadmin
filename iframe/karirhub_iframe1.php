@@ -89,7 +89,7 @@
 <body>
     <div class="iframe-container" onclick="window.open('https://karirhub.kemnaker.go.id/lowongan-dalam-negeri/lowongan', '_blank')">
         <div class="iframe-inner">
-            <img src="https://karirhub.kemnaker.go.id/assets/images/logo/products/karirhub-lower.svg" alt="Karirhub Kemnaker Logo">
+            <img src="https://karirhub-cms.oss-ap-southeast-5.aliyuncs.com/karirhub_lower_08c3886bd0_6e9a9ee711.svg" alt="Karirhub Kemnaker Logo">
             <p><b>Wujudkan karier impianmu bersama Karirhub Kemnaker.</b></p>
         </div>
     </div>
