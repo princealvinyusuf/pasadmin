@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $description = trim((string)($_POST['description'] ?? ''));
         $evidence = trim((string)($_POST['evidence_reference'] ?? ''));
         $participant = jpa_get_participant($conn, $participantId);
-        if (!$participant || intval($participant['period_id']) !== $periodId || !in_array($code, ['RF-1','RF-2','RF-4'], true)
+        if (!$participant || intval($participant['period_id']) !== $periodId || !in_array($code, ['RF-1','RF-2','RF-3'], true)
             || $description === '' || strlen($description) > 10000 || $evidence === '' || strlen($evidence) > 1000) {
             jpa_set_flash('danger', 'Peserta, kode, deskripsi, dan referensi bukti wajib valid.');
             jpa_redirect('red_flags?period_id=' . $periodId);
@@ -150,12 +150,12 @@ jpa_render_header('Red Flags & Committee Review', $period);
     <?php jpa_render_period_banner($period); ?>
     <?php if ($period['status'] !== 'finalized'): ?>
     <div class="card mb-4"><div class="card-header"><strong><i class="bi bi-flag-fill text-danger me-1"></i> Catat Red Flag</strong></div><div class="card-body">
-        <div class="small text-muted mb-3"><strong>RF-1</strong> aduan berat · <strong>RF-2</strong> pelanggaran/kepatuhan · <strong>RF-4</strong> temuan komite lainnya. Temuan otomatis dari aduan berat diberi label “Otomatis”.</div>
+        <div class="small text-muted mb-3"><strong>RF-1</strong> aduan berat · <strong>RF-2</strong> pelanggaran/kepatuhan · <strong>RF-3</strong> temuan komite lainnya. Temuan otomatis dari aduan berat diberi label “Otomatis”.</div>
         <form method="post" class="row g-3">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(jpa_csrf_token()); ?>">
             <input type="hidden" name="action" value="create"><input type="hidden" name="period_id" value="<?php echo intval($period['id']); ?>">
             <div class="col-md-4"><label class="form-label" for="flagParticipant">Peserta</label><select class="form-select" id="flagParticipant" name="participant_id" required><option value="">Pilih peserta</option><?php foreach ($participants as $item): ?><option value="<?php echo intval($item['id']); ?>" <?php echo $selectedParticipantId === intval($item['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($item['partner_name'] . ' (' . $item['partner_id'] . ')'); ?></option><?php endforeach; ?></select></div>
-            <div class="col-md-2"><label class="form-label" for="flagCode">Kode</label><select class="form-select" id="flagCode" name="code"><option>RF-1</option><option>RF-2</option><option>RF-4</option></select></div>
+            <div class="col-md-2"><label class="form-label" for="flagCode">Kode</label><select class="form-select" id="flagCode" name="code"><option>RF-1</option><option>RF-2</option><option>RF-3</option></select></div>
             <div class="col-md-6"><label class="form-label" for="flagEvidence">Referensi bukti / URL / nomor dokumen</label><input class="form-control" id="flagEvidence" name="evidence_reference" required></div>
             <div class="col-12"><label class="form-label" for="flagDescription">Deskripsi temuan</label><textarea class="form-control" id="flagDescription" name="description" required></textarea></div>
             <div class="col-12"><button class="btn btn-danger">Catat Red Flag</button></div>
