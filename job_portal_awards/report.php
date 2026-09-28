@@ -53,6 +53,7 @@ jpa_render_header('Laporan Komite', $period);
         <div class="col-6 col-md-3"><strong>Status</strong><br><?php echo htmlspecialchars(jpa_status_label('period', $period['status'])); ?></div>
         <div class="col-6 col-md-3"><strong>Minimum bulan aktif</strong><br><?php echo intval($period['min_active_months']); ?></div>
         <div class="col-6 col-md-3"><strong>Target volume</strong><br><?php echo number_format((int)$period['target_volume']); ?></div>
+        <div class="col-6 col-md-3"><strong>Target lowongan disabilitas</strong><br><?php echo htmlspecialchars($period['target_disability_vacancy_rate']); ?>%</div>
         <div class="col-6 col-md-3"><strong>Faktor penalti</strong><br><?php echo htmlspecialchars($period['complaint_penalty_factor']); ?></div>
         <div class="col-6 col-md-3"><strong>Target progression</strong><br><?php echo htmlspecialchars($period['target_progression_rate']); ?>%</div>
         <div class="col-6 col-md-3"><strong>Target placement</strong><br><?php echo htmlspecialchars($period['target_placement_rate']); ?>%</div>

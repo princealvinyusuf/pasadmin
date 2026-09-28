@@ -28,18 +28,19 @@ while ($row = $result->fetch_assoc()) {
 $stmt->close();
 
 $indicators = [
-    'integration' => ['1.1 Skema Integrasi', 'integration_type'],
-    'volume' => ['2.1 Volume Lowongan Unik Published', 'published_unique_count / target_volume'],
-    'consistency' => ['2.2 Konsistensi Pasokan', 'active_months / months_in_period'],
-    'completeness' => ['3.1 Kelengkapan Atribut Wajib', 'complete_vacancy_count / published_unique_count'],
-    'kyb' => ['3.2 Validitas Legal / KYB', 'employer_valid_legal_count / employer_unique_count'],
-    'duplicate' => ['3.3 Tingkat Duplikasi', '100 - duplicate_vacancy_count / records_sent_unique'],
-    'complaint' => ['3.4 Tingkat Aduan Valid', '100 - complaint_rate_per_1000 × penalty_factor'],
-    'progression' => ['4.1 Kandidat Lolos Kurasi', 'progression_rate / target_progression_rate'],
-    'placement' => ['4.2 Placement Rate', 'placement_rate / target_placement_rate'],
+    'integration' => ['1.1 Skema Integrasi', 'integration_type', 'Master integrasi'],
+    'volume' => ['2.1 Volume Lowongan Unik Published', 'published_unique_count / target_volume', 'Data integrasi'],
+    'consistency' => ['2.2 Konsistensi Pasokan Lowongan', 'active_months / months_in_period', 'Data integrasi'],
+    'disability' => ['2.3 Lowongan Disabilitas', '(disability_published_unique_count / published_unique_count) / target_disability_vacancy_rate', 'Data integrasi'],
+    'completeness' => ['3.1 Kelengkapan Atribut Wajib', 'complete_vacancy_count / published_unique_count', 'Data integrasi'],
+    'kyb' => ['3.2 Validitas Legal Pemberi Kerja / KYB', 'employer_valid_legal_count / employer_unique_count', 'Data integrasi'],
+    'duplicate' => ['3.3 Tingkat Duplikasi Lowongan', '100 - duplicate_vacancy_count / records_sent_unique', 'Data integrasi'],
+    'complaint' => ['3.4 Tingkat Aduan Valid', '100 - complaint_rate × penalty_factor', 'Laporan aduan'],
+    'progression' => ['4.1 Kandidat Lolos Kurasi/Seleksi Lanjutan', 'progression_rate / target_progression_rate', 'Data integrasi'],
+    'placement' => ['4.2 Placement Rate (Diterima/Hired)', 'placement_rate / target_placement_rate', 'Data integrasi'],
 ];
 $rawFields = [
-    'integration_type','records_sent_unique','published_unique_count','active_months','complete_vacancy_count',
+    'integration_type','records_sent_unique','published_unique_count','disability_published_unique_count','active_months','complete_vacancy_count',
     'employer_unique_count','employer_valid_legal_count','duplicate_vacancy_count','valid_complaint_count',
     'severe_complaint_count','applications_from_karirhub','progressed_candidate_count','hired_candidate_count',
 ];
@@ -70,13 +71,13 @@ jpa_render_header('Detail Peserta', $period);
     <div class="col-lg-8">
         <div class="card mb-4"><div class="card-header"><strong>Rincian Nilai dan Kontribusi</strong></div><div class="table-responsive"><table class="table align-middle mb-0 jpa-table">
             <caption class="visually-hidden">Rincian indikator, formula, skor, bobot, dan kontribusi nilai peserta</caption>
-            <thead><tr><th>Indikator</th><th>Formula</th><th>Skor</th><th>Bobot</th><th>Kontribusi</th></tr></thead><tbody>
-            <?php foreach ($indicators as $key => [$label,$formula]): ?><tr class="<?php echo (!$period['impact_module_enabled'] && in_array($key, ['progression','placement'], true)) ? 'table-secondary' : ''; ?>">
-                <td><?php echo htmlspecialchars($label); ?></td><td><code><?php echo htmlspecialchars($formula); ?></code></td>
+            <thead><tr><th>Indikator</th><th>Sumber Utama</th><th>Formula</th><th>Skor</th><th>Bobot</th><th>Kontribusi</th></tr></thead><tbody>
+            <?php foreach ($indicators as $key => [$label,$formula,$source]): ?><tr class="<?php echo (!$period['impact_module_enabled'] && in_array($key, ['progression','placement'], true)) ? 'table-secondary' : ''; ?>">
+                <td><?php echo htmlspecialchars($label); ?></td><td><?php echo htmlspecialchars($source); ?></td><td><code><?php echo htmlspecialchars($formula); ?></code></td>
                 <td class="jpa-score"><?php echo number_format((float)$calculation['scores'][$key], 2); ?></td>
                 <td><?php echo number_format((float)$weights[$key], 0); ?>%</td><td class="jpa-score"><?php echo number_format((float)$calculation['weighted'][$key], 2); ?></td>
             </tr><?php endforeach; ?>
-            </tbody><tfoot><tr><th colspan="4">Nilai Akhir<?php echo $period['impact_module_enabled'] ? '' : ' (core dinormalisasi)'; ?></th><th class="jpa-score"><?php echo number_format((float)$calculation['final_score'], 2); ?></th></tr></tfoot>
+            </tbody><tfoot><tr><th colspan="5">Nilai Akhir<?php echo $period['impact_module_enabled'] ? '' : ' (core dinormalisasi)'; ?></th><th class="jpa-score"><?php echo number_format((float)$calculation['final_score'], 2); ?></th></tr></tfoot>
         </table></div></div>
         <div class="card"><div class="card-header"><strong>Red Flags</strong></div><div class="table-responsive"><table class="table table-sm mb-0 jpa-table"><thead><tr><th>Kode</th><th>Deskripsi</th><th>Status</th><th>Konsekuensi</th><th>Keputusan</th></tr></thead><tbody>
             <?php foreach ($flags as $flag): ?><tr><td><?php echo htmlspecialchars($flag['code']); ?></td><td><?php echo htmlspecialchars($flag['description']); ?></td><td><?php echo jpa_status_badge('red_flag', $flag['status']); ?></td><td><?php echo jpa_status_badge('consequence', $flag['consequence']); ?></td><td><?php echo nl2br(htmlspecialchars($flag['committee_notes'] ?? '')); ?></td></tr><?php endforeach; ?>

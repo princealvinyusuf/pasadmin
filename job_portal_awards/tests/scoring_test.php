@@ -23,6 +23,7 @@ $metrics = [
     'integration_type' => 'full',
     'records_sent_unique' => 100,
     'published_unique_count' => 2500,
+    'disability_published_unique_count' => 50,
     'active_months' => 3,
     'complete_vacancy_count' => 2375,
     'employer_unique_count' => 100,
@@ -37,34 +38,60 @@ $config = [
     'weights' => JPA_DEFAULT_WEIGHTS,
     'months_in_period' => 3,
     'target_volume' => 10000 / 3,
+    'target_disability_vacancy_rate' => 2,
     'complaint_penalty_factor' => 25,
     'target_progression_rate' => 10,
     'target_placement_rate' => 5,
     'impact_module_enabled' => true,
 ];
 $result = jpa_compute_scores($metrics, $config);
-expect_near('framework example total', $result['final_score'], 89.10, 0.01);
+expect_near('updated framework total', $result['final_score'], 90.75, 0.01);
+expect_near('disability vacancy score', $result['scores']['disability'], 100.0);
 expect_near('complaint rate score', $result['scores']['complaint'], 90.0);
 expect_near('progression score', $result['scores']['progression'], 80.0);
 expect_near('placement score', $result['scores']['placement'], 70.0);
 
 $config['impact_module_enabled'] = false;
 $coreOnly = jpa_compute_scores($metrics, $config);
-expect_near('core 85 percent normalization', $coreOnly['final_score'], (77.6 / 85) * 100, 0.01);
+expect_near('core 85 percent normalization', $coreOnly['final_score'], (79.25 / 85) * 100, 0.01);
 expect_near('disabled impact progression', $coreOnly['scores']['progression'], 0.0);
 
 $zero = jpa_compute_scores([], [
     'weights' => JPA_DEFAULT_WEIGHTS,
     'months_in_period' => 1,
     'target_volume' => 100,
+    'target_disability_vacancy_rate' => 1,
     'complaint_penalty_factor' => 25,
     'target_progression_rate' => 1,
     'target_placement_rate' => 1,
     'impact_module_enabled' => true,
 ]);
 expect_near('zero completeness denominator', $zero['scores']['completeness'], 0.0);
+expect_near('zero disability denominator', $zero['scores']['disability'], 0.0);
 expect_near('zero duplicate denominator', $zero['scores']['duplicate'], 0.0);
 expect_near('zero complaint denominator', $zero['scores']['complaint'], 0.0);
+
+$cappedDisability = jpa_compute_scores([
+    'published_unique_count' => 100,
+    'disability_published_unique_count' => 10,
+], [
+    'weights' => JPA_DEFAULT_WEIGHTS,
+    'months_in_period' => 1,
+    'target_volume' => 100,
+    'target_disability_vacancy_rate' => 2,
+    'complaint_penalty_factor' => 25,
+    'target_progression_rate' => 1,
+    'target_placement_rate' => 1,
+    'impact_module_enabled' => true,
+]);
+expect_near('disability score capped at 100', $cappedDisability['scores']['disability'], 100.0);
+expect_true('updated weights total 100', array_sum(JPA_DEFAULT_WEIGHTS) === 100);
+$legacyConfig = jpa_period_config([
+    'period_start' => '2026-01-01',
+    'period_end' => '2026-01-31',
+    'weights_json' => '{"integration":10,"volume":20}',
+]);
+expect_near('legacy finalized period keeps missing disability weight at zero', $legacyConfig['weights']['disability'], 0.0);
 
 $eligibility = jpa_evaluate_eligibility([
     'partnership_active' => 1,

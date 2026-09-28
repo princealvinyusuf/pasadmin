@@ -68,7 +68,7 @@ jpa_render_header('Scoring', $period);
             <?php foreach (jpa_score_fields() as $field => $label): ?><td class="jpa-score"><?php echo number_format((float)$row[$field], 2); ?></td><?php endforeach; ?>
             <td class="jpa-score"><strong><?php echo number_format((float)$row['final_score'], 2); ?></strong></td>
         </tr><?php endforeach; ?>
-        <?php if (!$rows): ?><?php jpa_render_empty_row(12, 'Belum ada peserta untuk dinilai.'); ?><?php endif; ?>
+        <?php if (!$rows): ?><?php jpa_render_empty_row(13, 'Belum ada peserta untuk dinilai.'); ?><?php endif; ?>
         </tbody>
     </table></div></div>
 <?php endif; ?>

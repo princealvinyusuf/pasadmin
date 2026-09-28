@@ -1,11 +1,12 @@
 <?php
 
 const JPA_DEFAULT_WEIGHTS = [
-    'integration' => 10,
-    'volume' => 20,
+    'integration' => 20,
+    'volume' => 15,
     'consistency' => 10,
-    'completeness' => 20,
-    'kyb' => 10,
+    'disability' => 5,
+    'completeness' => 15,
+    'kyb' => 5,
     'duplicate' => 5,
     'complaint' => 10,
     'progression' => 10,
@@ -51,6 +52,7 @@ function jpa_compute_scores(array $metrics, array $config): array
     $weights = $config['weights'] ?? JPA_DEFAULT_WEIGHTS;
     $months = max(1, intval($config['months_in_period'] ?? 1));
     $targetVolume = max(1, floatval($config['target_volume'] ?? 1));
+    $targetDisabilityRate = max(0.0001, floatval($config['target_disability_vacancy_rate'] ?? 1));
     $penalty = max(0, floatval($config['complaint_penalty_factor'] ?? 25));
     $targetProgression = max(0.0001, floatval($config['target_progression_rate'] ?? 1));
     $targetPlacement = max(0.0001, floatval($config['target_placement_rate'] ?? 1));
@@ -59,6 +61,7 @@ function jpa_compute_scores(array $metrics, array $config): array
     $integrationMap = ['full' => 100.0, 'semi' => 60.0, 'inactive' => 0.0];
     $integrationType = strtolower((string)($metrics['integration_type'] ?? 'inactive'));
     $published = max(0, floatval($metrics['published_unique_count'] ?? 0));
+    $disabilityPublished = max(0, floatval($metrics['disability_published_unique_count'] ?? 0));
     $recordsSent = max(0, floatval($metrics['records_sent_unique'] ?? 0));
     $employers = max(0, floatval($metrics['employer_unique_count'] ?? 0));
     $applications = max(0, floatval($metrics['applications_from_karirhub'] ?? 0));
@@ -67,6 +70,7 @@ function jpa_compute_scores(array $metrics, array $config): array
         'integration' => $integrationMap[$integrationType] ?? 0.0,
         'volume' => jpa_clamp(jpa_percentage($published, $targetVolume)),
         'consistency' => jpa_clamp(jpa_percentage(floatval($metrics['active_months'] ?? 0), $months)),
+        'disability' => jpa_clamp((jpa_percentage($disabilityPublished, $published) / $targetDisabilityRate) * 100.0),
         'completeness' => jpa_clamp(jpa_percentage(floatval($metrics['complete_vacancy_count'] ?? 0), $published)),
         'kyb' => jpa_clamp(jpa_percentage(floatval($metrics['employer_valid_legal_count'] ?? 0), $employers)),
         'duplicate' => $recordsSent > 0
@@ -86,7 +90,7 @@ function jpa_compute_scores(array $metrics, array $config): array
         $scores['placement'] = jpa_clamp(($placementRate / $targetPlacement) * 100.0);
     }
 
-    $coreKeys = ['integration', 'volume', 'consistency', 'completeness', 'kyb', 'duplicate', 'complaint'];
+    $coreKeys = ['integration', 'volume', 'consistency', 'disability', 'completeness', 'kyb', 'duplicate', 'complaint'];
     $impactKeys = ['progression', 'placement'];
     $activeKeys = $impactEnabled ? array_merge($coreKeys, $impactKeys) : $coreKeys;
     $weighted = [];
@@ -233,6 +237,11 @@ function jpa_participant_field_definitions(): array
             'description' => 'Jumlah lowongan unik dari mitra yang berhasil dipublikasikan.',
             'example' => 10000,
         ],
+        'disability_published_unique_count' => [
+            'label' => 'Lowongan Disabilitas Berhasil Tayang',
+            'description' => 'Jumlah lowongan unik tayang yang secara eksplisit terbuka bagi penyandang disabilitas.',
+            'example' => 150,
+        ],
         'active_months' => [
             'label' => 'Jumlah Bulan Aktif',
             'description' => 'Jumlah bulan dalam periode penilaian ketika mitra aktif memasok data.',
@@ -353,6 +362,7 @@ function jpa_example_participants(int $monthsInPeriod = 6): array
             'data_traceable' => 1,
             'records_sent_unique' => 12500,
             'published_unique_count' => 10000,
+            'disability_published_unique_count' => 150,
             'active_months' => $activeMonths,
             'complete_vacancy_count' => 9200,
             'employer_unique_count' => 800,
@@ -373,6 +383,7 @@ function jpa_example_participants(int $monthsInPeriod = 6): array
             'data_traceable' => 1,
             'records_sent_unique' => 7200,
             'published_unique_count' => 6000,
+            'disability_published_unique_count' => 60,
             'active_months' => max(1, $activeMonths - 1),
             'complete_vacancy_count' => 5100,
             'employer_unique_count' => 475,
@@ -393,6 +404,7 @@ function jpa_example_participants(int $monthsInPeriod = 6): array
             'data_traceable' => 0,
             'records_sent_unique' => 1000,
             'published_unique_count' => 700,
+            'disability_published_unique_count' => 0,
             'active_months' => 1,
             'complete_vacancy_count' => 350,
             'employer_unique_count' => 80,
@@ -435,9 +447,12 @@ function jpa_period_config(array $period): array
     $weights = json_decode((string)($period['weights_json'] ?? ''), true);
     if (!is_array($weights)) {
         $weights = JPA_DEFAULT_WEIGHTS;
+    } else {
+        $weights = array_replace(array_fill_keys(array_keys(JPA_DEFAULT_WEIGHTS), 0), $weights);
     }
     return [
         'target_volume' => intval($period['target_volume'] ?? 1),
+        'target_disability_vacancy_rate' => floatval($period['target_disability_vacancy_rate'] ?? 1),
         'complaint_penalty_factor' => floatval($period['complaint_penalty_factor'] ?? 25),
         'target_progression_rate' => floatval($period['target_progression_rate'] ?? 1),
         'target_placement_rate' => floatval($period['target_placement_rate'] ?? 1),
@@ -508,16 +523,18 @@ function jpa_recalculate_participant(mysqli $conn, int $participantId): ?array
     $reasonText = implode("\n", $eligibility['reasons']);
     $stmt = $conn->prepare("UPDATE job_portal_award_participants SET
         eligibility_status=?, eligibility_reasons=?,
-        score_integration=?, score_volume=?, score_consistency=?, score_completeness=?,
+        score_integration=?, score_volume=?, score_consistency=?, score_disability=?, score_completeness=?,
         score_kyb=?, score_duplicate=?, score_complaint=?, score_progression=?,
         score_placement=?, final_score=? WHERE id=?");
+    $scoreTypes = 'ss' . str_repeat('d', 11) . 'i';
     $stmt->bind_param(
-        'ssddddddddddi',
+        $scoreTypes,
         $eligibility['status'],
         $reasonText,
         $scores['integration'],
         $scores['volume'],
         $scores['consistency'],
+        $scores['disability'],
         $scores['completeness'],
         $scores['kyb'],
         $scores['duplicate'],
@@ -678,6 +695,7 @@ function jpa_score_fields(): array
         'score_integration' => 'Integrasi',
         'score_volume' => 'Volume',
         'score_consistency' => 'Konsistensi',
+        'score_disability' => 'Disabilitas',
         'score_completeness' => 'Kelengkapan',
         'score_kyb' => 'KYB',
         'score_duplicate' => 'Duplikasi',

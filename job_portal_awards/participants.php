@@ -18,7 +18,7 @@ function jpa_import_headers(): array
 {
     return [
         'partner_id','partner_name','integration_type','partnership_active','critical_violation_resolved','data_traceable',
-        'records_sent_unique','published_unique_count','active_months','complete_vacancy_count','employer_unique_count',
+        'records_sent_unique','published_unique_count','disability_published_unique_count','active_months','complete_vacancy_count','employer_unique_count',
         'employer_valid_legal_count','duplicate_vacancy_count','valid_complaint_count','severe_complaint_count',
         'applications_from_karirhub','progressed_candidate_count','hired_candidate_count',
     ];
@@ -40,7 +40,7 @@ function jpa_validate_participant_row(array $input, array $period): array
         }
     }
     $integerFields = [
-        'records_sent_unique', 'published_unique_count', 'active_months', 'complete_vacancy_count',
+        'records_sent_unique', 'published_unique_count', 'disability_published_unique_count', 'active_months', 'complete_vacancy_count',
         'employer_unique_count', 'employer_valid_legal_count', 'duplicate_vacancy_count',
         'valid_complaint_count', 'severe_complaint_count', 'applications_from_karirhub',
         'progressed_candidate_count', 'hired_candidate_count',
@@ -69,6 +69,7 @@ function jpa_validate_participant_row(array $input, array $period): array
         $errors[] = 'active_months melebihi jumlah bulan periode.';
     }
     $relationships = [
+        ['disability_published_unique_count', 'published_unique_count'],
         ['complete_vacancy_count', 'published_unique_count'],
         ['employer_valid_legal_count', 'employer_unique_count'],
         ['duplicate_vacancy_count', 'records_sent_unique'],
@@ -144,23 +145,24 @@ function jpa_upsert_participant(mysqli $conn, int $periodId, array $data, ?int $
 {
     $stmt = $conn->prepare("INSERT INTO job_portal_award_participants
         (period_id,partner_id,partner_name,integration_type,partnership_active,critical_violation_resolved,
-         data_traceable,records_sent_unique,published_unique_count,active_months,complete_vacancy_count,
+         data_traceable,records_sent_unique,published_unique_count,disability_published_unique_count,active_months,complete_vacancy_count,
          employer_unique_count,employer_valid_legal_count,duplicate_vacancy_count,valid_complaint_count,
          severe_complaint_count,applications_from_karirhub,progressed_candidate_count,hired_candidate_count,
          source_import_id,change_reason,created_by,updated_by)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ON DUPLICATE KEY UPDATE
          partner_name=VALUES(partner_name),integration_type=VALUES(integration_type),
          partnership_active=VALUES(partnership_active),critical_violation_resolved=VALUES(critical_violation_resolved),
          data_traceable=VALUES(data_traceable),records_sent_unique=VALUES(records_sent_unique),
-         published_unique_count=VALUES(published_unique_count),active_months=VALUES(active_months),
+         published_unique_count=VALUES(published_unique_count),
+         disability_published_unique_count=VALUES(disability_published_unique_count),active_months=VALUES(active_months),
          complete_vacancy_count=VALUES(complete_vacancy_count),employer_unique_count=VALUES(employer_unique_count),
          employer_valid_legal_count=VALUES(employer_valid_legal_count),duplicate_vacancy_count=VALUES(duplicate_vacancy_count),
          valid_complaint_count=VALUES(valid_complaint_count),severe_complaint_count=VALUES(severe_complaint_count),
          applications_from_karirhub=VALUES(applications_from_karirhub),
          progressed_candidate_count=VALUES(progressed_candidate_count),hired_candidate_count=VALUES(hired_candidate_count),
          source_import_id=VALUES(source_import_id),change_reason=VALUES(change_reason),updated_by=VALUES(updated_by)");
-    $types = 'isss' . str_repeat('i', 16) . 'sii';
+    $types = 'isss' . str_repeat('i', 17) . 'sii';
     $stmt->bind_param(
         $types,
         $periodId,
@@ -172,6 +174,7 @@ function jpa_upsert_participant(mysqli $conn, int $periodId, array $data, ?int $
         $data['data_traceable'],
         $data['records_sent_unique'],
         $data['published_unique_count'],
+        $data['disability_published_unique_count'],
         $data['active_months'],
         $data['complete_vacancy_count'],
         $data['employer_unique_count'],

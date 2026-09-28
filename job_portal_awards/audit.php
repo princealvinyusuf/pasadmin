@@ -35,10 +35,10 @@ if ($period) {
     }
     if (current_user_can('job_portal_award_export')) {
         $stmt = $conn->prepare("SELECT partner_id,partner_name,integration_type,eligibility_status,eligibility_reasons,
-            records_sent_unique,published_unique_count,active_months,complete_vacancy_count,employer_unique_count,
+            records_sent_unique,published_unique_count,disability_published_unique_count,active_months,complete_vacancy_count,employer_unique_count,
             employer_valid_legal_count,duplicate_vacancy_count,valid_complaint_count,severe_complaint_count,
             applications_from_karirhub,progressed_candidate_count,hired_candidate_count,
-            score_integration,score_volume,score_consistency,score_completeness,score_kyb,score_duplicate,
+            score_integration,score_volume,score_consistency,score_disability,score_completeness,score_kyb,score_duplicate,
             score_complaint,score_progression,score_placement,final_score,award_rank
             FROM job_portal_award_participants WHERE period_id=? ORDER BY COALESCE(award_rank,999999),partner_name");
         $stmt->bind_param('i', $period['id']);
@@ -111,6 +111,7 @@ document.getElementById('exportExcel').addEventListener('click', () => {
         'status' => $period['status'],
         'min_active_months' => $period['min_active_months'],
         'target_volume' => $period['target_volume'],
+        'target_disability_vacancy_rate' => $period['target_disability_vacancy_rate'],
         'mandatory_vacancy_fields' => $period['mandatory_vacancy_fields'],
         'complaint_penalty_factor' => $period['complaint_penalty_factor'],
         'target_progression_rate' => $period['target_progression_rate'],

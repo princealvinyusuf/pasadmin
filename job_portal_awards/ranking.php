@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $partnerName = (string)$row['partner_name'];
             $finalScore = floatval($row['final_score']);
             $scoreSnapshot = jpa_json(array_intersect_key($row, array_flip([
-                'score_integration','score_volume','score_consistency','score_completeness','score_kyb',
+                'score_integration','score_volume','score_consistency','score_disability','score_completeness','score_kyb',
                 'score_duplicate','score_complaint','score_progression','score_placement','final_score',
             ])));
             $insert->bind_param('iiissdssi', $periodId, $participantId, $rank, $partnerId, $partnerName, $finalScore, $scoreSnapshot, $configSnapshot, $userId);

@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $end = (string)($_POST['period_end'] ?? '');
         $minMonths = max(1, intval($_POST['min_active_months'] ?? 3));
         $targetVolume = max(1, intval($_POST['target_volume'] ?? 1));
+        $targetDisabilityRate = min(100, max(0.01, floatval($_POST['target_disability_vacancy_rate'] ?? 1)));
         $penalty = max(0, floatval($_POST['complaint_penalty_factor'] ?? 25));
         $progression = max(0.01, floatval($_POST['target_progression_rate'] ?? 1));
         $placement = max(0.01, floatval($_POST['target_placement_rate'] ?? 1));
@@ -49,14 +50,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn->begin_transaction();
             try {
                 $before = jpa_lock_period($conn, $periodId);
-                if (!$before || $before['status'] === 'finalized') {
-                    throw new RuntimeException('Periode final harus dibuka kembali sebelum parameternya dapat diubah.');
+                if (!$before || $before['status'] !== 'draft') {
+                    throw new RuntimeException('Parameter hanya dapat diubah sebelum periode dikunci.');
                 }
                 $stmt = $conn->prepare("UPDATE job_portal_award_periods SET
                     name=?,period_start=?,period_end=?,min_active_months=?,target_volume=?,
-                    mandatory_vacancy_fields=?,complaint_penalty_factor=?,target_progression_rate=?,
-                    target_placement_rate=?,impact_module_enabled=?,weights_json=? WHERE id=? AND status<>'finalized'");
-                $stmt->bind_param('sssiisdddisi', $name, $start, $end, $minMonths, $targetVolume, $fieldsJson, $penalty, $progression, $placement, $impactEnabled, $weightsJson, $periodId);
+                    target_disability_vacancy_rate=?,mandatory_vacancy_fields=?,complaint_penalty_factor=?,
+                    target_progression_rate=?,target_placement_rate=?,impact_module_enabled=?,weights_json=?
+                    WHERE id=? AND status='draft'");
+                $stmt->bind_param('sssiidsdddisi', $name, $start, $end, $minMonths, $targetVolume, $targetDisabilityRate, $fieldsJson, $penalty, $progression, $placement, $impactEnabled, $weightsJson, $periodId);
                 $stmt->execute();
                 $stmt->close();
                 $after = jpa_get_period($conn, $periodId);
@@ -69,11 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             $stmt = $conn->prepare("INSERT INTO job_portal_award_periods
-                (name,period_start,period_end,min_active_months,target_volume,mandatory_vacancy_fields,
+                (name,period_start,period_end,min_active_months,target_volume,target_disability_vacancy_rate,mandatory_vacancy_fields,
                  complaint_penalty_factor,target_progression_rate,target_placement_rate,impact_module_enabled,
                  weights_json,created_by)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
-            $stmt->bind_param('sssiisdddisi', $name, $start, $end, $minMonths, $targetVolume, $fieldsJson, $penalty, $progression, $placement, $impactEnabled, $weightsJson, $userId);
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+            $stmt->bind_param('sssiidsdddisi', $name, $start, $end, $minMonths, $targetVolume, $targetDisabilityRate, $fieldsJson, $penalty, $progression, $placement, $impactEnabled, $weightsJson, $userId);
             $stmt->execute();
             $periodId = intval($conn->insert_id);
             $stmt->close();
@@ -159,6 +161,7 @@ $parameterHelp = [
     'period_end' => ['Tanggal selesai', 'Tanggal terakhir yang termasuk dalam periode pengumpulan dan penilaian data.', 'period_end'],
     'min_active_months' => ['Minimum bulan aktif', 'Jumlah bulan minimum mitra harus aktif memasok data agar lolos gate kelayakan E2.', 'min_active_months'],
     'target_volume' => ['Target volume lowongan', 'Target jumlah lowongan unik tayang. Nilai peserta dibandingkan dengan target ini untuk menghitung skor Volume.', 'target_volume'],
+    'target_disability_vacancy_rate' => ['Target lowongan disabilitas (%)', 'Target proporsi lowongan tayang yang secara eksplisit terbuka bagi penyandang disabilitas. Target dikunci bersama parameter periode sebelum penilaian.', 'target_disability_vacancy_rate'],
     'complaint_penalty_factor' => ['Faktor penalti aduan', 'Besarnya pengurang skor untuk setiap tingkat aduan valid. Nilai lebih tinggi menghasilkan penalti lebih berat.', 'complaint_penalty_factor'],
     'target_progression_rate' => ['Target progres kandidat (%)', 'Persentase target pelamar Karirhub yang diharapkan maju ke tahap rekrutmen berikutnya.', 'target_progression_rate'],
     'target_placement_rate' => ['Target penempatan (%)', 'Persentase target pelamar Karirhub yang diharapkan diterima bekerja.', 'target_placement_rate'],
@@ -169,7 +172,7 @@ $parameterHelp = [
 
 jpa_render_header('Periode & Parameter', $period);
 ?>
-<?php jpa_render_page_header('Periode & Parameter Penilaian', 'Parameter dapat dikoreksi sampai periode difinalisasi; perubahan akan menghitung ulang nilai peserta.', $conn, $period, 'periods'); ?>
+<?php jpa_render_page_header('Periode & Parameter Penilaian', 'Parameter dapat dikoreksi selama periode masih draf dan dikunci sebelum penilaian.', $conn, $period, 'periods'); ?>
 
 <div class="row g-4">
     <div class="col-lg-8">
@@ -183,7 +186,7 @@ jpa_render_header('Periode & Parameter', $period);
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(jpa_csrf_token()); ?>">
                     <input type="hidden" name="action" value="save">
                     <input type="hidden" name="period_id" value="<?php echo intval($period['id'] ?? 0); ?>">
-                    <?php $editable = !$period || $period['status'] !== 'finalized'; ?>
+                    <?php $editable = !$period || $period['status'] === 'draft'; ?>
                     <fieldset <?php echo $editable ? '' : 'disabled'; ?>>
                         <div class="mb-3">
                             <label class="form-label" for="periodName"><?php echo jpa_help_label_html(...$parameterHelp['name']); ?></label>
@@ -194,6 +197,7 @@ jpa_render_header('Periode & Parameter', $period);
                             <div class="col-md-6"><label class="form-label" for="periodEnd"><?php echo jpa_help_label_html(...$parameterHelp['period_end']); ?></label><input type="date" class="form-control" id="periodEnd" name="period_end" required value="<?php echo htmlspecialchars($period['period_end'] ?? ''); ?>"></div>
                             <div class="col-md-6"><label class="form-label" for="minActiveMonths"><?php echo jpa_help_label_html(...$parameterHelp['min_active_months']); ?></label><input type="number" min="1" class="form-control" id="minActiveMonths" name="min_active_months" value="<?php echo intval($period['min_active_months'] ?? 3); ?>"><div class="form-text">Digunakan pada gate kelayakan E2.</div></div>
                             <div class="col-md-6"><label class="form-label" for="targetVolume"><?php echo jpa_help_label_html(...$parameterHelp['target_volume']); ?></label><input type="number" min="1" class="form-control" id="targetVolume" name="target_volume" value="<?php echo intval($period['target_volume'] ?? 1); ?>"><div class="form-text">Skor volume = lowongan unik tayang ÷ target volume.</div></div>
+                            <div class="col-md-6"><label class="form-label" for="targetDisabilityRate"><?php echo jpa_help_label_html(...$parameterHelp['target_disability_vacancy_rate']); ?></label><div class="input-group"><input type="number" min="0.01" max="100" step="0.01" class="form-control" id="targetDisabilityRate" name="target_disability_vacancy_rate" value="<?php echo htmlspecialchars($period['target_disability_vacancy_rate'] ?? '1'); ?>"><span class="input-group-text">%</span></div><div class="form-text">Dikunci bersama periode sebelum penilaian.</div></div>
                             <div class="col-md-4"><label class="form-label" for="complaintPenalty"><?php echo jpa_help_label_html(...$parameterHelp['complaint_penalty_factor']); ?></label><input type="number" min="0" step="0.01" class="form-control" id="complaintPenalty" name="complaint_penalty_factor" value="<?php echo htmlspecialchars($period['complaint_penalty_factor'] ?? '25'); ?>"><div class="form-text">Nilai standar: 25.</div></div>
                             <div class="col-md-4"><label class="form-label" for="progressionTarget"><?php echo jpa_help_label_html(...$parameterHelp['target_progression_rate']); ?></label><div class="input-group"><input type="number" min="0.01" step="0.01" class="form-control" id="progressionTarget" name="target_progression_rate" value="<?php echo htmlspecialchars($period['target_progression_rate'] ?? '1'); ?>"><span class="input-group-text">%</span></div></div>
                             <div class="col-md-4"><label class="form-label" for="placementTarget"><?php echo jpa_help_label_html(...$parameterHelp['target_placement_rate']); ?></label><div class="input-group"><input type="number" min="0.01" step="0.01" class="form-control" id="placementTarget" name="target_placement_rate" value="<?php echo htmlspecialchars($period['target_placement_rate'] ?? '1'); ?>"><span class="input-group-text">%</span></div></div>
