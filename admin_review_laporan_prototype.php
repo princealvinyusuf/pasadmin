@@ -258,7 +258,7 @@ $showCompanyQueueTab = false;
 
         <ul class="nav nav-tabs arp-tabs mb-3" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#queueLoker" type="button" role="tab">Queue Laporan Loker</button>
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#queueLoker" type="button" role="tab">Antrian Laporan Loker</button>
             </li>
             <li class="nav-item<?php echo $showCompanyQueueTab ? '' : ' d-none'; ?>" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#queuePerusahaan" type="button" role="tab">Queue Laporan Perusahaan</button>
