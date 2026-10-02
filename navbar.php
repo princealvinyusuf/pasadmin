@@ -402,7 +402,7 @@
                         <?php if ($canAdminReviewLaporanPrototype || $canKhProtoLaporLoker || $canKhProtoEmployerDetailLowongan || $canKhProtoEmployerProfilPemberiKerjaMenu || $canKhProtoMonitoringLaporan): ?>
                         <li><h6 class="dropdown-header">Lapor Loker Prototype</h6></li>
                         <?php endif; ?>
-                        <?php if ($canAdminReviewLaporanPrototype): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>admin_review_laporan_prototype"><i class="bi bi-clipboard-data me-1"></i>Laporan Lowongan & Perusahaan</a></li><?php endif; ?>
+                        <?php if ($canAdminReviewLaporanPrototype): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>admin_review_laporan_prototype"><i class="bi bi-clipboard-data me-1"></i>Laporan Lowongan Kerja</a></li><?php endif; ?>
                         <?php if ($canKhProtoLaporLoker): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_lapor_loker"><i class="bi bi-flag me-1"></i>Lapor Loker Prototype</a></li><?php endif; ?>
                         <?php if ($canKhProtoEmployerDetailLowongan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_employer_detail_lowongan"><i class="bi bi-briefcase-fill me-1"></i>Dashboard Employer - Detail Lowongan</a></li><?php endif; ?>
                         <?php if ($canKhProtoEmployerProfilPemberiKerjaMenu): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_employer_profil_pemberi_kerja"><i class="bi bi-building-check me-1"></i>Dashboard Employer - Profil Pemberi Kerja</a></li><?php endif; ?>
