@@ -106,7 +106,6 @@ $vacancyReports = [
         'sla' => 'Approaching',
         'status' => 'PENDING_REVIEW',
         'assigned_to' => '-',
-        'source' => 'Karirhub',
     ],
     [
         'report_id' => 'VRP-2026-304477',
@@ -120,7 +119,6 @@ $vacancyReports = [
         'sla' => 'On Time',
         'status' => 'IN_REVIEW',
         'assigned_to' => 'admin.kabkota.tng',
-        'source' => 'JOSS',
     ],
     [
         'report_id' => 'VRP-2026-304220',
@@ -134,7 +132,6 @@ $vacancyReports = [
         'sla' => 'Overdue',
         'status' => 'ESCALATED',
         'assigned_to' => 'admin.pusat.layanan',
-        'source' => 'Karirhub',
     ],
 ];
 ?>
@@ -284,7 +281,6 @@ $vacancyReports = [
                                 <th>SLA</th>
                                 <th>Status</th>
                                 <th>Assigned To</th>
-                                <th>Source</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -320,7 +316,6 @@ $vacancyReports = [
                                     <span class="arp-chip <?php echo h(arp_status_chip_class($statusLabel)); ?> js-status-chip"><?php echo h($statusLabel); ?></span>
                                 </td>
                                 <td class="js-assigned-cell"><?php echo h($row['assigned_to']); ?></td>
-                                <td><?php echo h($row['source']); ?></td>
                                 <td class="arp-actions">
                                     <a class="btn btn-sm btn-outline-primary" href="admin_review_laporan_case_detail_prototype?type=vacancy&report_id=<?php echo rawurlencode($row['report_id']); ?>">Detail</a>
                                     <button
@@ -335,7 +330,7 @@ $vacancyReports = [
                             </tr>
                         <?php endforeach; ?>
                             <tr class="js-queue-empty d-none">
-                                <td colspan="13" class="arp-empty">Tidak ada laporan pada tab ini.</td>
+                                <td colspan="12" class="arp-empty">Tidak ada laporan pada tab ini.</td>
                             </tr>
                         </tbody>
                     </table>
