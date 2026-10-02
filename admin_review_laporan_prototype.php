@@ -193,9 +193,8 @@ $showCompanyQueueTab = false;
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
             <div>
                 <div class="arp-title">Laporan Lowongan Kerja</div>
-                <div class="arp-sub">UI version untuk proses pemeriksaan laporan perusahaan dan laporan loker (referensi FSD Lapor Perusahaan + Lapor Loker).</div>
+                <div class="arp-sub">UI version untuk proses pemeriksaan laporan lowongan kerja (referensi FSD Lapor Loker).</div>
             </div>
-            <button type="button" class="btn btn-primary btn-sm"><i class="bi bi-download me-1"></i>Export Prototype</button>
         </div>
 
         <div class="arp-note mb-3">
