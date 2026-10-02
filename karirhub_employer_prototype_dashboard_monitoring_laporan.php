@@ -59,22 +59,11 @@ $summary = [
     ],
 ];
 
-$reportTypes = [
-    ['label' => 'Laporan Lowongan', 'value' => 35, 'percent' => 59, 'color' => '#3276c8'],
-    ['label' => 'Laporan Perusahaan', 'value' => 24, 'percent' => 41, 'color' => '#54a17a'],
-];
-
 $reasons = [
     ['label' => 'Meminta biaya / pembayaran', 'value' => 22, 'percent' => 100],
     ['label' => 'Informasi menyesatkan', 'value' => 18, 'percent' => 82],
     ['label' => 'Data pribadi / kredensial', 'value' => 10, 'percent' => 45],
     ['label' => 'Praktik diskriminatif', 'value' => 9, 'percent' => 41],
-];
-
-$sla = [
-    ['label' => 'On Time', 'value' => 38, 'class' => 'ontime'],
-    ['label' => 'Approaching', 'value' => 7, 'class' => 'approaching'],
-    ['label' => 'Overdue', 'value' => 5, 'class' => 'overdue'],
 ];
 
 $regions = [
@@ -196,22 +185,11 @@ $recentReports = [
         .dml-kpi-icon.green { color: #247546; background: #e9f8ef; }
         .dml-panel { height: 100%; padding: 18px; border: 1px solid #e2eaf3; border-radius: 12px; background: #fff; }
         .dml-panel-title { margin: 0 0 17px; color: #29445f; font-size: 16px; font-weight: 700; }
-        .dml-type-row + .dml-type-row { margin-top: 18px; }
-        .dml-row-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 7px; font-size: 13px; }
-        .dml-row-label { color: #405b75; font-weight: 600; }
-        .dml-row-value { color: #1f3550; font-weight: 700; }
         .dml-track { height: 9px; overflow: hidden; border-radius: 999px; background: #edf2f7; }
         .dml-fill { height: 100%; border-radius: inherit; }
         .dml-reason-row { display: grid; grid-template-columns: minmax(150px, 1.5fr) minmax(100px, 1fr) 30px; align-items: center; gap: 10px; margin-bottom: 13px; }
         .dml-reason-label { color: #4b6279; font-size: 12px; }
         .dml-reason-value { color: #2c455e; font-size: 12px; font-weight: 700; text-align: right; }
-        .dml-sla-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .dml-sla-item { padding: 13px 9px; border-radius: 10px; text-align: center; }
-        .dml-sla-item.ontime { color: #247546; background: #eaf8ef; }
-        .dml-sla-item.approaching { color: #8f6319; background: #fff4dd; }
-        .dml-sla-item.overdue { color: #9d2831; background: #ffe7e9; }
-        .dml-sla-value { display: block; font-size: 23px; font-weight: 700; }
-        .dml-sla-label { display: block; margin-top: 3px; font-size: 11px; font-weight: 600; }
         .dml-region-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #edf1f5; color: #455f78; font-size: 13px; }
         .dml-region-row:last-child { border-bottom: 0; }
         .dml-region-value { min-width: 28px; padding: 3px 8px; border-radius: 999px; background: #eef4fa; color: #315b82; font-weight: 700; text-align: center; }
@@ -282,23 +260,7 @@ $recentReports = [
             </div>
 
             <div class="row g-3 mb-3">
-                <div class="col-lg-4">
-                    <section class="dml-panel">
-                        <h2 class="dml-panel-title">Laporan Berdasarkan Jenis</h2>
-                        <?php foreach ($reportTypes as $item): ?>
-                            <div class="dml-type-row">
-                                <div class="dml-row-head">
-                                    <span class="dml-row-label"><?php echo h($item['label']); ?></span>
-                                    <span class="dml-row-value"><?php echo (int)$item['value']; ?> (<?php echo (int)$item['percent']; ?>%)</span>
-                                </div>
-                                <div class="dml-track">
-                                    <div class="dml-fill" style="width: <?php echo (int)$item['percent']; ?>%; background: <?php echo h($item['color']); ?>;"></div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </section>
-                </div>
-                <div class="col-lg-5">
+                <div class="col-12">
                     <section class="dml-panel">
                         <h2 class="dml-panel-title">Alasan Pelaporan Terbanyak</h2>
                         <?php foreach ($reasons as $item): ?>
@@ -310,19 +272,6 @@ $recentReports = [
                                 <span class="dml-reason-value"><?php echo (int)$item['value']; ?></span>
                             </div>
                         <?php endforeach; ?>
-                    </section>
-                </div>
-                <div class="col-lg-3">
-                    <section class="dml-panel">
-                        <h2 class="dml-panel-title">Kondisi SLA Aktif</h2>
-                        <div class="dml-sla-grid">
-                            <?php foreach ($sla as $item): ?>
-                                <div class="dml-sla-item <?php echo h($item['class']); ?>">
-                                    <span class="dml-sla-value"><?php echo (int)$item['value']; ?></span>
-                                    <span class="dml-sla-label"><?php echo h($item['label']); ?></span>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
                     </section>
                 </div>
             </div>
@@ -346,7 +295,6 @@ $recentReports = [
                                 <thead>
                                     <tr>
                                         <th>Report ID</th>
-                                        <th>Jenis</th>
                                         <th>Objek Laporan</th>
                                         <th>Wilayah</th>
                                         <th>Reason</th>
@@ -365,7 +313,6 @@ $recentReports = [
                                             data-sla="<?php echo h($report['sla']); ?>"
                                         >
                                             <td><?php echo h($report['id']); ?></td>
-                                            <td><span class="dml-chip <?php echo strtolower(h($report['type'])); ?>"><?php echo h($report['type']); ?></span></td>
                                             <td>
                                                 <strong><?php echo h($report['subject']); ?></strong>
                                                 <?php if ($report['type'] === 'Lowongan'): ?>
@@ -384,7 +331,7 @@ $recentReports = [
                                         </tr>
                                     <?php endforeach; ?>
                                     <tr id="laporanTerbaruEmpty" class="d-none">
-                                        <td colspan="10" class="dml-empty">Tidak ada laporan pada tab ini.</td>
+                                        <td colspan="9" class="dml-empty">Tidak ada laporan pada tab ini.</td>
                                     </tr>
                                 </tbody>
                             </table>
