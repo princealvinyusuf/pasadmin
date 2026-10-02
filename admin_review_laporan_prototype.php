@@ -134,6 +134,8 @@ $vacancyReports = [
         'assigned_to' => 'admin.pusat.layanan',
     ],
 ];
+
+$showCompanyQueueTab = false;
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -258,7 +260,7 @@ $vacancyReports = [
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#queueLoker" type="button" role="tab">Queue Laporan Loker</button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li class="nav-item<?php echo $showCompanyQueueTab ? '' : ' d-none'; ?>" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#queuePerusahaan" type="button" role="tab">Queue Laporan Perusahaan</button>
             </li>
         </ul>
@@ -337,7 +339,7 @@ $vacancyReports = [
                 </div>
             </div>
 
-            <div class="tab-pane fade" id="queuePerusahaan" role="tabpanel">
+            <div class="tab-pane fade<?php echo $showCompanyQueueTab ? '' : ' d-none'; ?>" id="queuePerusahaan" role="tabpanel">
                 <?php arp_render_queue_filter_tabs(); ?>
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover arp-table align-middle">
