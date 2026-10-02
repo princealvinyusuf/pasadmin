@@ -13,6 +13,9 @@ function h(string $value): string
 {
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
+
+// Keep company profile card code in place, but hide it in UI.
+$showCompanyProfileCard = false;
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -135,6 +138,7 @@ function h(string $value): string
                     <div class="d-grid mb-3">
                         <button type="button" class="btn btn-primary ll-apply-btn">Lamar Sekarang</button>
                     </div>
+                    <?php if ($showCompanyProfileCard): ?>
                     <aside class="ll-company-card">
                         <div class="ll-company-name">PT Finaccel Finance Indonesia</div>
                         <div class="ll-company-address">
@@ -146,6 +150,7 @@ function h(string $value): string
                         </a>
                         <div class="small text-muted mt-3">Lowongan dari Karirhub</div>
                     </aside>
+                    <?php endif; ?>
                 </div>
             </div>
 
