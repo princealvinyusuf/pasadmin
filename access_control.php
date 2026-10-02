@@ -187,7 +187,7 @@ register_menu_permission(
 register_menu_permission(
 	$conn,
 	'karirhub_employer_prototype_monitoring_laporan_view',
-	'Karirhub Employer Prototype: View Dashboard Monitoring Laporan Lowongan & Perusahaan',
+	'Karirhub Employer Prototype: View Dashboard Monitoring Laporan Lowongan Kerja',
 	'Karirhub Employer Prototype'
 );
 register_menu_permission(

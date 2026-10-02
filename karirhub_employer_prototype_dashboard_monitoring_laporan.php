@@ -160,7 +160,7 @@ $recentReports = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Monitoring Laporan Lowongan &amp; Perusahaan</title>
+    <title>Dashboard Monitoring Laporan Lowongan Kerja</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <?php kh_proto_render_styles(); ?>
@@ -226,7 +226,7 @@ $recentReports = [
         <div class="dml-shell">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
                 <div>
-                    <h1 class="dml-title">Dashboard Monitoring Laporan Lowongan &amp; Perusahaan</h1>
+                    <h1 class="dml-title">Dashboard Monitoring Laporan Lowongan Kerja</h1>
                     <p class="dml-subtitle">Ringkasan pemantauan laporan, SLA, jenis aduan, dan wilayah pada dataset prototype.</p>
                 </div>
                 <select class="form-select form-select-sm dml-period" aria-label="Periode monitoring">
