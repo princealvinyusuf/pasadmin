@@ -281,6 +281,7 @@ $vacancyCases = [
                 'severity' => 'High',
                 'status' => 'Dalam Verifikasi',
                 'reporter_ref' => 'usr-73100 (rina@mail.com)',
+                'application_status' => 'Wawancara',
                 'is_current' => true,
             ],
             [
@@ -290,6 +291,7 @@ $vacancyCases = [
                 'severity' => 'High',
                 'status' => 'Dalam Verifikasi',
                 'reporter_ref' => 'usr-74211 (budi@mail.com)',
+                'application_status' => 'Sedang Dipelajari',
                 'is_current' => false,
             ],
             [
@@ -299,6 +301,7 @@ $vacancyCases = [
                 'severity' => 'Medium',
                 'status' => 'Dalam Verifikasi',
                 'reporter_ref' => 'usr-70933 (sari@mail.com)',
+                'application_status' => 'Lamaran Masuk',
                 'is_current' => false,
             ],
             [
@@ -308,6 +311,7 @@ $vacancyCases = [
                 'severity' => 'High',
                 'status' => 'Dalam Verifikasi',
                 'reporter_ref' => 'usr-68820 (andi@mail.com)',
+                'application_status' => 'Ditolak',
                 'is_current' => false,
             ],
         ],
@@ -377,6 +381,7 @@ $vacancyCases = [
                 'severity' => 'Medium',
                 'status' => 'Dalam Verifikasi',
                 'reporter_ref' => 'usr-65520 (anna@mail.com)',
+                'application_status' => 'Diterima',
                 'is_current' => true,
             ],
             [
@@ -386,6 +391,7 @@ $vacancyCases = [
                 'severity' => 'Medium',
                 'status' => 'Dalam Verifikasi',
                 'reporter_ref' => 'usr-64110 (dewi@mail.com)',
+                'application_status' => 'Lamaran Masuk',
                 'is_current' => false,
             ],
         ],
@@ -675,6 +681,9 @@ if ($case === null) {
                                         <th>Severity</th>
                                         <th>Status</th>
                                         <th>Pelapor</th>
+                                        <?php if (!$isCompanyCase): ?>
+                                            <th>Status Lamaran</th>
+                                        <?php endif; ?>
                                         <th>Aksi</th>
                                     </tr>
                                 </thead>
@@ -692,6 +701,9 @@ if ($case === null) {
                                             <td><?php echo h($report['severity']); ?></td>
                                             <td><?php echo h($report['status']); ?></td>
                                             <td><?php echo h($report['reporter_ref']); ?></td>
+                                            <?php if (!$isCompanyCase): ?>
+                                                <td><?php echo h($report['application_status'] ?? '-'); ?></td>
+                                            <?php endif; ?>
                                             <td>
                                                 <a
                                                     class="btn btn-sm btn-outline-primary"
