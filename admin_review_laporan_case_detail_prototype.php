@@ -13,6 +13,17 @@ function h(string $value): string
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
+function seed_vacancy_case(array $base, array $fields): array
+{
+    $case = array_replace($base, $fields);
+    $currentId = $case['report_id'];
+    foreach ($case['same_vacancy_reports'] as $index => $report) {
+        $case['same_vacancy_reports'][$index]['is_current'] = $report['report_id'] === $currentId;
+    }
+
+    return $case;
+}
+
 $type = strtolower(trim((string)($_GET['type'] ?? 'vacancy')));
 $reportId = trim((string)($_GET['report_id'] ?? ''));
 
@@ -407,6 +418,71 @@ $vacancyCases = [
         ],
     ],
 ];
+
+$vacancyCases['VRP-2026-304498'] = seed_vacancy_case($vacancyCases['VRP-2026-304511'], [
+    'report_id' => 'VRP-2026-304498',
+    'severity' => 'High',
+    'sla' => 'On Time',
+    'submit_at' => '12 Aug 2026 18:05',
+    'reason' => 'Meminta biaya/pembayaran',
+    'comment' => 'Status lamaran masih Sedang Dipelajari, tetapi perekrut meminta biaya administrasi agar lamaran diproses lebih cepat.',
+    'reporter_ref' => 'usr-74211 (budi@mail.com)',
+    'phone' => '0813-4421-1188',
+    'evidence' => 'chat_biaya_admin.png',
+    'employer_clarification' => [
+        'response' => 'Permintaan biaya tersebut tidak berasal dari akun resmi kami. Proses lamaran Budi masih dalam tahap penelaahan dan tidak ada biaya yang dipungut.',
+        'document_name' => 'klarifikasi_budi.pdf',
+        'document_content' => "Klarifikasi Pemberi Kerja\nReport: VRP-2026-304498\n\nPermintaan biaya tersebut tidak berasal dari akun resmi kami. Proses lamaran Budi masih dalam tahap penelaahan dan tidak ada biaya yang dipungut.\n",
+    ],
+]);
+
+$vacancyCases['VRP-2026-304450'] = seed_vacancy_case($vacancyCases['VRP-2026-304511'], [
+    'report_id' => 'VRP-2026-304450',
+    'severity' => 'Medium',
+    'sla' => 'On Time',
+    'submit_at' => '11 Aug 2026 14:22',
+    'reason' => 'Mencurigakan / informasi menyesatkan',
+    'comment' => 'Lamaran baru berstatus Lamaran Masuk. Gaji dan lokasi yang disampaikan perekrut berbeda dengan lowongan yang tayang.',
+    'reporter_ref' => 'usr-70933 (sari@mail.com)',
+    'phone' => '0812-7093-3344',
+    'evidence' => 'screenshot_lowongan.png, chat_lokasi.jpg',
+    'employer_clarification' => [
+        'response' => 'Informasi gaji dan lokasi pada lowongan yang tayang adalah data resmi. Kami tidak mengirim penawaran berbeda kepada pelamar pada tahap Lamaran Masuk.',
+        'document_name' => 'klarifikasi_sari.pdf',
+        'document_content' => "Klarifikasi Pemberi Kerja\nReport: VRP-2026-304450\n\nInformasi gaji dan lokasi pada lowongan yang tayang adalah data resmi. Kami tidak mengirim penawaran berbeda kepada pelamar pada tahap Lamaran Masuk.\n",
+    ],
+]);
+
+$vacancyCases['VRP-2026-304401'] = seed_vacancy_case($vacancyCases['VRP-2026-304511'], [
+    'report_id' => 'VRP-2026-304401',
+    'severity' => 'High',
+    'sla' => 'On Time',
+    'submit_at' => '10 Aug 2026 09:48',
+    'reason' => 'Meminta biaya/pembayaran',
+    'comment' => 'Lamaran sudah Ditolak, tetapi pelapor masih diminta membayar biaya pelatihan agar bisa dipertimbangkan ulang.',
+    'reporter_ref' => 'usr-68820 (andi@mail.com)',
+    'phone' => '0817-6882-0901',
+    'evidence' => 'chat_penolakan.jpg, invoice_pelatihan.pdf',
+    'employer_clarification' => [
+        'response' => 'Lamaran Andi memang berstatus Ditolak. Kami tidak pernah menawarkan pertimbangan ulang dengan biaya pelatihan.',
+        'document_name' => 'klarifikasi_andi.pdf',
+        'document_content' => "Klarifikasi Pemberi Kerja\nReport: VRP-2026-304401\n\nLamaran Andi memang berstatus Ditolak. Kami tidak pernah menawarkan pertimbangan ulang dengan biaya pelatihan.\n",
+    ],
+]);
+
+$vacancyCases['VRP-2026-304410'] = seed_vacancy_case($vacancyCases['VRP-2026-304477'], [
+    'report_id' => 'VRP-2026-304410',
+    'submit_at' => '11 Aug 2026 13:05',
+    'comment' => 'Status lamaran masih Lamaran Masuk, tetapi isi lowongan yang diterima pelamar tidak sama dengan iklan Kasir.',
+    'reporter_ref' => 'usr-64110 (dewi@mail.com)',
+    'phone' => '0816-6411-1305',
+    'evidence' => 'perbandingan_iklan.png',
+    'employer_clarification' => [
+        'response' => 'Iklan Kasir yang tayang sudah sesuai. Pesan yang diterima pelamar bukan dari kanal rekrutmen resmi kami.',
+        'document_name' => 'klarifikasi_dewi.pdf',
+        'document_content' => "Klarifikasi Pemberi Kerja\nReport: VRP-2026-304410\n\nIklan Kasir yang tayang sudah sesuai. Pesan yang diterima pelamar bukan dari kanal rekrutmen resmi kami.\n",
+    ],
+]);
 
 $dataset = $type === 'company' ? $companyCases : $vacancyCases;
 $case = $dataset[$reportId] ?? null;
