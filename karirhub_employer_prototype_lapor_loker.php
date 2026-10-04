@@ -222,7 +222,7 @@ $showCompanyProfileCard = false;
                                 <div class="mb-3">
                                     <label class="ll-form-label" for="reportEvidence">Tambahkan bukti <span class="ll-required">*</span></label>
                                     <input id="reportEvidence" type="file" class="form-control" accept=".pdf,image/*">
-                                    <div class="ll-form-note">Tipe file contoh: PDF, JPG, PNG.</div>
+                                    <div class="ll-form-note">Tipe file contoh: PDF, JPG, PNG. Maksimum ukuran file 2MB.</div>
                                     <div id="vacancyEvidenceError" class="ll-error-text">Tambahkan bukti terlebih dahulu.</div>
                                 </div>
                                 <div class="form-check">
