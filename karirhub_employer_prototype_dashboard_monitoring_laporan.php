@@ -288,15 +288,6 @@ $recentReports = [
                                             <input class="form-control form-control-sm" id="filterKeyword" type="search" placeholder="Report ID, objek laporan, atau perusahaan">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label dml-filter-label" for="filterType">Objek Laporan</label>
-                                            <select class="form-select form-select-sm" id="filterType">
-                                                <option value="">Semua objek</option>
-                                                <?php foreach (array_unique(array_column($recentReports, 'type')) as $value): ?>
-                                                    <option value="<?php echo h($value); ?>"><?php echo h($value); ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-6">
                                             <label class="form-label dml-filter-label" for="filterStatus">Status</label>
                                             <select class="form-select form-select-sm" id="filterStatus">
                                                 <option value="">Semua status</option>
@@ -384,7 +375,6 @@ $recentReports = [
                                     <?php foreach ($recentReports as $report): ?>
                                         <tr
                                             class="js-report-row"
-                                            data-type="<?php echo h($report['type']); ?>"
                                             data-status="<?php echo h($report['status']); ?>"
                                             data-severity="<?php echo h($report['severity']); ?>"
                                             data-sla="<?php echo h($report['sla']); ?>"
@@ -447,7 +437,6 @@ $recentReports = [
         const filterButton = document.getElementById('reportFilterButton');
         const keywordField = document.getElementById('filterKeyword');
         const filterFields = {
-            type: document.getElementById('filterType'),
             status: document.getElementById('filterStatus'),
             severity: document.getElementById('filterSeverity'),
             sla: document.getElementById('filterSla'),
