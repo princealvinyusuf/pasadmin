@@ -37,20 +37,6 @@ $summary = [
         'tooltip' => 'Laporan yang sudah diambil (Ambil Kasus) dan sedang diperiksa admin.',
     ],
     [
-        'label' => 'Approaching SLA',
-        'value' => 7,
-        'icon' => 'bi-clock-history',
-        'tone' => 'amber',
-        'tooltip' => 'Laporan yang mendekati batas waktu penanganan (SLA).',
-    ],
-    [
-        'label' => 'Overdue',
-        'value' => 5,
-        'icon' => 'bi-exclamation-triangle',
-        'tone' => 'red',
-        'tooltip' => 'Laporan yang sudah melewati batas waktu penanganan (SLA).',
-    ],
-    [
         'label' => 'Selesai',
         'value' => 9,
         'icon' => 'bi-check-circle',
@@ -251,6 +237,7 @@ $recentReports = [
                                     <?php echo h($item['label']); ?>
                                     <i class="bi bi-info-circle dml-kpi-hint" aria-hidden="true"></i>
                                 </span>
+                                <span class="dml-kpi-icon <?php echo h($item['tone']); ?>"><i class="bi <?php echo h($item['icon']); ?>"></i></span>
                             </div>
                             <div class="dml-kpi-value"><?php echo (int)$item['value']; ?></div>
                         </div>
