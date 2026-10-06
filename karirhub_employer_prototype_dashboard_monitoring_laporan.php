@@ -20,7 +20,7 @@ $summary = [
         'value' => 59,
         'icon' => 'bi-flag',
         'tone' => 'blue',
-        'tooltip' => 'Jumlah seluruh laporan lowongan dan perusahaan pada periode yang dipilih.',
+        'tooltip' => 'Jumlah seluruh laporan lowongan pada periode yang dipilih (Menunggu Verifikasi, Dalam Verifikasi, Selesai)',
     ],
     [
         'label' => 'Menunggu Verifikasi',
