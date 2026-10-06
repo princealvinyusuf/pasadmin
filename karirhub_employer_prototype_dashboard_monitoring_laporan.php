@@ -27,7 +27,7 @@ $summary = [
         'value' => 46,
         'icon' => 'bi-people',
         'tone' => 'blue',
-        'tooltip' => 'Jumlah pelapor unik pada periode yang dipilih.',
+        'tooltip' => 'Jumlah pelapor pada periode yang dipilih',
     ],
     [
         'label' => 'Menunggu Verifikasi',
