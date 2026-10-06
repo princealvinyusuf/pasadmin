@@ -23,6 +23,13 @@ $summary = [
         'tooltip' => 'Jumlah seluruh laporan lowongan pada periode yang dipilih (Menunggu Verifikasi, Dalam Verifikasi, Selesai)',
     ],
     [
+        'label' => 'Jumlah Pelapor',
+        'value' => 46,
+        'icon' => 'bi-people',
+        'tone' => 'blue',
+        'tooltip' => 'Jumlah pelapor unik pada periode yang dipilih.',
+    ],
+    [
         'label' => 'Menunggu Verifikasi',
         'value' => 32,
         'icon' => 'bi-hourglass-split',
