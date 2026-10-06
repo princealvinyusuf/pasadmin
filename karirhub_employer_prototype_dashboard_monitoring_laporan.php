@@ -46,11 +46,11 @@ $summary = [
 ];
 
 $reasons = [
-    ['label' => 'Meminta biaya / pembayaran', 'value' => 22, 'percent' => 100],
-    ['label' => 'Informasi menyesatkan', 'value' => 18, 'percent' => 82],
-    ['label' => 'Data pribadi / kredensial', 'value' => 10, 'percent' => 45],
-    ['label' => 'Praktik diskriminatif', 'value' => 9, 'percent' => 41],
-    ['label' => 'Konten lowongan tidak relevan', 'value' => 7, 'percent' => 32],
+    ['label' => 'Penipuan', 'value' => 22, 'percent' => 100],
+    ['label' => 'Lowongan fiktif', 'value' => 18, 'percent' => 82],
+    ['label' => 'Mencurigakan / informasi menyesatkan / Akun palsu', 'value' => 10, 'percent' => 45],
+    ['label' => 'Meminta biaya / pembayaran / Pemerasan', 'value' => 9, 'percent' => 41],
+    ['label' => 'Diskriminasi / persyaratan tidak patut', 'value' => 7, 'percent' => 32],
 ];
 
 $regions = [
