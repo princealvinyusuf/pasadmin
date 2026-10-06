@@ -267,7 +267,7 @@ $recentReports = [
                 <div class="col-xl-9">
                     <section class="dml-panel">
                         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                            <h2 class="dml-panel-title mb-0">Laporan Terbaru</h2>
+                            <h2 class="dml-panel-title mb-0">Daftar Laporan</h2>
                             <a class="btn btn-sm btn-outline-primary" href="admin_review_laporan_prototype">Lihat Semua Laporan</a>
                         </div>
                         <div class="dml-tabs" role="tablist" aria-label="Filter laporan terbaru">
