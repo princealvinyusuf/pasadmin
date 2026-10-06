@@ -50,6 +50,7 @@ $reasons = [
     ['label' => 'Informasi menyesatkan', 'value' => 18, 'percent' => 82],
     ['label' => 'Data pribadi / kredensial', 'value' => 10, 'percent' => 45],
     ['label' => 'Praktik diskriminatif', 'value' => 9, 'percent' => 41],
+    ['label' => 'Konten lowongan tidak relevan', 'value' => 7, 'percent' => 32],
 ];
 
 $regions = [
