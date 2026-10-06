@@ -196,6 +196,8 @@ $recentReports = [
         .dml-tab:hover { color: #0a8f8a; }
         .dml-tab.active { color: #0a8f8a; border-bottom-color: #0a8f8a; }
         .dml-tab:focus { outline: none; }
+        .dml-filter-menu { width: min(720px, calc(100vw - 32px)); padding: 16px; }
+        .dml-filter-label { color: #405b75; font-size: 12px; font-weight: 600; }
         .dml-empty { color: #75879a; text-align: center; padding: 22px 12px; }
         @media (max-width: 767px) {
             .dml-shell { padding: 16px; }
@@ -268,7 +270,93 @@ $recentReports = [
                     <section class="dml-panel">
                         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                             <h2 class="dml-panel-title mb-0">Daftar Laporan</h2>
-                            <a class="btn btn-sm btn-outline-primary" href="admin_review_laporan_prototype">Lihat Semua Laporan</a>
+                            <div class="dropdown">
+                                <button
+                                    class="btn btn-sm btn-outline-primary dropdown-toggle"
+                                    type="button"
+                                    id="reportFilterButton"
+                                    data-bs-toggle="dropdown"
+                                    data-bs-auto-close="outside"
+                                    aria-expanded="false"
+                                >
+                                    <i class="bi bi-funnel me-1"></i>Filter
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end dml-filter-menu" aria-labelledby="reportFilterButton">
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <label class="form-label dml-filter-label" for="filterKeyword">Cari Laporan</label>
+                                            <input class="form-control form-control-sm" id="filterKeyword" type="search" placeholder="Report ID, objek laporan, atau perusahaan">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label dml-filter-label" for="filterType">Objek Laporan</label>
+                                            <select class="form-select form-select-sm" id="filterType">
+                                                <option value="">Semua objek</option>
+                                                <?php foreach (array_unique(array_column($recentReports, 'type')) as $value): ?>
+                                                    <option value="<?php echo h($value); ?>"><?php echo h($value); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label dml-filter-label" for="filterStatus">Status</label>
+                                            <select class="form-select form-select-sm" id="filterStatus">
+                                                <option value="">Semua status</option>
+                                                <?php foreach (array_unique(array_column($recentReports, 'status')) as $value): ?>
+                                                    <option value="<?php echo h($value); ?>"><?php echo h($value); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label dml-filter-label" for="filterSeverity">Severity</label>
+                                            <select class="form-select form-select-sm" id="filterSeverity">
+                                                <option value="">Semua severity</option>
+                                                <?php foreach (array_unique(array_column($recentReports, 'severity')) as $value): ?>
+                                                    <option value="<?php echo h($value); ?>"><?php echo h($value); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label dml-filter-label" for="filterSla">SLA</label>
+                                            <select class="form-select form-select-sm" id="filterSla">
+                                                <option value="">Semua SLA</option>
+                                                <?php foreach (array_unique(array_column($recentReports, 'sla')) as $value): ?>
+                                                    <option value="<?php echo h($value); ?>"><?php echo h($value); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label dml-filter-label" for="filterRegion">Wilayah</label>
+                                            <select class="form-select form-select-sm" id="filterRegion">
+                                                <option value="">Semua wilayah</option>
+                                                <?php foreach (array_unique(array_column($recentReports, 'region')) as $value): ?>
+                                                    <option value="<?php echo h($value); ?>"><?php echo h($value); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label dml-filter-label" for="filterReason">Alasan Pelaporan</label>
+                                            <select class="form-select form-select-sm" id="filterReason">
+                                                <option value="">Semua alasan</option>
+                                                <?php foreach (array_unique(array_column($recentReports, 'reason')) as $value): ?>
+                                                    <option value="<?php echo h($value); ?>"><?php echo h($value); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label dml-filter-label" for="filterAssigned">Assigned To</label>
+                                            <select class="form-select form-select-sm" id="filterAssigned">
+                                                <option value="">Semua admin</option>
+                                                <?php foreach (array_unique(array_column($recentReports, 'assigned_to')) as $value): ?>
+                                                    <option value="<?php echo h($value); ?>"><?php echo h($value); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-end gap-2 mt-3 pt-3 border-top">
+                                        <button class="btn btn-sm btn-outline-secondary" type="button" id="resetReportFilter">Reset</button>
+                                        <button class="btn btn-sm btn-primary" type="button" id="applyReportFilter">Terapkan Filter</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="dml-tabs" role="tablist" aria-label="Filter laporan terbaru">
                             <button type="button" class="dml-tab active" data-filter="semua">Semua</button>
@@ -296,8 +384,13 @@ $recentReports = [
                                     <?php foreach ($recentReports as $report): ?>
                                         <tr
                                             class="js-report-row"
+                                            data-type="<?php echo h($report['type']); ?>"
                                             data-status="<?php echo h($report['status']); ?>"
+                                            data-severity="<?php echo h($report['severity']); ?>"
                                             data-sla="<?php echo h($report['sla']); ?>"
+                                            data-region="<?php echo h($report['region']); ?>"
+                                            data-reason="<?php echo h($report['reason']); ?>"
+                                            data-assigned="<?php echo h($report['assigned_to'] ?? '-'); ?>"
                                         >
                                             <td><?php echo h($report['id']); ?></td>
                                             <td>
@@ -318,7 +411,7 @@ $recentReports = [
                                         </tr>
                                     <?php endforeach; ?>
                                     <tr id="laporanTerbaruEmpty" class="d-none">
-                                        <td colspan="9" class="dml-empty">Tidak ada laporan pada tab ini.</td>
+                                        <td colspan="9" class="dml-empty">Tidak ada laporan yang sesuai dengan filter.</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -351,30 +444,71 @@ $recentReports = [
         const tabs = document.querySelectorAll('.dml-tab');
         const rows = document.querySelectorAll('#laporanTerbaruTable tbody tr.js-report-row');
         const emptyRow = document.getElementById('laporanTerbaruEmpty');
+        const filterButton = document.getElementById('reportFilterButton');
+        const keywordField = document.getElementById('filterKeyword');
+        const filterFields = {
+            type: document.getElementById('filterType'),
+            status: document.getElementById('filterStatus'),
+            severity: document.getElementById('filterSeverity'),
+            sla: document.getElementById('filterSla'),
+            region: document.getElementById('filterRegion'),
+            reason: document.getElementById('filterReason'),
+            assigned: document.getElementById('filterAssigned')
+        };
+        let activeTabFilter = 'semua';
 
-        function applyFilter(filter) {
+        function applyFilter() {
             let visible = 0;
             rows.forEach(function (row) {
                 const status = row.getAttribute('data-status') || '';
                 const sla = row.getAttribute('data-sla') || '';
-                let show = false;
-                if (filter === 'semua') show = true;
-                else if (filter === 'menunggu') show = status === 'Menunggu Verifikasi';
-                else if (filter === 'dalam-verifikasi') show = status === 'Dalam Verifikasi';
-                else if (filter === 'selesai') show = status === 'Selesai';
-                else if (filter === 'overdue') show = sla === 'Overdue';
+                let show = activeTabFilter === 'semua'
+                    || (activeTabFilter === 'menunggu' && status === 'Menunggu Verifikasi')
+                    || (activeTabFilter === 'dalam-verifikasi' && status === 'Dalam Verifikasi')
+                    || (activeTabFilter === 'selesai' && status === 'Selesai')
+                    || (activeTabFilter === 'overdue' && sla === 'Overdue');
+
+                Object.keys(filterFields).forEach(function (key) {
+                    const selectedValue = filterFields[key].value;
+                    if (selectedValue && row.getAttribute('data-' + key) !== selectedValue) {
+                        show = false;
+                    }
+                });
+                const keyword = keywordField.value.trim().toLowerCase();
+                if (keyword && !row.textContent.toLowerCase().includes(keyword)) {
+                    show = false;
+                }
+
                 row.classList.toggle('d-none', !show);
                 if (show) visible += 1;
             });
             if (emptyRow) emptyRow.classList.toggle('d-none', visible > 0);
+            const hasAdvancedFilter = Object.keys(filterFields).some(function (key) {
+                return filterFields[key].value !== '';
+            }) || keywordField.value.trim() !== '';
+            filterButton.classList.toggle('active', hasAdvancedFilter);
         }
 
         tabs.forEach(function (tab) {
             tab.addEventListener('click', function () {
                 tabs.forEach(function (item) { item.classList.remove('active'); });
                 tab.classList.add('active');
-                applyFilter(tab.getAttribute('data-filter') || 'semua');
+                activeTabFilter = tab.getAttribute('data-filter') || 'semua';
+                applyFilter();
             });
+        });
+
+        document.getElementById('applyReportFilter').addEventListener('click', function () {
+            applyFilter();
+            bootstrap.Dropdown.getOrCreateInstance(filterButton).hide();
+        });
+
+        document.getElementById('resetReportFilter').addEventListener('click', function () {
+            keywordField.value = '';
+            Object.keys(filterFields).forEach(function (key) {
+                filterFields[key].value = '';
+            });
+            applyFilter();
         });
     })();
 </script>
