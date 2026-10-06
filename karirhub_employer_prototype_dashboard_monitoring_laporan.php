@@ -23,7 +23,7 @@ $summary = [
         'tooltip' => 'Jumlah seluruh laporan lowongan dan perusahaan pada periode yang dipilih.',
     ],
     [
-        'label' => 'Pending Review',
+        'label' => 'Menunggu Verifikasi',
         'value' => 32,
         'icon' => 'bi-hourglass-split',
         'tone' => 'indigo',
