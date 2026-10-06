@@ -251,7 +251,6 @@ $recentReports = [
                                     <?php echo h($item['label']); ?>
                                     <i class="bi bi-info-circle dml-kpi-hint" aria-hidden="true"></i>
                                 </span>
-                                <span class="dml-kpi-icon <?php echo h($item['tone']); ?>"><i class="bi <?php echo h($item['icon']); ?>"></i></span>
                             </div>
                             <div class="dml-kpi-value"><?php echo (int)$item['value']; ?></div>
                         </div>
