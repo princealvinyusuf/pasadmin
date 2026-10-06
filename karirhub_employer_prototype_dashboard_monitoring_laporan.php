@@ -16,7 +16,7 @@ function h(string $value): string
 
 $summary = [
     [
-        'label' => 'Total Laporan',
+        'label' => 'Jumlah Laporan',
         'value' => 59,
         'icon' => 'bi-flag',
         'tone' => 'blue',
