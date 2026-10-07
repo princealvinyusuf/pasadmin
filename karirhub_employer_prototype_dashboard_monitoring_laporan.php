@@ -57,6 +57,20 @@ $summary = [
         'tone' => 'green',
         'tooltip' => 'Laporan yang sudah selesai ditinjau dan diberi keputusan.',
     ],
+    [
+        'label' => 'Jumlah Lowongan di Blokir',
+        'value' => 6,
+        'icon' => 'bi-briefcase-fill',
+        'tone' => 'red',
+        'tooltip' => 'Jumlah lowongan yang diblokir berdasarkan hasil verifikasi laporan pada periode yang dipilih.',
+    ],
+    [
+        'label' => 'Jumlah Akun Pemberi Kerja di Blokir',
+        'value' => 3,
+        'icon' => 'bi-person-x-fill',
+        'tone' => 'red',
+        'tooltip' => 'Jumlah akun pemberi kerja yang diblokir berdasarkan hasil verifikasi laporan pada periode yang dipilih.',
+    ],
 ];
 
 $reasons = [
@@ -241,7 +255,7 @@ $recentReports = [
 
             <div class="row g-3 mb-3">
                 <?php foreach ($summary as $item): ?>
-                    <div class="col-6 col-md-4 col-xl-2">
+                    <div class="col-6 col-md-4 col-xl-3">
                         <div
                             class="dml-kpi"
                             tabindex="0"
