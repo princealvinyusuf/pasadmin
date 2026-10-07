@@ -18,6 +18,7 @@ $summary = [
     [
         'label' => 'Jumlah Laporan',
         'value' => 59,
+        'unit' => 'Laporan',
         'icon' => 'bi-flag',
         'tone' => 'blue',
         'tooltip' => 'Jumlah seluruh laporan lowongan pada periode yang dipilih (Menunggu Verifikasi, Dalam Verifikasi, Selesai)',
@@ -25,6 +26,7 @@ $summary = [
     [
         'label' => 'Jumlah Pelapor',
         'value' => 46,
+        'unit' => 'Pelapor',
         'icon' => 'bi-people',
         'tone' => 'blue',
         'tooltip' => 'Jumlah pelapor pada periode yang dipilih',
@@ -32,6 +34,7 @@ $summary = [
     [
         'label' => 'Jumlah lowongan yang dilaporkan',
         'value' => 41,
+        'unit' => 'Lowongan',
         'icon' => 'bi-briefcase',
         'tone' => 'cyan',
         'tooltip' => 'Jumlah lowongan yang dilaporkan pada periode yang dipilih.',
@@ -39,6 +42,7 @@ $summary = [
     [
         'label' => 'Menunggu Verifikasi',
         'value' => 32,
+        'unit' => 'Laporan',
         'icon' => 'bi-hourglass-split',
         'tone' => 'indigo',
         'tooltip' => 'Laporan baru yang belum diambil admin. Semua laporan masuk ke status ini terlebih dahulu.',
@@ -46,6 +50,7 @@ $summary = [
     [
         'label' => 'Dalam Verifikasi',
         'value' => 18,
+        'unit' => 'Laporan',
         'icon' => 'bi-search',
         'tone' => 'cyan',
         'tooltip' => 'Laporan yang sudah diambil (Ambil Kasus) dan sedang diperiksa admin.',
@@ -53,6 +58,7 @@ $summary = [
     [
         'label' => 'Selesai',
         'value' => 9,
+        'unit' => 'Laporan',
         'icon' => 'bi-check-circle',
         'tone' => 'green',
         'tooltip' => 'Laporan yang sudah selesai ditinjau dan diberi keputusan.',
@@ -60,6 +66,7 @@ $summary = [
     [
         'label' => 'Jumlah Lowongan di Blokir',
         'value' => 6,
+        'unit' => 'Lowongan di Blokir',
         'icon' => 'bi-briefcase-fill',
         'tone' => 'red',
         'tooltip' => 'Jumlah lowongan yang diblokir berdasarkan hasil verifikasi laporan pada periode yang dipilih.',
@@ -67,6 +74,7 @@ $summary = [
     [
         'label' => 'Jumlah Akun Pemberi Kerja di Blokir',
         'value' => 3,
+        'unit' => 'Akun di Blokir',
         'icon' => 'bi-person-x-fill',
         'tone' => 'red',
         'tooltip' => 'Jumlah akun pemberi kerja yang diblokir berdasarkan hasil verifikasi laporan pada periode yang dipilih.',
@@ -192,6 +200,7 @@ $recentReports = [
         .dml-kpi-hint { color: #8aa0b6; font-size: 12px; line-height: 1; text-transform: none; }
         .dml-kpi-icon { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9px; font-size: 16px; }
         .dml-kpi-value { margin-top: 9px; color: #1e3853; font-size: 27px; font-weight: 700; line-height: 1; }
+        .dml-kpi-unit { margin-left: 4px; font-size: 13px; font-weight: 600; line-height: 1.25; }
         .dml-kpi-icon.blue { color: #286aa9; background: #eaf4ff; }
         .dml-kpi-icon.indigo { color: #515fc2; background: #eef0ff; }
         .dml-kpi-icon.cyan { color: #197494; background: #e7f7fc; }
@@ -270,7 +279,9 @@ $recentReports = [
                                 </span>
                                 <span class="dml-kpi-icon <?php echo h($item['tone']); ?>"><i class="bi <?php echo h($item['icon']); ?>"></i></span>
                             </div>
-                            <div class="dml-kpi-value"><?php echo (int)$item['value']; ?></div>
+                            <div class="dml-kpi-value">
+                                <?php echo (int)$item['value']; ?><span class="dml-kpi-unit"><?php echo h($item['unit']); ?></span>
+                            </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
