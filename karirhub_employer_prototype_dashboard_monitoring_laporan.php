@@ -9,174 +9,35 @@ if (!kh_proto_can_access('karirhub_employer_prototype_monitoring_laporan_view'))
     exit;
 }
 
+require_once __DIR__ . '/karirhub_employer_prototype_monitoring_storage.php';
+
 function h(string $value): string
 {
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
+kh_monitoring_ensure_tables($conn);
+$periodDays = kh_monitoring_period_days((int)($_GET['days'] ?? 30));
+$dashboardData = kh_monitoring_dashboard_data($conn, $periodDays);
+$summaryValues = $dashboardData['summary'];
+$reasons = $dashboardData['reasons'];
+$regions = $dashboardData['regions'];
+$recentReports = $dashboardData['recent_reports'];
+
 $summary = [
-    [
-        'label' => 'Jumlah Laporan',
-        'value' => 59,
-        'unit' => 'Laporan',
-        'icon' => 'bi-flag',
-        'tone' => 'blue',
-        'tooltip' => 'Jumlah seluruh laporan lowongan pada periode yang dipilih (Menunggu Verifikasi, Dalam Verifikasi, Selesai)',
-    ],
-    [
-        'label' => 'Jumlah Pelapor',
-        'value' => 46,
-        'unit' => 'Pelapor',
-        'icon' => 'bi-people',
-        'tone' => 'blue',
-        'tooltip' => 'Jumlah pelapor pada periode yang dipilih',
-    ],
-    [
-        'label' => 'Jumlah lowongan yang dilaporkan',
-        'value' => 41,
-        'unit' => 'Lowongan',
-        'icon' => 'bi-briefcase',
-        'tone' => 'cyan',
-        'tooltip' => 'Jumlah lowongan yang dilaporkan pada periode yang dipilih.',
-    ],
-    [
-        'label' => 'Menunggu Verifikasi',
-        'value' => 32,
-        'unit' => 'Laporan',
-        'icon' => 'bi-hourglass-split',
-        'tone' => 'indigo',
-        'tooltip' => 'Laporan baru yang belum diambil admin. Semua laporan masuk ke status ini terlebih dahulu.',
-    ],
-    [
-        'label' => 'Dalam Verifikasi',
-        'value' => 18,
-        'unit' => 'Laporan',
-        'icon' => 'bi-search',
-        'tone' => 'cyan',
-        'tooltip' => 'Laporan yang sudah diambil (Ambil Kasus) dan sedang diperiksa admin.',
-    ],
-    [
-        'label' => 'Selesai',
-        'value' => 9,
-        'unit' => 'Laporan',
-        'icon' => 'bi-check-circle',
-        'tone' => 'green',
-        'tooltip' => 'Laporan yang sudah selesai ditinjau dan diberi keputusan.',
-    ],
-    [
-        'label' => 'Jumlah Lowongan di Blokir',
-        'value' => 6,
-        'unit' => 'Lowongan di Blokir',
-        'icon' => 'bi-briefcase-fill',
-        'tone' => 'red',
-        'tooltip' => 'Jumlah lowongan yang diblokir berdasarkan hasil verifikasi laporan pada periode yang dipilih.',
-    ],
-    [
-        'label' => 'Jumlah Akun Pemberi Kerja di Blokir',
-        'value' => 3,
-        'unit' => 'Akun di Blokir',
-        'icon' => 'bi-person-x-fill',
-        'tone' => 'red',
-        'tooltip' => 'Jumlah akun pemberi kerja yang diblokir berdasarkan hasil verifikasi laporan pada periode yang dipilih.',
-    ],
+    ['key' => 'reports', 'value_key' => 'total_reports', 'label' => 'Jumlah Laporan', 'unit' => 'Laporan', 'icon' => 'bi-flag', 'tone' => 'blue', 'tooltip' => 'Jumlah seluruh laporan pada periode yang dipilih.'],
+    ['key' => 'reporters', 'value_key' => 'total_reporters', 'label' => 'Jumlah Pelapor', 'unit' => 'Pelapor', 'icon' => 'bi-people', 'tone' => 'blue', 'tooltip' => 'Jumlah pelapor unik pada periode yang dipilih.'],
+    ['key' => 'vacancies', 'value_key' => 'total_vacancies', 'label' => 'Jumlah lowongan yang dilaporkan', 'unit' => 'Lowongan', 'icon' => 'bi-briefcase', 'tone' => 'cyan', 'tooltip' => 'Jumlah lowongan unik yang dilaporkan pada periode yang dipilih.'],
+    ['key' => 'pending', 'value_key' => 'pending_reports', 'label' => 'Menunggu Verifikasi', 'unit' => 'Laporan', 'icon' => 'bi-hourglass-split', 'tone' => 'indigo', 'tooltip' => 'Laporan baru yang belum diambil admin.'],
+    ['key' => 'reviewing', 'value_key' => 'reviewing_reports', 'label' => 'Dalam Verifikasi', 'unit' => 'Laporan', 'icon' => 'bi-search', 'tone' => 'cyan', 'tooltip' => 'Laporan yang sedang diperiksa admin.'],
+    ['key' => 'completed', 'value_key' => 'completed_reports', 'label' => 'Selesai', 'unit' => 'Laporan', 'icon' => 'bi-check-circle', 'tone' => 'green', 'tooltip' => 'Laporan yang sudah selesai ditinjau.'],
+    ['key' => 'blocked-vacancies', 'value_key' => 'blocked_vacancies', 'label' => 'Jumlah Lowongan di Blokir', 'unit' => 'Lowongan di Blokir', 'icon' => 'bi-briefcase-fill', 'tone' => 'red', 'tooltip' => 'Jumlah lowongan yang diblokir pada periode yang dipilih.'],
+    ['key' => 'blocked-employers', 'value_key' => 'blocked_employers', 'label' => 'Jumlah Akun Pemberi Kerja di Blokir', 'unit' => 'Akun di Blokir', 'icon' => 'bi-person-x-fill', 'tone' => 'red', 'tooltip' => 'Jumlah akun pemberi kerja yang diblokir pada periode yang dipilih.'],
 ];
-
-$reasons = [
-    ['label' => 'Penipuan', 'value' => 22, 'percent' => 100],
-    ['label' => 'Lowongan fiktif', 'value' => 18, 'percent' => 82],
-    ['label' => 'Mencurigakan / informasi menyesatkan / Akun palsu', 'value' => 10, 'percent' => 45],
-    ['label' => 'Meminta biaya / pembayaran / Pemerasan', 'value' => 9, 'percent' => 41],
-    ['label' => 'Diskriminasi / persyaratan tidak patut', 'value' => 7, 'percent' => 32],
-];
-
-$regions = [
-    ['label' => 'DKI Jakarta', 'value' => 17],
-    ['label' => 'Jawa Barat', 'value' => 13],
-    ['label' => 'Jawa Timur', 'value' => 11],
-    ['label' => 'Banten', 'value' => 9],
-    ['label' => 'Sulawesi Selatan', 'value' => 9],
-];
-
-$recentReports = [
-    [
-        'id' => 'VRP-2026-304511',
-        'type' => 'Lowongan',
-        'subject' => 'Sales Executive - DKI Jakarta',
-        'company' => 'PT Finaccel Finance Indonesia',
-        'region' => 'Jakarta Timur - DKI Jakarta',
-        'reason' => 'Meminta biaya / pembayaran',
-        'severity' => 'High',
-        'sla' => 'Approaching',
-        'status' => 'Menunggu Verifikasi',
-        'assigned_to' => '-',
-        'detail_type' => 'vacancy',
-    ],
-    [
-        'id' => 'CRP-2026-103421',
-        'type' => 'Perusahaan',
-        'subject' => 'PT Finaccel Finance Indonesia',
-        'company' => 'PT Finaccel Finance Indonesia',
-        'region' => 'Jakarta Pusat - DKI Jakarta',
-        'reason' => 'Meminta biaya / pembayaran',
-        'severity' => 'Urgent',
-        'sla' => 'Approaching',
-        'status' => 'Menunggu Verifikasi',
-        'assigned_to' => '-',
-        'detail_type' => 'company',
-    ],
-    [
-        'id' => 'VRP-2026-304477',
-        'type' => 'Lowongan',
-        'subject' => 'Kasir',
-        'company' => 'CV Maju Sejahtera',
-        'region' => 'Tangerang - Banten',
-        'reason' => 'Informasi menyesatkan',
-        'severity' => 'Medium',
-        'sla' => 'On Time',
-        'status' => 'Dalam Verifikasi',
-        'assigned_to' => 'admin.kabkota.tng',
-        'detail_type' => 'vacancy',
-    ],
-    [
-        'id' => 'CRP-2026-103109',
-        'type' => 'Perusahaan',
-        'subject' => 'PT Maju Karier Nusantara',
-        'company' => 'PT Maju Karier Nusantara',
-        'region' => 'Bandung - Jawa Barat',
-        'reason' => 'Perusahaan palsu / informasi menyesatkan',
-        'severity' => 'Urgent',
-        'sla' => 'On Time',
-        'status' => 'Selesai',
-        'assigned_to' => 'admin.kabkota.bdg',
-        'detail_type' => 'company',
-    ],
-    [
-        'id' => 'VRP-2026-304220',
-        'type' => 'Lowongan',
-        'subject' => 'Finance Accounting',
-        'company' => 'PT Samudra Arta',
-        'region' => 'Makassar - Sulawesi Selatan',
-        'reason' => 'Data pribadi / kredensial',
-        'severity' => 'High',
-        'sla' => 'Overdue',
-        'status' => 'Dalam Verifikasi',
-        'assigned_to' => 'admin.pusat.layanan',
-        'detail_type' => 'vacancy',
-    ],
-    [
-        'id' => 'CRP-2026-102883',
-        'type' => 'Perusahaan',
-        'subject' => 'CV Mitra Giat Sentosa',
-        'company' => 'CV Mitra Giat Sentosa',
-        'region' => 'Surabaya - Jawa Timur',
-        'reason' => 'Praktik diskriminatif',
-        'severity' => 'Medium',
-        'sla' => 'Overdue',
-        'status' => 'Selesai',
-        'assigned_to' => 'admin.pusat.layanan',
-        'detail_type' => 'company',
-    ],
-];
+foreach ($summary as &$summaryItem) {
+    $summaryItem['value'] = (int)($summaryValues[$summaryItem['value_key']] ?? 0);
+}
+unset($summaryItem);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -193,8 +54,8 @@ $recentReports = [
         .dml-title { margin: 0; color: #1f3550; font-size: 26px; font-weight: 700; }
         .dml-subtitle { margin: 5px 0 0; color: #688097; font-size: 14px; }
         .dml-period { min-width: 180px; color: #405b75; font-size: 13px; }
-        .dml-kpi { height: 100%; padding: 15px; border: 1px solid #e2eaf3; border-radius: 12px; background: #fff; cursor: help; }
-        .dml-kpi:hover, .dml-kpi:focus { border-color: #b9cde4; outline: none; }
+        .dml-kpi { height: 100%; padding: 15px; border: 1px solid #e2eaf3; border-radius: 12px; background: #fff; cursor: pointer; }
+        .dml-kpi:hover, .dml-kpi:focus { border-color: #76a6d4; box-shadow: 0 4px 14px rgba(37, 82, 126, .08); outline: none; }
         .dml-kpi-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         .dml-kpi-label { color: #70869c; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .035em; display: inline-flex; align-items: center; gap: 5px; }
         .dml-kpi-hint { color: #8aa0b6; font-size: 12px; line-height: 1; text-transform: none; }
@@ -228,6 +89,7 @@ $recentReports = [
         .dml-chip.ontime { color: #1d763c; background: #eaf8ed; }
         .dml-chip.approaching { color: #8f6319; background: #fff4dd; }
         .dml-chip.overdue { color: #9d2831; background: #ffe7e9; }
+        .dml-chip.review { color: #315b82; background: #eaf3fc; }
         .dml-tabs { display: flex; flex-wrap: wrap; gap: 4px 28px; margin: 2px 0 14px; border-bottom: 1px solid #e7edf5; }
         .dml-tab { border: 0; background: transparent; padding: 8px 2px 10px; color: #7a8c9e; font-size: 14px; font-weight: 500; line-height: 1.2; border-bottom: 2px solid transparent; margin-bottom: -1px; }
         .dml-tab:hover { color: #0a8f8a; }
@@ -236,11 +98,20 @@ $recentReports = [
         .dml-filter-menu { width: min(720px, calc(100vw - 32px)); padding: 16px; }
         .dml-filter-label { color: #405b75; font-size: 12px; font-weight: 600; }
         .dml-empty { color: #75879a; text-align: center; padding: 22px 12px; }
+        .dml-list-item { width: 100%; border: 0; border-bottom: 1px solid #e7edf4; background: #fff; padding: 13px 15px; text-align: left; }
+        .dml-list-item:hover, .dml-list-item:focus { background: #f5f9fd; outline: none; }
+        .dml-list-title { color: #29445f; font-size: 14px; font-weight: 700; }
+        .dml-list-copy { color: #687f96; font-size: 12px; }
+        .dml-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .dml-detail-field { padding: 11px 12px; border: 1px solid #e5edf5; border-radius: 9px; background: #fbfdff; }
+        .dml-detail-field dt { margin-bottom: 4px; color: #70869c; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .dml-detail-field dd { margin: 0; color: #2d4963; font-size: 13px; overflow-wrap: anywhere; white-space: pre-line; }
         @media (max-width: 767px) {
             .dml-shell { padding: 16px; }
             .dml-title { font-size: 23px; }
             .dml-period { width: 100%; }
             .dml-reason-row { grid-template-columns: minmax(130px, 1.5fr) minmax(75px, 1fr) 25px; gap: 7px; }
+            .dml-detail-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -255,10 +126,10 @@ $recentReports = [
                     <h1 class="dml-title">Dashboard Monitoring Laporan Lowongan Kerja</h1>
                     <p class="dml-subtitle">Ringkasan pemantauan laporan, SLA, jenis aduan, dan wilayah pada dataset prototype.</p>
                 </div>
-                <select class="form-select form-select-sm dml-period" aria-label="Periode monitoring">
-                    <option>7 hari terakhir</option>
-                    <option selected>30 hari terakhir</option>
-                    <option>3 bulan terakhir</option>
+                <select class="form-select form-select-sm dml-period" id="monitoringPeriod" aria-label="Periode monitoring">
+                    <option value="7" <?php echo $periodDays === 7 ? 'selected' : ''; ?>>7 hari terakhir</option>
+                    <option value="30" <?php echo $periodDays === 30 ? 'selected' : ''; ?>>30 hari terakhir</option>
+                    <option value="90" <?php echo $periodDays === 90 ? 'selected' : ''; ?>>3 bulan terakhir</option>
                 </select>
             </div>
 
@@ -268,6 +139,11 @@ $recentReports = [
                         <div
                             class="dml-kpi"
                             tabindex="0"
+                            role="button"
+                            aria-label="Lihat daftar <?php echo h($item['label']); ?>"
+                            data-card="<?php echo h($item['key']); ?>"
+                            data-card-title="<?php echo h($item['label']); ?>"
+                            data-value-key="<?php echo h($item['value_key']); ?>"
                             data-bs-toggle="tooltip"
                             data-bs-placement="bottom"
                             data-bs-title="<?php echo h($item['tooltip']); ?>"
@@ -279,7 +155,7 @@ $recentReports = [
                                 </span>
                                 <span class="dml-kpi-icon <?php echo h($item['tone']); ?>"><i class="bi <?php echo h($item['icon']); ?>"></i></span>
                             </div>
-                            <div class="dml-kpi-value">
+                            <div class="dml-kpi-value" data-summary-value="<?php echo h($item['value_key']); ?>" data-unit="<?php echo h($item['unit']); ?>">
                                 <?php echo (int)$item['value']; ?><span class="dml-kpi-unit"><?php echo h($item['unit']); ?></span>
                             </div>
                         </div>
@@ -289,9 +165,9 @@ $recentReports = [
 
             <div class="row g-3 mb-3">
                 <div class="col-12">
-                    <section class="dml-panel">
+                    <section class="dml-panel" id="reasonPanel">
                         <h2 class="dml-panel-title">Alasan Pelaporan Terbanyak</h2>
-                        <?php foreach ($reasons as $item): ?>
+                        <div id="reasonRows"><?php foreach ($reasons as $item): ?>
                             <div class="dml-reason-row">
                                 <span class="dml-reason-label"><?php echo h($item['label']); ?></span>
                                 <div class="dml-track">
@@ -299,7 +175,7 @@ $recentReports = [
                                 </div>
                                 <span class="dml-reason-value"><?php echo (int)$item['value']; ?></span>
                             </div>
-                        <?php endforeach; ?>
+                        <?php endforeach; ?></div>
                     </section>
                 </div>
             </div>
@@ -435,7 +311,7 @@ $recentReports = [
                                             <td><?php echo h($report['status']); ?></td>
                                             <td><?php echo h($report['assigned_to'] ?? '-'); ?></td>
                                             <td>
-                                                <a class="btn btn-sm btn-outline-primary text-nowrap" href="admin_review_laporan_case_detail_prototype?type=<?php echo rawurlencode($report['detail_type']); ?>&amp;report_id=<?php echo rawurlencode($report['id']); ?>">Lihat Detail</a>
+                                                <button class="btn btn-sm btn-outline-primary text-nowrap js-open-detail" type="button" data-record-type="report" data-record-id="<?php echo h($report['id']); ?>">Lihat Detail</button>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -450,12 +326,12 @@ $recentReports = [
                 <div class="col-xl-3">
                     <section class="dml-panel">
                         <h2 class="dml-panel-title">Sebaran Wilayah</h2>
-                        <?php foreach ($regions as $region): ?>
+                        <div id="regionRows"><?php foreach ($regions as $region): ?>
                             <div class="dml-region-row">
                                 <span><?php echo h($region['label']); ?></span>
                                 <span class="dml-region-value"><?php echo (int)$region['value']; ?></span>
                             </div>
-                        <?php endforeach; ?>
+                        <?php endforeach; ?></div>
                     </section>
                 </div>
             </div>
@@ -463,18 +339,53 @@ $recentReports = [
     </div>
 </div>
 
+<div class="modal fade" id="summaryListModal" tabindex="-1" aria-labelledby="summaryListModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title fs-5" id="summaryListModalLabel">Daftar Data</h2>
+                    <div class="text-muted small" id="summaryListModalPeriod"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body p-0" id="summaryListModalBody"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="summaryDetailModal" tabindex="-1" aria-labelledby="summaryDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="summaryDetailModalLabel">Detail Data</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body" id="summaryDetailModalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" id="backToSummaryList"><i class="bi bi-arrow-left me-1"></i>Kembali ke daftar</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
-        bootstrap.Tooltip.getOrCreateInstance(el);
-    });
-
     (function () {
+        const endpoint = 'karirhub_employer_prototype_monitoring_laporan_data.php';
+        const periodField = document.getElementById('monitoringPeriod');
         const tabs = document.querySelectorAll('.dml-tab');
-        const rows = document.querySelectorAll('#laporanTerbaruTable tbody tr.js-report-row');
         const emptyRow = document.getElementById('laporanTerbaruEmpty');
         const filterButton = document.getElementById('reportFilterButton');
         const keywordField = document.getElementById('filterKeyword');
+        const reportBody = document.querySelector('#laporanTerbaruTable tbody');
+        const listElement = document.getElementById('summaryListModal');
+        const detailElement = document.getElementById('summaryDetailModal');
+        const listModal = bootstrap.Modal.getOrCreateInstance(listElement);
+        const detailModal = bootstrap.Modal.getOrCreateInstance(detailElement);
+        const listBody = document.getElementById('summaryListModalBody');
+        const detailBody = document.getElementById('summaryDetailModalBody');
         const filterFields = {
             status: document.getElementById('filterStatus'),
             severity: document.getElementById('filterSeverity'),
@@ -484,10 +395,96 @@ $recentReports = [
             assigned: document.getElementById('filterAssigned')
         };
         let activeTabFilter = 'semua';
+        let returnToList = false;
+
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+            bootstrap.Tooltip.getOrCreateInstance(el);
+        });
+
+        function escapeHtml(value) {
+            const div = document.createElement('div');
+            div.textContent = value == null ? '' : String(value);
+            return div.innerHTML;
+        }
+
+        async function getJson(params) {
+            const response = await fetch(endpoint + '?' + new URLSearchParams(params), {
+                headers: { 'Accept': 'application/json' }
+            });
+            const payload = await response.json();
+            if (!response.ok || !payload.ok) {
+                throw new Error(payload.message || 'Gagal memuat data.');
+            }
+            return payload.data;
+        }
+
+        function optionValues(key, reports) {
+            return Array.from(new Set(reports.map(function (item) { return item[key] || '-'; }))).sort();
+        }
+
+        function refillFilter(field, placeholder, values) {
+            const selected = field.value;
+            field.innerHTML = '<option value="">' + escapeHtml(placeholder) + '</option>' + values.map(function (value) {
+                return '<option value="' + escapeHtml(value) + '">' + escapeHtml(value) + '</option>';
+            }).join('');
+            field.value = values.includes(selected) ? selected : '';
+        }
+
+        function reportRow(report) {
+            const company = report.type === 'Lowongan'
+                ? '<div class="text-muted mt-1">' + escapeHtml(report.company) + '</div>'
+                : '';
+            const severityClass = String(report.severity || '').toLowerCase();
+            const slaClass = String(report.sla || '').toLowerCase().replace(/\s/g, '');
+            return '<tr class="js-report-row"'
+                + ' data-status="' + escapeHtml(report.status) + '"'
+                + ' data-severity="' + escapeHtml(report.severity) + '"'
+                + ' data-sla="' + escapeHtml(report.sla) + '"'
+                + ' data-region="' + escapeHtml(report.region) + '"'
+                + ' data-reason="' + escapeHtml(report.reason) + '"'
+                + ' data-assigned="' + escapeHtml(report.assigned_to || '-') + '">'
+                + '<td>' + escapeHtml(report.id) + '</td>'
+                + '<td><strong>' + escapeHtml(report.subject) + '</strong>' + company + '</td>'
+                + '<td>' + escapeHtml(report.region) + '</td>'
+                + '<td>' + escapeHtml(report.reason) + '</td>'
+                + '<td><span class="dml-chip ' + escapeHtml(severityClass) + '">' + escapeHtml(report.severity) + '</span></td>'
+                + '<td><span class="dml-chip ' + escapeHtml(slaClass) + '">' + escapeHtml(report.sla) + '</span></td>'
+                + '<td>' + escapeHtml(report.status) + '</td>'
+                + '<td>' + escapeHtml(report.assigned_to || '-') + '</td>'
+                + '<td><button class="btn btn-sm btn-outline-primary text-nowrap js-open-detail" type="button" data-record-type="report" data-record-id="' + escapeHtml(report.id) + '">Lihat Detail</button></td>'
+                + '</tr>';
+        }
+
+        function renderDashboard(data) {
+            Object.keys(data.summary).forEach(function (key) {
+                const node = document.querySelector('[data-summary-value="' + key + '"]');
+                if (node) {
+                    node.innerHTML = escapeHtml(data.summary[key]) + '<span class="dml-kpi-unit">' + escapeHtml(node.dataset.unit) + '</span>';
+                }
+            });
+            document.getElementById('reasonRows').innerHTML = data.reasons.length ? data.reasons.map(function (item) {
+                return '<div class="dml-reason-row"><span class="dml-reason-label">' + escapeHtml(item.label)
+                    + '</span><div class="dml-track"><div class="dml-fill" style="width:' + Number(item.percent)
+                    + '%;background:#4c8bc8"></div></div><span class="dml-reason-value">' + Number(item.value) + '</span></div>';
+            }).join('') : '<div class="dml-empty">Belum ada data pada periode ini.</div>';
+            document.getElementById('regionRows').innerHTML = data.regions.length ? data.regions.map(function (item) {
+                return '<div class="dml-region-row"><span>' + escapeHtml(item.label)
+                    + '</span><span class="dml-region-value">' + Number(item.value) + '</span></div>';
+            }).join('') : '<div class="dml-empty">Belum ada data pada periode ini.</div>';
+            reportBody.querySelectorAll('.js-report-row').forEach(function (row) { row.remove(); });
+            emptyRow.insertAdjacentHTML('beforebegin', data.recent_reports.map(reportRow).join(''));
+            refillFilter(filterFields.status, 'Semua status', optionValues('status', data.recent_reports));
+            refillFilter(filterFields.severity, 'Semua severity', optionValues('severity', data.recent_reports));
+            refillFilter(filterFields.sla, 'Semua SLA', optionValues('sla', data.recent_reports));
+            refillFilter(filterFields.region, 'Semua wilayah', optionValues('region', data.recent_reports));
+            refillFilter(filterFields.reason, 'Semua alasan', optionValues('reason', data.recent_reports));
+            refillFilter(filterFields.assigned, 'Semua admin', optionValues('assigned_to', data.recent_reports));
+            applyFilter();
+        }
 
         function applyFilter() {
             let visible = 0;
-            rows.forEach(function (row) {
+            document.querySelectorAll('#laporanTerbaruTable tbody tr.js-report-row').forEach(function (row) {
                 const status = row.getAttribute('data-status') || '';
                 const sla = row.getAttribute('data-sla') || '';
                 let show = activeTabFilter === 'semua'
@@ -516,6 +513,147 @@ $recentReports = [
             }) || keywordField.value.trim() !== '';
             filterButton.classList.toggle('active', hasAdvancedFilter);
         }
+
+        async function refreshDashboard() {
+            document.querySelectorAll('.dml-kpi').forEach(function (card) { card.setAttribute('aria-busy', 'true'); });
+            try {
+                const data = await getJson({ action: 'summary', days: periodField.value });
+                renderDashboard(data);
+                const url = new URL(window.location.href);
+                url.searchParams.set('days', periodField.value);
+                window.history.replaceState({}, '', url);
+            } catch (error) {
+                window.alert(error.message);
+            } finally {
+                document.querySelectorAll('.dml-kpi').forEach(function (card) { card.removeAttribute('aria-busy'); });
+            }
+        }
+
+        function listItem(row) {
+            return '<button type="button" class="dml-list-item js-list-detail" data-record-type="' + escapeHtml(row.record_type)
+                + '" data-record-id="' + escapeHtml(row.id) + '"><div class="d-flex justify-content-between gap-3">'
+                + '<div><div class="dml-list-title">' + escapeHtml(row.title) + '</div>'
+                + '<div class="dml-list-copy mt-1">' + escapeHtml(row.subtitle) + '</div>'
+                + '<div class="dml-list-copy mt-1">' + escapeHtml(row.meta) + '</div></div>'
+                + '<div class="text-end flex-shrink-0"><span class="dml-chip review">' + escapeHtml(row.status || '-') + '</span>'
+                + '<div class="dml-list-copy mt-2">' + escapeHtml(row.date_text || '') + '</div></div></div></button>';
+        }
+
+        async function openList(card) {
+            const cardKey = card.dataset.card;
+            document.getElementById('summaryListModalLabel').textContent = card.dataset.cardTitle;
+            document.getElementById('summaryListModalPeriod').textContent = periodField.options[periodField.selectedIndex].text;
+            listBody.innerHTML = '<div class="dml-empty"><span class="spinner-border spinner-border-sm me-2"></span>Memuat data...</div>';
+            listModal.show();
+            try {
+                const rows = await getJson({ action: 'list', card: cardKey, days: periodField.value });
+                listBody.innerHTML = rows.length ? rows.map(listItem).join('') : '<div class="dml-empty">Belum ada data pada periode ini.</div>';
+            } catch (error) {
+                listBody.innerHTML = '<div class="alert alert-danger m-3">' + escapeHtml(error.message) + '</div>';
+            }
+        }
+
+        const detailLabels = {
+            report_id: 'Report ID', object_type: 'Jenis Objek', subject: 'Objek Laporan', region: 'Wilayah',
+            reason: 'Alasan', comment: 'Komentar Pelapor', evidence: 'Bukti', severity: 'Severity',
+            sla_status: 'SLA', verification_status: 'Status Verifikasi', assigned_to: 'Assigned To',
+            snapshot: 'Snapshot Saat Dilaporkan', current_data: 'Data Saat Ini', submitted_at: 'Waktu Masuk',
+            reviewed_at: 'Waktu Selesai', reporter_name: 'Nama Pelapor', reporter_email: 'Email Pelapor',
+            reporter_phone: 'Telepon Pelapor', employer_name: 'Pemberi Kerja', employer_type: 'Tipe Pemberi Kerja',
+            employer_email: 'Email Pemberi Kerja', vacancy_title: 'Lowongan', vacancy_location: 'Lokasi Lowongan',
+            reporter_id: 'ID Pelapor', name: 'Nama', email: 'Email', phone: 'Telepon', created_at: 'Terdaftar Pada',
+            vacancy_id: 'ID Lowongan', employer_id: 'ID Pemberi Kerja', title: 'Judul Lowongan',
+            location: 'Lokasi', job_field: 'Bidang Pekerjaan', job_type: 'Tipe Pekerjaan',
+            posted_at: 'Tanggal Tayang', deadline: 'Batas Lamaran', publication_status: 'Status Publikasi',
+            enforcement_status: 'Status Penindakan', blocked_at: 'Diblokir Pada', description: 'Deskripsi',
+            business_field: 'Bidang Usaha', website: 'Website', address: 'Alamat', verification_status: 'Status Verifikasi'
+        };
+
+        function relatedSection(reports) {
+            if (!Array.isArray(reports) || !reports.length) return '';
+            return '<h3 class="fs-6 mt-4">Riwayat Laporan Terkait</h3><div class="table-responsive"><table class="table table-sm dml-table">'
+                + '<thead><tr><th>Report ID</th><th>Objek</th><th>Alasan</th><th>Status</th><th>Waktu</th></tr></thead><tbody>'
+                + reports.map(function (row) {
+                    return '<tr><td>' + escapeHtml(row.report_id) + '</td><td>' + escapeHtml(row.subject)
+                        + '</td><td>' + escapeHtml(row.reason) + '</td><td>' + escapeHtml(row.status)
+                        + '</td><td>' + escapeHtml(row.submitted_at) + '</td></tr>';
+                }).join('') + '</tbody></table></div>';
+        }
+
+        function vacanciesSection(vacancies) {
+            if (!Array.isArray(vacancies) || !vacancies.length) return '';
+            return '<h3 class="fs-6 mt-4">Lowongan Pemberi Kerja</h3><div class="table-responsive"><table class="table table-sm dml-table">'
+                + '<thead><tr><th>ID</th><th>Lowongan</th><th>Lokasi</th><th>Status</th></tr></thead><tbody>'
+                + vacancies.map(function (row) {
+                    return '<tr><td>' + escapeHtml(row.vacancy_id) + '</td><td>' + escapeHtml(row.title)
+                        + '</td><td>' + escapeHtml(row.location) + '</td><td>' + escapeHtml(row.enforcement_status) + '</td></tr>';
+                }).join('') + '</tbody></table></div>';
+        }
+
+        function renderDetail(data) {
+            const ignored = ['updated_at', 'related_reports', 'vacancies'];
+            const fields = Object.keys(data).filter(function (key) {
+                return !ignored.includes(key) && detailLabels[key] && data[key] !== null && data[key] !== '';
+            });
+            return '<dl class="dml-detail-grid mb-0">' + fields.map(function (key) {
+                return '<div class="dml-detail-field"><dt>' + escapeHtml(detailLabels[key])
+                    + '</dt><dd>' + escapeHtml(data[key]) + '</dd></div>';
+            }).join('') + '</dl>' + relatedSection(data.related_reports) + vacanciesSection(data.vacancies);
+        }
+
+        async function openDetail(type, id, fromList) {
+            returnToList = fromList;
+            document.getElementById('summaryDetailModalLabel').textContent = 'Detail ' + id;
+            detailBody.innerHTML = '<div class="dml-empty"><span class="spinner-border spinner-border-sm me-2"></span>Memuat detail...</div>';
+            const showDetail = function () { detailModal.show(); };
+            if (fromList && listElement.classList.contains('show')) {
+                listElement.addEventListener('hidden.bs.modal', showDetail, { once: true });
+                listModal.hide();
+            } else {
+                detailModal.show();
+            }
+            try {
+                const data = await getJson({ action: 'detail', type: type, id: id });
+                detailBody.innerHTML = renderDetail(data);
+            } catch (error) {
+                detailBody.innerHTML = '<div class="alert alert-danger">' + escapeHtml(error.message) + '</div>';
+            }
+        }
+
+        document.querySelectorAll('.dml-kpi').forEach(function (card) {
+            card.addEventListener('click', function () { openList(card); });
+            card.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openList(card);
+                }
+            });
+        });
+
+        listBody.addEventListener('click', function (event) {
+            const button = event.target.closest('.js-list-detail');
+            if (button) openDetail(button.dataset.recordType, button.dataset.recordId, true);
+        });
+
+        document.addEventListener('click', function (event) {
+            const button = event.target.closest('.js-open-detail');
+            if (button) openDetail(button.dataset.recordType, button.dataset.recordId, false);
+        });
+
+        detailElement.addEventListener('hidden.bs.modal', function () {
+            if (returnToList) {
+                returnToList = false;
+                listModal.show();
+            }
+        });
+        document.getElementById('backToSummaryList').addEventListener('click', function () {
+            detailModal.hide();
+        });
+        periodField.addEventListener('change', function () {
+            listModal.hide();
+            detailModal.hide();
+            refreshDashboard();
+        });
 
         tabs.forEach(function (tab) {
             tab.addEventListener('click', function () {
