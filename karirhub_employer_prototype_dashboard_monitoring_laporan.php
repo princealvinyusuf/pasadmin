@@ -373,7 +373,7 @@ unset($summaryItem);
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     (function () {
-        const endpoint = 'karirhub_employer_prototype_monitoring_laporan_data.php';
+        const endpoint = 'karirhub_employer_prototype_monitoring_laporan_data';
         const periodField = document.getElementById('monitoringPeriod');
         const tabs = document.querySelectorAll('.dml-tab');
         const emptyRow = document.getElementById('laporanTerbaruEmpty');
@@ -409,9 +409,18 @@ unset($summaryItem);
 
         async function getJson(params) {
             const response = await fetch(endpoint + '?' + new URLSearchParams(params), {
+                credentials: 'same-origin',
                 headers: { 'Accept': 'application/json' }
             });
-            const payload = await response.json();
+            const rawResponse = await response.text();
+            let payload;
+            try {
+                payload = JSON.parse(rawResponse);
+            } catch (error) {
+                throw new Error(response.ok
+                    ? 'Respons server bukan JSON yang valid.'
+                    : 'Server mengembalikan error HTTP ' + response.status + '.');
+            }
             if (!response.ok || !payload.ok) {
                 throw new Error(payload.message || 'Gagal memuat data.');
             }
