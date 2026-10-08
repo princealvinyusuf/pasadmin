@@ -284,7 +284,7 @@ function kh_monitoring_recent_reports(mysqli $conn, int $days, int $limit = 20):
     return $rows;
 }
 
-function kh_monitoring_list(mysqli $conn, string $card, int $days): array
+function kh_monitoring_list(mysqli $conn, string $card, int $days, string $reason = ''): array
 {
     $days = kh_monitoring_period_days($days);
     $reportCondition = '';
@@ -294,7 +294,25 @@ function kh_monitoring_list(mysqli $conn, string $card, int $days): array
         'reviewing' => " AND r.verification_status = 'IN_REVIEW'",
         'completed' => " AND r.verification_status = 'SELESAI'",
     ];
-    if (array_key_exists($card, $reportCards)) {
+    if ($card === 'reason' && $reason !== '') {
+        $stmt = $conn->prepare("
+            SELECT r.report_id AS id, 'report' AS record_type, r.subject AS title,
+                   CONCAT(CASE WHEN r.object_type = 'vacancy' THEN 'Lowongan' ELSE 'Perusahaan' END, ' · ', e.name) AS subtitle,
+                   CONCAT(r.region, ' · ', r.reason) AS meta,
+                   CASE r.verification_status
+                       WHEN 'PENDING_REVIEW' THEN 'Menunggu Verifikasi'
+                       WHEN 'IN_REVIEW' THEN 'Dalam Verifikasi'
+                       ELSE 'Selesai'
+                   END AS status,
+                   DATE_FORMAT(r.submitted_at, '%d %b %Y %H:%i') AS date_text
+            FROM karirhub_proto_monitoring_reports r
+            JOIN karirhub_proto_monitoring_employers e ON e.employer_id = r.employer_id
+            WHERE r.submitted_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+              AND r.reason = ?
+            ORDER BY r.submitted_at DESC
+        ");
+        $stmt->bind_param('is', $days, $reason);
+    } elseif (array_key_exists($card, $reportCards)) {
         $reportCondition = $reportCards[$card];
         $stmt = $conn->prepare("
             SELECT r.report_id AS id, 'report' AS record_type, r.subject AS title,

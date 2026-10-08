@@ -72,7 +72,8 @@ unset($summaryItem);
         .dml-panel-title { margin: 0 0 17px; color: #29445f; font-size: 16px; font-weight: 700; }
         .dml-track { height: 9px; overflow: hidden; border-radius: 999px; background: #edf2f7; }
         .dml-fill { height: 100%; border-radius: inherit; }
-        .dml-reason-row { display: grid; grid-template-columns: minmax(150px, 1.5fr) minmax(100px, 1fr) 30px; align-items: center; gap: 10px; margin-bottom: 13px; }
+        .dml-reason-row { display: grid; width: 100%; grid-template-columns: minmax(150px, 1.5fr) minmax(100px, 1fr) 30px; align-items: center; gap: 10px; margin-bottom: 7px; padding: 6px; border: 0; border-radius: 7px; background: transparent; text-align: left; cursor: pointer; }
+        .dml-reason-row:hover, .dml-reason-row:focus { background: #f3f8fc; outline: none; }
         .dml-reason-label { color: #4b6279; font-size: 12px; }
         .dml-reason-value { color: #2c455e; font-size: 12px; font-weight: 700; text-align: right; }
         .dml-region-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #edf1f5; color: #455f78; font-size: 13px; }
@@ -168,13 +169,13 @@ unset($summaryItem);
                     <section class="dml-panel" id="reasonPanel">
                         <h2 class="dml-panel-title">Alasan Pelaporan Terbanyak</h2>
                         <div id="reasonRows"><?php foreach ($reasons as $item): ?>
-                            <div class="dml-reason-row">
+                            <button type="button" class="dml-reason-row js-reason-drilldown" data-card="reason" data-reason="<?php echo h($item['label']); ?>" data-card-title="Alasan: <?php echo h($item['label']); ?>" aria-label="Lihat laporan dengan alasan <?php echo h($item['label']); ?>">
                                 <span class="dml-reason-label"><?php echo h($item['label']); ?></span>
                                 <div class="dml-track">
                                     <div class="dml-fill" style="width: <?php echo (int)$item['percent']; ?>%; background: #4c8bc8;"></div>
                                 </div>
                                 <span class="dml-reason-value"><?php echo (int)$item['value']; ?></span>
-                            </div>
+                            </button>
                         <?php endforeach; ?></div>
                     </section>
                 </div>
@@ -472,9 +473,11 @@ unset($summaryItem);
                 }
             });
             document.getElementById('reasonRows').innerHTML = data.reasons.length ? data.reasons.map(function (item) {
-                return '<div class="dml-reason-row"><span class="dml-reason-label">' + escapeHtml(item.label)
+                return '<button type="button" class="dml-reason-row js-reason-drilldown" data-card="reason" data-reason="' + escapeHtml(item.label)
+                    + '" data-card-title="Alasan: ' + escapeHtml(item.label) + '" aria-label="Lihat laporan dengan alasan ' + escapeHtml(item.label)
+                    + '"><span class="dml-reason-label">' + escapeHtml(item.label)
                     + '</span><div class="dml-track"><div class="dml-fill" style="width:' + Number(item.percent)
-                    + '%;background:#4c8bc8"></div></div><span class="dml-reason-value">' + Number(item.value) + '</span></div>';
+                    + '%;background:#4c8bc8"></div></div><span class="dml-reason-value">' + Number(item.value) + '</span></button>';
             }).join('') : '<div class="dml-empty">Belum ada data pada periode ini.</div>';
             document.getElementById('regionRows').innerHTML = data.regions.length ? data.regions.map(function (item) {
                 return '<div class="dml-region-row"><span>' + escapeHtml(item.label)
@@ -550,12 +553,13 @@ unset($summaryItem);
 
         async function openList(card) {
             const cardKey = card.dataset.card;
+            const reason = card.dataset.reason || '';
             document.getElementById('summaryListModalLabel').textContent = card.dataset.cardTitle;
             document.getElementById('summaryListModalPeriod').textContent = periodField.options[periodField.selectedIndex].text;
             listBody.innerHTML = '<div class="dml-empty"><span class="spinner-border spinner-border-sm me-2"></span>Memuat data...</div>';
             listModal.show();
             try {
-                const rows = await getJson({ action: 'list', card: cardKey, days: periodField.value });
+                const rows = await getJson({ action: 'list', card: cardKey, reason: reason, days: periodField.value });
                 listBody.innerHTML = rows.length ? rows.map(listItem).join('') : '<div class="dml-empty">Belum ada data pada periode ini.</div>';
             } catch (error) {
                 listBody.innerHTML = '<div class="alert alert-danger m-3">' + escapeHtml(error.message) + '</div>';
@@ -637,6 +641,11 @@ unset($summaryItem);
                     openList(card);
                 }
             });
+        });
+
+        document.getElementById('reasonRows').addEventListener('click', function (event) {
+            const reasonRow = event.target.closest('.js-reason-drilldown');
+            if (reasonRow) openList(reasonRow);
         });
 
         listBody.addEventListener('click', function (event) {

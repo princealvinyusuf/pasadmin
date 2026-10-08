@@ -31,14 +31,18 @@ try {
         $card = strtolower(trim((string)($_GET['card'] ?? '')));
         $allowedCards = [
             'reports', 'reporters', 'vacancies', 'pending',
-            'reviewing', 'completed', 'blocked-vacancies', 'blocked-employers',
+            'reviewing', 'completed', 'blocked-vacancies', 'blocked-employers', 'reason',
         ];
         if (!in_array($card, $allowedCards, true)) {
             throw new InvalidArgumentException('Jenis ringkasan tidak valid.');
         }
+        $reason = trim((string)($_GET['reason'] ?? ''));
+        if ($card === 'reason' && $reason === '') {
+            throw new InvalidArgumentException('Alasan pelaporan tidak valid.');
+        }
         echo json_encode([
             'ok' => true,
-            'data' => kh_monitoring_list($conn, $card, $days),
+            'data' => kh_monitoring_list($conn, $card, $days, $reason),
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
