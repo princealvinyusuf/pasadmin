@@ -221,6 +221,7 @@ function kh_monitoring_reasons(mysqli $conn, int $days): array
         SELECT reason AS label, COUNT(*) AS value
         FROM karirhub_proto_monitoring_reports
         WHERE submitted_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+          AND object_type = 'vacancy'
         GROUP BY reason
         ORDER BY value DESC, reason ASC
         LIMIT 5
@@ -308,6 +309,7 @@ function kh_monitoring_list(mysqli $conn, string $card, int $days, string $reaso
             FROM karirhub_proto_monitoring_reports r
             JOIN karirhub_proto_monitoring_employers e ON e.employer_id = r.employer_id
             WHERE r.submitted_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+              AND r.object_type = 'vacancy'
               AND r.reason = ?
             ORDER BY r.submitted_at DESC
         ");

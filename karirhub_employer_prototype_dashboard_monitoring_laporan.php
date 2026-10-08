@@ -167,7 +167,7 @@ unset($summaryItem);
             <div class="row g-3 mb-3">
                 <div class="col-12">
                     <section class="dml-panel" id="reasonPanel">
-                        <h2 class="dml-panel-title">Alasan Pelaporan Terbanyak</h2>
+                        <h2 class="dml-panel-title">Alasan Pelaporan Lowongan Terbanyak</h2>
                         <div id="reasonRows"><?php foreach ($reasons as $item): ?>
                             <button type="button" class="dml-reason-row js-reason-drilldown" data-card="reason" data-reason="<?php echo h($item['label']); ?>" data-card-title="Alasan: <?php echo h($item['label']); ?>" aria-label="Lihat laporan dengan alasan <?php echo h($item['label']); ?>">
                                 <span class="dml-reason-label"><?php echo h($item['label']); ?></span>
