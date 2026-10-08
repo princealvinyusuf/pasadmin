@@ -60,6 +60,30 @@ try {
         exit;
     }
 
+    if ($action === 'export') {
+        $objectType = strtolower(trim((string)($_GET['object_type'] ?? '')));
+        $status = strtoupper(trim((string)($_GET['status'] ?? '')));
+        if (!in_array($objectType, ['', 'vacancy', 'company'], true)) {
+            throw new InvalidArgumentException('Jenis objek tidak valid.');
+        }
+        if (!in_array($status, ['', 'PENDING_REVIEW', 'IN_REVIEW', 'SELESAI'], true)) {
+            throw new InvalidArgumentException('Status laporan tidak valid.');
+        }
+        echo json_encode([
+            'ok' => true,
+            'data' => kh_monitoring_export_reports($conn, $days, [
+                'object_type' => $objectType,
+                'status' => $status,
+                'severity' => trim((string)($_GET['severity'] ?? '')),
+                'sla' => trim((string)($_GET['sla'] ?? '')),
+                'region' => trim((string)($_GET['region'] ?? '')),
+                'reason' => trim((string)($_GET['reason'] ?? '')),
+                'assigned' => trim((string)($_GET['assigned'] ?? '')),
+            ]),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
     if ($action === 'detail') {
         $type = strtolower(trim((string)($_GET['type'] ?? '')));
         $id = trim((string)($_GET['id'] ?? ''));

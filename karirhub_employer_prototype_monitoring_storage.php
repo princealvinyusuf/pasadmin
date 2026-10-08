@@ -456,6 +456,78 @@ function kh_monitoring_list(mysqli $conn, string $card, int $days, string $reaso
     return $rows;
 }
 
+function kh_monitoring_export_reports(mysqli $conn, int $days, array $filters = []): array
+{
+    $days = kh_monitoring_period_days($days);
+    $objectType = trim((string)($filters['object_type'] ?? ''));
+    $status = trim((string)($filters['status'] ?? ''));
+    $severity = trim((string)($filters['severity'] ?? ''));
+    $sla = trim((string)($filters['sla'] ?? ''));
+    $region = trim((string)($filters['region'] ?? ''));
+    $reason = trim((string)($filters['reason'] ?? ''));
+    $assigned = trim((string)($filters['assigned'] ?? ''));
+
+    $stmt = $conn->prepare("
+        SELECT
+            r.report_id,
+            CASE WHEN r.object_type = 'vacancy' THEN 'Lowongan' ELSE 'Perusahaan' END AS object_type,
+            r.subject,
+            e.name AS employer_name,
+            COALESCE(v.title, '-') AS vacancy_title,
+            r.region,
+            r.reason,
+            r.comment,
+            r.evidence,
+            r.severity,
+            r.sla_status,
+            CASE r.verification_status
+                WHEN 'PENDING_REVIEW' THEN 'Menunggu Verifikasi'
+                WHEN 'IN_REVIEW' THEN 'Dalam Verifikasi'
+                ELSE 'Selesai'
+            END AS verification_status,
+            COALESCE(r.assigned_to, '-') AS assigned_to,
+            p.name AS reporter_name,
+            p.email AS reporter_email,
+            p.phone AS reporter_phone,
+            DATE_FORMAT(r.submitted_at, '%Y-%m-%d %H:%i:%s') AS submitted_at,
+            COALESCE(DATE_FORMAT(r.reviewed_at, '%Y-%m-%d %H:%i:%s'), '-') AS reviewed_at
+        FROM karirhub_proto_monitoring_reports r
+        JOIN karirhub_proto_reporters p ON p.reporter_id = r.reporter_id
+        JOIN karirhub_proto_monitoring_employers e ON e.employer_id = r.employer_id
+        LEFT JOIN karirhub_proto_monitoring_vacancies v ON v.vacancy_id = r.vacancy_id
+        WHERE r.submitted_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+          AND (? = '' OR r.object_type = ?)
+          AND (? = '' OR r.verification_status = ?)
+          AND (? = '' OR r.severity = ?)
+          AND (? = '' OR r.sla_status = ?)
+          AND (? = '' OR r.region = ?)
+          AND (? = '' OR r.reason = ?)
+          AND (? = '' OR COALESCE(r.assigned_to, '-') = ?)
+        ORDER BY r.submitted_at DESC
+    ");
+    $stmt->bind_param(
+        'issssssssssssss',
+        $days,
+        $objectType,
+        $objectType,
+        $status,
+        $status,
+        $severity,
+        $severity,
+        $sla,
+        $sla,
+        $region,
+        $region,
+        $reason,
+        $reason,
+        $assigned,
+        $assigned
+    );
+    $rows = kh_monitoring_fetch_all($stmt);
+    $stmt->close();
+    return $rows;
+}
+
 function kh_monitoring_related_reports(mysqli $conn, string $field, string $id): array
 {
     $allowed = ['reporter_id', 'vacancy_id', 'employer_id'];

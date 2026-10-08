@@ -128,11 +128,16 @@ unset($summaryItem);
                     <h1 class="dml-title">Dashboard Monitoring Laporan Lowongan Kerja</h1>
                     <p class="dml-subtitle">Ringkasan pemantauan laporan, SLA, jenis aduan, dan wilayah pada dataset prototype.</p>
                 </div>
-                <select class="form-select form-select-sm dml-period" id="monitoringPeriod" aria-label="Periode monitoring">
-                    <option value="7" <?php echo $periodDays === 7 ? 'selected' : ''; ?>>7 hari terakhir</option>
-                    <option value="30" <?php echo $periodDays === 30 ? 'selected' : ''; ?>>30 hari terakhir</option>
-                    <option value="90" <?php echo $periodDays === 90 ? 'selected' : ''; ?>>3 bulan terakhir</option>
-                </select>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <button class="btn btn-sm btn-success" type="button" data-bs-toggle="modal" data-bs-target="#exportModal">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+                    </button>
+                    <select class="form-select form-select-sm dml-period" id="monitoringPeriod" aria-label="Periode monitoring">
+                        <option value="7" <?php echo $periodDays === 7 ? 'selected' : ''; ?>>7 hari terakhir</option>
+                        <option value="30" <?php echo $periodDays === 30 ? 'selected' : ''; ?>>30 hari terakhir</option>
+                        <option value="90" <?php echo $periodDays === 90 ? 'selected' : ''; ?>>3 bulan terakhir</option>
+                    </select>
+                </div>
             </div>
 
             <div class="row g-3 mb-3">
@@ -341,6 +346,102 @@ unset($summaryItem);
     </div>
 </div>
 
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title fs-5" id="exportModalLabel">Export Laporan ke Excel</h2>
+                    <div class="text-muted small">Pilih filter data yang akan diekspor.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label dml-filter-label" for="exportPeriod">Periode</label>
+                        <select class="form-select" id="exportPeriod">
+                            <option value="7">7 hari terakhir</option>
+                            <option value="30">30 hari terakhir</option>
+                            <option value="90">3 bulan terakhir</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label dml-filter-label" for="exportObjectType">Jenis Objek</label>
+                        <select class="form-select" id="exportObjectType">
+                            <option value="">Semua objek</option>
+                            <option value="vacancy">Lowongan</option>
+                            <option value="company">Perusahaan</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label dml-filter-label" for="exportStatus">Status</label>
+                        <select class="form-select" id="exportStatus">
+                            <option value="">Semua status</option>
+                            <option value="PENDING_REVIEW">Menunggu Verifikasi</option>
+                            <option value="IN_REVIEW">Dalam Verifikasi</option>
+                            <option value="SELESAI">Selesai</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label dml-filter-label" for="exportSeverity">Severity</label>
+                        <select class="form-select" id="exportSeverity">
+                            <option value="">Semua severity</option>
+                            <?php foreach (array_unique(array_column($recentReports, 'severity')) as $value): ?>
+                                <option value="<?php echo h($value); ?>"><?php echo h($value); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label dml-filter-label" for="exportSla">SLA</label>
+                        <select class="form-select" id="exportSla">
+                            <option value="">Semua SLA</option>
+                            <?php foreach (array_unique(array_column($recentReports, 'sla')) as $value): ?>
+                                <option value="<?php echo h($value); ?>"><?php echo h($value); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label dml-filter-label" for="exportRegion">Wilayah</label>
+                        <select class="form-select" id="exportRegion">
+                            <option value="">Semua wilayah</option>
+                            <?php foreach (array_unique(array_column($recentReports, 'region')) as $value): ?>
+                                <option value="<?php echo h($value); ?>"><?php echo h($value); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label dml-filter-label" for="exportReason">Alasan Pelaporan</label>
+                        <select class="form-select" id="exportReason">
+                            <option value="">Semua alasan</option>
+                            <?php foreach (array_unique(array_column($recentReports, 'reason')) as $value): ?>
+                                <option value="<?php echo h($value); ?>"><?php echo h($value); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label dml-filter-label" for="exportAssigned">Assigned To</label>
+                        <select class="form-select" id="exportAssigned">
+                            <option value="">Semua admin</option>
+                            <?php foreach (array_unique(array_column($recentReports, 'assigned_to')) as $value): ?>
+                                <option value="<?php echo h($value); ?>"><?php echo h($value); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="alert alert-danger d-none mt-3 mb-0" id="exportFeedback" role="alert"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary me-auto" id="resetExportFilter">Reset Filter</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-success" id="exportExcelButton">
+                    <i class="bi bi-download me-1"></i>Export Excel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="regionSummaryModal" tabindex="-1" aria-labelledby="regionSummaryModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
@@ -391,6 +492,7 @@ unset($summaryItem);
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
     (function () {
         const endpoint = 'karirhub_employer_prototype_monitoring_laporan_data';
@@ -411,6 +513,20 @@ unset($summaryItem);
         const detailBody = document.getElementById('summaryDetailModalBody');
         const listFooter = document.getElementById('summaryListModalFooter');
         const backToRegionSummary = document.getElementById('backToRegionSummary');
+        const exportElement = document.getElementById('exportModal');
+        const exportModal = bootstrap.Modal.getOrCreateInstance(exportElement);
+        const exportButton = document.getElementById('exportExcelButton');
+        const exportFeedback = document.getElementById('exportFeedback');
+        const exportFields = {
+            days: document.getElementById('exportPeriod'),
+            object_type: document.getElementById('exportObjectType'),
+            status: document.getElementById('exportStatus'),
+            severity: document.getElementById('exportSeverity'),
+            sla: document.getElementById('exportSla'),
+            region: document.getElementById('exportRegion'),
+            reason: document.getElementById('exportReason'),
+            assigned: document.getElementById('exportAssigned')
+        };
         const filterFields = {
             status: document.getElementById('filterStatus'),
             severity: document.getElementById('filterSeverity'),
@@ -461,6 +577,63 @@ unset($summaryItem);
                 throw new Error(payload.message || 'Gagal memuat data.');
             }
             return payload.data;
+        }
+
+        function hideExportFeedback() {
+            exportFeedback.classList.add('d-none');
+            exportFeedback.textContent = '';
+        }
+
+        function resetExportFilters(useCurrentFilters) {
+            const statusValues = {
+                'Menunggu Verifikasi': 'PENDING_REVIEW',
+                'Dalam Verifikasi': 'IN_REVIEW',
+                'Selesai': 'SELESAI'
+            };
+            exportFields.days.value = periodField.value;
+            exportFields.object_type.value = '';
+            exportFields.status.value = useCurrentFilters ? (statusValues[filterFields.status.value] || '') : '';
+            exportFields.severity.value = useCurrentFilters ? filterFields.severity.value : '';
+            exportFields.sla.value = useCurrentFilters ? filterFields.sla.value : '';
+            exportFields.region.value = useCurrentFilters ? filterFields.region.value : '';
+            exportFields.reason.value = useCurrentFilters ? filterFields.reason.value : '';
+            exportFields.assigned.value = useCurrentFilters ? filterFields.assigned.value : '';
+            hideExportFeedback();
+        }
+
+        function exportRowsToExcel(rows) {
+            const excelRows = rows.map(function (row) {
+                return {
+                    'Report ID': row.report_id,
+                    'Jenis Objek': row.object_type,
+                    'Objek Laporan': row.subject,
+                    'Pemberi Kerja': row.employer_name,
+                    'Lowongan': row.vacancy_title,
+                    'Wilayah': row.region,
+                    'Alasan Pelaporan': row.reason,
+                    'Komentar Pelapor': row.comment,
+                    'Bukti': row.evidence,
+                    'Severity': row.severity,
+                    'SLA': row.sla_status,
+                    'Status Verifikasi': row.verification_status,
+                    'Assigned To': row.assigned_to,
+                    'Nama Pelapor': row.reporter_name,
+                    'Email Pelapor': row.reporter_email,
+                    'Telepon Pelapor': row.reporter_phone,
+                    'Waktu Masuk': row.submitted_at,
+                    'Waktu Selesai': row.reviewed_at
+                };
+            });
+            const worksheet = XLSX.utils.json_to_sheet(excelRows);
+            worksheet['!cols'] = [
+                { wch: 20 }, { wch: 14 }, { wch: 32 }, { wch: 32 }, { wch: 32 }, { wch: 30 },
+                { wch: 35 }, { wch: 48 }, { wch: 30 }, { wch: 12 }, { wch: 14 }, { wch: 22 },
+                { wch: 24 }, { wch: 24 }, { wch: 30 }, { wch: 20 }, { wch: 21 }, { wch: 21 }
+            ];
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Laporan Monitoring');
+            const date = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(workbook, 'laporan_monitoring_' + exportFields.days.value + 'hari_' + date + '.xlsx');
         }
 
         function optionValues(key, reports) {
@@ -774,6 +947,42 @@ unset($summaryItem);
                 regionSummaryModal.show();
             }, { once: true });
             listModal.hide();
+        });
+        exportElement.addEventListener('show.bs.modal', function () {
+            resetExportFilters(true);
+        });
+        document.getElementById('resetExportFilter').addEventListener('click', function () {
+            resetExportFilters(false);
+        });
+        exportButton.addEventListener('click', async function () {
+            hideExportFeedback();
+            if (typeof XLSX === 'undefined') {
+                exportFeedback.textContent = 'Library Excel gagal dimuat. Muat ulang halaman lalu coba kembali.';
+                exportFeedback.classList.remove('d-none');
+                return;
+            }
+
+            const originalContent = exportButton.innerHTML;
+            exportButton.disabled = true;
+            exportButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyiapkan data...';
+            try {
+                const params = { action: 'export' };
+                Object.keys(exportFields).forEach(function (key) {
+                    params[key] = exportFields[key].value;
+                });
+                const rows = await getJson(params);
+                if (!rows.length) {
+                    throw new Error('Tidak ada data yang sesuai dengan filter export.');
+                }
+                exportRowsToExcel(rows);
+                exportModal.hide();
+            } catch (error) {
+                exportFeedback.textContent = error.message;
+                exportFeedback.classList.remove('d-none');
+            } finally {
+                exportButton.disabled = false;
+                exportButton.innerHTML = originalContent;
+            }
         });
         periodField.addEventListener('change', function () {
             regionSummaryModal.hide();
