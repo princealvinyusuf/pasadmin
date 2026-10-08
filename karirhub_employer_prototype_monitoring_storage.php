@@ -100,6 +100,8 @@ function kh_monitoring_seed(mysqli $conn): void
         ['USR-81221', 'John', 'john@mail.com', '0813-2211-8844'],
         ['USR-76602', 'Sari', 'sari@mail.com', '0812-4488-9933'],
         ['USR-70283', 'Budi', 'budi@mail.com', '0811-2233-7788'],
+        ['USR-79514', 'Dewi', 'dewi@mail.com', '0812-5566-8822'],
+        ['USR-78642', 'Fajar', 'fajar@mail.com', '0813-6677-9911'],
     ];
     $stmt = $conn->prepare("
         INSERT IGNORE INTO karirhub_proto_reporters (reporter_id, name, email, phone)
@@ -155,6 +157,8 @@ function kh_monitoring_seed(mysqli $conn): void
         ['CRP-2026-103109', 'company', 'USR-81221', 'EMP-003', null, 'PT Maju Karier Nusantara', 'Bandung - Jawa Barat', 'Perusahaan palsu / informasi menyesatkan', 'Alamat domain email berbeda dengan profil legal perusahaan.', 'domain_mismatch.png', 'Urgent', 'On Time', 'SELESAI', 'admin.kabkota.bdg', 'company_id=EMP-003, verification_status=VERIFIED.', 'Akun pemberi kerja telah diblokir setelah pemeriksaan.', 5],
         ['VRP-2026-304220', 'vacancy', 'USR-76602', 'EMP-004', 'VAC-77104', 'Finance Accounting', 'Makassar - Sulawesi Selatan', 'Data pribadi / kredensial', 'Pelamar diminta mengirimkan kredensial akun pribadi.', 'permintaan_kredensial.pdf', 'High', 'Overdue', 'IN_REVIEW', 'admin.pusat.layanan', 'vacancy_id=VAC-77104, publication_status=ACTIVE.', 'Lowongan diblokir selama proses verifikasi.', 6],
         ['CRP-2026-102883', 'company', 'USR-70283', 'EMP-005', null, 'CV Mitra Giat Sentosa', 'Surabaya - Jawa Timur', 'Praktik diskriminatif', 'Persyaratan lowongan memuat pembatasan yang tidak relevan.', 'screenshot_lowongan.jpg', 'Medium', 'Overdue', 'SELESAI', 'admin.pusat.layanan', 'company_id=EMP-005, verification_status=VERIFIED.', 'Akun pemberi kerja telah diblokir.', 7],
+        ['VRP-2026-304188', 'vacancy', 'USR-79514', 'EMP-001', 'VAC-99311', 'Sales Executive - DKI Jakarta', 'Jakarta Timur - DKI Jakarta', 'Penipuan', 'Pelapor menerima pesan rekrutmen palsu yang mengatasnamakan perusahaan.', 'pesan_rekrutmen_palsu.png', 'Urgent', 'On Time', 'PENDING_REVIEW', null, 'vacancy_id=VAC-99311, publication_status=ACTIVE.', 'Laporan menunggu pemeriksaan awal.', 8],
+        ['VRP-2026-304155', 'vacancy', 'USR-78642', 'EMP-002', 'VAC-88210', 'Kasir', 'Tangerang - Banten', 'Lowongan fiktif', 'Alamat tempat kerja dan posisi yang ditawarkan tidak dapat diverifikasi.', 'bukti_alamat.png', 'High', 'On Time', 'IN_REVIEW', 'admin.kabkota.tng', 'vacancy_id=VAC-88210, publication_status=ACTIVE.', 'Lowongan sedang diverifikasi oleh admin wilayah.', 9],
     ];
     $stmt = $conn->prepare("
         INSERT IGNORE INTO karirhub_proto_monitoring_reports
