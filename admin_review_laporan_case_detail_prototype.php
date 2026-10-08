@@ -732,6 +732,11 @@ if ($case === null) {
         .ard-aksi-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e3ebf5; border-radius: 8px; background: #fbfdff; color: #1f3550; font-size: 14px; }
         .ard-aksi-item.is-disabled { background: #f1f4f8; color: #9aa9b8; border-color: #e6ebf1; }
         .ard-aksi-item.is-disabled .form-check-input { opacity: .55; }
+        .ard-alasan-list { max-height: 210px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px; background: #fff; }
+        .ard-alasan-item { display: flex; align-items: flex-start; gap: 8px; padding: 9px 11px; color: #1f3550; font-size: 14px; cursor: pointer; }
+        .ard-alasan-item + .ard-alasan-item { border-top: 1px solid #edf1f5; }
+        .ard-alasan-item:hover { background: #f6f9fc; }
+        .ard-alasan-item .form-check-input { flex-shrink: 0; margin-top: 2px; }
         .ard-tindakan-menu { min-width: 200px; border: 1px solid #dce6f1; border-radius: 10px; padding: 6px 0; box-shadow: 0 8px 24px rgba(31, 53, 80, .12); }
         .ard-tindakan-menu .dropdown-item { font-size: 14px; color: #1f3550; padding: 8px 14px; }
         .ard-tindakan-menu .dropdown-item:hover,
@@ -1151,17 +1156,27 @@ if ($case === null) {
                                     </div>
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label small mb-1" for="alasanSelect">Alasan</label>
-                                    <select
-                                        id="alasanSelect"
-                                        class="form-select form-select-sm"
-                                        data-lainnya-value="<?php echo h($alasanLainnyaValue); ?>"
-                                    >
-                                        <option value="">Pilih alasan</option>
+                                    <fieldset class="border-0 p-0 m-0">
+                                        <legend class="form-label small mb-1">Alasan</legend>
+                                        <div
+                                            id="alasanCheckboxList"
+                                            class="ard-alasan-list"
+                                            data-lainnya-value="<?php echo h($alasanLainnyaValue); ?>"
+                                        >
                                         <?php foreach ($alasanOptions as $alasanOption): ?>
-                                            <option value="<?php echo h($alasanOption); ?>"><?php echo h($alasanOption); ?></option>
+                                            <label class="ard-alasan-item">
+                                                <input
+                                                    class="form-check-input js-alasan-check"
+                                                    type="checkbox"
+                                                    name="alasan[]"
+                                                    value="<?php echo h($alasanOption); ?>"
+                                                >
+                                                <span><?php echo h($alasanOption); ?></span>
+                                            </label>
                                         <?php endforeach; ?>
-                                    </select>
+                                        </div>
+                                        <div class="form-text">Pilih satu atau lebih alasan.</div>
+                                    </fieldset>
                                 </div>
                                 <div class="col-12 d-none" id="alasanLainnyaWrap">
                                     <label class="form-label small mb-1" for="alasanLainnyaField">Masukkan Alasan Lainnya</label>
@@ -1322,7 +1337,8 @@ if ($case === null) {
         const statusBadge = document.getElementById('caseStatusBadge');
         const decisionSelect = document.getElementById('decisionSelect');
         const aksiChecks = Array.prototype.slice.call(document.querySelectorAll('.js-aksi-check'));
-        const alasanSelect = document.getElementById('alasanSelect');
+        const alasanCheckboxList = document.getElementById('alasanCheckboxList');
+        const alasanChecks = Array.prototype.slice.call(document.querySelectorAll('.js-alasan-check'));
         const alasanLainnyaWrap = document.getElementById('alasanLainnyaWrap');
         const alasanLainnyaField = document.getElementById('alasanLainnyaField');
         const catatanTambahanField = document.getElementById('catatanTambahanField');
@@ -1336,11 +1352,11 @@ if ($case === null) {
         const klarifikasiFeedback = document.getElementById('klarifikasiFeedback');
         const sendKlarifikasiBtn = document.getElementById('sendKlarifikasiBtn');
 
-        if (!statusBadge || !decisionSelect || aksiChecks.length === 0 || !alasanSelect || !alasanLainnyaWrap || !alasanLainnyaField || !catatanTambahanField || !buktiPendukungField || !saveBtn || !feedback || !successAlert || !tindakanModalEl || !klarifikasiModalEl || !klarifikasiMessage || !klarifikasiFeedback || !sendKlarifikasiBtn) {
+        if (!statusBadge || !decisionSelect || aksiChecks.length === 0 || !alasanCheckboxList || alasanChecks.length === 0 || !alasanLainnyaWrap || !alasanLainnyaField || !catatanTambahanField || !buktiPendukungField || !saveBtn || !feedback || !successAlert || !tindakanModalEl || !klarifikasiModalEl || !klarifikasiMessage || !klarifikasiFeedback || !sendKlarifikasiBtn) {
             return;
         }
 
-        const alasanLainnyaValue = alasanSelect.getAttribute('data-lainnya-value') || 'Lainnya';
+        const alasanLainnyaValue = alasanCheckboxList.getAttribute('data-lainnya-value') || 'Lainnya';
 
         const tindakanModal = bootstrap.Modal.getOrCreateInstance(tindakanModalEl);
         const klarifikasiModal = bootstrap.Modal.getOrCreateInstance(klarifikasiModalEl);
@@ -1404,6 +1420,12 @@ if ($case === null) {
                 .map(function (input) { return input.value; });
         }
 
+        function getSelectedAlasan() {
+            return alasanChecks
+                .filter(function (input) { return input.checked; })
+                .map(function (input) { return input.value; });
+        }
+
         function syncAksiByDecision() {
             const decision = decisionSelect.value;
             const rule = aksiRules[decision] || { enabled: [], checked: [], locked: false };
@@ -1421,7 +1443,7 @@ if ($case === null) {
         }
 
         function syncAlasanLainnyaField() {
-            const showLainnya = alasanSelect.value === alasanLainnyaValue;
+            const showLainnya = getSelectedAlasan().indexOf(alasanLainnyaValue) !== -1;
             alasanLainnyaWrap.classList.toggle('d-none', !showLainnya);
             if (!showLainnya) {
                 alasanLainnyaField.value = '';
@@ -1429,7 +1451,9 @@ if ($case === null) {
         }
 
         function resetTindakanExtraFields() {
-            alasanSelect.value = '';
+            alasanChecks.forEach(function (input) {
+                input.checked = false;
+            });
             alasanLainnyaField.value = '';
             catatanTambahanField.value = '';
             buktiPendukungField.value = '';
@@ -1441,9 +1465,11 @@ if ($case === null) {
             syncAksiByDecision();
         });
 
-        alasanSelect.addEventListener('change', function () {
-            hideFeedback();
-            syncAlasanLainnyaField();
+        alasanChecks.forEach(function (input) {
+            input.addEventListener('change', function () {
+                hideFeedback();
+                syncAlasanLainnyaField();
+            });
         });
 
         aksiChecks.forEach(function (input) {
@@ -1462,7 +1488,7 @@ if ($case === null) {
         saveBtn.addEventListener('click', function () {
             const decision = decisionSelect.value;
             const selectedAksi = getSelectedAksi();
-            const selectedAlasan = alasanSelect.value;
+            const selectedAlasan = getSelectedAlasan();
 
             if (decision === 'Warning' && selectedAksi.length === 0) {
                 showFeedback('Pilih minimal satu Aksi untuk Warning.', true);
@@ -1474,12 +1500,12 @@ if ($case === null) {
                 return;
             }
 
-            if (selectedAlasan === '') {
-                showFeedback('Pilih Alasan terlebih dahulu.', true);
+            if (selectedAlasan.length === 0) {
+                showFeedback('Pilih minimal satu Alasan terlebih dahulu.', true);
                 return;
             }
 
-            if (selectedAlasan === alasanLainnyaValue && alasanLainnyaField.value.trim() === '') {
+            if (selectedAlasan.indexOf(alasanLainnyaValue) !== -1 && alasanLainnyaField.value.trim() === '') {
                 showFeedback('Masukkan Alasan Lainnya terlebih dahulu.', true);
                 return;
             }
