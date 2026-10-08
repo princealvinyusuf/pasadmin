@@ -367,14 +367,6 @@ unset($summaryItem);
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label dml-filter-label" for="exportObjectType">Jenis Objek</label>
-                        <select class="form-select" id="exportObjectType">
-                            <option value="">Semua objek</option>
-                            <option value="vacancy">Lowongan</option>
-                            <option value="company">Perusahaan</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
                         <label class="form-label dml-filter-label" for="exportStatus">Status</label>
                         <select class="form-select" id="exportStatus">
                             <option value="">Semua status</option>
@@ -519,7 +511,6 @@ unset($summaryItem);
         const exportFeedback = document.getElementById('exportFeedback');
         const exportFields = {
             days: document.getElementById('exportPeriod'),
-            object_type: document.getElementById('exportObjectType'),
             status: document.getElementById('exportStatus'),
             severity: document.getElementById('exportSeverity'),
             sla: document.getElementById('exportSla'),
@@ -591,7 +582,6 @@ unset($summaryItem);
                 'Selesai': 'SELESAI'
             };
             exportFields.days.value = periodField.value;
-            exportFields.object_type.value = '';
             exportFields.status.value = useCurrentFilters ? (statusValues[filterFields.status.value] || '') : '';
             exportFields.severity.value = useCurrentFilters ? filterFields.severity.value : '';
             exportFields.sla.value = useCurrentFilters ? filterFields.sla.value : '';
