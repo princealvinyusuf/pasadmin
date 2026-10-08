@@ -263,6 +263,66 @@ function kh_monitoring_regions(mysqli $conn, int $days): array
     return $rows;
 }
 
+function kh_monitoring_region_summary(mysqli $conn, int $days, string $region): array
+{
+    $days = kh_monitoring_period_days($days);
+    $stmt = $conn->prepare("
+        SELECT
+            COUNT(*) AS total_reports,
+            COUNT(DISTINCT reporter_id) AS total_reporters,
+            COUNT(DISTINCT vacancy_id) AS total_vacancies,
+            SUM(verification_status = 'PENDING_REVIEW') AS pending_reports,
+            SUM(verification_status = 'IN_REVIEW') AS reviewing_reports,
+            SUM(verification_status = 'SELESAI') AS completed_reports
+        FROM karirhub_proto_monitoring_reports
+        WHERE submitted_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+          AND region = ?
+    ");
+    $stmt->bind_param('is', $days, $region);
+    $rows = kh_monitoring_fetch_all($stmt);
+    $stmt->close();
+    $summary = $rows[0] ?? [];
+
+    $stmt = $conn->prepare("
+        SELECT
+            (SELECT COUNT(*) FROM karirhub_proto_monitoring_vacancies
+             WHERE enforcement_status = 'BLOCKED'
+               AND blocked_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+               AND location = ?) AS blocked_vacancies,
+            (SELECT COUNT(*) FROM karirhub_proto_monitoring_employers
+             WHERE enforcement_status = 'BLOCKED'
+               AND blocked_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+               AND address = ?) AS blocked_employers
+    ");
+    $stmt->bind_param('isis', $days, $region, $days, $region);
+    $blockedRows = kh_monitoring_fetch_all($stmt);
+    $stmt->close();
+    $summary = array_map('intval', array_merge($summary, $blockedRows[0] ?? []));
+
+    $stmt = $conn->prepare("
+        SELECT reason AS label, COUNT(*) AS value
+        FROM karirhub_proto_monitoring_reports
+        WHERE submitted_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+          AND object_type = 'vacancy'
+          AND region = ?
+        GROUP BY reason
+        ORDER BY value DESC, reason ASC
+    ");
+    $stmt->bind_param('is', $days, $region);
+    $reasons = kh_monitoring_fetch_all($stmt);
+    $stmt->close();
+    foreach ($reasons as &$reason) {
+        $reason['value'] = (int)$reason['value'];
+    }
+    unset($reason);
+
+    return [
+        'region' => $region,
+        'summary' => $summary,
+        'reasons' => $reasons,
+    ];
+}
+
 function kh_monitoring_recent_reports(mysqli $conn, int $days, int $limit = 20): array
 {
     $days = kh_monitoring_period_days($days);
@@ -289,7 +349,7 @@ function kh_monitoring_recent_reports(mysqli $conn, int $days, int $limit = 20):
     return $rows;
 }
 
-function kh_monitoring_list(mysqli $conn, string $card, int $days, string $reason = ''): array
+function kh_monitoring_list(mysqli $conn, string $card, int $days, string $reason = '', string $region = ''): array
 {
     $days = kh_monitoring_period_days($days);
     $reportCondition = '';
@@ -315,9 +375,10 @@ function kh_monitoring_list(mysqli $conn, string $card, int $days, string $reaso
             WHERE r.submitted_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
               AND r.object_type = 'vacancy'
               AND r.reason = ?
+              AND (? = '' OR r.region = ?)
             ORDER BY r.submitted_at DESC
         ");
-        $stmt->bind_param('is', $days, $reason);
+        $stmt->bind_param('isss', $days, $reason, $region, $region);
     } elseif (array_key_exists($card, $reportCards)) {
         $reportCondition = $reportCards[$card];
         $stmt = $conn->prepare("
@@ -332,10 +393,11 @@ function kh_monitoring_list(mysqli $conn, string $card, int $days, string $reaso
                    DATE_FORMAT(r.submitted_at, '%d %b %Y %H:%i') AS date_text
             FROM karirhub_proto_monitoring_reports r
             JOIN karirhub_proto_monitoring_employers e ON e.employer_id = r.employer_id
-            WHERE r.submitted_at >= DATE_SUB(NOW(), INTERVAL ? DAY) {$reportCondition}
+            WHERE r.submitted_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+              AND (? = '' OR r.region = ?) {$reportCondition}
             ORDER BY r.submitted_at DESC
         ");
-        $stmt->bind_param('i', $days);
+        $stmt->bind_param('iss', $days, $region, $region);
     } elseif ($card === 'reporters') {
         $stmt = $conn->prepare("
             SELECT p.reporter_id AS id, 'reporter' AS record_type, p.name AS title, p.email AS subtitle,
@@ -344,10 +406,11 @@ function kh_monitoring_list(mysqli $conn, string $card, int $days, string $reaso
             FROM karirhub_proto_reporters p
             JOIN karirhub_proto_monitoring_reports r ON r.reporter_id = p.reporter_id
             WHERE r.submitted_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+              AND (? = '' OR r.region = ?)
             GROUP BY p.reporter_id, p.name, p.email
             ORDER BY MAX(r.submitted_at) DESC
         ");
-        $stmt->bind_param('i', $days);
+        $stmt->bind_param('iss', $days, $region, $region);
     } elseif ($card === 'vacancies') {
         $stmt = $conn->prepare("
             SELECT v.vacancy_id AS id, 'vacancy' AS record_type, v.title, e.name AS subtitle,
@@ -357,29 +420,34 @@ function kh_monitoring_list(mysqli $conn, string $card, int $days, string $reaso
             JOIN karirhub_proto_monitoring_employers e ON e.employer_id = v.employer_id
             JOIN karirhub_proto_monitoring_reports r ON r.vacancy_id = v.vacancy_id
             WHERE r.submitted_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+              AND (? = '' OR r.region = ?)
             GROUP BY v.vacancy_id, v.title, e.name, v.location, v.enforcement_status
             ORDER BY MAX(r.submitted_at) DESC
         ");
-        $stmt->bind_param('i', $days);
+        $stmt->bind_param('iss', $days, $region, $region);
     } elseif ($card === 'blocked-vacancies') {
         $stmt = $conn->prepare("
             SELECT v.vacancy_id AS id, 'vacancy' AS record_type, v.title, e.name AS subtitle,
                    v.location AS meta, 'Diblokir' AS status, DATE_FORMAT(v.blocked_at, '%d %b %Y %H:%i') AS date_text
             FROM karirhub_proto_monitoring_vacancies v
             JOIN karirhub_proto_monitoring_employers e ON e.employer_id = v.employer_id
-            WHERE v.enforcement_status = 'BLOCKED' AND v.blocked_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            WHERE v.enforcement_status = 'BLOCKED'
+              AND v.blocked_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+              AND (? = '' OR v.location = ?)
             ORDER BY v.blocked_at DESC
         ");
-        $stmt->bind_param('i', $days);
+        $stmt->bind_param('iss', $days, $region, $region);
     } elseif ($card === 'blocked-employers') {
         $stmt = $conn->prepare("
             SELECT e.employer_id AS id, 'employer' AS record_type, e.name AS title, e.employer_type AS subtitle,
                    e.address AS meta, 'Diblokir' AS status, DATE_FORMAT(e.blocked_at, '%d %b %Y %H:%i') AS date_text
             FROM karirhub_proto_monitoring_employers e
-            WHERE e.enforcement_status = 'BLOCKED' AND e.blocked_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            WHERE e.enforcement_status = 'BLOCKED'
+              AND e.blocked_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+              AND (? = '' OR e.address = ?)
             ORDER BY e.blocked_at DESC
         ");
-        $stmt->bind_param('i', $days);
+        $stmt->bind_param('iss', $days, $region, $region);
     } else {
         return [];
     }

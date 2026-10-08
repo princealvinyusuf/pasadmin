@@ -27,6 +27,18 @@ try {
         exit;
     }
 
+    if ($action === 'region-summary') {
+        $region = trim((string)($_GET['region'] ?? ''));
+        if ($region === '') {
+            throw new InvalidArgumentException('Wilayah tidak valid.');
+        }
+        echo json_encode([
+            'ok' => true,
+            'data' => kh_monitoring_region_summary($conn, $days, $region),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
     if ($action === 'list') {
         $card = strtolower(trim((string)($_GET['card'] ?? '')));
         $allowedCards = [
@@ -40,9 +52,10 @@ try {
         if ($card === 'reason' && $reason === '') {
             throw new InvalidArgumentException('Alasan pelaporan tidak valid.');
         }
+        $region = trim((string)($_GET['region'] ?? ''));
         echo json_encode([
             'ok' => true,
-            'data' => kh_monitoring_list($conn, $card, $days, $reason),
+            'data' => kh_monitoring_list($conn, $card, $days, $reason, $region),
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }

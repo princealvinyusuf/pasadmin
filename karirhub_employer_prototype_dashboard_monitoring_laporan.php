@@ -76,7 +76,8 @@ unset($summaryItem);
         .dml-reason-row:hover, .dml-reason-row:focus { background: #f3f8fc; outline: none; }
         .dml-reason-label { color: #4b6279; font-size: 12px; }
         .dml-reason-value { color: #2c455e; font-size: 12px; font-weight: 700; text-align: right; }
-        .dml-region-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #edf1f5; color: #455f78; font-size: 13px; }
+        .dml-region-row { display: flex; width: 100%; align-items: center; justify-content: space-between; padding: 9px 6px; border: 0; border-bottom: 1px solid #edf1f5; border-radius: 6px; background: transparent; color: #455f78; font-size: 13px; text-align: left; cursor: pointer; }
+        .dml-region-row:hover, .dml-region-row:focus { background: #f3f8fc; outline: none; }
         .dml-region-row:last-child { border-bottom: 0; }
         .dml-region-value { min-width: 28px; padding: 3px 8px; border-radius: 999px; background: #eef4fa; color: #315b82; font-weight: 700; text-align: center; }
         .dml-table thead th { background: #f5f9fd; color: #324a63; font-size: 12px; font-weight: 600; white-space: nowrap; }
@@ -328,14 +329,29 @@ unset($summaryItem);
                     <section class="dml-panel">
                         <h2 class="dml-panel-title">Sebaran Wilayah</h2>
                         <div id="regionRows"><?php foreach ($regions as $region): ?>
-                            <div class="dml-region-row">
+                            <button type="button" class="dml-region-row js-region-drilldown" data-region="<?php echo h($region['label']); ?>" aria-label="Lihat ringkasan wilayah <?php echo h($region['label']); ?>">
                                 <span><?php echo h($region['label']); ?></span>
                                 <span class="dml-region-value"><?php echo (int)$region['value']; ?></span>
-                            </div>
+                            </button>
                         <?php endforeach; ?></div>
                     </section>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="regionSummaryModal" tabindex="-1" aria-labelledby="regionSummaryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title fs-5" id="regionSummaryModalLabel">Ringkasan Wilayah</h2>
+                    <div class="text-muted small" id="regionSummaryModalPeriod"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body p-0" id="regionSummaryModalBody"></div>
         </div>
     </div>
 </div>
@@ -351,6 +367,9 @@ unset($summaryItem);
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body p-0" id="summaryListModalBody"></div>
+            <div class="modal-footer d-none" id="summaryListModalFooter">
+                <button type="button" class="btn btn-outline-secondary" id="backToRegionSummary"><i class="bi bi-arrow-left me-1"></i>Kembali ke ringkasan wilayah</button>
+            </div>
         </div>
     </div>
 </div>
@@ -381,12 +400,17 @@ unset($summaryItem);
         const filterButton = document.getElementById('reportFilterButton');
         const keywordField = document.getElementById('filterKeyword');
         const reportBody = document.querySelector('#laporanTerbaruTable tbody');
+        const regionSummaryElement = document.getElementById('regionSummaryModal');
         const listElement = document.getElementById('summaryListModal');
         const detailElement = document.getElementById('summaryDetailModal');
+        const regionSummaryModal = bootstrap.Modal.getOrCreateInstance(regionSummaryElement);
         const listModal = bootstrap.Modal.getOrCreateInstance(listElement);
         const detailModal = bootstrap.Modal.getOrCreateInstance(detailElement);
+        const regionSummaryBody = document.getElementById('regionSummaryModalBody');
         const listBody = document.getElementById('summaryListModalBody');
         const detailBody = document.getElementById('summaryDetailModalBody');
+        const listFooter = document.getElementById('summaryListModalFooter');
+        const backToRegionSummary = document.getElementById('backToRegionSummary');
         const filterFields = {
             status: document.getElementById('filterStatus'),
             severity: document.getElementById('filterSeverity'),
@@ -397,6 +421,17 @@ unset($summaryItem);
         };
         let activeTabFilter = 'semua';
         let returnToList = false;
+        let listHasRegionParent = false;
+        let activeRegion = '';
+
+        const regionalSummaryCards = <?php echo json_encode(array_map(static function (array $item): array {
+            return [
+                'key' => $item['key'],
+                'value_key' => $item['value_key'],
+                'label' => $item['label'],
+                'unit' => $item['unit'],
+            ];
+        }, $summary), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
         document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
             bootstrap.Tooltip.getOrCreateInstance(el);
@@ -480,8 +515,9 @@ unset($summaryItem);
                     + '%;background:#4c8bc8"></div></div><span class="dml-reason-value">' + Number(item.value) + '</span></button>';
             }).join('') : '<div class="dml-empty">Belum ada data pada periode ini.</div>';
             document.getElementById('regionRows').innerHTML = data.regions.length ? data.regions.map(function (item) {
-                return '<div class="dml-region-row"><span>' + escapeHtml(item.label)
-                    + '</span><span class="dml-region-value">' + Number(item.value) + '</span></div>';
+                return '<button type="button" class="dml-region-row js-region-drilldown" data-region="' + escapeHtml(item.label)
+                    + '" aria-label="Lihat ringkasan wilayah ' + escapeHtml(item.label) + '"><span>' + escapeHtml(item.label)
+                    + '</span><span class="dml-region-value">' + Number(item.value) + '</span></button>';
             }).join('') : '<div class="dml-empty">Belum ada data pada periode ini.</div>';
             reportBody.querySelectorAll('.js-report-row').forEach(function (row) { row.remove(); });
             emptyRow.insertAdjacentHTML('beforebegin', data.recent_reports.map(reportRow).join(''));
@@ -551,15 +587,71 @@ unset($summaryItem);
                 + '<div class="dml-list-copy mt-2">' + escapeHtml(row.date_text || '') + '</div></div></div></button>';
         }
 
-        async function openList(card) {
+        function regionSummaryItem(card, value) {
+            return '<button type="button" class="dml-list-item js-region-summary-item" data-card="' + escapeHtml(card.key)
+                + '" data-card-title="' + escapeHtml(card.label) + '"><div class="d-flex justify-content-between align-items-center gap-3">'
+                + '<div><div class="dml-list-title">' + escapeHtml(card.label) + '</div>'
+                + '<div class="dml-list-copy mt-1">Lihat daftar ' + escapeHtml(card.unit.toLowerCase()) + ' di wilayah ini</div></div>'
+                + '<span class="dml-region-value">' + Number(value || 0) + '</span></div></button>';
+        }
+
+        function regionReasonItem(reason) {
+            return '<button type="button" class="dml-list-item js-region-summary-item" data-card="reason" data-reason="'
+                + escapeHtml(reason.label) + '" data-card-title="Alasan: ' + escapeHtml(reason.label)
+                + '"><div class="d-flex justify-content-between align-items-center gap-3"><div>'
+                + '<div class="dml-list-title">' + escapeHtml(reason.label) + '</div>'
+                + '<div class="dml-list-copy mt-1">Lihat laporan dengan alasan ini</div></div>'
+                + '<span class="dml-region-value">' + Number(reason.value || 0) + '</span></div></button>';
+        }
+
+        async function openRegionSummary(region) {
+            activeRegion = region;
+            document.getElementById('regionSummaryModalLabel').textContent = 'Ringkasan Wilayah: ' + region;
+            document.getElementById('regionSummaryModalPeriod').textContent = periodField.options[periodField.selectedIndex].text;
+            regionSummaryBody.innerHTML = '<div class="dml-empty"><span class="spinner-border spinner-border-sm me-2"></span>Memuat ringkasan...</div>';
+            regionSummaryModal.show();
+            try {
+                const data = await getJson({ action: 'region-summary', region: region, days: periodField.value });
+                const summaryItems = regionalSummaryCards.map(function (card) {
+                    return regionSummaryItem(card, data.summary[card.value_key]);
+                }).join('');
+                const reasonItems = data.reasons.length
+                    ? data.reasons.map(regionReasonItem).join('')
+                    : '<div class="dml-empty">Belum ada alasan pelaporan lowongan di wilayah ini.</div>';
+                regionSummaryBody.innerHTML = '<div class="px-3 pt-3 pb-2 fw-semibold text-secondary">Ringkasan</div>'
+                    + summaryItems
+                    + '<div class="px-3 pt-4 pb-2 fw-semibold text-secondary">Alasan Pelaporan</div>'
+                    + reasonItems;
+            } catch (error) {
+                regionSummaryBody.innerHTML = '<div class="alert alert-danger m-3">' + escapeHtml(error.message) + '</div>';
+            }
+        }
+
+        async function openList(card, region, fromRegionSummary) {
             const cardKey = card.dataset.card;
             const reason = card.dataset.reason || '';
+            activeRegion = region || '';
+            listHasRegionParent = !!fromRegionSummary;
             document.getElementById('summaryListModalLabel').textContent = card.dataset.cardTitle;
-            document.getElementById('summaryListModalPeriod').textContent = periodField.options[periodField.selectedIndex].text;
+            document.getElementById('summaryListModalPeriod').textContent = periodField.options[periodField.selectedIndex].text
+                + (activeRegion ? ' · ' + activeRegion : '');
+            listFooter.classList.toggle('d-none', !listHasRegionParent);
             listBody.innerHTML = '<div class="dml-empty"><span class="spinner-border spinner-border-sm me-2"></span>Memuat data...</div>';
-            listModal.show();
+            const showList = function () { listModal.show(); };
+            if (fromRegionSummary && regionSummaryElement.classList.contains('show')) {
+                regionSummaryElement.addEventListener('hidden.bs.modal', showList, { once: true });
+                regionSummaryModal.hide();
+            } else {
+                showList();
+            }
             try {
-                const rows = await getJson({ action: 'list', card: cardKey, reason: reason, days: periodField.value });
+                const rows = await getJson({
+                    action: 'list',
+                    card: cardKey,
+                    reason: reason,
+                    region: activeRegion,
+                    days: periodField.value
+                });
                 listBody.innerHTML = rows.length ? rows.map(listItem).join('') : '<div class="dml-empty">Belum ada data pada periode ini.</div>';
             } catch (error) {
                 listBody.innerHTML = '<div class="alert alert-danger m-3">' + escapeHtml(error.message) + '</div>';
@@ -648,6 +740,16 @@ unset($summaryItem);
             if (reasonRow) openList(reasonRow);
         });
 
+        document.getElementById('regionRows').addEventListener('click', function (event) {
+            const regionRow = event.target.closest('.js-region-drilldown');
+            if (regionRow) openRegionSummary(regionRow.dataset.region);
+        });
+
+        regionSummaryBody.addEventListener('click', function (event) {
+            const item = event.target.closest('.js-region-summary-item');
+            if (item) openList(item, activeRegion, true);
+        });
+
         listBody.addEventListener('click', function (event) {
             const button = event.target.closest('.js-list-detail');
             if (button) openDetail(button.dataset.recordType, button.dataset.recordId, true);
@@ -667,7 +769,14 @@ unset($summaryItem);
         document.getElementById('backToSummaryList').addEventListener('click', function () {
             detailModal.hide();
         });
+        backToRegionSummary.addEventListener('click', function () {
+            listElement.addEventListener('hidden.bs.modal', function () {
+                regionSummaryModal.show();
+            }, { once: true });
+            listModal.hide();
+        });
         periodField.addEventListener('change', function () {
+            regionSummaryModal.hide();
             listModal.hide();
             detailModal.hide();
             refreshDashboard();
