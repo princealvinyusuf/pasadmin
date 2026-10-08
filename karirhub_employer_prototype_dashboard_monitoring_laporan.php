@@ -167,9 +167,9 @@ unset($summaryItem);
             <div class="row g-3 mb-3">
                 <div class="col-12">
                     <section class="dml-panel" id="reasonPanel">
-                        <h2 class="dml-panel-title">Alasan Pelaporan Lowongan Terbanyak</h2>
+                        <h2 class="dml-panel-title">Alasan Pelaporan Terbanyak <span class="badge text-bg-light fw-normal ms-1">Objek: Lowongan</span></h2>
                         <div id="reasonRows"><?php foreach ($reasons as $item): ?>
-                            <button type="button" class="dml-reason-row js-reason-drilldown" data-card="reason" data-reason="<?php echo h($item['label']); ?>" data-card-title="Alasan: <?php echo h($item['label']); ?>" aria-label="Lihat laporan dengan alasan <?php echo h($item['label']); ?>">
+                            <button type="button" class="dml-reason-row js-reason-drilldown" data-card="reason" data-reason="<?php echo h($item['label']); ?>" data-card-title="Laporan Lowongan: <?php echo h($item['label']); ?>" aria-label="Lihat laporan lowongan dengan alasan <?php echo h($item['label']); ?>">
                                 <span class="dml-reason-label"><?php echo h($item['label']); ?></span>
                                 <div class="dml-track">
                                     <div class="dml-fill" style="width: <?php echo (int)$item['percent']; ?>%; background: #4c8bc8;"></div>
@@ -474,7 +474,7 @@ unset($summaryItem);
             });
             document.getElementById('reasonRows').innerHTML = data.reasons.length ? data.reasons.map(function (item) {
                 return '<button type="button" class="dml-reason-row js-reason-drilldown" data-card="reason" data-reason="' + escapeHtml(item.label)
-                    + '" data-card-title="Alasan: ' + escapeHtml(item.label) + '" aria-label="Lihat laporan dengan alasan ' + escapeHtml(item.label)
+                    + '" data-card-title="Laporan Lowongan: ' + escapeHtml(item.label) + '" aria-label="Lihat laporan lowongan dengan alasan ' + escapeHtml(item.label)
                     + '"><span class="dml-reason-label">' + escapeHtml(item.label)
                     + '</span><div class="dml-track"><div class="dml-fill" style="width:' + Number(item.percent)
                     + '%;background:#4c8bc8"></div></div><span class="dml-reason-value">' + Number(item.value) + '</span></button>';
