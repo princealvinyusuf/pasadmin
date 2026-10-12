@@ -396,7 +396,7 @@ function kh_monitoring_recent_reports(mysqli $conn, int $days, int $limit = 20):
     return $rows;
 }
 
-function kh_monitoring_list(mysqli $conn, string $card, int $days, string $reason = '', string $region = ''): array
+function kh_monitoring_list(mysqli $conn, string $card, int $days, string $reason = '', string $nature = '', string $region = ''): array
 {
     $days = kh_monitoring_period_days($days);
     $reportCondition = '';
@@ -426,6 +426,32 @@ function kh_monitoring_list(mysqli $conn, string $card, int $days, string $reaso
             ORDER BY r.submitted_at DESC
         ");
         $stmt->bind_param('isss', $days, $reason, $region, $region);
+    } elseif ($card === 'nature' && in_array($nature, ['Hoaks', 'Scamming', 'Lainnya'], true)) {
+        $stmt = $conn->prepare("
+            SELECT r.report_id AS id, 'report' AS record_type, r.subject AS title,
+                   CONCAT('Lowongan · ', e.name) AS subtitle,
+                   CONCAT(r.region, ' · ', r.reason) AS meta,
+                   CASE r.verification_status
+                       WHEN 'PENDING_REVIEW' THEN 'Menunggu Verifikasi'
+                       WHEN 'IN_REVIEW' THEN 'Dalam Verifikasi'
+                       ELSE 'Selesai'
+                   END AS status,
+                   DATE_FORMAT(r.submitted_at, '%d %b %Y %H:%i') AS date_text
+            FROM karirhub_proto_monitoring_reports r
+            JOIN karirhub_proto_monitoring_employers e ON e.employer_id = r.employer_id
+            WHERE r.submitted_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+              AND r.object_type = 'vacancy'
+              AND CASE
+                  WHEN LOWER(r.reason) REGEXP 'penipuan|biaya|pembayaran|data pribadi|kredensial|penyalahgunaan akun'
+                      THEN 'Scamming'
+                  WHEN LOWER(r.reason) REGEXP 'hoaks|fiktif|palsu|menyesatkan|identitas.*tidak sesuai'
+                      THEN 'Hoaks'
+                  ELSE 'Lainnya'
+              END = ?
+              AND (? = '' OR r.region = ?)
+            ORDER BY r.submitted_at DESC
+        ");
+        $stmt->bind_param('isss', $days, $nature, $region, $region);
     } elseif (array_key_exists($card, $reportCards)) {
         $reportCondition = $reportCards[$card];
         $stmt = $conn->prepare("

@@ -43,7 +43,7 @@ try {
         $card = strtolower(trim((string)($_GET['card'] ?? '')));
         $allowedCards = [
             'reports', 'reporters', 'vacancies', 'pending',
-            'reviewing', 'completed', 'blocked-vacancies', 'blocked-employers', 'reason',
+            'reviewing', 'completed', 'blocked-vacancies', 'blocked-employers', 'reason', 'nature',
         ];
         if (!in_array($card, $allowedCards, true)) {
             throw new InvalidArgumentException('Jenis ringkasan tidak valid.');
@@ -52,10 +52,14 @@ try {
         if ($card === 'reason' && $reason === '') {
             throw new InvalidArgumentException('Alasan pelaporan tidak valid.');
         }
+        $nature = trim((string)($_GET['nature'] ?? ''));
+        if ($card === 'nature' && !in_array($nature, ['Hoaks', 'Scamming', 'Lainnya'], true)) {
+            throw new InvalidArgumentException('Sifat pelaporan tidak valid.');
+        }
         $region = trim((string)($_GET['region'] ?? ''));
         echo json_encode([
             'ok' => true,
-            'data' => kh_monitoring_list($conn, $card, $days, $reason, $region),
+            'data' => kh_monitoring_list($conn, $card, $days, $reason, $nature, $region),
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }

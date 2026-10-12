@@ -100,7 +100,8 @@ unset($summaryItem);
         .dml-donut-center { position: absolute; z-index: 1; inset: 27px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #74889c; font-size: 11px; line-height: 1.2; }
         .dml-donut-total { color: #29445f; font-size: 24px; font-weight: 700; }
         .dml-nature-legend { display: grid; gap: 10px; min-width: 130px; }
-        .dml-nature-item { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 8px; color: #4b6279; font-size: 12px; }
+        .dml-nature-item { display: grid; width: 100%; grid-template-columns: 10px 1fr auto; align-items: center; gap: 8px; padding: 6px; border: 0; border-radius: 7px; background: transparent; color: #4b6279; font-size: 12px; text-align: left; cursor: pointer; }
+        .dml-nature-item:hover, .dml-nature-item:focus { background: #f3f8fc; outline: none; }
         .dml-nature-swatch { width: 10px; height: 10px; border-radius: 50%; }
         .dml-nature-value { color: #29445f; font-weight: 700; }
         .dml-table thead th { background: #f5f9fd; color: #324a63; font-size: 12px; font-weight: 600; white-space: nowrap; }
@@ -229,11 +230,18 @@ unset($summaryItem);
                             </div>
                             <div class="dml-nature-legend" id="reportNatureLegend">
                                 <?php foreach ($reportNatures as $nature): ?>
-                                    <div class="dml-nature-item">
+                                    <button
+                                        type="button"
+                                        class="dml-nature-item js-nature-drilldown"
+                                        data-card="nature"
+                                        data-nature="<?php echo h($nature['label']); ?>"
+                                        data-card-title="Sifat Pelaporan: <?php echo h($nature['label']); ?>"
+                                        aria-label="Lihat laporan dengan sifat <?php echo h($nature['label']); ?>"
+                                    >
                                         <span class="dml-nature-swatch" style="background: <?php echo h($nature['color']); ?>;"></span>
                                         <span><?php echo h($nature['label']); ?></span>
                                         <span class="dml-nature-value"><?php echo (int)$nature['value']; ?> (<?php echo h((string)$nature['percent']); ?>%)</span>
-                                    </div>
+                                    </button>
                                 <?php endforeach; ?>
                             </div>
                         </div>
@@ -735,10 +743,13 @@ unset($summaryItem);
             }).join(', '));
             document.getElementById('reportNatureTotal').textContent = total;
             document.getElementById('reportNatureLegend').innerHTML = items.map(function (item) {
-                return '<div class="dml-nature-item"><span class="dml-nature-swatch" style="background:'
-                    + escapeHtml(item.color) + '"></span><span>' + escapeHtml(item.label)
+                return '<button type="button" class="dml-nature-item js-nature-drilldown" data-card="nature" data-nature="'
+                    + escapeHtml(item.label) + '" data-card-title="Sifat Pelaporan: ' + escapeHtml(item.label)
+                    + '" aria-label="Lihat laporan dengan sifat ' + escapeHtml(item.label)
+                    + '"><span class="dml-nature-swatch" style="background:' + escapeHtml(item.color)
+                    + '"></span><span>' + escapeHtml(item.label)
                     + '</span><span class="dml-nature-value">' + Number(item.value || 0) + ' ('
-                    + Number(item.percent || 0) + '%)</span></div>';
+                    + Number(item.percent || 0) + '%)</span></button>';
             }).join('');
         }
 
@@ -873,6 +884,7 @@ unset($summaryItem);
         async function openList(card, region, fromRegionSummary) {
             const cardKey = card.dataset.card;
             const reason = card.dataset.reason || '';
+            const nature = card.dataset.nature || '';
             activeRegion = region || '';
             listHasRegionParent = !!fromRegionSummary;
             document.getElementById('summaryListModalLabel').textContent = card.dataset.cardTitle;
@@ -892,6 +904,7 @@ unset($summaryItem);
                     action: 'list',
                     card: cardKey,
                     reason: reason,
+                    nature: nature,
                     region: activeRegion,
                     days: periodField.value
                 });
@@ -981,6 +994,11 @@ unset($summaryItem);
         document.getElementById('reasonRows').addEventListener('click', function (event) {
             const reasonRow = event.target.closest('.js-reason-drilldown');
             if (reasonRow) openList(reasonRow);
+        });
+
+        document.getElementById('reportNatureLegend').addEventListener('click', function (event) {
+            const natureItem = event.target.closest('.js-nature-drilldown');
+            if (natureItem) openList(natureItem);
         });
 
         document.getElementById('regionRows').addEventListener('click', function (event) {
