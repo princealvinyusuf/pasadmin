@@ -21,8 +21,22 @@ $periodDays = kh_monitoring_period_days((int)($_GET['days'] ?? 30));
 $dashboardData = kh_monitoring_dashboard_data($conn, $periodDays);
 $summaryValues = $dashboardData['summary'];
 $reasons = $dashboardData['reasons'];
+$reportNatures = $dashboardData['report_natures'];
 $regions = $dashboardData['regions'];
 $recentReports = $dashboardData['recent_reports'];
+
+$reportNatureTotal = array_sum(array_column($reportNatures, 'value'));
+$reportNatureOffset = 0;
+$reportNatureSegments = [];
+foreach ($reportNatures as $nature) {
+    $segmentStart = $reportNatureTotal > 0 ? ($reportNatureOffset / $reportNatureTotal) * 100 : 0;
+    $reportNatureOffset += (int)$nature['value'];
+    $segmentEnd = $reportNatureTotal > 0 ? ($reportNatureOffset / $reportNatureTotal) * 100 : 0;
+    $reportNatureSegments[] = sprintf('%s %.2f%% %.2f%%', $nature['color'], $segmentStart, $segmentEnd);
+}
+$reportNatureGradient = $reportNatureTotal > 0
+    ? 'conic-gradient(' . implode(', ', $reportNatureSegments) . ')'
+    : 'conic-gradient(#edf2f7 0 100%)';
 
 $summary = [
     ['key' => 'reports', 'value_key' => 'total_reports', 'label' => 'Jumlah Laporan', 'unit' => 'Laporan', 'icon' => 'bi-flag', 'tone' => 'blue', 'tooltip' => 'Jumlah seluruh laporan pada periode yang dipilih.'],
@@ -80,6 +94,15 @@ unset($summaryItem);
         .dml-region-row:hover, .dml-region-row:focus { background: #f3f8fc; outline: none; }
         .dml-region-row:last-child { border-bottom: 0; }
         .dml-region-value { min-width: 28px; padding: 3px 8px; border-radius: 999px; background: #eef4fa; color: #315b82; font-weight: 700; text-align: center; }
+        .dml-nature-content { display: flex; align-items: center; justify-content: center; gap: 28px; min-height: 160px; }
+        .dml-donut { position: relative; width: 142px; height: 142px; flex: 0 0 142px; border-radius: 50%; }
+        .dml-donut::after { content: ""; position: absolute; inset: 27px; border-radius: 50%; background: #fff; }
+        .dml-donut-center { position: absolute; z-index: 1; inset: 27px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #74889c; font-size: 11px; line-height: 1.2; }
+        .dml-donut-total { color: #29445f; font-size: 24px; font-weight: 700; }
+        .dml-nature-legend { display: grid; gap: 10px; min-width: 130px; }
+        .dml-nature-item { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 8px; color: #4b6279; font-size: 12px; }
+        .dml-nature-swatch { width: 10px; height: 10px; border-radius: 50%; }
+        .dml-nature-value { color: #29445f; font-weight: 700; }
         .dml-table thead th { background: #f5f9fd; color: #324a63; font-size: 12px; font-weight: 600; white-space: nowrap; }
         .dml-table td { color: #3c566f; font-size: 12px; vertical-align: middle; }
         .dml-chip { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
@@ -113,6 +136,7 @@ unset($summaryItem);
             .dml-title { font-size: 23px; }
             .dml-period { width: 100%; }
             .dml-reason-row { grid-template-columns: minmax(130px, 1.5fr) minmax(75px, 1fr) 25px; gap: 7px; }
+            .dml-nature-content { flex-wrap: wrap; gap: 20px; }
             .dml-detail-grid { grid-template-columns: 1fr; }
         }
     </style>
@@ -171,7 +195,7 @@ unset($summaryItem);
             </div>
 
             <div class="row g-3 mb-3">
-                <div class="col-12">
+                <div class="col-12 col-xl-8">
                     <section class="dml-panel" id="reasonPanel">
                         <h2 class="dml-panel-title">Alasan Pelaporan Lowongan Terbanyak</h2>
                         <div id="reasonRows"><?php foreach ($reasons as $item): ?>
@@ -183,6 +207,36 @@ unset($summaryItem);
                                 <span class="dml-reason-value"><?php echo (int)$item['value']; ?></span>
                             </button>
                         <?php endforeach; ?></div>
+                    </section>
+                </div>
+                <div class="col-12 col-xl-4">
+                    <section class="dml-panel" id="reportNaturePanel">
+                        <h2 class="dml-panel-title">Sifat Pelaporan</h2>
+                        <div class="dml-nature-content">
+                            <div
+                                class="dml-donut"
+                                id="reportNatureDonut"
+                                role="img"
+                                aria-label="Sifat pelaporan: <?php echo h(implode(', ', array_map(static function (array $item): string {
+                                    return $item['label'] . ' ' . $item['value'];
+                                }, $reportNatures))); ?>"
+                                style="background: <?php echo h($reportNatureGradient); ?>;"
+                            >
+                                <div class="dml-donut-center">
+                                    <span class="dml-donut-total" id="reportNatureTotal"><?php echo (int)$reportNatureTotal; ?></span>
+                                    <span>Laporan</span>
+                                </div>
+                            </div>
+                            <div class="dml-nature-legend" id="reportNatureLegend">
+                                <?php foreach ($reportNatures as $nature): ?>
+                                    <div class="dml-nature-item">
+                                        <span class="dml-nature-swatch" style="background: <?php echo h($nature['color']); ?>;"></span>
+                                        <span><?php echo h($nature['label']); ?></span>
+                                        <span class="dml-nature-value"><?php echo (int)$nature['value']; ?> (<?php echo h((string)$nature['percent']); ?>%)</span>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
                     </section>
                 </div>
             </div>
@@ -663,6 +717,31 @@ unset($summaryItem);
                 + '</tr>';
         }
 
+        function renderReportNatures(items) {
+            const total = items.reduce(function (sum, item) { return sum + Number(item.value || 0); }, 0);
+            let offset = 0;
+            const segments = items.map(function (item) {
+                const start = total > 0 ? (offset / total) * 100 : 0;
+                offset += Number(item.value || 0);
+                const end = total > 0 ? (offset / total) * 100 : 0;
+                return item.color + ' ' + start.toFixed(2) + '% ' + end.toFixed(2) + '%';
+            });
+            const donut = document.getElementById('reportNatureDonut');
+            donut.style.background = total > 0
+                ? 'conic-gradient(' + segments.join(',') + ')'
+                : 'conic-gradient(#edf2f7 0 100%)';
+            donut.setAttribute('aria-label', 'Sifat pelaporan: ' + items.map(function (item) {
+                return item.label + ' ' + Number(item.value || 0);
+            }).join(', '));
+            document.getElementById('reportNatureTotal').textContent = total;
+            document.getElementById('reportNatureLegend').innerHTML = items.map(function (item) {
+                return '<div class="dml-nature-item"><span class="dml-nature-swatch" style="background:'
+                    + escapeHtml(item.color) + '"></span><span>' + escapeHtml(item.label)
+                    + '</span><span class="dml-nature-value">' + Number(item.value || 0) + ' ('
+                    + Number(item.percent || 0) + '%)</span></div>';
+            }).join('');
+        }
+
         function renderDashboard(data) {
             Object.keys(data.summary).forEach(function (key) {
                 const node = document.querySelector('[data-summary-value="' + key + '"]');
@@ -677,6 +756,7 @@ unset($summaryItem);
                     + '</span><div class="dml-track"><div class="dml-fill" style="width:' + Number(item.percent)
                     + '%;background:#4c8bc8"></div></div><span class="dml-reason-value">' + Number(item.value) + '</span></button>';
             }).join('') : '<div class="dml-empty">Belum ada data pada periode ini.</div>';
+            renderReportNatures(data.report_natures || []);
             document.getElementById('regionRows').innerHTML = data.regions.length ? data.regions.map(function (item) {
                 return '<button type="button" class="dml-region-row js-region-drilldown" data-region="' + escapeHtml(item.label)
                     + '" aria-label="Lihat ringkasan wilayah ' + escapeHtml(item.label) + '"><span>' + escapeHtml(item.label)

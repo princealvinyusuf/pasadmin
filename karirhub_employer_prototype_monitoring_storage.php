@@ -242,6 +242,53 @@ function kh_monitoring_reasons(mysqli $conn, int $days): array
     return $rows;
 }
 
+function kh_monitoring_report_natures(mysqli $conn, int $days): array
+{
+    $days = kh_monitoring_period_days($days);
+    $stmt = $conn->prepare("
+        SELECT
+            CASE
+                WHEN LOWER(reason) REGEXP 'penipuan|biaya|pembayaran|data pribadi|kredensial|penyalahgunaan akun'
+                    THEN 'Scamming'
+                WHEN LOWER(reason) REGEXP 'hoaks|fiktif|palsu|menyesatkan|identitas.*tidak sesuai'
+                    THEN 'Hoaks'
+                ELSE 'Lainnya'
+            END AS label,
+            COUNT(*) AS value
+        FROM karirhub_proto_monitoring_reports
+        WHERE submitted_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+          AND object_type = 'vacancy'
+        GROUP BY label
+    ");
+    $stmt->bind_param('i', $days);
+    $rows = kh_monitoring_fetch_all($stmt);
+    $stmt->close();
+
+    $counts = array_fill_keys(['Hoaks', 'Scamming', 'Lainnya'], 0);
+    foreach ($rows as $row) {
+        if (array_key_exists($row['label'], $counts)) {
+            $counts[$row['label']] = (int)$row['value'];
+        }
+    }
+    $total = array_sum($counts);
+    $colors = [
+        'Hoaks' => '#4c8bc8',
+        'Scamming' => '#ef8a62',
+        'Lainnya' => '#8b95a5',
+    ];
+
+    $result = [];
+    foreach ($counts as $label => $value) {
+        $result[] = [
+            'label' => $label,
+            'value' => $value,
+            'percent' => $total > 0 ? round(($value / $total) * 100, 1) : 0,
+            'color' => $colors[$label],
+        ];
+    }
+    return $result;
+}
+
 function kh_monitoring_regions(mysqli $conn, int $days): array
 {
     $days = kh_monitoring_period_days($days);
@@ -615,6 +662,7 @@ function kh_monitoring_dashboard_data(mysqli $conn, int $days): array
         'period_days' => kh_monitoring_period_days($days),
         'summary' => kh_monitoring_summary($conn, $days),
         'reasons' => kh_monitoring_reasons($conn, $days),
+        'report_natures' => kh_monitoring_report_natures($conn, $days),
         'regions' => kh_monitoring_regions($conn, $days),
         'recent_reports' => kh_monitoring_recent_reports($conn, $days),
     ];
