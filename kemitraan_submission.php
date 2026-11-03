@@ -349,6 +349,154 @@ if (isset($_POST['reject_id'])) {
     exit();
 }
 
+// Handle add/update/delete Detail Lowongan directly from the Detail modal
+if (isset($_POST['manage_detail_lowongan'])) {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $action = trim($_POST['detail_action'] ?? '');
+    $kemitraanId = intval($_POST['kemitraan_id'] ?? 0);
+    $detailLowonganId = intval($_POST['detail_lowongan_id'] ?? 0);
+
+    if ($kemitraanId <= 0 || !in_array($action, ['save', 'delete'], true)) {
+        echo json_encode(['ok' => false, 'message' => 'Parameter tidak valid.']);
+        exit();
+    }
+    if (!can_access_kemitraan_record($conn, $kemitraanId, $isSuperAdmin, $scopedLocationId)) {
+        echo json_encode(['ok' => false, 'message' => 'Anda tidak memiliki akses ke data kemitraan ini.']);
+        exit();
+    }
+    if (!table_exists($conn, 'kemitraan_detail_lowongan')) {
+        echo json_encode(['ok' => false, 'message' => 'Tabel kemitraan_detail_lowongan tidak ditemukan.']);
+        exit();
+    }
+
+    if ($action === 'delete') {
+        if ($detailLowonganId <= 0) {
+            echo json_encode(['ok' => false, 'message' => 'Detail lowongan belum tersimpan.']);
+            exit();
+        }
+        $stmt = $conn->prepare("DELETE FROM kemitraan_detail_lowongan WHERE id=? AND kemitraan_id=?");
+        if (!$stmt) {
+            echo json_encode(['ok' => false, 'message' => 'DB prepare failed: ' . $conn->error]);
+            exit();
+        }
+        $stmt->bind_param('ii', $detailLowonganId, $kemitraanId);
+        $ok = $stmt->execute();
+        $stmt->close();
+        echo json_encode([
+            'ok' => $ok,
+            'message' => $ok ? 'Detail lowongan berhasil dihapus.' : 'Gagal menghapus detail lowongan.',
+        ]);
+        exit();
+    }
+
+    $detail = [
+        'jabatan_yang_dibuka' => trim($_POST['jabatan_yang_dibuka'] ?? ''),
+        'jumlah_kebutuhan' => trim($_POST['jumlah_kebutuhan'] ?? ''),
+        'sasaran_pemenuhan_walk_in_interview' => max(0, intval($_POST['sasaran_pemenuhan_walk_in_interview'] ?? 0)),
+        'jumlah_penempatan' => trim($_POST['jumlah_penempatan'] ?? ''),
+        'link_melamar' => trim($_POST['link_melamar'] ?? ''),
+        'gender' => trim($_POST['gender'] ?? ''),
+        'pendidikan_terakhir' => trim($_POST['pendidikan_terakhir'] ?? ''),
+        'pengalaman_kerja' => trim($_POST['pengalaman_kerja'] ?? ''),
+        'kompetensi_yang_dibutuhkan' => trim($_POST['kompetensi_yang_dibutuhkan'] ?? ''),
+        'tahapan_seleksi' => trim($_POST['tahapan_seleksi'] ?? ''),
+        'lokasi_penempatan' => trim($_POST['lokasi_penempatan'] ?? ''),
+    ];
+    $jumlahKebutuhan = max(0, intval($detail['jumlah_kebutuhan']));
+    $detail['sasaran_pemenuhan_walk_in_interview'] = min(
+        $detail['sasaran_pemenuhan_walk_in_interview'],
+        $jumlahKebutuhan
+    );
+    $namaPerusahaan = array_values(array_filter(
+        array_map('trim', explode(',', trim($_POST['nama_perusahaan'] ?? ''))),
+        static function ($name) { return $name !== ''; }
+    ));
+
+    $fieldValues = [
+        'jabatan_yang_dibuka' => $detail['jabatan_yang_dibuka'],
+        'jumlah_kebutuhan' => $detail['jumlah_kebutuhan'],
+        'gender' => $detail['gender'],
+        'pendidikan_terakhir' => $detail['pendidikan_terakhir'],
+        'pengalaman_kerja' => $detail['pengalaman_kerja'],
+        'kompetensi_yang_dibutuhkan' => $detail['kompetensi_yang_dibutuhkan'],
+        'tahapan_seleksi' => $detail['tahapan_seleksi'],
+        'lokasi_penempatan' => $detail['lokasi_penempatan'],
+    ];
+    $fieldTypes = [
+        'jabatan_yang_dibuka' => 's',
+        'jumlah_kebutuhan' => 's',
+        'gender' => 's',
+        'pendidikan_terakhir' => 's',
+        'pengalaman_kerja' => 's',
+        'kompetensi_yang_dibutuhkan' => 's',
+        'tahapan_seleksi' => 's',
+        'lokasi_penempatan' => 's',
+    ];
+    $optionalFields = [
+        'sasaran_pemenuhan_walk_in_interview' => [$detail['sasaran_pemenuhan_walk_in_interview'], 'i'],
+        'jumlah_penempatan' => [$detail['jumlah_penempatan'], 's'],
+        'link_melamar' => [$detail['link_melamar'], 's'],
+        'nama_perusahaan' => [json_encode($namaPerusahaan, JSON_UNESCAPED_UNICODE), 's'],
+    ];
+    foreach ($optionalFields as $column => $valueAndType) {
+        if (column_exists($conn, 'kemitraan_detail_lowongan', $column)) {
+            $fieldValues[$column] = $valueAndType[0];
+            $fieldTypes[$column] = $valueAndType[1];
+        }
+    }
+
+    if ($detailLowonganId > 0) {
+        $assignments = [];
+        $values = [];
+        $types = '';
+        foreach ($fieldValues as $column => $value) {
+            $assignments[] = $column . '=?';
+            $values[] = $value;
+            $types .= $fieldTypes[$column];
+        }
+        $values[] = $detailLowonganId;
+        $values[] = $kemitraanId;
+        $types .= 'ii';
+        $stmt = $conn->prepare(
+            "UPDATE kemitraan_detail_lowongan SET " . implode(', ', $assignments) . " WHERE id=? AND kemitraan_id=?"
+        );
+    } else {
+        $columns = array_merge(['kemitraan_id'], array_keys($fieldValues));
+        $values = array_merge([$kemitraanId], array_values($fieldValues));
+        $types = 'i' . implode('', array_values($fieldTypes));
+        $placeholders = implode(', ', array_fill(0, count($columns), '?'));
+        $stmt = $conn->prepare(
+            "INSERT INTO kemitraan_detail_lowongan (" . implode(', ', $columns) . ") VALUES ($placeholders)"
+        );
+    }
+
+    if (!$stmt) {
+        echo json_encode(['ok' => false, 'message' => 'DB prepare failed: ' . $conn->error]);
+        exit();
+    }
+    $stmt->bind_param($types, ...$values);
+    $ok = $stmt->execute();
+    if ($ok && $detailLowonganId <= 0) {
+        $detailLowonganId = intval($conn->insert_id);
+    }
+    $stmt->close();
+
+    if (!$ok) {
+        echo json_encode(['ok' => false, 'message' => 'Gagal menyimpan detail lowongan.']);
+        exit();
+    }
+
+    $detail['id'] = $detailLowonganId;
+    $detail['nama_perusahaan'] = $namaPerusahaan;
+    echo json_encode([
+        'ok' => true,
+        'message' => 'Detail lowongan berhasil disimpan.',
+        'detail' => $detail,
+    ], JSON_UNESCAPED_UNICODE);
+    exit();
+}
+
 // Handle live update for jumlah_penempatan from Detail modal
 if (isset($_POST['live_update_jumlah_penempatan'])) {
     header('Content-Type: application/json; charset=utf-8');
@@ -1196,6 +1344,9 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 <div id="downloadLetterContainer" class="mb-2"></div>
               </div>
               <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="addDetailLowonganFromDetail">
+                  <i class="bi bi-plus-circle"></i> Add Detail Lowongan
+                </button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
               </div>
             </div>
@@ -1426,10 +1577,122 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
         </div>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
+          let activeDetailRow = null;
+          let activeDetailKemitraanId = 0;
+          let detailLowonganDraftVisible = false;
+
+          function escapeHtml(str) {
+            return String(str ?? '')
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#039;');
+          }
+
+          function getActiveDetailLowongan() {
+            if (!activeDetailRow) return [];
+            try {
+              const parsed = JSON.parse(activeDetailRow.getAttribute('data-detail-lowongan') || '[]');
+              return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+              return [];
+            }
+          }
+
+          function setActiveDetailLowongan(items) {
+            if (activeDetailRow) {
+              activeDetailRow.setAttribute('data-detail-lowongan', JSON.stringify(items));
+            }
+          }
+
+          function detailLowonganEditorHtml(items) {
+            if (!Array.isArray(items) || items.length === 0) {
+              return `<div id="detailLowonganEditors"><span class="text-muted">Belum ada detail lowongan.</span></div>`;
+            }
+
+            let output = `<div id="detailLowonganEditors" class="d-flex flex-column gap-3">`;
+            items.forEach((item, idx) => {
+              const companyNames = Array.isArray(item.nama_perusahaan)
+                ? item.nama_perusahaan.join(', ')
+                : (item.nama_perusahaan || '');
+              output += `
+                <div class="border rounded p-3 bg-white detail-lowongan-editor" data-lowongan-index="${idx}" data-lowongan-id="${parseInt(item.id || '0', 10)}">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="fw-semibold">Lowongan #${idx + 1}${item._isNew ? ' (Baru)' : ''}</div>
+                    <button type="button" class="btn btn-sm btn-outline-danger detail-lowongan-delete">
+                      <i class="bi bi-trash"></i> Delete
+                    </button>
+                  </div>
+                  <div class="row g-2">
+                    <div class="col-md-6">
+                      <label class="form-label small">Jabatan Yang Dibuka</label>
+                      <input type="text" class="form-control form-control-sm" data-field="jabatan_yang_dibuka" value="${escapeHtml(item.jabatan_yang_dibuka || '')}">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small">Jumlah Kebutuhan</label>
+                      <input type="number" min="0" class="form-control form-control-sm" data-field="jumlah_kebutuhan" value="${escapeHtml(item.jumlah_kebutuhan || '')}">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small">Target Pemenuhan Walk In Interview</label>
+                      <input type="number" min="0" class="form-control form-control-sm" data-field="sasaran_pemenuhan_walk_in_interview" value="${escapeHtml(item.sasaran_pemenuhan_walk_in_interview ?? 0)}">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small">Jumlah Penempatan (Admin)</label>
+                      <input type="text" class="form-control form-control-sm" data-field="jumlah_penempatan" value="${escapeHtml(item.jumlah_penempatan || '')}">
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small">Link Melamar (pisahkan koma jika &gt; 1)</label>
+                      <input type="text" class="form-control form-control-sm" data-field="link_melamar" value="${escapeHtml(item.link_melamar || '')}">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small">Gender</label>
+                      <input type="text" class="form-control form-control-sm" data-field="gender" value="${escapeHtml(item.gender || '')}">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small">Pendidikan Terakhir</label>
+                      <input type="text" class="form-control form-control-sm" data-field="pendidikan_terakhir" value="${escapeHtml(item.pendidikan_terakhir || '')}">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small">Pengalaman Kerja</label>
+                      <input type="text" class="form-control form-control-sm" data-field="pengalaman_kerja" value="${escapeHtml(item.pengalaman_kerja || '')}">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small">Lokasi Penempatan</label>
+                      <input type="text" class="form-control form-control-sm" data-field="lokasi_penempatan" value="${escapeHtml(item.lokasi_penempatan || '')}">
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small">Nama Perusahaan (comma-separated)</label>
+                      <input type="text" class="form-control form-control-sm" data-field="nama_perusahaan" value="${escapeHtml(companyNames)}">
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small">Kompetensi Yang Dibutuhkan</label>
+                      <textarea class="form-control form-control-sm" rows="2" data-field="kompetensi_yang_dibutuhkan">${escapeHtml(item.kompetensi_yang_dibutuhkan || '')}</textarea>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small">Tahapan Seleksi</label>
+                      <textarea class="form-control form-control-sm" rows="2" data-field="tahapan_seleksi">${escapeHtml(item.tahapan_seleksi || '')}</textarea>
+                    </div>
+                  </div>
+                  <div class="d-flex align-items-center gap-2 mt-3">
+                    <button type="button" class="btn btn-sm btn-primary detail-lowongan-save">
+                      <i class="bi bi-save"></i> Save
+                    </button>
+                    <small class="detail-lowongan-status text-muted"></small>
+                  </div>
+                </div>`;
+            });
+            output += `</div>`;
+            return output;
+          }
+
           const detailButtons = document.querySelectorAll('.detail-btn');
           detailButtons.forEach(function(btn) {
             btn.addEventListener('click', function() {
               const row = btn.closest('tr');
+              activeDetailRow = row;
+              activeDetailKemitraanId = parseInt(btn.getAttribute('data-id') || '0', 10);
+              detailLowonganDraftVisible = false;
               const cells = row.querySelectorAll('td');
               // skip the first cell (actions)
               const headers = [
@@ -1438,15 +1701,6 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
                 'Lokasi', 'Tipe Penyelenggara', 'Room', 'Other Room', 'Facility', 'Other Facility', 'Schedule', 'Time', 'Request Letter', 'Status', 'Created At', 'Updated At'
               ];
               let html = '';
-
-              function escapeHtml(str) {
-                return String(str ?? '')
-                  .replace(/&/g, '&amp;')
-                  .replace(/</g, '&lt;')
-                  .replace(/>/g, '&gt;')
-                  .replace(/"/g, '&quot;')
-                  .replace(/'/g, '&#039;');
-              }
 
               for (let i = 1; i < headers.length + 1; i++) {
                 if (headers[i-1] === 'Foto Kartu Pegawai PIC') {
@@ -1467,85 +1721,11 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
 
               // Detail Lowongan (new feature)
               try {
-                const kemitraanId = parseInt(btn.getAttribute('data-id') || '0', 10);
                 const lowonganRaw = row.getAttribute('data-detail-lowongan') || '[]';
                 const lowongan = JSON.parse(lowonganRaw);
-                if (Array.isArray(lowongan) && lowongan.length > 0) {
-                  let lowonganHtml = `<div class="d-flex flex-column gap-3">`;
-                  lowongan.forEach((l, idx) => {
-                    const lowonganId = parseInt(l.id || '0', 10);
-                    lowonganHtml += `
-                      <div class="border rounded p-2 bg-white">
-                        <div class="fw-semibold mb-2">Lowongan #${idx + 1}</div>
-                        <div><span class="text-muted">Jabatan Yang Dibuka:</span> ${escapeHtml(l.jabatan_yang_dibuka)}</div>
-                        <div><span class="text-muted">Jumlah Kebutuhan:</span> ${escapeHtml(l.jumlah_kebutuhan)}</div>
-                        <div><span class="text-muted">Target Pemenuhan Kebutuhan Kandidat melalui Walk In Interview ini (Jumlah):</span> ${escapeHtml(l.sasaran_pemenuhan_walk_in_interview ?? 0)}</div>
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                          <span class="text-muted">Jumlah Penempatan:</span>
-                          <input
-                            type="text"
-                            class="form-control form-control-sm live-jumlah-penempatan-input"
-                            style="max-width:180px"
-                            data-kemitraan-id="${kemitraanId}"
-                            data-lowongan-id="${lowonganId}"
-                            data-lowongan-idx="${idx}"
-                            value="${escapeHtml(l.jumlah_penempatan || '')}"
-                            ${lowonganId > 0 ? '' : 'disabled'}
-                          >
-                          <button
-                            type="button"
-                            class="btn btn-sm btn-outline-primary live-jumlah-penempatan-save"
-                            data-kemitraan-id="${kemitraanId}"
-                            data-lowongan-id="${lowonganId}"
-                            data-lowongan-idx="${idx}"
-                            ${lowonganId > 0 ? '' : 'disabled'}
-                          >Save</button>
-                          <small class="text-muted live-jumlah-penempatan-status" data-lowongan-idx="${idx}"></small>
-                        </div>
-                        <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
-                          <span class="text-muted">Link Melamar:</span>
-                          <input
-                            type="text"
-                            placeholder="https://link1.com, https://link2.com"
-                            class="form-control form-control-sm live-link-melamar-input"
-                            style="min-width:240px; flex:1;"
-                            data-kemitraan-id="${kemitraanId}"
-                            data-lowongan-id="${lowonganId}"
-                            data-lowongan-idx="${idx}"
-                            value="${escapeHtml(l.link_melamar || '')}"
-                            ${lowonganId > 0 ? '' : 'disabled'}
-                          >
-                          <button
-                            type="button"
-                            class="btn btn-sm btn-outline-primary live-link-melamar-save"
-                            data-kemitraan-id="${kemitraanId}"
-                            data-lowongan-id="${lowonganId}"
-                            data-lowongan-idx="${idx}"
-                            ${lowonganId > 0 ? '' : 'disabled'}
-                          >Save</button>
-                          <small class="text-muted live-link-melamar-status" data-lowongan-idx="${idx}"></small>
-                        </div>
-                        <div><span class="text-muted">Gender:</span> ${escapeHtml(l.gender || '-')}</div>
-                        <div><span class="text-muted">Pendidikan Terakhir:</span> ${escapeHtml(l.pendidikan_terakhir || '-')}</div>
-                        <div><span class="text-muted">Pengalaman Kerja:</span> ${escapeHtml(l.pengalaman_kerja || '-')}</div>
-                        <div><span class="text-muted">Lokasi Penempatan:</span> ${escapeHtml(l.lokasi_penempatan || '-')}</div>
-                        <div><span class="text-muted">Nama Perusahaan:</span> ${
-                          (Array.isArray(l.nama_perusahaan) && l.nama_perusahaan.length > 0)
-                            ? escapeHtml(l.nama_perusahaan.join(', '))
-                            : '-'
-                        }</div>
-                        <div class="mt-2"><span class="text-muted">Kompetensi Yang Dibutuhkan:</span><br>${escapeHtml(l.kompetensi_yang_dibutuhkan || '-')}</div>
-                        <div class="mt-2"><span class="text-muted">Tahapan Seleksi:</span><br>${escapeHtml(l.tahapan_seleksi || '-')}</div>
-                      </div>
-                    `;
-                  });
-                  lowonganHtml += `</div>`;
-                  html += `<tr><th>Detail Lowongan</th><td>${lowonganHtml}</td></tr>`;
-                } else {
-                  html += `<tr><th>Detail Lowongan</th><td><span class='text-muted'>-</span></td></tr>`;
-                }
+                html += `<tr><th>Detail Lowongan</th><td id="detailLowonganCell">${detailLowonganEditorHtml(lowongan)}</td></tr>`;
               } catch (e) {
-                html += `<tr><th>Detail Lowongan</th><td><span class='text-muted'>-</span></td></tr>`;
+                html += `<tr><th>Detail Lowongan</th><td id="detailLowonganCell">${detailLowonganEditorHtml([])}</td></tr>`;
               }
 
               document.getElementById('detailModalBody').innerHTML = html;
@@ -1752,6 +1932,153 @@ $rejected_count = safe_count($conn, "SELECT COUNT(*) FROM kemitraan WHERE status
               detailModal.show();
             });
           });
+
+          async function postDetailLowongan(payload) {
+            const endpoints = [
+              window.location.pathname + window.location.search,
+              'kemitraan_submission',
+              'kemitraan_submission.php'
+            ];
+            let lastError = null;
+
+            for (const endpoint of endpoints) {
+              try {
+                const response = await fetch(endpoint, {
+                  method: 'POST',
+                  credentials: 'same-origin',
+                  headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest'
+                  },
+                  body: payload.toString()
+                });
+                const rawText = await response.text();
+                let result;
+                try {
+                  result = JSON.parse(rawText);
+                } catch (e) {
+                  throw new Error(response.ok ? 'Response bukan JSON valid.' : `HTTP ${response.status}`);
+                }
+                if (!result || !result.ok) {
+                  throw new Error((result && result.message) ? result.message : 'Operasi gagal.');
+                }
+                return result;
+              } catch (error) {
+                lastError = error;
+              }
+            }
+            throw lastError || new Error('Gagal menghubungi server.');
+          }
+
+          document.getElementById('addDetailLowonganFromDetail').addEventListener('click', function() {
+            if (!activeDetailRow || activeDetailKemitraanId <= 0) return;
+            if (detailLowonganDraftVisible) {
+              const draft = document.querySelector('.detail-lowongan-editor[data-lowongan-id="0"]');
+              if (draft) draft.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              return;
+            }
+
+            const items = getActiveDetailLowongan();
+            items.push({
+              id: 0,
+              _isNew: true,
+              sasaran_pemenuhan_walk_in_interview: 0,
+              nama_perusahaan: []
+            });
+            detailLowonganDraftVisible = true;
+            const cell = document.getElementById('detailLowonganCell');
+            if (cell) {
+              cell.innerHTML = detailLowonganEditorHtml(items);
+              const draft = cell.querySelector('.detail-lowongan-editor[data-lowongan-id="0"]');
+              if (draft) draft.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          });
+
+          document.getElementById('detailModal').addEventListener('click', async function(event) {
+            const saveButton = event.target.closest('.detail-lowongan-save');
+            const deleteButton = event.target.closest('.detail-lowongan-delete');
+            if (!saveButton && !deleteButton) return;
+
+            const editor = event.target.closest('.detail-lowongan-editor');
+            if (!editor || !activeDetailRow || activeDetailKemitraanId <= 0) return;
+
+            const index = parseInt(editor.getAttribute('data-lowongan-index') || '-1', 10);
+            const detailLowonganId = parseInt(editor.getAttribute('data-lowongan-id') || '0', 10);
+            const status = editor.querySelector('.detail-lowongan-status');
+
+            if (deleteButton) {
+              if (detailLowonganId <= 0) {
+                detailLowonganDraftVisible = false;
+                const cell = document.getElementById('detailLowonganCell');
+                if (cell) cell.innerHTML = detailLowonganEditorHtml(getActiveDetailLowongan());
+                return;
+              }
+              if (!window.confirm('Hapus detail lowongan ini?')) return;
+
+              deleteButton.disabled = true;
+              if (status) {
+                status.className = 'detail-lowongan-status text-muted';
+                status.textContent = 'Menghapus...';
+              }
+              try {
+                const payload = new URLSearchParams();
+                payload.set('manage_detail_lowongan', '1');
+                payload.set('detail_action', 'delete');
+                payload.set('kemitraan_id', String(activeDetailKemitraanId));
+                payload.set('detail_lowongan_id', String(detailLowonganId));
+                await postDetailLowongan(payload);
+
+                const items = getActiveDetailLowongan();
+                if (index >= 0 && index < items.length) items.splice(index, 1);
+                setActiveDetailLowongan(items);
+                detailLowonganDraftVisible = false;
+                const cell = document.getElementById('detailLowonganCell');
+                if (cell) cell.innerHTML = detailLowonganEditorHtml(items);
+              } catch (error) {
+                deleteButton.disabled = false;
+                if (status) {
+                  status.className = 'detail-lowongan-status text-danger';
+                  status.textContent = error.message || 'Gagal menghapus';
+                }
+              }
+              return;
+            }
+
+            const payload = new URLSearchParams();
+            payload.set('manage_detail_lowongan', '1');
+            payload.set('detail_action', 'save');
+            payload.set('kemitraan_id', String(activeDetailKemitraanId));
+            payload.set('detail_lowongan_id', String(detailLowonganId));
+            editor.querySelectorAll('[data-field]').forEach(function(input) {
+              payload.set(input.getAttribute('data-field'), input.value.trim());
+            });
+
+            saveButton.disabled = true;
+            if (status) {
+              status.className = 'detail-lowongan-status text-muted';
+              status.textContent = 'Menyimpan...';
+            }
+            try {
+              const result = await postDetailLowongan(payload);
+              const items = getActiveDetailLowongan();
+              if (detailLowonganId <= 0) {
+                items.push(result.detail);
+              } else if (index >= 0 && index < items.length) {
+                items[index] = result.detail;
+              }
+              setActiveDetailLowongan(items);
+              detailLowonganDraftVisible = false;
+              const cell = document.getElementById('detailLowonganCell');
+              if (cell) cell.innerHTML = detailLowonganEditorHtml(items);
+            } catch (error) {
+              saveButton.disabled = false;
+              if (status) {
+                status.className = 'detail-lowongan-status text-danger';
+                status.textContent = error.message || 'Gagal menyimpan';
+              }
+            }
+          });
+
           // Approve button logic
           const approveButtons = document.querySelectorAll('.approve-btn');
           approveButtons.forEach(function(btn) {
