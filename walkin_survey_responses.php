@@ -105,6 +105,7 @@ $hasWalkinBenefitCol = $hasResponseTable && column_exists($conn, 'walk_in_survey
 $hasWalkinBenefitReasonCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'walkin_benefit_reason');
 $hasRatingInformationClarityCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'rating_information_clarity');
 $hasRatingServiceIntegrityCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'rating_service_integrity');
+$hasSocialMediaSourcesCol = $hasResponseTable && column_exists($conn, 'walk_in_survey_responses', 'social_media_sources');
 if (!$hasResponseTable) {
     $_SESSION['error'] = 'Table walk_in_survey_responses belum ada. Jalankan migration Laravel terlebih dahulu.';
 }
@@ -438,7 +439,11 @@ $duplicateToggleUrl = 'walkin_survey_responses.php' . (!empty($duplicateToggleQu
                 </div>
                 <hr>
                 <div class="row g-2 small">
-                    <div class="col-md-6"><strong>Info source:</strong> <?php echo htmlspecialchars(implode(', ', decode_json_array($selected['info_sources']))); ?></div>
+                    <div class="col-md-12"><strong>Dari mana mengetahui Walk in Interview:</strong> <?php echo htmlspecialchars(implode(', ', decode_json_array($selected['info_sources']))); ?></div>
+                    <?php if ($hasSocialMediaSourcesCol): ?>
+                        <div class="col-md-12"><strong>Sosial media yang dipilih:</strong> <?php echo htmlspecialchars(implode(', ', decode_json_array($selected['social_media_sources'] ?? null)) ?: '-'); ?></div>
+                    <?php endif; ?>
+                    <div class="col-md-12"><strong>Sumber lainnya:</strong> <?php echo htmlspecialchars((string) ($selected['info_source_other'] ?? '-')); ?></div>
                     <div class="col-md-6"><strong>Job portal:</strong> <?php echo htmlspecialchars(implode(', ', decode_json_array($selected['job_portals']))); ?></div>
                     <div class="col-md-6"><strong>Kelebihan:</strong> <?php echo htmlspecialchars(implode(', ', decode_json_array($selected['strengths']))); ?></div>
                     <div class="col-md-6"><strong>Kurang/belum ada:</strong> <?php echo htmlspecialchars(implode(', ', decode_json_array($selected['missing_infos']))); ?></div>
@@ -564,8 +569,9 @@ document.addEventListener('DOMContentLoaded', function () {
             { key: 'gender', label: 'Jenis Kelamin' },
             { key: 'age_range', label: 'Umur' },
             { key: 'education', label: 'Pendidikan Terakhir' },
-            { key: 'info_sources', label: 'Dari mana Anda mendapatkan informasi mengenai Walk-In Interview ini?' },
-            { key: 'info_source_other', label: 'Dari mana Anda mendapatkan informasi mengenai Walk-In Interview ini? (Other)' },
+            { key: 'info_sources', label: 'Dari mana Anda mengetahui Walk in Interview yang diadakan di Pusat Pasar Kerja?' },
+            { key: 'social_media_sources', label: 'Sosial media yang dipilih' },
+            { key: 'info_source_other', label: 'Dari mana Anda mengetahui Walk in Interview yang diadakan di Pusat Pasar Kerja? (Other)' },
             { key: 'job_portals', label: 'Laman/aplikasi Job Portal yang paling sering Anda gunakan untuk mencari pekerjaan? (Boleh lebih dari satu jawaban)' },
             { key: 'job_portal_other', label: 'Laman/aplikasi Job Portal yang paling sering Anda gunakan untuk mencari pekerjaan? (Other)' },
             { key: 'strengths', label: 'Menurut Anda, apa saja kelebihan yang dimiliki oleh situs/aplikasi KarirHub selama ini?' },
