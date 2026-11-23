@@ -16,6 +16,23 @@ if (!(current_user_can('career_boost_day_manage') || current_user_can('manage_se
 
 function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 
+function decode_edit_payload(string $payload): ?array
+{
+    if ($payload === '') return null;
+
+    $payload = strtr($payload, '-_', '+/');
+    $padding = strlen($payload) % 4;
+    if ($padding !== 0) {
+        $payload .= str_repeat('=', 4 - $padding);
+    }
+
+    $decoded = base64_decode($payload, true);
+    if ($decoded === false) return null;
+
+    $data = json_decode($decoded, true);
+    return is_array($data) ? $data : null;
+}
+
 function fmt_ts_gmt7(?string $dt): string {
     $dt = trim((string)$dt);
     if ($dt === '') return '';
@@ -396,18 +413,24 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     }
 
     if ($action === 'edit') {
-        $name = trim((string)($_POST['name'] ?? ''));
-        $whatsapp = trim((string)($_POST['whatsapp'] ?? ''));
-        $email = trim((string)($_POST['email'] ?? ''));
-        $status = trim((string)($_POST['status'] ?? ''));
-        $jenis = trim((string)($_POST['jenis_konseling'] ?? ''));
+        // Text values are transported in one base64url JSON payload so values
+        // such as "S1/D4" do not cause false positives in the upstream WAF.
+        // Keep the legacy fields as a fallback for older cached page versions.
+        $editData = decode_edit_payload((string)($_POST['edit_payload'] ?? ''));
+        $source = $editData ?? $_POST;
+
+        $name = trim((string)($source['name'] ?? ''));
+        $whatsapp = trim((string)($source['whatsapp'] ?? ''));
+        $email = trim((string)($source['email'] ?? ''));
+        $status = trim((string)($source['status'] ?? ''));
+        $jenis = trim((string)($source['jenis_konseling'] ?? ''));
         // Submit only the numeric slot ID. Sending labels such as "s/d" in the
         // POST body can trigger false positives in the upstream web firewall.
-        $jadwalSlotId = intval($_POST['jadwal_slot_id'] ?? 0);
-        $pend = trim((string)($_POST['pendidikan_terakhir'] ?? ''));
-        $jurusan = trim((string)($_POST['jurusan'] ?? ''));
-        $bookedDate = trim((string)($_POST['booked_date'] ?? '')); // optional (YYYY-MM-DD)
-        $picId = intval($_POST['pic_id'] ?? 0); // optional, 0 means no PIC
+        $jadwalSlotId = intval($source['jadwal_slot_id'] ?? 0);
+        $pend = trim((string)($source['pendidikan_terakhir'] ?? ''));
+        $jurusan = trim((string)($source['jurusan'] ?? ''));
+        $bookedDate = trim((string)($source['booked_date'] ?? '')); // optional (YYYY-MM-DD)
+        $picId = intval($source['pic_id'] ?? 0); // optional, 0 means no PIC
 
         if ($name === '' || $whatsapp === '' || $email === '' || $status === '' || $jenis === '') {
             $_SESSION['error'] = 'Nama, WhatsApp, Email, Status, Jenis Konseling, dan Jadwal wajib diisi.';
@@ -955,31 +978,32 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
         <div class="modal-body">
           <input type="hidden" name="action" value="edit">
           <input type="hidden" name="id" id="edit_id" value="">
+          <input type="hidden" name="edit_payload" id="edit_payload" value="">
 
           <div class="row g-3">
             <div class="col-12 col-md-6">
               <label class="form-label">Nama</label>
-              <input class="form-control" name="name" id="edit_name" required>
+              <input class="form-control" id="edit_name" required>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Nomor WhatsApp</label>
-              <input class="form-control" name="whatsapp" id="edit_whatsapp" required>
+              <input class="form-control" id="edit_whatsapp" required>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Email</label>
-              <input class="form-control" name="email" id="edit_email" type="email" required>
+              <input class="form-control" id="edit_email" type="email" required>
             </div>
             <div class="col-12">
               <label class="form-label">Apakah Saudara/i</label>
-              <input class="form-control" name="status" id="edit_status" required>
+              <input class="form-control" id="edit_status" required>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Jenis Konseling</label>
-              <input class="form-control" name="jenis_konseling" id="edit_jenis" required>
+              <input class="form-control" id="edit_jenis" required>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Jadwal Konseling</label>
-              <select class="form-select" name="jadwal_slot_id" id="edit_jadwal" required>
+              <select class="form-select" id="edit_jadwal" required>
                 <option value="" disabled selected>Pilih jadwal</option>
                 <?php foreach ($slots as $s): ?>
                   <option value="<?php echo h($s['id']); ?>" data-label="<?php echo h($s['label']); ?>"><?php echo h($s['label']); ?></option>
@@ -989,12 +1013,12 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Tanggal Booked</label>
-              <input class="form-control" type="date" name="booked_date" id="edit_booked_date">
+              <input class="form-control" type="date" id="edit_booked_date">
               <div class="form-text">Opsional. Digunakan untuk tampilan kalender Booked.</div>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">PIC <span class="text-muted">(opsional)</span></label>
-              <select class="form-select" name="pic_id" id="edit_pic_id">
+              <select class="form-select" id="edit_pic_id">
                 <option value="0">- Tanpa PIC -</option>
                 <?php foreach ($pics as $p): ?>
                   <option value="<?php echo h($p['id']); ?>"><?php echo h($p['name']); ?></option>
@@ -1004,11 +1028,11 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
             </div>
             <div class="col-12">
               <label class="form-label">Pendidikan Terakhir</label>
-              <input class="form-control" name="pendidikan_terakhir" id="edit_pendidikan">
+              <input class="form-control" id="edit_pendidikan">
             </div>
             <div class="col-12">
               <label class="form-label">Jurusan <span class="text-muted">(opsional)</span></label>
-              <input class="form-control" name="jurusan" id="edit_jurusan" placeholder="(opsional)">
+              <input class="form-control" id="edit_jurusan" placeholder="(opsional)">
             </div>
           </div>
         </div>
@@ -1150,6 +1174,29 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
 
     var editModal = document.getElementById('editModal');
     if (editModal) {
+      var editForm = editModal.querySelector('form');
+      if (editForm) {
+        editForm.addEventListener('submit', function () {
+          var payload = {
+            name: document.getElementById('edit_name').value,
+            whatsapp: document.getElementById('edit_whatsapp').value,
+            email: document.getElementById('edit_email').value,
+            status: document.getElementById('edit_status').value,
+            jenis_konseling: document.getElementById('edit_jenis').value,
+            jadwal_slot_id: document.getElementById('edit_jadwal').value,
+            booked_date: document.getElementById('edit_booked_date').value,
+            pic_id: document.getElementById('edit_pic_id').value,
+            pendidikan_terakhir: document.getElementById('edit_pendidikan').value,
+            jurusan: document.getElementById('edit_jurusan').value
+          };
+          var bytes = new TextEncoder().encode(JSON.stringify(payload));
+          var binary = '';
+          for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          document.getElementById('edit_payload').value = btoa(binary)
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        });
+      }
+
       editModal.addEventListener('show.bs.modal', function (event) {
         var btn = event.relatedTarget;
         if (!btn) return;
