@@ -208,6 +208,31 @@ function slot_time_range_from_label(mysqli $conn, string $label): array
     return [$t1 ?: null, $t2 ?: null];
 }
 
+function active_slot_from_id(mysqli $conn, int $id): ?array
+{
+    if ($id <= 0 || !table_exists($conn, 'career_boostday_slots')) {
+        return null;
+    }
+
+    if ($stmt = $conn->prepare("SELECT label, time_start, time_finish FROM career_boostday_slots WHERE id=? AND is_active=1 LIMIT 1")) {
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $stmt->bind_result($label, $timeStart, $timeFinish);
+        if ($stmt->fetch()) {
+            $slot = [
+                'label' => (string)$label,
+                'time_start' => (string)$timeStart,
+                'time_finish' => (string)$timeFinish,
+            ];
+            $stmt->close();
+            return $slot;
+        }
+        $stmt->close();
+    }
+
+    return null;
+}
+
 function app_base_url(): string
 {
     $default = '/pasadmin/';
@@ -376,13 +401,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $email = trim((string)($_POST['email'] ?? ''));
         $status = trim((string)($_POST['status'] ?? ''));
         $jenis = trim((string)($_POST['jenis_konseling'] ?? ''));
-        $jadwal = trim((string)($_POST['jadwal_konseling'] ?? ''));
+        // Submit only the numeric slot ID. Sending labels such as "s/d" in the
+        // POST body can trigger false positives in the upstream web firewall.
+        $jadwalSlotId = intval($_POST['jadwal_slot_id'] ?? 0);
         $pend = trim((string)($_POST['pendidikan_terakhir'] ?? ''));
         $jurusan = trim((string)($_POST['jurusan'] ?? ''));
         $bookedDate = trim((string)($_POST['booked_date'] ?? '')); // optional (YYYY-MM-DD)
         $picId = intval($_POST['pic_id'] ?? 0); // optional, 0 means no PIC
 
-        if ($name === '' || $whatsapp === '' || $email === '' || $status === '' || $jenis === '' || $jadwal === '') {
+        if ($name === '' || $whatsapp === '' || $email === '' || $status === '' || $jenis === '') {
             $_SESSION['error'] = 'Nama, WhatsApp, Email, Status, Jenis Konseling, dan Jadwal wajib diisi.';
             header('Location: ' . $redir);
             exit;
@@ -393,16 +420,31 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             exit;
         }
 
-        // Check if this record is already accepted and has booked_date
-        // If so, recalculate booked_time_start and booked_time_finish from the new jadwal_konseling
+        // Check the existing workflow status and schedule.
         $currentStatus = '';
-        $currentBookedDate = '';
-        if ($checkStmt = $conn->prepare("SELECT admin_status, booked_date FROM career_boostday_consultations WHERE id=?")) {
+        $currentJadwal = '';
+        if ($checkStmt = $conn->prepare("SELECT admin_status, jadwal_konseling FROM career_boostday_consultations WHERE id=?")) {
             $checkStmt->bind_param('i', $id);
             $checkStmt->execute();
-            $checkStmt->bind_result($currentStatus, $currentBookedDate);
+            $checkStmt->bind_result($currentStatus, $currentJadwal);
             $checkStmt->fetch();
             $checkStmt->close();
+        }
+
+        $selectedSlot = active_slot_from_id($conn, $jadwalSlotId);
+        if ($jadwalSlotId > 0 && !$selectedSlot) {
+            $_SESSION['error'] = 'Jadwal yang dipilih tidak valid atau sudah tidak aktif.';
+            header('Location: ' . $redir);
+            exit;
+        }
+
+        // ID 0 is used only to preserve a legacy/inactive schedule already on
+        // the record; new selections always use an active numeric slot ID.
+        $jadwal = $selectedSlot ? $selectedSlot['label'] : trim((string)$currentJadwal);
+        if ($jadwal === '') {
+            $_SESSION['error'] = 'Jadwal wajib dipilih.';
+            header('Location: ' . $redir);
+            exit;
         }
 
         // For accepted records, PIC must be assigned during edit.
@@ -415,10 +457,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $timeStart = null;
         $timeFinish = null;
         
-        // If record is accepted and has booked_date, recalculate time from new slot
-        if ($currentStatus === 'accepted' && !empty($currentBookedDate)) {
-            // Prefer slot table lookup, fallback to parsing label format
-            [$timeStart, $timeFinish] = slot_time_range_from_label($conn, $jadwal);
+        // If the edited accepted record has a booked date, recalculate its
+        // booked times from the selected schedule.
+        if ($currentStatus === 'accepted' && $bookedDate !== '') {
+            if ($selectedSlot) {
+                $timeStart = $selectedSlot['time_start'];
+                $timeFinish = $selectedSlot['time_finish'];
+            } else {
+                // Legacy/inactive schedules are resolved by their stored label.
+                [$timeStart, $timeFinish] = slot_time_range_from_label($conn, $jadwal);
+            }
             if (!$timeStart || !$timeFinish) {
                 [$timeStart, $timeFinish] = parse_time_range_from_slot($jadwal);
             }
@@ -931,10 +979,10 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Jadwal Konseling</label>
-              <select class="form-select" name="jadwal_konseling" id="edit_jadwal" required>
+              <select class="form-select" name="jadwal_slot_id" id="edit_jadwal" required>
                 <option value="" disabled selected>Pilih jadwal</option>
                 <?php foreach ($slots as $s): ?>
-                  <option value="<?php echo h($s['label']); ?>"><?php echo h($s['label']); ?></option>
+                  <option value="<?php echo h($s['id']); ?>" data-label="<?php echo h($s['label']); ?>"><?php echo h($s['label']); ?></option>
                 <?php endforeach; ?>
               </select>
               <div class="form-text">Daftar jadwal dapat dikelola di menu Jadwal.</div>
@@ -1117,15 +1165,20 @@ if ($dateTo !== '') $baseQuery .= '&date_to=' . urlencode($dateTo);
           // Ensure current value is selectable even if not in active slot list
           var exists = false;
           for (var i = 0; i < jadwalEl.options.length; i++) {
-            if (jadwalEl.options[i].value === jadwalVal) { exists = true; break; }
+            if (jadwalEl.options[i].getAttribute('data-label') === jadwalVal) {
+              jadwalEl.value = jadwalEl.options[i].value;
+              exists = true;
+              break;
+            }
           }
           if (!exists && jadwalVal) {
             var opt = document.createElement('option');
-            opt.value = jadwalVal;
+            opt.value = '0';
+            opt.setAttribute('data-label', jadwalVal);
             opt.text = jadwalVal + ' (custom)';
             jadwalEl.appendChild(opt);
+            jadwalEl.value = '0';
           }
-          jadwalEl.value = jadwalVal;
         }
         document.getElementById('edit_pendidikan').value = btn.getAttribute('data-pendidikan') || '';
         var jurEl = document.getElementById('edit_jurusan');
