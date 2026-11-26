@@ -116,8 +116,8 @@
     $hasDashboard = ($canDashKebutuhan || $canDashPersediaan || $canDashBlk || $canDashIntegrasiKarirhubMitra || $canDashIntegrasiKarirhubPemda || $canDashPengembanganEkosistem || $canKemitraanMonitoring || current_user_can('manage_settings'));
     $hasBlk = ($canDashBlk || $canManageSettings);
     
-    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canTopicData || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canIntegrasiKarirhubPemdaSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canAuditTrails || $canMaintenanceMessage || $canHomePopup || $canUpdatePackage);
     $hasApiKeys = ($canManageSettings || $canApiKeys || $canPaskerConnectApiManage);
+    $hasSettings = ($canManageSettings || $canChart || $canContribution || $canInformation || $canNews || $canServices || $canStatistics || $canTestimonials || $canTopList || $canTopicData || $canAgenda || $canJobFair || $canVirtualKarir || $canMitraKerja || $canIntegrasiKarirhubMitraSettings || $canIntegrasiKarirhubPemdaSettings || $canAccessControl || $canBroadcast || $canEmailNotification || $canIframe || $canAuditTrails || $canMaintenanceMessage || $canHomePopup || $canUpdatePackage || $hasApiKeys);
     $canCareerBoostDay = current_user_can('career_boost_day_manage') || $canManageSettings;
     $canCareerBoostDayPic = current_user_can('career_boost_day_pic_manage') || $canManageSettings;
     $canCareerBoostDayBooked = current_user_can('career_boost_day_booked_view') || $canManageSettings;
@@ -271,18 +271,6 @@
                     </ul>
                 </li>
                 <?php endif; ?>
-                <?php if ($hasApiKeys): ?>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="apiKeyDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        API Key
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="apiKeyDropdown">
-                        <li><a class="dropdown-item" href="<?php echo $rootUrl; ?>api_keys">API Key Job Seekers</a></li>
-                        <?php if ($canPaskerConnectApiManage): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>pasker_connect_api_clients">Pasker Connect API Clients</a></li><?php endif; ?>
-                    </ul>
-                </li>
-                <?php endif; ?>
-                
                 <?php if ($hasSettings): ?>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -324,6 +312,12 @@
                         <?php if ($canManageSettings || $canIframe): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>iframe/karirhub_iframe3">Karirhub iFrame 3</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canMaintenanceMessage): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>maintenance_message_settings">Maintenance Message Settings</a></li><?php endif; ?>
                         <?php if ($canManageSettings || $canHomePopup): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>home_popup_settings">Home Popup Settings</a></li><?php endif; ?>
+                        <?php if ($hasApiKeys): ?>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">API Key</h6></li>
+                        <?php if ($canManageSettings || $canApiKeys): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>api_keys">API Key Job Seekers</a></li><?php endif; ?>
+                        <?php if ($canPaskerConnectApiManage): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>pasker_connect_api_clients">Pasker Connect API Clients</a></li><?php endif; ?>
+                        <?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <?php if ($canManageSettings): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>cron_settings">Other Settings</a></li><?php endif; ?>
                         <?php if ($canUpdatePackage): ?><li><a class="dropdown-item" href="<?php echo $rootUrl; ?>update_package">Update Package</a></li><?php endif; ?>
