@@ -111,6 +111,7 @@ function ac_seed_permissions(mysqli $conn): void {
 		['karirhub_employer_prototype_monitoring_laporan_view','Karirhub Employer Prototype: View Dashboard Monitoring Laporan Lowongan Kerja','Karirhub Employer Prototype'],
 		['karirhub_employer_prototype_ews_view','Karirhub Employer Prototype: View Early Warning System','Karirhub Employer Prototype'],
 		['karirhub_employer_prototype_employer_individu_view','Karirhub Employer Prototype: View Employer Individu','Karirhub Employer Prototype'],
+		['joss_v3_prototype_view','Karirhub Employer Prototype: View JOSS V3.0','Karirhub Employer Prototype'],
 		['admin_review_laporan_prototype_view','Admin Review Laporan Prototype: View Menu','Admin Review Prototype'],
 		['pasker_connect_api_manage','Pasker Connect API: Manage External Clients','API'],
 		['use_broadcast','Use Broadcast','Tools'],

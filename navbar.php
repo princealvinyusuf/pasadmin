@@ -148,6 +148,7 @@
     $canKhProtoEmployerProfilPemberiKerjaMenu = $canKhProtoEmployerProfilPemberiKerja && $showKhProtoEmployerProfilPemberiKerjaMenu;
     $canKhProtoMonitoringLaporan = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_monitoring_laporan_view');
     $canKhProtoEws = $canKhProtoGlobal || current_user_can('karirhub_employer_prototype_ews_view');
+    $canJossV3Prototype = $canKhProtoGlobal || current_user_can('joss_v3_prototype_view');
     $canAdminReviewLaporanPrototype = current_user_can('admin_review_laporan_prototype_view') || $canManageSettings;
     $hasSettings = $hasSettings || $canKhProtoEws;
     $canKarirhubEmployerPrototype = (
@@ -162,6 +163,7 @@
         || $canKhProtoEmployerDetailLowongan
         || $canKhProtoEmployerProfilPemberiKerjaMenu
         || $canKhProtoMonitoringLaporan
+        || $canJossV3Prototype
         || $canAdminReviewLaporanPrototype
     );
 
@@ -399,6 +401,17 @@
                         <?php if ($canKhProtoEmployerDetailLowongan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_employer_detail_lowongan"><i class="bi bi-briefcase-fill me-1"></i>Dashboard Employer - Detail Lowongan</a></li><?php endif; ?>
                         <?php if ($canKhProtoEmployerProfilPemberiKerjaMenu): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_employer_profil_pemberi_kerja"><i class="bi bi-building-check me-1"></i>Dashboard Employer - Profil Pemberi Kerja</a></li><?php endif; ?>
                         <?php if ($canKhProtoMonitoringLaporan): ?><li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>karirhub_employer_prototype_dashboard_monitoring_laporan"><i class="bi bi-graph-up-arrow me-1"></i>Dashboard Monitoring Laporan Lowongan Kerja</a></li><?php endif; ?>
+                        <?php if ($canJossV3Prototype): ?>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">JOSS V3.0</h6></li>
+                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>joss_v3/dashboard"><i class="bi bi-grid-1x2 me-1"></i>Overview</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>joss_v3/clients"><i class="bi bi-shield-lock me-1"></i>Client Permissions</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>joss_v3/fields"><i class="bi bi-ui-checks-grid me-1"></i>DCF &amp; Vacancies</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>joss_v3/verification"><i class="bi bi-patch-check me-1"></i>Verification &amp; Routing</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>joss_v3/application_schema"><i class="bi bi-card-checklist me-1"></i>Application Schema</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>joss_v3/apply"><i class="bi bi-person-check me-1"></i>Apply Simulation</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $rootPrefix; ?>joss_v3/delivery"><i class="bi bi-send-check me-1"></i>Delivery Monitor</a></li>
+                        <?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>

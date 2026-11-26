@@ -204,6 +204,12 @@ register_menu_permission(
 );
 register_menu_permission(
 	$conn,
+	'joss_v3_prototype_view',
+	'Karirhub Employer Prototype: View JOSS V3.0',
+	'Karirhub Employer Prototype'
+);
+register_menu_permission(
+	$conn,
 	'admin_review_laporan_prototype_view',
 	'Admin Review Laporan Prototype: View Menu',
 	'Admin Review Prototype'
